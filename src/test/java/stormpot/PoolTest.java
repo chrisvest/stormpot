@@ -11,9 +11,10 @@ import org.junit.runner.RunWith;
 
 @RunWith(Theories.class)
 public class PoolTest {
+  private static final Config config = new Config();
+  
   @DataPoints
   public static PoolFixture[] pools() {
-    Config config = new Config();
     return new PoolFixture[] {
         basicPool(config),
     };
