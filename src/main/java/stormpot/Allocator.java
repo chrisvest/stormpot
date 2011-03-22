@@ -1,6 +1,6 @@
 package stormpot;
 
-public interface ObjectSource<T extends Poolable> {
+public interface Allocator<T extends Poolable> {
 
   T allocate();
 

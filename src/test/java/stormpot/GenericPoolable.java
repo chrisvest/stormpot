@@ -1,9 +1,9 @@
 package stormpot;
 
 public class GenericPoolable implements Poolable {
-  private final ObjectSource objectSource;
+  private final Allocator objectSource;
 
-  public GenericPoolable(ObjectSource objectSource) {
+  public GenericPoolable(Allocator objectSource) {
     this.objectSource = objectSource;
   }
 

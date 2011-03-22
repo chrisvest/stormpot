@@ -34,6 +34,6 @@ public class PoolTest {
   mustGetPooledObjectsFromObjectSource(PoolFixture fixture) {
     Pool pool = fixture.initPool();
     pool.claim();
-    verify(fixture.objectSourceMock(), atLeast(1)).allocate();
+    verify(fixture.allocatorMock(), atLeast(1)).allocate();
   }
 }

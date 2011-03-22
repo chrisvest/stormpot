@@ -4,7 +4,7 @@ import static org.mockito.Mockito.*;
 
 public class BasicPoolFixture implements PoolFixture {
 
-  private ObjectSource objectSource;
+  private Allocator allocator;
   private Config config;
 
   public BasicPoolFixture(Config config) {
@@ -12,15 +12,15 @@ public class BasicPoolFixture implements PoolFixture {
   }
 
   public Pool initPool() {
-    objectSource = mock(ObjectSource.class);
-    Poolable poolable = new GenericPoolable(objectSource);
-    when(objectSource.allocate()).thenReturn(poolable);
-    BasicPool pool = new BasicPool(config, objectSource);
+    allocator = mock(Allocator.class);
+    Poolable poolable = new GenericPoolable(allocator);
+    when(allocator.allocate()).thenReturn(poolable);
+    BasicPool pool = new BasicPool(config, allocator);
     return pool;
   }
 
-  public ObjectSource objectSourceMock() {
-    return objectSource;
+  public Allocator allocatorMock() {
+    return allocator;
   }
 
 }
