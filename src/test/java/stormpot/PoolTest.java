@@ -2,6 +2,7 @@ package stormpot;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
@@ -26,10 +27,13 @@ public class PoolTest {
   mustContainObjects(PoolFixture fixture) {
     Pool pool = fixture.initPool();
     Poolable obj = pool.claim();
-    try {
-      assertThat(obj, not(nullValue()));
-    } finally {
-      obj.release();
-    }
+    assertThat(obj, not(nullValue()));
+  }
+  
+  @Theory public void
+  mustGetPooledObjectsFromObjectSource(PoolFixture fixture) {
+    Pool pool = fixture.initPool();
+    pool.claim();
+    verify(fixture.objectSourceMock(), atLeast(1)).allocate();
   }
 }

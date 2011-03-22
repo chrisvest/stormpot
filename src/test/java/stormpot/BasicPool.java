@@ -1,16 +1,14 @@
 package stormpot;
 
-public class BasicPool implements Pool {
+public class BasicPool<T extends Poolable> implements Pool<T> {
 
-  public BasicPool(Config config) {
-    // TODO Auto-generated constructor stub
+  private final ObjectSource<? extends T> objectSource;
+
+  public BasicPool(Config config, ObjectSource<? extends T> objectSource) {
+    this.objectSource = objectSource;
   }
 
-  public Poolable claim() {
-    return new Poolable() {
-      public void release() {
-      }
-    };
+  public T claim() {
+    return objectSource.allocate();
   }
-
 }

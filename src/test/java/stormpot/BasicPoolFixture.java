@@ -1,7 +1,10 @@
 package stormpot;
 
+import static org.mockito.Mockito.*;
+
 public class BasicPoolFixture implements PoolFixture {
 
+  private ObjectSource objectSource;
   private Config config;
 
   public BasicPoolFixture(Config config) {
@@ -9,7 +12,15 @@ public class BasicPoolFixture implements PoolFixture {
   }
 
   public Pool initPool() {
-    return new BasicPool(config);
+    objectSource = mock(ObjectSource.class);
+    Poolable poolable = new GenericPoolable(objectSource);
+    when(objectSource.allocate()).thenReturn(poolable);
+    BasicPool pool = new BasicPool(config, objectSource);
+    return pool;
+  }
+
+  public ObjectSource objectSourceMock() {
+    return objectSource;
   }
 
 }

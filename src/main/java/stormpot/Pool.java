@@ -1,7 +1,5 @@
 package stormpot;
 
-public interface Pool {
-
-  Poolable claim();
-
+public interface Pool<T extends Poolable> {
+  T claim();
 }
