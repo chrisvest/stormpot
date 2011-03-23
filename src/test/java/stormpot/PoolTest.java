@@ -72,4 +72,7 @@ public class PoolTest {
   preventConstructionOfPoolsOfSizeLessThanOne(PoolFixture fixture) {
     fixture.initPool(config.copy().goInsane().setSize(0));
   }
+  
+  // TODO cannot claim from pool that is shut down
+  // TODO must replace expired Poolables
 }
