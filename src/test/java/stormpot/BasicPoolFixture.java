@@ -10,6 +10,10 @@ public class BasicPoolFixture implements PoolFixture {
   }
 
   public Pool initPool() {
+    return initPool(config);
+  }
+  
+  public Pool initPool(Config config) {
     allocator = new CountingAllocatorWrapper(new GenericAllocator());
     BasicPool pool = new BasicPool(config, allocator);
     return pool;
