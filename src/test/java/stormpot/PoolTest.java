@@ -66,4 +66,10 @@ public class PoolTest {
     pool.claim().release();
     assertThat(fixture.allocations(), is(1));
   }
+  
+  @Test(expected = IllegalArgumentException.class)
+  @Theory public void
+  preventConstructionOfPoolsOfSizeLessThanOne(PoolFixture fixture) {
+    fixture.initPool(config.copy().goInsane().setSize(0));
+  }
 }

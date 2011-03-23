@@ -16,7 +16,12 @@ public class BasicPool<T extends Poolable> implements Pool<T> {
 
   public BasicPool(Config config, Allocator<? extends T> objectSource) {
     synchronized (config) {
-      this.pool = new Poolable[config.getSize()];
+      int size = config.getSize();
+      if (size < 1) {
+        throw new IllegalArgumentException(
+            "size must be at least 1, but was " + size);
+      }
+      this.pool = new Poolable[size];
     }
     this.allocator = objectSource;
     this.count = new AtomicInteger();
