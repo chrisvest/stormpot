@@ -1,9 +1,13 @@
 package stormpot;
 
+import java.util.concurrent.TimeUnit;
+
 public class Config {
 
   private int size = 10;
   private boolean sane = true;
+  private long ttl = 10;
+  private TimeUnit ttlUnit = TimeUnit.MINUTES;
 
   public synchronized Config copy() {
     Config config = new Config();
@@ -27,5 +31,22 @@ public class Config {
   public synchronized Config goInsane() {
     sane = false;
     return this;
+  }
+
+  public synchronized Config setTTL(long ttl, TimeUnit unit) {
+    if (sane && unit == null) {
+      throw new IllegalArgumentException("unit cannot be null");
+    }
+    this.ttl = ttl;
+    this.ttlUnit = unit;
+    return this;
+  }
+
+  public synchronized long getTTL() {
+    return ttl;
+  }
+
+  public synchronized TimeUnit getTTLUnit() {
+    return ttlUnit;
   }
 }

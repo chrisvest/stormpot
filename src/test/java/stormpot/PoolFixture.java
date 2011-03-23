@@ -4,7 +4,7 @@ public interface PoolFixture {
 
   Pool initPool();
 
-  Pool initPool(Config setSize);
+  Pool initPool(Config config);
 
   int allocations();
 }
