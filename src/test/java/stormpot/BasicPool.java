@@ -5,7 +5,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class BasicPool<T extends Poolable> implements Pool<T> {
+public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
 
   private final Allocator<? extends T> allocator;
   private final Poolable[] pool;
@@ -13,6 +13,7 @@ public class BasicPool<T extends Poolable> implements Pool<T> {
   private final AtomicInteger count;
   private final Lock lock;
   private final Condition released;
+  private boolean shutdown;
 
   public BasicPool(Config config, Allocator<? extends T> objectSource) {
     synchronized (config) {
@@ -40,6 +41,9 @@ public class BasicPool<T extends Poolable> implements Pool<T> {
   public T claim() {
     lock.lock();
     try {
+      if (shutdown) {
+        throw new IllegalStateException("pool is shut down");
+      }
       int index = count.get();
       while (index == pool.length) {
         released.awaitUninterruptibly();
@@ -54,5 +58,11 @@ public class BasicPool<T extends Poolable> implements Pool<T> {
     } finally {
       lock.unlock();
     }
+  }
+
+  public void shutdown() {
+    lock.lock();
+    shutdown = true;
+    lock.unlock();
   }
 }

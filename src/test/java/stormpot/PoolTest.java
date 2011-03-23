@@ -2,6 +2,7 @@ package stormpot;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
+import static org.junit.Assume.*;
 import static stormpot.UnitKit.*;
 
 import org.junit.Test;
@@ -73,6 +74,17 @@ public class PoolTest {
     fixture.initPool(config.copy().goInsane().setSize(0));
   }
   
-  // TODO cannot claim from pool that is shut down
+  @Test
+  @Theory public void
+  preventClaimFromPoolThatIsShutDown(PoolFixture fixture) {
+    Pool pool = fixture.initPool();
+    assumeThat(pool, instanceOf(LifecycledPool.class));
+    ((LifecycledPool) pool).shutdown();
+    try {
+      pool.claim();
+      fail("pool.claim() should have thrown");
+    } catch (IllegalStateException _) {}
+  }
+  
   // TODO must replace expired Poolables
 }
