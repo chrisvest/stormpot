@@ -5,6 +5,8 @@ import static org.junit.Assert.*;
 import static org.junit.Assume.*;
 import static stormpot.UnitKit.*;
 
+import java.util.concurrent.TimeUnit;
+
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
@@ -74,7 +76,6 @@ public class PoolTest {
     fixture.initPool(config.copy().goInsane().setSize(0));
   }
   
-  @Test
   @Theory public void
   preventClaimFromPoolThatIsShutDown(PoolFixture fixture) {
     Pool pool = fixture.initPool();
@@ -86,5 +87,12 @@ public class PoolTest {
     } catch (IllegalStateException _) {}
   }
   
-  // TODO must replace expired Poolables
+  @Theory public void
+  mustReplaceExpiredPoolables(PoolFixture fixture) {
+    Pool pool = fixture.initPool(
+        config.copy().goInsane().setTTL(-1L, TimeUnit.MILLISECONDS));
+    pool.claim().release();
+    pool.claim().release();
+    assertThat(fixture.allocations(), is(2));
+  }
 }
