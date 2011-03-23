@@ -1,13 +1,13 @@
 package stormpot;
 
 public class GenericPoolable implements Poolable {
-  private final Allocator objectSource;
+  private final Slot slot;
 
-  public GenericPoolable(Allocator objectSource) {
-    this.objectSource = objectSource;
+  public GenericPoolable(Slot slot) {
+    this.slot = slot;
   }
 
   public void release() {
-    objectSource.free(this);
+    slot.release();
   }
 }

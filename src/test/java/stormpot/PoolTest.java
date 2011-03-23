@@ -2,7 +2,6 @@ package stormpot;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
@@ -35,6 +34,6 @@ public class PoolTest {
   mustGetPooledObjectsFromObjectSource(PoolFixture fixture) {
     Pool pool = fixture.initPool();
     pool.claim();
-    verify(fixture.allocatorMock(), atLeast(1)).allocate();
+    assertThat(fixture.allocations(), is(greaterThan(0)));
   }
 }

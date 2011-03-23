@@ -1,10 +1,8 @@
 package stormpot;
 
-import static org.mockito.Mockito.*;
-
 public class BasicPoolFixture implements PoolFixture {
 
-  private Allocator allocator;
+  private CountingAllocatorWrapper allocator;
   private Config config;
 
   public BasicPoolFixture(Config config) {
@@ -12,15 +10,12 @@ public class BasicPoolFixture implements PoolFixture {
   }
 
   public Pool initPool() {
-    allocator = mock(Allocator.class);
-    Poolable poolable = new GenericPoolable(allocator);
-    when(allocator.allocate()).thenReturn(poolable);
+    allocator = new CountingAllocatorWrapper(new GenericAllocator());
     BasicPool pool = new BasicPool(config, allocator);
     return pool;
   }
 
-  public Allocator allocatorMock() {
-    return allocator;
+  public int allocations() {
+    return allocator.countAllocations();
   }
-
 }

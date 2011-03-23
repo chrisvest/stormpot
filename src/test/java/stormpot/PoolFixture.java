@@ -4,5 +4,5 @@ public interface PoolFixture {
 
   Pool initPool();
 
-  Allocator allocatorMock();
+  int allocations();
 }
