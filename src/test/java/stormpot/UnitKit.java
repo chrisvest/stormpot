@@ -42,5 +42,13 @@ public class UnitKit {
       currentState = thread.getState();
     }
   }
+  
+  public static void join(Thread thread) {
+    try {
+      thread.join();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+  }
 
 }

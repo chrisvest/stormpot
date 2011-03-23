@@ -48,4 +48,14 @@ public class PoolTest {
     waitForThreadState(thread, Thread.State.WAITING);
   }
   
+  @Test(timeout = 300)
+  @Theory public void
+  blockingOnClaimMustResumeWhenPoolablesAreReleased(PoolFixture fixture) {
+    Pool pool = fixture.initPool(config.copy().setSize(1));
+    Poolable obj = pool.claim();
+    Thread thread = fork($claim(pool));
+    waitForThreadState(thread, Thread.State.WAITING);
+    obj.release();
+    join(thread);
+  }
 }
