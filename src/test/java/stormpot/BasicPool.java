@@ -62,7 +62,10 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
 
   public void shutdown() {
     lock.lock();
-    shutdown = true;
-    lock.unlock();
+    try {
+      shutdown = true;
+    } finally {
+      lock.unlock();
+    }
   }
 }
