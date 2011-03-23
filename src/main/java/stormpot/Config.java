@@ -6,6 +6,7 @@ public class Config {
 
   public synchronized Config copy() {
     Config config = new Config();
+    config.setSize(size);
     return config;
   }
 

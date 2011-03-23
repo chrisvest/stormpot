@@ -12,7 +12,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(Theories.class)
 public class PoolTest {
-  private static final Config config = new Config();
+  private static final Config config = new Config().setSize(1);
   
   @DataPoints
   public static PoolFixture[] pools() {
@@ -42,7 +42,7 @@ public class PoolTest {
   @Test(timeout = 300)
   @Theory public void
   blockingClaimMustWaitIfPoolIsEmpty(PoolFixture fixture) {
-    Pool pool = fixture.initPool(config.copy().setSize(1));
+    Pool pool = fixture.initPool();
     pool.claim();
     Thread thread = fork($claim(pool));
     waitForThreadState(thread, Thread.State.WAITING);
@@ -51,11 +51,19 @@ public class PoolTest {
   @Test(timeout = 300)
   @Theory public void
   blockingOnClaimMustResumeWhenPoolablesAreReleased(PoolFixture fixture) {
-    Pool pool = fixture.initPool(config.copy().setSize(1));
+    Pool pool = fixture.initPool();
     Poolable obj = pool.claim();
     Thread thread = fork($claim(pool));
     waitForThreadState(thread, Thread.State.WAITING);
     obj.release();
     join(thread);
+  }
+  
+  @Theory public void
+  mustReuseAllocatedObjects(PoolFixture fixture) {
+    Pool pool = fixture.initPool();
+    pool.claim().release();
+    pool.claim().release();
+    assertThat(fixture.allocations(), is(1));
   }
 }
