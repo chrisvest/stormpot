@@ -118,20 +118,20 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
     }
     
     public void run() {
-      for (int index = 0; index < pool.length; index++) {
-        lock.lock();
-        try {
-          if (slots[index] == null) {
-            continue;
-          }
-          while(slots[index].isClaimed()) {
-            released.awaitUninterruptibly();
-          }
-          allocator.deallocate(pool[index]);
-        } finally {
-          completionLatch.countDown();
-          lock.unlock();
+      lock.lock();
+      try {
+        for (int index = 0; index < pool.length; index++) {
+            if (slots[index] == null) {
+              continue;
+            }
+            while(slots[index].isClaimed()) {
+              released.awaitUninterruptibly();
+            }
+            allocator.deallocate(pool[index]);
         }
+      } finally {
+        completionLatch.countDown();
+        lock.unlock();
       }
     }
 
@@ -141,7 +141,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
 
     public boolean await(long timeout, TimeUnit unit)
         throws InterruptedException {
-      return true;
+      return completionLatch.await(timeout, unit);
     }
   }
 }

@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import static stormpot.UnitKit.*;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoints;
@@ -136,5 +137,39 @@ public class PoolTest {
     assertThat(fixture.deallocations(), is(0));
   }
   
-  // TODO shutdown await and await-with-timeout
+  @Test(timeout = 300)
+  @Theory public void
+  awaitOnShutdownMustReturnWhenClaimedObjectsAreReleased(PoolFixture fixture) {
+    Pool pool = fixture.initPool();
+    Poolable obj = pool.claim();
+    Completion completion = shutdown(pool);
+    Thread thread = fork($await(completion));
+    waitForThreadState(thread, Thread.State.WAITING);
+    obj.release();
+    join(thread);
+  }
+  
+  @Test(timeout = 300)
+  @Theory public void
+  awaitWithTimeoutMustReturnFalseIfTimeoutElapses(PoolFixture fixture)
+  throws Exception {
+    Pool pool = fixture.initPool();
+    pool.claim();
+    assertFalse(shutdown(pool).await(1, TimeUnit.MILLISECONDS));
+  }
+  
+  @Test(timeout = 300)
+  @Theory public void
+  awaitWithTimeoutMustReturnTrueIfCompletesWithinTimeout(PoolFixture fixture) {
+    Pool pool = fixture.initPool();
+    Poolable obj = pool.claim();
+    AtomicBoolean result = new AtomicBoolean(false);
+    Completion completion = shutdown(pool);
+    Thread thread =
+      fork($await(completion, 500, TimeUnit.MILLISECONDS, result));
+    waitForThreadState(thread, Thread.State.TIMED_WAITING);
+    obj.release();
+    join(thread);
+    assertTrue(result.get());
+  }
 }
