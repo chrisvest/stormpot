@@ -7,4 +7,6 @@ public interface PoolFixture {
   Pool initPool(Config config);
 
   int allocations();
+
+  int deallocations();
 }

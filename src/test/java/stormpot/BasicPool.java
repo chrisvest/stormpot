@@ -1,5 +1,7 @@
 package stormpot;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -9,6 +11,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
 
   private final Allocator<? extends T> allocator;
   private final Poolable[] pool;
+  private final BasicSlot[] slots;
   private final AtomicInteger count;
   private final Lock lock;
   private final Condition released;
@@ -23,6 +26,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
             "size must be at least 1, but was " + size);
       }
       this.pool = new Poolable[size];
+      this.slots = new BasicSlot[size];
       this.ttlMillis = config.getTTLUnit().toMillis(config.getTTL());
     }
     this.allocator = objectSource;
@@ -42,10 +46,14 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
         released.awaitUninterruptibly();
         index = count.get();
       }
+      // TODO another shutdown check
       Poolable obj = pool[index];
+      BasicSlot slot = slots[index];
       if (obj == null) {
-        obj = pool[index] = allocator.allocate(slot(index));
+        slot = slots[index] = slot(index);
+        obj = pool[index] = allocator.allocate(slot);
       }
+      slot.claim();
       count.incrementAndGet();
       return (T) obj;
     } finally {
@@ -53,27 +61,87 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
     }
   }
 
-  private Slot slot(final int index) {
-    final long expires = System.currentTimeMillis() + ttlMillis;
-    return new Slot() {
-      public void release() {
-        lock.lock();
-        if (System.currentTimeMillis() > expires) {
-          pool[index] = null;
-        }
-        count.decrementAndGet();
-        released.signal();
-        lock.unlock();
-      }
-    };
+  private BasicSlot slot(final int index) {
+    return new BasicSlot(index, this);
   }
 
-  public void shutdown() {
+  public Completion shutdown() {
     lock.lock();
     try {
       shutdown = true;
+      ShutdownTask shutdownTask = new ShutdownTask();
+      shutdownTask.start();
+      return shutdownTask;
     } finally {
       lock.unlock();
+    }
+  }
+
+  private final static class BasicSlot implements Slot {
+    private final int index;
+    private final long expires;
+    private boolean claimed;
+    private final BasicPool bpool;
+
+    private BasicSlot(int index, BasicPool bpool) {
+      this.index = index;
+      this.bpool = bpool;
+      this.expires = System.currentTimeMillis() + bpool.ttlMillis;
+    }
+
+    public void claim() {
+      claimed = true;
+    }
+    
+    public boolean isClaimed() {
+      return claimed;
+    }
+
+    public void release() {
+      bpool.lock.lock();
+      if (System.currentTimeMillis() > expires) {
+        bpool.allocator.deallocate(bpool.pool[index]);
+        bpool.pool[index] = null;
+      }
+      claimed = false;
+      bpool.count.decrementAndGet();
+      bpool.released.signalAll();
+      bpool.lock.unlock();
+    }
+  }
+
+  public class ShutdownTask extends Thread implements Completion {
+    private final CountDownLatch completionLatch;
+    
+    public ShutdownTask() {
+      completionLatch = new CountDownLatch(1);
+    }
+    
+    public void run() {
+      for (int index = 0; index < pool.length; index++) {
+        lock.lock();
+        try {
+          if (slots[index] == null) {
+            continue;
+          }
+          while(slots[index].isClaimed()) {
+            released.awaitUninterruptibly();
+          }
+          allocator.deallocate(pool[index]);
+        } finally {
+          completionLatch.countDown();
+          lock.unlock();
+        }
+      }
+    }
+
+    public void await() throws InterruptedException {
+      completionLatch.await();
+    }
+
+    public boolean await(long timeout, TimeUnit unit)
+        throws InterruptedException {
+      return true;
     }
   }
 }

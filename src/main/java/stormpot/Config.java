@@ -28,7 +28,7 @@ public class Config {
     return size;
   }
 
-  public synchronized Config goInsane() {
+  synchronized Config goInsane() {
     sane = false;
     return this;
   }

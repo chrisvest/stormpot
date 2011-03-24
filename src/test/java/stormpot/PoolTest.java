@@ -2,7 +2,6 @@ package stormpot;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
-import static org.junit.Assume.*;
 import static stormpot.UnitKit.*;
 
 import java.util.concurrent.TimeUnit;
@@ -79,14 +78,13 @@ public class PoolTest {
   @Theory public void
   preventClaimFromPoolThatIsShutDown(PoolFixture fixture) {
     Pool pool = fixture.initPool();
-    assumeThat(pool, instanceOf(LifecycledPool.class));
-    ((LifecycledPool) pool).shutdown();
+    shutdown(pool);
     try {
       pool.claim();
       fail("pool.claim() should have thrown");
     } catch (IllegalStateException _) {}
   }
-  
+
   @Theory public void
   mustReplaceExpiredPoolables(PoolFixture fixture) {
     Pool pool = fixture.initPool(
@@ -95,4 +93,48 @@ public class PoolTest {
     pool.claim().release();
     assertThat(fixture.allocations(), is(2));
   }
+  
+  @Theory public void
+  mustDeallocateExpiredPoolablesAndStayWithinSizeLimit(PoolFixture fixture) {
+    Pool pool = fixture.initPool(
+        config.copy().goInsane().setTTL(-1L, TimeUnit.MILLISECONDS));
+    pool.claim().release();
+    pool.claim().release();
+    assertThat(fixture.deallocations(), is(greaterThanOrEqualTo(1)));
+    // We use greaterThanOrEqualTo because we cannot say whether the second
+    // release() will deallocate as well - deallocation might be done
+    // asynchronously. However, because the pool is not allowed to be larger
+    // than 1, we can say for sure that the Poolable we claim first *must*
+    // be deallocated before the allocation in the second claim.
+  }
+  
+  @Theory public void
+  mustDeallocateAllPoolablesBeforeShutdownTaskReturns(PoolFixture fixture)
+  throws Exception {
+    Pool pool = fixture.initPool(config.copy().setSize(2));
+    Poolable p1 = pool.claim();
+    Poolable p2 = pool.claim();
+    p1.release();
+    p2.release();
+    shutdown(pool).await();
+    assertThat(fixture.deallocations(), is(2));
+  }
+  
+  @Test(timeout = 300)
+  @Theory public void
+  shutdownCallMustReturnFastIfPoolablesAreStillClaimed(PoolFixture fixture) {
+    Pool pool = fixture.initPool();
+    pool.claim();
+    shutdown(pool);
+  }
+  
+  @Theory public void
+  shutdownMustNotDeallocateClaimedPoolables(PoolFixture fixture) {
+    Pool pool = fixture.initPool();
+    pool.claim();
+    shutdown(pool);
+    assertThat(fixture.deallocations(), is(0));
+  }
+  
+  // TODO shutdown await and await-with-timeout
 }

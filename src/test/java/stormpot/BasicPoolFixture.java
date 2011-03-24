@@ -7,6 +7,7 @@ public class BasicPoolFixture implements PoolFixture {
 
   public BasicPoolFixture(Config config) {
     this.config = config.copy();
+    this.allocator = new CountingAllocatorWrapper(new GenericAllocator());
   }
 
   public Pool initPool() {
@@ -14,12 +15,15 @@ public class BasicPoolFixture implements PoolFixture {
   }
   
   public Pool initPool(Config config) {
-    allocator = new CountingAllocatorWrapper(new GenericAllocator());
     BasicPool pool = new BasicPool(config, allocator);
     return pool;
   }
 
   public int allocations() {
     return allocator.countAllocations();
+  }
+
+  public int deallocations() {
+    return allocator.countDeallocations();
   }
 }

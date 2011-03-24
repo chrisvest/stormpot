@@ -2,9 +2,11 @@ package stormpot;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
+import static org.junit.Assume.*;
 
 import java.lang.Thread.State;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 
 public class UnitKit {
 
@@ -49,6 +51,11 @@ public class UnitKit {
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     }
+  }
+
+  public static Completion shutdown(Pool pool) {
+    assumeThat(pool, instanceOf(LifecycledPool.class));
+    return ((LifecycledPool) pool).shutdown();
   }
 
 }
