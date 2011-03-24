@@ -8,6 +8,7 @@ import java.lang.Thread.State;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class UnitKit {
 
@@ -53,6 +54,20 @@ public class UnitKit {
       public AtomicBoolean call() throws Exception {
         result.set(completion.await(timeout, unit));
         return result;
+      }
+    };
+  }
+  
+  public static <T> Callable<T> $catchFrom(
+      final Callable<T> procedure, final AtomicReference caught) {
+    return new Callable<T>() {
+      public T call() {
+        try {
+          return procedure.call();
+        } catch (Exception e) {
+          caught.set(e);
+        }
+        return null;
       }
     };
   }

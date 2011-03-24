@@ -46,7 +46,9 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
         released.awaitUninterruptibly();
         index = count.get();
       }
-      // TODO another shutdown check
+      if (shutdown) {
+        throw new IllegalStateException("pool is shut down");
+      }
       Poolable obj = pool[index];
       BasicSlot slot = slots[index];
       if (obj == null) {
@@ -105,6 +107,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
       }
       claimed = false;
       bpool.count.decrementAndGet();
+      
       bpool.released.signalAll();
       bpool.lock.unlock();
     }
@@ -127,7 +130,9 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
             while(slots[index].isClaimed()) {
               released.awaitUninterruptibly();
             }
-            allocator.deallocate(pool[index]);
+            Poolable poolable = pool[index];
+            pool[index] = null;
+            allocator.deallocate(poolable);
         }
       } finally {
         completionLatch.countDown();

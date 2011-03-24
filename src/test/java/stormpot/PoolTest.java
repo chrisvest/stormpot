@@ -6,6 +6,7 @@ import static stormpot.UnitKit.*;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoints;
@@ -171,5 +172,19 @@ public class PoolTest {
     obj.release();
     join(thread);
     assertTrue(result.get());
+  }
+  
+  @Test(timeout = 300)
+  @Theory public void
+  blockedClaimMustThrowWhenPoolIsShutDown(PoolFixture fixture) throws Exception {
+    Pool pool = fixture.initPool();
+    AtomicReference caught = new AtomicReference();
+    Poolable obj = pool.claim();
+    Thread thread = fork($catchFrom($claim(pool), caught));
+    waitForThreadState(thread, Thread.State.WAITING);
+    shutdown(pool);
+    obj.release();
+    join(thread);
+    assertThat(caught.get(), instanceOf(IllegalStateException.class));
   }
 }
