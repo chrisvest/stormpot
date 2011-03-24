@@ -6,7 +6,6 @@ import static org.junit.Assume.*;
 
 import java.lang.Thread.State;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
