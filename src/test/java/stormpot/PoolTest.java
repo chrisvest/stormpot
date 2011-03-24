@@ -176,7 +176,8 @@ public class PoolTest {
   
   @Test(timeout = 300)
   @Theory public void
-  blockedClaimMustThrowWhenPoolIsShutDown(PoolFixture fixture) throws Exception {
+  blockedClaimMustThrowWhenPoolIsShutDown(PoolFixture fixture)
+  throws Exception {
     Pool pool = fixture.initPool();
     AtomicReference caught = new AtomicReference();
     Poolable obj = pool.claim();
