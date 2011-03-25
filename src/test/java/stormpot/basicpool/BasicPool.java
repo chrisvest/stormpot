@@ -14,6 +14,16 @@ import stormpot.LifecycledPool;
 import stormpot.Poolable;
 import stormpot.Slot;
 
+/**
+ * The BasicPool is a minimal implementation of the Pool interface.
+ * It was used to help flesh out the API, and can be considered a
+ * reference implementation. It is not in any way optimised. Rather,
+ * the implementation has been kept as simple and small as possible.
+ * 
+ * @author Chris Vest <mr.chrisvest@gmail.com>
+ *
+ * @param <T>
+ */
 public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
 
   private final Allocator<? extends T> allocator;
@@ -86,6 +96,17 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
     }
   }
 
+  /**
+   * This class is static because we need to be able to create arrays of
+   * BasicSlots. If the BasicSlot class was non-static, then it would
+   * inherit the generic type parameter from the outer class and would
+   * become transitively generic. This is no good, because you cannot make
+   * generic arrays.
+   * So we make the class static, and pass a reference to the outer
+   * BasicPool through a constructor parameter.
+   * @author Chris Vest <mr.chrisvest@gmail.com>
+   *
+   */
   private final static class BasicSlot implements Slot {
     private final int index;
     private final long expires;
@@ -114,13 +135,12 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
       }
       claimed = false;
       bpool.count.decrementAndGet();
-      
       bpool.released.signalAll();
       bpool.lock.unlock();
     }
   }
 
-  public class ShutdownTask extends Thread implements Completion {
+  public final class ShutdownTask extends Thread implements Completion {
     private final CountDownLatch completionLatch;
     
     public ShutdownTask() {
