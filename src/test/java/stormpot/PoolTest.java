@@ -175,6 +175,19 @@ public class PoolTest {
     assertThat(fixture.allocations(), is(2));
   }
   
+  /**
+   * The size limit on a pool is strict, unless specially (as in a
+   * non-standard way) configured otherwise. A pool is not allowed to 
+   * have more objects allocated than the size, under any circumstances.
+   * So, when the pool renews an object it must make ensure that the
+   * deallocation of the old object happens-before the allocation of the
+   * new object.
+   * We test for this property by having a pool of size 1 and a negative TTL,
+   * and then claiming and releasing an object two times in a row.
+   * Because the TTL is negative, the object is expired when it is released
+   * and must be deallocated before the next claim can allocate a new object.
+   * @param fixture
+   */
   @Theory public void
   mustDeallocateExpiredPoolablesAndStayWithinSizeLimit(PoolFixture fixture) {
     Pool pool = fixture.initPool(
