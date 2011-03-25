@@ -377,6 +377,26 @@ public class PoolTest {
     assertTrue(result.get());
   }
   
+  /**
+   * We have verified that the await methods works as intended, if you
+   * begin your awaiting while the shut down process is still undergoing.
+   * However, we must also make sure that further calls to await after the
+   * shut down process has completed, do not block.
+   * We do this by shutting a pool down, and then make a number of await calls
+   * to the shut down Completion. These calls must all return before the
+   * timeout of the test elapses.
+   * @param fixture
+   * @throws Exception
+   */
+  @Test(timeout = 300)
+  @Theory public void
+  awaitingOnAlreadyCompletedShutDownMustNotBlock(PoolFixture fixture)
+  throws Exception {
+    Completion completion = shutdown(fixture.initPool());
+    completion.await();
+    completion.await(1, TimeUnit.SECONDS);
+  }
+  
   @Test(timeout = 300)
   @Theory public void
   blockedClaimMustThrowWhenPoolIsShutDown(PoolFixture fixture)
