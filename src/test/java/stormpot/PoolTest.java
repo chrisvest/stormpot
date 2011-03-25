@@ -304,6 +304,22 @@ public class PoolTest {
     assertThat(fixture.deallocations(), is(0));
   }
   
+  /**
+   * We know from the previous test, that awaiting the shut down completion
+   * will wait for any claimed objects to be released. However, once those
+   * objects are released, we must also make sure that the shut down process
+   * actually resumes and eventually completes as a result.
+   * We test this by claiming and object and starting the shut down process.
+   * Then we set another thread to await the completion of the shut down
+   * process, and make sure that it actually enters the WAITING state.
+   * Then we release the claimed object and try to join the thread. If we
+   * manage to join the thread, then the shut down process has completed, and
+   * the test pass if this all happens within the test timeout.
+   * When a thread is in the WAITING state, it means that it is waiting for
+   * another thread to do something that will let it resume. In our case,
+   * the thread is waiting for someone to release the claimed object.
+   * @param fixture
+   */
   @Test(timeout = 300)
   @Theory public void
   awaitOnShutdownMustReturnWhenClaimedObjectsAreReleased(PoolFixture fixture) {
@@ -316,6 +332,16 @@ public class PoolTest {
     join(thread);
   }
   
+  /**
+   * The await with timeout on the Completion of the shut down process
+   * must return false if the timeout elapses, as is the typical contract
+   * of such methods in java.util.concurrent.
+   * We are going to assume that the implementation adheres to the requested
+   * timeout within reasonable margins, because the implementations are
+   * probably going to delegate this call to java.util.concurrent anyway.
+   * @param fixture
+   * @throws Exception
+   */
   @Test(timeout = 300)
   @Theory public void
   awaitWithTimeoutMustReturnFalseIfTimeoutElapses(PoolFixture fixture)
@@ -325,6 +351,17 @@ public class PoolTest {
     assertFalse(shutdown(pool).await(1, TimeUnit.MILLISECONDS));
   }
   
+  /**
+   * We have verified that await with timeout returns false if the timeout
+   * elapses. We also have to make sure that the call returns true if the
+   * shut down process completes within the timeout.
+   * We test for this by claiming an object, start the shut down process,
+   * set a thread to await the completion with a timeout, then release the
+   * claimed object and join the thread. The result will be put in an
+   * AtomicBoolean, which then must contain true after the thread has been
+   * joined. And this must all happen before the test itself times out.
+   * @param fixture
+   */
   @Test(timeout = 300)
   @Theory public void
   awaitWithTimeoutMustReturnTrueIfCompletesWithinTimeout(PoolFixture fixture) {
