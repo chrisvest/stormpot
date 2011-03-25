@@ -49,15 +49,9 @@ public class PoolTest {
   
   @DataPoints
   public static PoolFixture[] pools() {
-    return new PoolFixture[] {
-        basicPool(config),
-    };
+    return PoolFixtures.poolFixtures(config);
   }
 
-  private static PoolFixture basicPool(Config config) {
-    return new BasicPoolFixture(config);
-  }
-  
   /**
    * The pool mustn't return null when we claim an object. The Allocator
    * used in the tests never return null, so if a null comes out then it

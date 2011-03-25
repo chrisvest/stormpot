@@ -1,4 +1,4 @@
-package stormpot;
+package stormpot.basicpool;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -6,6 +6,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import stormpot.Allocator;
+import stormpot.Completion;
+import stormpot.Config;
+import stormpot.LifecycledPool;
+import stormpot.Poolable;
+import stormpot.Slot;
 
 public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
 

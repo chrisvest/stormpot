@@ -1,4 +1,10 @@
-package stormpot;
+package stormpot.basicpool;
+
+import stormpot.Config;
+import stormpot.CountingAllocatorWrapper;
+import stormpot.GenericAllocator;
+import stormpot.Pool;
+import stormpot.PoolFixture;
 
 public class BasicPoolFixture implements PoolFixture {
 
