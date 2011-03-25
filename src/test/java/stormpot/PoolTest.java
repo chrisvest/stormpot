@@ -420,4 +420,7 @@ public class PoolTest {
     join(thread);
     assertThat(caught.get(), instanceOf(IllegalStateException.class));
   }
+  
+  // TODO pools must never deallocate the same object more than once (Allocator javadoc)
+  // TODO what to do if a thread releases the same claim twice? (Allocator javadoc)
 }

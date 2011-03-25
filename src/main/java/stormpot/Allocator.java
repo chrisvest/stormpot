@@ -35,5 +35,20 @@ public interface Allocator<T extends Poolable> {
    */
   T allocate(Slot slot);
 
+  /**
+   * Deallocate, if applicable, the given Poolable and free any resources
+   * associated with it.
+   * <p>
+   * This is an opportunity to close any connections or files, flush buffers,
+   * empty caches or what ever might need to be done to completely free any
+   * resources represented by this Poolable.
+   * <p>
+   * Note that a Poolable must never touch its slot object after it has been
+   * deallocated.
+   * <p>
+   * Pools, on the other hand, will guarantee that the same object is never
+   * deallocated more than once.
+   * @param poolable
+   */
   void deallocate(T poolable);
 }
