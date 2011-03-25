@@ -14,6 +14,35 @@ import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
 
+/**
+ * This is the generic test for Pool implementations. The test ensures that
+ * an implementation adheres to the general contract of the Pool interface,
+ * given certain circumstances and standardised configurations.
+ * <p>
+ * Pools may have other properties, and may be configurable to deviate from
+ * the standardised behaviour. However, such properties must not be
+ * observable within the standardised spectrum of configurations.
+ * <p>
+ * The tests for any special properties that a pool may have, must be put in
+ * a pool-specific test case. Do not use assumptions or other tricks to
+ * pollute this test case with tests for pool-specific or non-standard
+ * behaviours and configurations.
+ * <p>
+ * The test case uses theories to apply to the set of possible Pool
+ * implementations. Each implementation must have a PoolFixture, which is
+ * used to construct and initialise the pool, based on a Config, and to
+ * provide information on how the implementation interacts with its
+ * Allocator.
+ * <p>
+ * The only assumptions used in this test, is whether the Pool is a
+ * LifecycledPool or not. And most interesting pools are life-cycled.
+ * LifecycledPools can be shut down. This is a required ability, in order to
+ * test a number of behaviours, but also brings about its own set of new
+ * behaviours and flows that needs to be tested for. Those tests are also
+ * included in this test case.
+ * @author Chris Vest <mr.chrisvest@gmail.com>
+ *
+ */
 @RunWith(Theories.class)
 public class PoolTest {
   private static final Config config = new Config().setSize(1);
@@ -202,6 +231,22 @@ public class PoolTest {
     // be deallocated before the allocation in the second claim.
   }
   
+  /**
+   * When we call shutdown() on a pool, the shutdown process is initiated and
+   * the call returns a Completion object. A call to await() on this
+   * Completion object will not return until the shutdown process has been
+   * completed.
+   * A shutdown process is not complete until all Poolables in the pool have
+   * been deallocated. This means that any claimed objects must be released,
+   * all the deallocations must have returned.
+   * We test for this effect by making a pool of size 2 and claim both objects.
+   * Then we release them. The order is important, to prevent the allocation
+   * of just one object that is then reused. Then we shut the pool down and
+   * wait for it to finish. After this, we must observe that exactly 2
+   * deallocations have occurred.
+   * @param fixture
+   * @throws Exception
+   */
   @Theory public void
   mustDeallocateAllPoolablesBeforeShutdownTaskReturns(PoolFixture fixture)
   throws Exception {
@@ -214,6 +259,18 @@ public class PoolTest {
     assertThat(fixture.deallocations(), is(2));
   }
   
+  /**
+   * So awaiting the shut down completion cannot return before all
+   * claimed objects are both released and deallocated. Likewise, the
+   * initiation of the shut down process - the call to shutdown() - must
+   * decidedly NOT wait for any claimed objects to be released, before the
+   * call returns.
+   * We test for this effect by creating a pool and claiming and object
+   * without ever releasing it. Then we call shutdown, without ever awaiting
+   * its completion. The test passes if this does not dead-lock, hence the
+   * test timeout.
+   * @param fixture
+   */
   @Test(timeout = 300)
   @Theory public void
   shutdownCallMustReturnFastIfPoolablesAreStillClaimed(PoolFixture fixture) {
@@ -222,11 +279,28 @@ public class PoolTest {
     shutdown(pool);
   }
   
+  /**
+   * We have verified that the call to shutdown on a pool does not block on
+   * claimed objects, and we have verified that all objects are deallocated
+   * when the shut down completes. Now we need to verify that the release of
+   * a claimed objects happens-before that object is deallocated as part of
+   * the shut down process.
+   * We test for this effect by claiming an object from a pool, never to
+   * release it again. Then we initiate the shut down process. We await the
+   * completion of the shut down process with a very short timeout, to be
+   * sure that the process has actually started. This is to thwart any data
+   * race that might otherwise be lurking. Then finally we assert that the
+   * claimed object (the only one allocated) have not been deallocated.
+   * @param fixture
+   * @throws Exception
+   */
+  @Test(timeout = 300)
   @Theory public void
-  shutdownMustNotDeallocateClaimedPoolables(PoolFixture fixture) {
+  shutdownMustNotDeallocateClaimedPoolables(PoolFixture fixture)
+  throws Exception {
     Pool pool = fixture.initPool();
     pool.claim();
-    shutdown(pool);
+    shutdown(pool).await(10, TimeUnit.MILLISECONDS);
     assertThat(fixture.deallocations(), is(0));
   }
   
