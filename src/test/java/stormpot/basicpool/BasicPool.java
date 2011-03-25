@@ -26,7 +26,7 @@ import stormpot.Slot;
  */
 public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
 
-  private final Allocator<? extends T> allocator;
+  private final Allocator<T> allocator;
   private final Poolable[] pool;
   private final BasicSlot[] slots;
   private final AtomicInteger count;
@@ -35,7 +35,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
   private final long ttlMillis;
   private boolean shutdown;
 
-  public BasicPool(Config config, Allocator<? extends T> objectSource) {
+  public BasicPool(Config config, Allocator<T> objectSource) {
     synchronized (config) {
       int size = config.getSize();
       if (size < 1) {
@@ -157,7 +157,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
           while(slots[index].isClaimed()) {
             released.awaitUninterruptibly();
           }
-          Poolable poolable = pool[index];
+          T poolable = (T) pool[index];
           pool[index] = null;
           allocator.deallocate(poolable);
         }
