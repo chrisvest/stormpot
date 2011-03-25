@@ -397,6 +397,21 @@ public class PoolTest {
     completion.await(1, TimeUnit.SECONDS);
   }
   
+  /**
+   * A call to claim on a pool that has been, or is in the process of being,
+   * shut down, will throw an IllegalStateException. So should calls that
+   * are blocked on claim when the shut down process is initiated.
+   * To test this, we create a pool with one object and claim it. Then we
+   * set another thread to also claim an object. This thread will block
+   * because the pool has been depleted. To make sure of this, we wait for
+   * the thread to enter the WAITING state. Then we start the shut down
+   * process of the pool, release the object and join the thread we started.
+   * If the call to claim throws an exception in the other thread, then it
+   * will be put in an AtomicReference, and we assert that it is indeed an
+   * IllegalStateException.
+   * @param fixture
+   * @throws Exception
+   */
   @Test(timeout = 300)
   @Theory public void
   blockedClaimMustThrowWhenPoolIsShutDown(PoolFixture fixture)
