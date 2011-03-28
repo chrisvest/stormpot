@@ -619,4 +619,9 @@ public class PoolTest {
     shutdown(pool).await();
     assertThat(allocator.deallocations(), is(2));
   }
+  
+  // TODO await on completion must throw interrupted exception if thread is already interrupted
+  // TODO await on completion must throw interrupted exception if thread is interrupted while waiting
+  // TODO await must clear interrupted status upon throwing interrupted exception
+  // TODO same deal with await-with-timeout
 }
