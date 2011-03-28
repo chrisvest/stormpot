@@ -580,5 +580,43 @@ public class PoolTest {
     pool.claim().release();
     pool.claim();
   }
-  // TODO what if deallocate throws in shutdown?
+  
+  /**
+   * While it is technically possible to propagate exceptions from an
+   * Allocators deallocate method during the shutdown procedure, it would not
+   * be a desirable behaviour because it would be inconsistent with how this
+   * works for the release method on Poolable - and Slot, for that matter.
+   * People who are interested in the exceptions that deallocate might throw,
+   * should wrap their Allocators in implementations that log them. If they
+   * do this, then they will already have a means for accessing the exceptions
+   * thrown. As such, there is no point in also logging the exceptions in the
+   * shut down procedure.
+   * We test this by configuring a pool with an Allocator that always throws
+   * on deallocate, in addition to counting deallocations. We also keep the
+   * standard TTL configuration to prevent the objects from being immediately
+   * deallocated when they are released, and we set the size to 2. Then we
+   * claim two objects and then release them. This means that two objects are
+   * now live in the pool. Then we shut the pool down.
+   * The test passes if the shut down procedure completes without throwing
+   * any exceptions, and we observe exactly 2 deallocations.
+   * @param fixture
+   * @throws Exception
+   */
+  @Theory public void
+  mustSwallowExceptionsFromDeallocateThroughShutdown(PoolFixture fixture)
+  throws Exception {
+    CountingAllocator allocator = new CountingAllocator() {
+      @Override
+      public void deallocate(Poolable poolable) {
+        super.deallocate(poolable);
+        throw new RuntimeException("boo");
+      }
+    };
+    Pool pool = fixture.initPool(config.setAllocator(allocator).setSize(2));
+    Poolable obj= pool.claim();
+    pool.claim().release();
+    obj.release();
+    shutdown(pool).await();
+    assertThat(allocator.deallocations(), is(2));
+  }
 }

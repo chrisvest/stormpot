@@ -174,7 +174,11 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
           }
           T poolable = (T) pool[index];
           pool[index] = null;
-          allocator.deallocate(poolable);
+          try {
+            allocator.deallocate(poolable);
+          } catch (RuntimeException _) {
+            // exceptions from deallocate are ignored as per specification.
+          }
         }
       } finally {
         completionLatch.countDown();
