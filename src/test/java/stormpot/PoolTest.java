@@ -508,13 +508,47 @@ public class PoolTest {
     Allocator allocator = new CountingAllocator() {
       @Override
       public Poolable allocate(Slot slot) {
-        throw new ArithmeticException("boo");
+        throw new RuntimeException("boo");
       }
     };
     Pool pool = fixture.initPool(config.setAllocator(allocator));
     pool.claim();
   }
-  // TODO poolMustStillBeUseableAfterExceptionInAllocate
+  
+  /**
+   * A pool must not break its internal invariants if an Allocator throws an
+   * exception in allocate, and they must still be usable after the exception
+   * has bubbled out.
+   * We test this by configuring an Allocator that throws an exception if a
+   * boolean variable is true, or allocates as normal if not. On the first
+   * call to claim, we catch the exception that propagates out of the pool
+   * and flip the boolean. Then the next call to claim must return a non-null
+   * object within the test timeout.
+   * If it does not, then the pool might have broken locks or it might have
+   * garbage in the slot location.
+   * @param fixture
+   */
+  @Test(timeout = 300)
+  @Theory public void
+  mustStillBeUsableAfterExceptionInAllocate(PoolFixture fixture) {
+    final AtomicBoolean doThrow = new AtomicBoolean(true);
+    Allocator allocator = new CountingAllocator() {
+      @Override
+      public Poolable allocate(Slot slot) {
+        if (doThrow.get()) {
+          throw new RuntimeException("boo");
+        }
+        return super.allocate(slot);
+      }
+    };
+    Pool pool = fixture.initPool(config.setAllocator(allocator));
+    try {
+      pool.claim();
+    } catch (PoolException _) {
+      doThrow.set(false);
+    }
+    assertThat(pool.claim(), is(notNullValue()));
+  }
   // TODO what if deallocate throws in release?
   // TODO what if deallocate throws in shutdown?
 }
