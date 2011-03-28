@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
@@ -31,9 +31,7 @@ import org.junit.runner.RunWith;
  * <p>
  * The test case uses theories to apply to the set of possible Pool
  * implementations. Each implementation must have a PoolFixture, which is
- * used to construct and initialise the pool, based on a Config, and to
- * provide information on how the implementation interacts with its
- * Allocator.
+ * used to construct and initialise the pool, based on a Config.
  * <p>
  * The only assumptions used in this test, is whether the Pool is a
  * LifecycledPool or not. And most interesting pools are life-cycled.
@@ -46,11 +44,19 @@ import org.junit.runner.RunWith;
  */
 @RunWith(Theories.class)
 public class PoolTest {
-  private static final Config config = new Config().setSize(1);
+  private static final CountingAllocator allocator =
+    new CountingAllocator();
+  private static final Config config =
+    new Config().setSize(1).setAllocator(allocator);
   
   @DataPoints
   public static PoolFixture[] pools() {
     return PoolFixtures.poolFixtures(config);
+  }
+  
+  @Before public void
+  setUp() {
+    allocator.reset();
   }
 
   /**
@@ -81,7 +87,7 @@ public class PoolTest {
   mustGetPooledObjectsFromObjectSource(PoolFixture fixture) {
     Pool pool = fixture.initPool();
     pool.claim();
-    assertThat(fixture.allocations(), is(greaterThan(0)));
+    assertThat(allocator.allocations(), is(greaterThan(0)));
   }
   
   /**
@@ -139,7 +145,7 @@ public class PoolTest {
     Pool pool = fixture.initPool();
     pool.claim().release();
     pool.claim().release();
-    assertThat(fixture.allocations(), is(1));
+    assertThat(allocator.allocations(), is(1));
   }
   
   /**
@@ -196,7 +202,7 @@ public class PoolTest {
         config.copy().goInsane().setTTL(-1L, TimeUnit.MILLISECONDS));
     pool.claim().release();
     pool.claim().release();
-    assertThat(fixture.allocations(), is(2));
+    assertThat(allocator.allocations(), is(2));
   }
   
   /**
@@ -218,7 +224,7 @@ public class PoolTest {
         config.copy().goInsane().setTTL(-1L, TimeUnit.MILLISECONDS));
     pool.claim().release();
     pool.claim().release();
-    assertThat(fixture.deallocations(), is(greaterThanOrEqualTo(1)));
+    assertThat(allocator.deallocations(), is(greaterThanOrEqualTo(1)));
     // We use greaterThanOrEqualTo because we cannot say whether the second
     // release() will deallocate as well - deallocation might be done
     // asynchronously. However, because the pool is not allowed to be larger
@@ -251,7 +257,7 @@ public class PoolTest {
     p1.release();
     p2.release();
     shutdown(pool).await();
-    assertThat(fixture.deallocations(), is(2));
+    assertThat(allocator.deallocations(), is(2));
   }
   
   /**
@@ -296,7 +302,7 @@ public class PoolTest {
     Pool pool = fixture.initPool();
     pool.claim();
     shutdown(pool).await(10, TimeUnit.MILLISECONDS);
-    assertThat(fixture.deallocations(), is(0));
+    assertThat(allocator.deallocations(), is(0));
   }
   
   /**
@@ -426,8 +432,16 @@ public class PoolTest {
    * Clients might hold on to objects after they have been released. This is
    * a user error, but pools must still maintain a coherent allocation and
    * deallocation pattern toward the Allocator.
+   * We test this by configuring a pool with a negative TTL so that the objects
+   * will be deallocated as soon as possible. Then we claim an object and
+   * release it twice. Then we claim and release another object to guarantee
+   * that the deallocation of the first object have taken place when we check
+   * the count. Either one or two deallocations must have taken place at this
+   * point. We can't say for sure which it is because we might be racy with
+   * the deallocation of the last object.
    * @param fixture
    */
+  @Test(timeout = 300)
   @Theory public void
   mustNotDeallocateTheSameObjectMoreThanOnce(PoolFixture fixture) {
     Pool pool = fixture.initPool(
@@ -436,11 +450,12 @@ public class PoolTest {
     obj.release();
     try {
       obj.release();
-    } catch (Exception e) {
-      Assume.assumeNoException(e);
+    } catch (Exception _) {
+      // we don't really care if the pool is able to detect this or not
+      // we are still going to check with the Allocator.
     }
     pool.claim().release();
-    assertThat(fixture.deallocations(), is(2));
+    assertThat(allocator.deallocations(), isOneOf(1, 2));
   }
   // TODO pools must never deallocate the same object more than once (Allocator javadoc)
   // TODO what to do if a thread releases the same claim twice? (Allocator javadoc)

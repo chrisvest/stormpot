@@ -2,20 +2,23 @@ package stormpot;
 
 import java.util.concurrent.TimeUnit;
 
-public class Config {
+public class Config<T extends Poolable> {
 
   private int size = 10;
   private boolean sane = true;
   private long ttl = 10;
   private TimeUnit ttlUnit = TimeUnit.MINUTES;
+  private Allocator allocator;
 
-  public synchronized Config copy() {
+  public synchronized Config<T> copy() {
     Config config = new Config();
     config.setSize(size);
+    config.setAllocator(allocator);
+    config.setTTL(ttl, ttlUnit);
     return config;
   }
 
-  public synchronized Config setSize(int size) {
+  public synchronized Config<T> setSize(int size) {
     if (sane && size < 1) {
       throw new IllegalArgumentException(
           "size must be at least 1 but was " + size);
@@ -28,12 +31,12 @@ public class Config {
     return size;
   }
 
-  synchronized Config goInsane() {
+  synchronized Config<T> goInsane() {
     sane = false;
     return this;
   }
 
-  public synchronized Config setTTL(long ttl, TimeUnit unit) {
+  public synchronized Config<T> setTTL(long ttl, TimeUnit unit) {
     if (sane && unit == null) {
       throw new IllegalArgumentException("unit cannot be null");
     }
@@ -48,5 +51,14 @@ public class Config {
 
   public synchronized TimeUnit getTTLUnit() {
     return ttlUnit;
+  }
+
+  public <X extends Poolable> Config<X> setAllocator(Allocator<X> allocator) {
+    this.allocator = allocator;
+    return (Config<X>) this;
+  }
+
+  public Allocator<T> getAllocator() {
+    return allocator;
   }
 }

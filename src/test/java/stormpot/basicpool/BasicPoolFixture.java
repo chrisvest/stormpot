@@ -1,19 +1,15 @@
 package stormpot.basicpool;
 
 import stormpot.Config;
-import stormpot.CountingAllocatorWrapper;
-import stormpot.GenericAllocator;
 import stormpot.Pool;
 import stormpot.PoolFixture;
 
 public class BasicPoolFixture implements PoolFixture {
 
-  private CountingAllocatorWrapper allocator;
   private Config config;
 
   public BasicPoolFixture(Config config) {
     this.config = config.copy();
-    this.allocator = new CountingAllocatorWrapper(new GenericAllocator());
   }
 
   public Pool initPool() {
@@ -21,15 +17,7 @@ public class BasicPoolFixture implements PoolFixture {
   }
   
   public Pool initPool(Config config) {
-    BasicPool pool = new BasicPool(config, allocator);
+    BasicPool pool = new BasicPool(config);
     return pool;
-  }
-
-  public int allocations() {
-    return allocator.countAllocations();
-  }
-
-  public int deallocations() {
-    return allocator.countDeallocations();
   }
 }

@@ -35,7 +35,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
   private final long ttlMillis;
   private boolean shutdown;
 
-  public BasicPool(Config config, Allocator<T> objectSource) {
+  public BasicPool(Config<T> config) {
     synchronized (config) {
       int size = config.getSize();
       if (size < 1) {
@@ -45,8 +45,8 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
       this.pool = new Poolable[size];
       this.slots = new BasicSlot[size];
       this.ttlMillis = config.getTTLUnit().toMillis(config.getTTL());
+      this.allocator = config.getAllocator();
     }
-    this.allocator = objectSource;
     this.count = new AtomicInteger();
     this.lock = new ReentrantLock();
     this.released = lock.newCondition();
