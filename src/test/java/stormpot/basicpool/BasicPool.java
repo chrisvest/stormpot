@@ -155,7 +155,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
       lock.lock();
       try {
         for (int index = 0; index < pool.length; index++) {
-          if (slots[index] == null) {
+          if (pool[index] == null) {
             continue;
           }
           while(slots[index].isClaimed()) {

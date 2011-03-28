@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static stormpot.UnitKit.*;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -456,7 +457,43 @@ public class PoolTest {
     }
     pool.claim().release();
     assertThat(allocator.deallocations(), isOneOf(1, 2));
+    // TODO racy!!
   }
-  // TODO pools must never deallocate the same object more than once (Allocator javadoc)
-  // TODO what to do if a thread releases the same claim twice? (Allocator javadoc)
+  
+  /**
+   * The shutdown procedure might be tempted to blindly iterate the pool
+   * data structure and deallocate every possible slot. However, slots that
+   * are empty should not be deallocated. In fact, the pool should never
+   * try to deallocate any null value.
+   * We attempt to test for this by having a special Allocator that flags
+   * a boolean if a null was deallocated. Then we create a pool with the
+   * Allocator and a negative TTL, and claim and release an object. The
+   * Allocator also counts down a latch, so that we don't have to race with
+   * the deallocation. After the first object has been deallocated, we shut
+   * the pool down. After the shut down procedure completes, we check that
+   * no nulls were deallocated.
+   * @param fixture
+   * @throws Exception
+   */
+  @Test(timeout = 300)
+  @Theory public void
+  shutdownMustNotDeallocateEmptySlots(PoolFixture fixture) throws Exception {
+    final AtomicBoolean wasNull = new AtomicBoolean();
+    final CountDownLatch latch = new CountDownLatch(1);
+    Allocator allocator = new CountingAllocator() {
+      @Override
+      public void deallocate(Poolable poolable) {
+        if (poolable == null) {
+          wasNull.set(true);
+        }
+        latch.countDown();
+      }
+    };
+    Pool pool = fixture.initPool(config.copy().goInsane()
+        .setAllocator(allocator).setTTL(-1, TimeUnit.MILLISECONDS));
+    pool.claim().release();
+    latch.await();
+    shutdown(pool).await();
+    assertFalse(wasNull.get());
+  }
 }
