@@ -45,21 +45,20 @@ import org.junit.runner.RunWith;
  */
 @RunWith(Theories.class)
 public class PoolTest {
-  private static final CountingAllocator allocator =
-    new CountingAllocator();
-  private static final Config config =
-    new Config().setSize(1).setAllocator(allocator);
+  private CountingAllocator allocator;
+  private Config config;
   
   @DataPoints
   public static PoolFixture[] pools() {
-    return PoolFixtures.poolFixtures(config);
+    return PoolFixtures.poolFixtures();
   }
   
   @Before public void
   setUp() {
-    allocator.reset();
+    allocator = new CountingAllocator();
+    config = new Config().setSize(1).setAllocator(allocator);
   }
-
+  
   /**
    * The pool mustn't return null when we claim an object. The Allocator
    * used in the tests never return null, so if a null comes out then it
@@ -68,7 +67,7 @@ public class PoolTest {
    */
   @Theory public void
   mustContainObjects(PoolFixture fixture) {
-    Pool pool = fixture.initPool();
+    Pool pool = fixture.initPool(config);
     Poolable obj = pool.claim();
     assertThat(obj, not(nullValue()));
   }
@@ -86,7 +85,7 @@ public class PoolTest {
    */
   @Theory public void
   mustGetPooledObjectsFromObjectSource(PoolFixture fixture) {
-    Pool pool = fixture.initPool();
+    Pool pool = fixture.initPool(config);
     pool.claim();
     assertThat(allocator.allocations(), is(greaterThan(0)));
   }
@@ -105,7 +104,7 @@ public class PoolTest {
   @Test(timeout = 300)
   @Theory public void
   blockingClaimMustWaitIfPoolIsEmpty(PoolFixture fixture) {
-    Pool pool = fixture.initPool();
+    Pool pool = fixture.initPool(config);
     pool.claim();
     Thread thread = fork($claim(pool));
     waitForThreadState(thread, Thread.State.WAITING);
@@ -122,7 +121,7 @@ public class PoolTest {
   @Test(timeout = 300)
   @Theory public void
   blockingOnClaimMustResumeWhenPoolablesAreReleased(PoolFixture fixture) {
-    Pool pool = fixture.initPool();
+    Pool pool = fixture.initPool(config);
     Poolable obj = pool.claim();
     Thread thread = fork($claim(pool));
     waitForThreadState(thread, Thread.State.WAITING);
@@ -143,7 +142,7 @@ public class PoolTest {
    */
   @Theory public void
   mustReuseAllocatedObjects(PoolFixture fixture) {
-    Pool pool = fixture.initPool();
+    Pool pool = fixture.initPool(config);
     pool.claim().release();
     pool.claim().release();
     assertThat(allocator.allocations(), is(1));
@@ -174,7 +173,7 @@ public class PoolTest {
    */
   @Theory public void
   preventClaimFromPoolThatIsShutDown(PoolFixture fixture) {
-    Pool pool = fixture.initPool();
+    Pool pool = fixture.initPool(config);
     shutdown(pool);
     try {
       pool.claim();
@@ -276,7 +275,7 @@ public class PoolTest {
   @Test(timeout = 300)
   @Theory public void
   shutdownCallMustReturnFastIfPoolablesAreStillClaimed(PoolFixture fixture) {
-    Pool pool = fixture.initPool();
+    Pool pool = fixture.initPool(config);
     pool.claim();
     shutdown(pool);
   }
@@ -300,7 +299,7 @@ public class PoolTest {
   @Theory public void
   shutdownMustNotDeallocateClaimedPoolables(PoolFixture fixture)
   throws Exception {
-    Pool pool = fixture.initPool();
+    Pool pool = fixture.initPool(config);
     pool.claim();
     shutdown(pool).await(10, TimeUnit.MILLISECONDS);
     assertThat(allocator.deallocations(), is(0));
@@ -325,7 +324,7 @@ public class PoolTest {
   @Test(timeout = 300)
   @Theory public void
   awaitOnShutdownMustReturnWhenClaimedObjectsAreReleased(PoolFixture fixture) {
-    Pool pool = fixture.initPool();
+    Pool pool = fixture.initPool(config);
     Poolable obj = pool.claim();
     Completion completion = shutdown(pool);
     Thread thread = fork($await(completion));
@@ -348,7 +347,7 @@ public class PoolTest {
   @Theory public void
   awaitWithTimeoutMustReturnFalseIfTimeoutElapses(PoolFixture fixture)
   throws Exception {
-    Pool pool = fixture.initPool();
+    Pool pool = fixture.initPool(config);
     pool.claim();
     assertFalse(shutdown(pool).await(1, TimeUnit.MILLISECONDS));
   }
@@ -367,7 +366,7 @@ public class PoolTest {
   @Test(timeout = 300)
   @Theory public void
   awaitWithTimeoutMustReturnTrueIfCompletesWithinTimeout(PoolFixture fixture) {
-    Pool pool = fixture.initPool();
+    Pool pool = fixture.initPool(config);
     Poolable obj = pool.claim();
     AtomicBoolean result = new AtomicBoolean(false);
     Completion completion = shutdown(pool);
@@ -394,7 +393,7 @@ public class PoolTest {
   @Theory public void
   awaitingOnAlreadyCompletedShutDownMustNotBlock(PoolFixture fixture)
   throws Exception {
-    Completion completion = shutdown(fixture.initPool());
+    Completion completion = shutdown(fixture.initPool(config));
     completion.await();
     completion.await(1, TimeUnit.SECONDS);
   }
@@ -418,7 +417,7 @@ public class PoolTest {
   @Theory public void
   blockedClaimMustThrowWhenPoolIsShutDown(PoolFixture fixture)
   throws Exception {
-    Pool pool = fixture.initPool();
+    Pool pool = fixture.initPool(config);
     AtomicReference caught = new AtomicReference();
     Poolable obj = pool.claim();
     Thread thread = fork($catchFrom($claim(pool), caught));
@@ -435,11 +434,10 @@ public class PoolTest {
    * deallocation pattern toward the Allocator.
    * We test this by configuring a pool with a negative TTL so that the objects
    * will be deallocated as soon as possible. Then we claim an object and
-   * release it twice. Then we claim and release another object to guarantee
-   * that the deallocation of the first object have taken place when we check
-   * the count. Either one or two deallocations must have taken place at this
-   * point. We can't say for sure which it is because we might be racy with
-   * the deallocation of the last object.
+   * release it twice. Then claim an object to guarantee that the
+   * deallocation of the first object have taken place when we check the count.
+   * At this point, exactly one deallocation must have taken place. No more,
+   * no less.
    * @param fixture
    */
   @Test(timeout = 300)
@@ -455,9 +453,8 @@ public class PoolTest {
       // we don't really care if the pool is able to detect this or not
       // we are still going to check with the Allocator.
     }
-    pool.claim().release();
-    assertThat(allocator.deallocations(), isOneOf(1, 2));
-    // TODO racy!!
+    pool.claim();
+    assertThat(allocator.deallocations(), is(1));
   }
   
   /**
