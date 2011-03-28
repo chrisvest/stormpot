@@ -40,7 +40,7 @@ import org.junit.runner.RunWith;
  * test a number of behaviours, but also brings about its own set of new
  * behaviours and flows that needs to be tested for. Those tests are also
  * included in this test case.
- * @author Chris Vest <mr.chrisvest@gmail.com>
+ * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  *
  */
 @RunWith(Theories.class)

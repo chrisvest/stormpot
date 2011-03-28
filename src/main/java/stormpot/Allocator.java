@@ -14,7 +14,7 @@ package stormpot;
  * way to achieve this is to just make the
  * {@link Allocator#allocate(Slot) allocate}
  * and {@link Allocator#deallocate(Poolable) deallocate} methods synchronised.
- * @author Chris Vest <mr.chrisvest@gmail.com>
+ * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  *
  * @param <T> any type that implements Poolable.
  */

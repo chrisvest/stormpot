@@ -21,7 +21,7 @@ import stormpot.Slot;
  * reference implementation. It is not in any way optimised. Rather,
  * the implementation has been kept as simple and small as possible.
  * 
- * @author Chris Vest <mr.chrisvest@gmail.com>
+ * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  *
  * @param <T>
  */
@@ -111,7 +111,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
    * generic arrays.
    * So we make the class static, and pass a reference to the outer
    * BasicPool through a constructor parameter.
-   * @author Chris Vest <mr.chrisvest@gmail.com>
+   * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
    *
    */
   private final static class BasicSlot implements Slot {
