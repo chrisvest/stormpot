@@ -48,7 +48,7 @@ public interface Allocator<T extends Poolable> {
    * <p>
    * Pools, on the other hand, will guarantee that the same object is never
    * deallocated more than once.
-   * @param poolable
+   * @param poolable a non-null Poolable instance to be deallocated.
    */
   void deallocate(T poolable);
 }
