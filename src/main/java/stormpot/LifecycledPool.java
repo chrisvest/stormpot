@@ -8,7 +8,7 @@ package stormpot;
  * {@link Object#finalize()} method. LifecycledPools are expected to rely on
  * explicit clean-up, for releasing their resources.
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
- *
+ * @see Pool
  * @param <T> The type of {@link Poolable} contained in this pool.
  */
 public interface LifecycledPool<T extends Poolable> extends Pool<T> {

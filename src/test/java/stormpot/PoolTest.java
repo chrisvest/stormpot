@@ -40,6 +40,11 @@ import org.junit.runner.RunWith;
  * test a number of behaviours, but also brings about its own set of new
  * behaviours and flows that needs to be tested for. Those tests are also
  * included in this test case.
+ * <p>
+ * <strong>Note:</strong> when adding, removing or modifying tests, also
+ * remember to update the {@link Pool} javadoc - especially the part about
+ * what promises are provided by the Pool interface and its implementations.
+ * 
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  *
  */
@@ -84,7 +89,7 @@ public class PoolTest {
    * @param fixture
    */
   @Theory public void
-  mustGetPooledObjectsFromObjectSource(PoolFixture fixture) {
+  mustGetPooledObjectsFromAllocator(PoolFixture fixture) {
     Pool pool = fixture.initPool(config);
     pool.claim();
     assertThat(allocator.allocations(), is(greaterThan(0)));
@@ -624,4 +629,8 @@ public class PoolTest {
   // TODO await on completion must throw interrupted exception if thread is interrupted while waiting
   // TODO await must clear interrupted status upon throwing interrupted exception
   // TODO same deal with await-with-timeout
+  // TODO must throw if allocation returns null
+  
+  // NOTE: When adding, removing or modifying tests, also remember to update
+  //       the Pool javadoc - especially the part about the promises.
 }
