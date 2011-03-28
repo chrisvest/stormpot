@@ -493,4 +493,8 @@ public class PoolTest {
     shutdown(pool).await();
     assertFalse(wasNull.get());
   }
+  
+  // TODO what if allocate throws?
+  // TODO what if deallocate throws in release?
+  // TODO what if deallocate throws in shutdown?
 }
