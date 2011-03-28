@@ -119,18 +119,22 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
       this.expires = System.currentTimeMillis() + bpool.ttlMillis;
     }
 
-    public void claim() {
+    private void claim() {
       claimed = true;
     }
     
-    public boolean isClaimed() {
+    private boolean isClaimed() {
       return claimed;
     }
 
     public void release() {
       bpool.lock.lock();
+      if (!claimed) {
+        bpool.lock.unlock();
+        return;
+      }
       if (System.currentTimeMillis() > expires) {
-        bpool.allocator.deallocate(bpool.pool[index]);
+        bpool.allocator.deallocate(bpool.pool[index]); // TODO must unlock if throws
         bpool.pool[index] = null;
       }
       claimed = false;
@@ -140,7 +144,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
     }
   }
 
-  public final class ShutdownTask extends Thread implements Completion {
+  private final class ShutdownTask extends Thread implements Completion {
     private final CountDownLatch completionLatch;
     
     public ShutdownTask() {

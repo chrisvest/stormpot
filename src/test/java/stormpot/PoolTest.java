@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
@@ -421,6 +422,26 @@ public class PoolTest {
     assertThat(caught.get(), instanceOf(IllegalStateException.class));
   }
   
+  /**
+   * Clients might hold on to objects after they have been released. This is
+   * a user error, but pools must still maintain a coherent allocation and
+   * deallocation pattern toward the Allocator.
+   * @param fixture
+   */
+  @Theory public void
+  mustNotDeallocateTheSameObjectMoreThanOnce(PoolFixture fixture) {
+    Pool pool = fixture.initPool(
+        config.copy().goInsane().setTTL(-1, TimeUnit.MILLISECONDS));
+    Poolable obj = pool.claim();
+    obj.release();
+    try {
+      obj.release();
+    } catch (Exception e) {
+      Assume.assumeNoException(e);
+    }
+    pool.claim().release();
+    assertThat(fixture.deallocations(), is(2));
+  }
   // TODO pools must never deallocate the same object more than once (Allocator javadoc)
   // TODO what to do if a thread releases the same claim twice? (Allocator javadoc)
 }
