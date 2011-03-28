@@ -27,6 +27,12 @@ public interface Allocator<T extends Poolable> {
    * {@link Poolable#release() release} is called on it, it must delegate
    * the call onto the {@link Slot#release() release} method of the here
    * given slot object.
+   * <p>
+   * RuntimeExceptions thrown by this method may propagate out through the
+   * {@link Pool#claim() claim} method of a pool, in the form of being wrapped
+   * inside a {@link PoolException}. Pools must be able to handle these
+   * exceptions in a sane manner, and are guaranteed to return to a working
+   * state if an Allocator stops throwing exceptions from its allocate method.
    * @param slot The slot the pool wish to allocate an object for.
    * Implementors do not need to concern themselves with the details of a
    * pools slot objects. They just have to call release on them as the
@@ -48,6 +54,21 @@ public interface Allocator<T extends Poolable> {
    * <p>
    * Pools, on the other hand, will guarantee that the same object is never
    * deallocated more than once.
+   * <p>
+   * Note that pools will always silently swallow exceptions thrown by the
+   * deallocate method. They do this because there is no knowing whether the
+   * deallocation of an object will be done synchronously by a thread calling
+   * {@link Poolable#release() release} on a Poolable, or asynchronously by
+   * a clean-up thread inside the pool.
+   * <p>
+   * Deallocation from the release of an expired object, and deallocation from
+   * the shut down procedure of a {@link LifecycledPool} behave the same way
+   * in this regard. They will both silently swallow any exception thrown.
+   * <p>
+   * On the other hand, pools are guaranteed to otherwise correctly deal with
+   * any exception that might be thrown. The shut down procedure will still
+   * complete, and release will still maintain the internal data structures of
+   * the pool to make the slot available for new allocations.
    * @param poolable a non-null Poolable instance to be deallocated.
    */
   void deallocate(T poolable);
