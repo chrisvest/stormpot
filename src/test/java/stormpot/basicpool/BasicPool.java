@@ -141,7 +141,11 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
         return;
       }
       if (System.currentTimeMillis() > expires) {
-        bpool.allocator.deallocate(bpool.pool[index]); // TODO must unlock if throws
+        try {
+          bpool.allocator.deallocate(bpool.pool[index]);
+        } catch (RuntimeException _) {
+          // exceptions from deallocate are ignored as per specification.
+        }
         bpool.pool[index] = null;
       }
       claimed = false;

@@ -549,6 +549,36 @@ public class PoolTest {
     }
     assertThat(pool.claim(), is(notNullValue()));
   }
-  // TODO what if deallocate throws in release?
+  
+  /**
+   * We cannot guarantee that exceptions from deallocating objects will
+   * propagate out through release, because the actual deallocation might be
+   * done asynchronously in a different thread.
+   * So instead, we are going to guarantee the opposite: that calling release
+   * on an object will never propagate, or even throw, any exceptions ever.
+   * Users of a pool who are interested in logging what exceptions might be
+   * thrown by their allocators deallocate method, are going to have to wrap
+   * their allocators in try-catching and logging code.
+   * We test this by configuring the pool with an Allocator that always throws
+   * on deallocate, and a negative TTL. Then we claim and release an object,
+   * and then claim another one. This ensures that the deallocation actually
+   * takes place, because full pools guarantee that the deallocation of an
+   * expired object happens before the allocation of its replacement.
+   * @param fixture
+   */
+  @Theory public void
+  mustSwallowExceptionsFromDeallocateThroughRelease(PoolFixture fixture) {
+    Allocator allocator = new CountingAllocator() {
+      @Override
+      public void deallocate(Poolable poolable) {
+        throw new RuntimeException("boo");
+      }
+    };
+    config.setAllocator(allocator);
+    Pool pool = fixture.initPool(
+        config.goInsane().setTTL(-1, TimeUnit.MILLISECONDS));
+    pool.claim().release();
+    pool.claim();
+  }
   // TODO what if deallocate throws in shutdown?
 }
