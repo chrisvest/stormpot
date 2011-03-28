@@ -158,7 +158,7 @@ public class PoolTest {
   @Test(expected = IllegalArgumentException.class)
   @Theory public void
   preventConstructionOfPoolsOfSizeLessThanOne(PoolFixture fixture) {
-    fixture.initPool(config.copy().goInsane().setSize(0));
+    fixture.initPool(config.goInsane().setSize(0));
   }
   
   /**
@@ -199,7 +199,7 @@ public class PoolTest {
   @Theory public void
   mustReplaceExpiredPoolables(PoolFixture fixture) {
     Pool pool = fixture.initPool(
-        config.copy().goInsane().setTTL(-1L, TimeUnit.MILLISECONDS));
+        config.goInsane().setTTL(-1L, TimeUnit.MILLISECONDS));
     pool.claim().release();
     pool.claim().release();
     assertThat(allocator.allocations(), is(2));
@@ -221,7 +221,7 @@ public class PoolTest {
   @Theory public void
   mustDeallocateExpiredPoolablesAndStayWithinSizeLimit(PoolFixture fixture) {
     Pool pool = fixture.initPool(
-        config.copy().goInsane().setTTL(-1L, TimeUnit.MILLISECONDS));
+        config.goInsane().setTTL(-1L, TimeUnit.MILLISECONDS));
     pool.claim().release();
     pool.claim().release();
     assertThat(allocator.deallocations(), is(greaterThanOrEqualTo(1)));
@@ -251,7 +251,7 @@ public class PoolTest {
   @Theory public void
   mustDeallocateAllPoolablesBeforeShutdownTaskReturns(PoolFixture fixture)
   throws Exception {
-    Pool pool = fixture.initPool(config.copy().setSize(2));
+    Pool pool = fixture.initPool(config.setSize(2));
     Poolable p1 = pool.claim();
     Poolable p2 = pool.claim();
     p1.release();
@@ -444,7 +444,7 @@ public class PoolTest {
   @Theory public void
   mustNotDeallocateTheSameObjectMoreThanOnce(PoolFixture fixture) {
     Pool pool = fixture.initPool(
-        config.copy().goInsane().setTTL(-1, TimeUnit.MILLISECONDS));
+        config.goInsane().setTTL(-1, TimeUnit.MILLISECONDS));
     Poolable obj = pool.claim();
     obj.release();
     try {
@@ -486,7 +486,7 @@ public class PoolTest {
         latch.countDown();
       }
     };
-    Pool pool = fixture.initPool(config.copy().goInsane()
+    Pool pool = fixture.initPool(config.goInsane()
         .setAllocator(allocator).setTTL(-1, TimeUnit.MILLISECONDS));
     pool.claim().release();
     latch.await();

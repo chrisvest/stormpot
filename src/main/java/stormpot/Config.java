@@ -10,14 +10,6 @@ public class Config<T extends Poolable> {
   private TimeUnit ttlUnit = TimeUnit.MINUTES;
   private Allocator allocator;
 
-  public synchronized Config<T> copy() {
-    Config config = new Config();
-    config.setSize(size);
-    config.setAllocator(allocator);
-    config.setTTL(ttl, ttlUnit);
-    return config;
-  }
-
   public synchronized Config<T> setSize(int size) {
     if (sane && size < 1) {
       throw new IllegalArgumentException(
