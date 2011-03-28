@@ -494,7 +494,27 @@ public class PoolTest {
     assertFalse(wasNull.get());
   }
   
-  // TODO what if allocate throws?
+  /**
+   * Pools must be prepared in the event that an Allocator throws a
+   * RuntimeException. If it is not possible to allocate an object, then
+   * the pool must throw a PoolException.
+   * Preferably, this PoolException should wrap the original RuntimeException
+   * from the Allocator, but we do not test for this here.
+   * @param fixture
+   */
+  @Test(timeout = 300, expected = PoolException.class)
+  @Theory public void
+  mustPropagateExceptionsFromAllocateThroughClaim(PoolFixture fixture) {
+    Allocator allocator = new CountingAllocator() {
+      @Override
+      public Poolable allocate(Slot slot) {
+        throw new ArithmeticException("boo");
+      }
+    };
+    Pool pool = fixture.initPool(config.setAllocator(allocator));
+    pool.claim();
+  }
+  // TODO poolMustStillBeUseableAfterExceptionInAllocate
   // TODO what if deallocate throws in release?
   // TODO what if deallocate throws in shutdown?
 }

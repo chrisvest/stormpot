@@ -11,6 +11,7 @@ import stormpot.Allocator;
 import stormpot.Completion;
 import stormpot.Config;
 import stormpot.LifecycledPool;
+import stormpot.PoolException;
 import stormpot.Poolable;
 import stormpot.Slot;
 
@@ -69,8 +70,14 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
       Poolable obj = pool[index];
       BasicSlot slot = slots[index];
       if (obj == null) {
-        slot = slots[index] = slot(index);
-        obj = pool[index] = allocator.allocate(slot);
+        try {
+          slot = slot(index);
+          obj = allocator.allocate(slot);
+        } catch (RuntimeException e) {
+          throw new PoolException("Failed allocation", e);
+        }
+        slots[index] = slot;
+        pool[index] = obj;
       }
       slot.claim();
       count.incrementAndGet();
