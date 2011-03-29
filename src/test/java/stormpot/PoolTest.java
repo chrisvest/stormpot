@@ -506,6 +506,7 @@ public class PoolTest {
    * Preferably, this PoolException should wrap the original RuntimeException
    * from the Allocator, but we do not test for this here.
    * @param fixture
+   * @see PoolException
    */
   @Test(timeout = 300, expected = PoolException.class)
   @Theory public void
@@ -629,7 +630,7 @@ public class PoolTest {
   // TODO await on completion must throw interrupted exception if thread is interrupted while waiting
   // TODO await must clear interrupted status upon throwing interrupted exception
   // TODO same deal with await-with-timeout
-  // TODO must throw if allocation returns null
+  // TODO must throw if allocation returns null - see PoolException
   // TODO what happens if the Allocator calls release on the Slot in allocate()?
   
   // NOTE: When adding, removing or modifying tests, also remember to update
