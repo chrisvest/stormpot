@@ -626,10 +626,122 @@ public class PoolTest {
     assertThat(allocator.deallocations(), is(2));
   }
   
-  // TODO await on completion must throw interrupted exception if thread is already interrupted
-  // TODO await on completion must throw interrupted exception if thread is interrupted while waiting
-  // TODO await must clear interrupted status upon throwing interrupted exception
-  // TODO same deal with await-with-timeout
+  /**
+   * Calling await on a completion when your thread is interrupted, must
+   * throw an InterruptedException.
+   * In this particular case we make sure that the shut down procedure has
+   * not yet completed, by claiming an object from the pool without releasing
+   * it.
+   * @param fixture
+   * @throws InterruptedException
+   */
+  @Test(timeout = 300, expected = InterruptedException.class)
+  @Theory public void
+  awaitOnCompletionWhenInterruptedMustThrow(PoolFixture fixture)
+  throws InterruptedException {
+    givenUnfineshedInterruptedCompletion(fixture).await();
+  }
+
+  private Completion givenUnfineshedInterruptedCompletion(PoolFixture fixture) {
+    Pool pool = fixture.initPool(config);
+    pool.claim();
+    Completion completion = shutdown(pool);
+    Thread.currentThread().interrupt();
+    return completion;
+  }
+  
+  /**
+   * Calling await with timeout on a completion when your thread is
+   * interrupted must, just as await without timeout, throw an
+   * InterruptedException
+   * @param fixture
+   * @throws InterruptedException
+   */
+  @Test(timeout = 300, expected = InterruptedException.class)
+  @Theory public void
+  awaitWithTimeoutOnCompletionWhenInterruptedMustThrow(PoolFixture fixture)
+  throws InterruptedException {
+    givenUnfineshedInterruptedCompletion(fixture).await(1, TimeUnit.SECONDS);
+  }
+  
+  /**
+   * As per the contract of throwing an InterruptedException, if the
+   * await of an unfinished completion throws an InterruptedException, then
+   * they must also clear the interrupted status.
+   * @param fixture
+   */
+  @Test(timeout = 300)
+  @Theory public void
+  awaitOnCompletionWhenInterruptedMustClearInterruption(PoolFixture fixture) {
+    try {
+      awaitOnCompletionWhenInterruptedMustThrow(fixture);
+    } catch (InterruptedException _) {}
+    assertFalse(Thread.interrupted());
+    
+    try {
+      awaitWithTimeoutOnCompletionWhenInterruptedMustThrow(fixture);
+    } catch (InterruptedException _) {}
+    assertFalse(Thread.interrupted());
+  }
+  
+  /**
+   * Calling await on a completion when your thread is interrupted,
+   * must throw an InterruptedException - even if the shut down procedure
+   * has completed.
+   * We test this by first shutting the pool down cleanly. Then interrupting
+   * the thread, and then try to shut the pool down again.
+   * @param fixture
+   * @throws InterruptedException
+   */
+  @Test(timeout = 300, expected = InterruptedException.class)
+  @Theory public void
+  awaitOnFinishedCompletionWhenInterruptedMustThrow(PoolFixture fixture)
+  throws InterruptedException {
+    givenFinishedInterruptedCompletion(fixture).await();
+  }
+
+  private Completion givenFinishedInterruptedCompletion(PoolFixture fixture)
+      throws InterruptedException {
+    Pool pool = fixture.initPool(config);
+    shutdown(pool).await();
+    Thread.currentThread().interrupt();
+    Completion completion = shutdown(pool);
+    return completion;
+  }
+  
+  /**
+   * Calling await with a timeout on a finished completion when your thread
+   * is interrupted must, just as with calling await without a timeout,
+   * throw an InterruptedException.
+   * @param fixture
+   * @throws InterruptedException
+   */
+  @Test(timeout = 300, expected = InterruptedException.class)
+  @Theory public void
+  awaitWithTimeoutOnFinishedCompletionWhenInterruptedMustThrow(
+      PoolFixture fixture) throws InterruptedException {
+    givenFinishedInterruptedCompletion(fixture).await(1, TimeUnit.SECONDS);
+  }
+  
+  /**
+   * As per the contract of throwing an InterruptedException, the above must
+   * also clear the threads interrupted status.
+   * @param fixture
+   */
+  @Test(timeout = 300)
+  @Theory public void
+  awaitOnFinishedCompletionMustClearInterruption(PoolFixture fixture) {
+    try {
+      awaitOnFinishedCompletionWhenInterruptedMustThrow(fixture);
+    } catch (InterruptedException _) {}
+    assertFalse(Thread.interrupted());
+
+    try {
+      awaitWithTimeoutOnFinishedCompletionWhenInterruptedMustThrow(fixture);
+    } catch (InterruptedException _) {}
+    assertFalse(Thread.interrupted());
+  }
+  
   // TODO must throw if allocation returns null - see PoolException
   // TODO what happens if the Allocator calls release on the Slot in allocate()?
   
