@@ -813,7 +813,6 @@ public class PoolTest {
     Pool pool = fixture.initPool(config.setAllocator(allocator));
     pool.claim();
   }
-  // TODO what happens if the Allocator calls release on the Slot in allocate()?
   
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the Pool javadoc - especially the part about the promises.
