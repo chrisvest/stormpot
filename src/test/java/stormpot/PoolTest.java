@@ -46,7 +46,7 @@ import org.junit.runner.RunWith;
  * what promises are provided by the Pool interface and its implementations.
  * 
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
- *
+ * @see Pool
  */
 @RunWith(Theories.class)
 public class PoolTest {
@@ -630,6 +630,7 @@ public class PoolTest {
   // TODO await must clear interrupted status upon throwing interrupted exception
   // TODO same deal with await-with-timeout
   // TODO must throw if allocation returns null
+  // TODO what happens if the Allocator calls release on the Slot in allocate()?
   
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the Pool javadoc - especially the part about the promises.

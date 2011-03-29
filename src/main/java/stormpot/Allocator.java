@@ -1,8 +1,8 @@
 package stormpot;
 
 /**
- * An Allocator is responsible for the creation and destruction of Poolable
- * objects.
+ * An Allocator is responsible for the creation and destruction of
+ * {@link Poolable} objects.
  * <p>
  * This is where the objects in the Pool comes from. Clients of the Stormpot
  * library needs to provide their own Allocator implementations.
@@ -37,7 +37,7 @@ public interface Allocator<T extends Poolable> {
    * Implementors do not need to concern themselves with the details of a
    * pools slot objects. They just have to call release on them as the
    * protocol demands.
-   * @return A newly created instance of T.
+   * @return A newly created instance of T. Never <code>null</code>.
    */
   T allocate(Slot slot);
 
