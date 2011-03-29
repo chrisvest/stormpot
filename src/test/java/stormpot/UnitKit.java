@@ -72,6 +72,17 @@ public class UnitKit {
     };
   }
   
+  public static Callable $interruptUponState(
+      final Thread thread, final Thread.State state) {
+    return new Callable() {
+      public Object call() throws Exception {
+        waitForThreadState(thread, state);
+        thread.interrupt();
+        return null;
+      }
+    };
+  }
+  
   public static void waitForThreadState(Thread thread, Thread.State targetState) {
     State currentState = thread.getState();
     while (currentState != targetState) {

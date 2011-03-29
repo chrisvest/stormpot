@@ -639,14 +639,15 @@ public class PoolTest {
   @Theory public void
   awaitOnCompletionWhenInterruptedMustThrow(PoolFixture fixture)
   throws InterruptedException {
-    givenUnfineshedInterruptedCompletion(fixture).await();
+    Completion completion = givenUnfineshedCompletion(fixture);
+    Thread.currentThread().interrupt();
+    completion.await();
   }
 
-  private Completion givenUnfineshedInterruptedCompletion(PoolFixture fixture) {
+  private Completion givenUnfineshedCompletion(PoolFixture fixture) {
     Pool pool = fixture.initPool(config);
     pool.claim();
     Completion completion = shutdown(pool);
-    Thread.currentThread().interrupt();
     return completion;
   }
   
@@ -661,7 +662,45 @@ public class PoolTest {
   @Theory public void
   awaitWithTimeoutOnCompletionWhenInterruptedMustThrow(PoolFixture fixture)
   throws InterruptedException {
-    givenUnfineshedInterruptedCompletion(fixture).await(1, TimeUnit.SECONDS);
+    Completion completion = givenUnfineshedCompletion(fixture);
+    Thread.currentThread().interrupt();
+    completion.await(1, TimeUnit.SECONDS);
+  }
+  
+  /**
+   * A thread that is waiting in await, for a completion to finish, must
+   * throw an InterruptedException if it is interrupted.
+   * We test this by starting another thread to interrupt us, as soon as it
+   * observes that our thread enters the WAITING state.
+   * @param fixture
+   * @throws InterruptedException
+   */
+  @Test(timeout = 300, expected = InterruptedException.class)
+  @Theory public void
+  awaitOnCompletionMustThrowUponInterruption(PoolFixture fixture)
+  throws InterruptedException {
+    Completion completion = givenUnfineshedCompletion(fixture);
+    fork($interruptUponState(Thread.currentThread(), Thread.State.WAITING));
+    completion.await();
+  }
+  
+  /**
+   * A thread that is awaiting the completion of a shut down procedure with
+   * a timeout, must throw an InterruptedException if it is interrupted.
+   * We test this the same way we test without the timeout. The only difference
+   * is that our thread will enter the TIMED_WAITING state because of the
+   * timeout.
+   * @param fixture
+   * @throws InterruptedException
+   */
+  @Test(timeout = 300, expected = InterruptedException.class)
+  @Theory public void
+  awaitWithTimeoutOnCompletionMustThrowUponInterruption(PoolFixture fixture)
+  throws InterruptedException {
+    Completion completion = givenUnfineshedCompletion(fixture);
+    fork($interruptUponState(
+        Thread.currentThread(), Thread.State.TIMED_WAITING));
+    completion.await(1, TimeUnit.SECONDS);
   }
   
   /**
@@ -680,6 +719,16 @@ public class PoolTest {
     
     try {
       awaitWithTimeoutOnCompletionWhenInterruptedMustThrow(fixture);
+    } catch (InterruptedException _) {}
+    assertFalse(Thread.interrupted());
+    
+    try {
+      awaitOnCompletionMustThrowUponInterruption(fixture);
+    } catch (InterruptedException _) {}
+    assertFalse(Thread.interrupted());
+    
+    try {
+      awaitWithTimeoutOnCompletionMustThrowUponInterruption(fixture);
     } catch (InterruptedException _) {}
     assertFalse(Thread.interrupted());
   }
