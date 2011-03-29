@@ -799,6 +799,7 @@ public class PoolTest {
    * This call to claim must then throw a PoolException.
    * @param fixture
    * @see Allocator#allocate(Slot)
+   * @see PoolException
    */
   @Test(timeout = 300, expected = PoolException.class)
   @Theory public void
