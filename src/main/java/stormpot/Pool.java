@@ -66,16 +66,27 @@ package stormpot;
  * procedure of a pool, will return when all claimed objects are released and
  * subsequently deallocated, and all internal resources of the pool have been
  * freed.
- * <li>
-
-awaitWithTimeoutMustReturnFalseIfTimeoutElapses(PoolFixture)
-awaitWithTimeoutMustReturnTrueIfCompletesWithinTimeout(PoolFixture)
-awaitingOnAlreadyCompletedShutDownMustNotBlock(PoolFixture)
-mustSwallowExceptionsFromDeallocateThroughShutdown(PoolFixture)
+ * <li>{@link Completion#await(long, java.util.concurrent.TimeUnit)
+ * Awaiting the completion with a timeout} will return <code>false</code> if
+ * the wait time elapses before the shut down procedure completes. If it does
+ * complete, however, then the method returns <code>true</code>. Awaiting the
+ * completion with a timeout, of a shut down procedure that has already
+ * finished by the time the await method is called, will immediately return
+ * <code>true</code>.
+ * <li>A pool will silently swallow exceptions thrown the Allocators
+ * deallocate method that are thrown during the shut down procedure.
+ * </ul>
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  *
- * @param <T>
+ * @param <T> the type of {@link Poolable} contained in the pool, as determined
+ * by the {@link Config#setAllocator(Allocator) configured allocator}.
  */
 public interface Pool<T extends Poolable> {
-  T claim();
+  /**
+   * Claim the exclusive rights until released, to an object in the pool,
+   * possibly waiting for one to become available if the pool has been
+   * depleted.
+   * @return
+   */
+  T claim() throws PoolException;
 }
