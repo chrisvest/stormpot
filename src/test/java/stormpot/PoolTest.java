@@ -791,7 +791,27 @@ public class PoolTest {
     assertFalse(Thread.interrupted());
   }
   
-  // TODO must throw if allocation returns null - see PoolException
+  /**
+   * Allocators must never return <code>null</code>, and if they do, then a
+   * call to claim must throw a PoolException to indicate this fact.
+   * We test this by configuring the pool with an Allocator that always
+   * returns null from allocate, and then we try to claim from this pool.
+   * This call to claim must then throw a PoolException.
+   * @param fixture
+   * @see Allocator#allocate(Slot)
+   */
+  @Test(timeout = 300, expected = PoolException.class)
+  @Theory public void
+  claimMustThrowIfAllocationReturnsNull(PoolFixture fixture) {
+    Allocator allocator = new CountingAllocator() {
+      @Override
+      public Poolable allocate(Slot slot) {
+        return null;
+      }
+    };
+    Pool pool = fixture.initPool(config.setAllocator(allocator));
+    pool.claim();
+  }
   // TODO what happens if the Allocator calls release on the Slot in allocate()?
   
   // NOTE: When adding, removing or modifying tests, also remember to update

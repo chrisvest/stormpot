@@ -76,6 +76,9 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
         } catch (RuntimeException e) {
           throw new PoolException("Failed allocation", e);
         }
+        if (obj == null) {
+          throw new PoolException("Allocator returned null");
+        }
         slots[index] = slot;
         pool[index] = obj;
       }
