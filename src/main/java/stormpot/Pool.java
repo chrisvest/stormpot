@@ -83,10 +83,25 @@ package stormpot;
  */
 public interface Pool<T extends Poolable> {
   /**
-   * Claim the exclusive rights until released, to an object in the pool,
-   * possibly waiting for one to become available if the pool has been
+   * Claim the exclusive rights until released, to an object in the pool.
+   * Possibly waiting for one to become available if the pool has been
    * depleted.
-   * @return
+   * <p>
+   * This method may throw a PoolException if the pool have trouble allocating
+   * objects. That is, if its assigned Allocator throws exceptions from its
+   * allocate method.
+   * <p>
+   * Memory effects:
+   * <ul>
+   * <li>The {@link Poolable#release() release} of an object happens-before
+   * any subsequent claim of that object, and,
+   * <li>The {@link Allocator#allocate(Slot) allocation} of an object
+   * happens-before any claim of that object.
+   * </ul>
+   * @return An object of the Poolable subtype T to which the exclusive rights
+   * have been claimed.
+   * @throws PoolException If an object allocation failed because the Allocator
+   * threw an exception from its allocate method.
    */
   T claim() throws PoolException;
 }
