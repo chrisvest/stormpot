@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+
+export CP=$(mvn dependency:build-classpath|grep .m2)
+java -cp target/classes:target/test-classes:$CP \
+  com.google.caliper.Runner $*
+
