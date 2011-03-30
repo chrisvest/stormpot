@@ -814,6 +814,9 @@ public class PoolTest {
     pool.claim();
   }
   
+  // TODO how does claim() interact with interrupt?
+  // TODO how about a claim() with timeout?
+  
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the Pool javadoc - especially the part about the promises.
 }
