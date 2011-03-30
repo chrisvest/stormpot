@@ -6,6 +6,8 @@ import com.google.caliper.SimpleBenchmark;
 
 /*
 
+[cvh: stormpot (master)]$ uname -a
+Linux Unwire-0514 2.6.32-30-generic-pae #59-Ubuntu SMP Tue Mar 1 23:01:33 UTC 2011 i686 GNU/Linux
 [cvh: stormpot (master)]$ ./benchmark stormpot.benchmark.PartitionSelect
  0% Scenario{vm=java, trial=0, benchmark=ModuloConst} 0.04 ns; σ=0.00 ns @ 10 trials
  8% Scenario{vm=java, trial=0, benchmark=AndShiftConst} 0.04 ns; σ=0.00 ns @ 10 trials
