@@ -6,37 +6,35 @@ import com.google.caliper.SimpleBenchmark;
 
 /*
 
-[cvh: stormpot (master)]$ uname -a
-Linux Unwire-0514 2.6.32-30-generic-pae #59-Ubuntu SMP Tue Mar 1 23:01:33 UTC 2011 i686 GNU/Linux
 [cvh: stormpot (master)]$ ./benchmark stormpot.benchmark.PartitionSelect
- 0% Scenario{vm=java, trial=0, benchmark=ModuloConst} 0.04 ns; σ=0.00 ns @ 10 trials
- 8% Scenario{vm=java, trial=0, benchmark=AndShiftConst} 0.04 ns; σ=0.00 ns @ 10 trials
-15% Scenario{vm=java, trial=0, benchmark=ModuloThreadId} 0.04 ns; σ=0.00 ns @ 10 trials
-23% Scenario{vm=java, trial=0, benchmark=AndShiftThreadId} 0.04 ns; σ=0.00 ns @ 10 trials
-31% Scenario{vm=java, trial=0, benchmark=ModuloAtomicCount} 22.04 ns; σ=0.06 ns @ 3 trials
-38% Scenario{vm=java, trial=0, benchmark=AndShiftAtomicCount} 21.19 ns; σ=0.02 ns @ 3 trials
-46% Scenario{vm=java, trial=0, benchmark=ModuloScalableCounter} 21.29 ns; σ=0.04 ns @ 3 trials
-54% Scenario{vm=java, trial=0, benchmark=AndShiftScalableCounter} 19.42 ns; σ=0.19 ns @ 10 trials
-62% Scenario{vm=java, trial=0, benchmark=ThreadLocalRef} 6.47 ns; σ=0.01 ns @ 3 trials
-69% Scenario{vm=java, trial=0, benchmark=ModuloIdentityHashThread} 4.72 ns; σ=0.00 ns @ 3 trials
-77% Scenario{vm=java, trial=0, benchmark=AndShiftIdentityHashThread} 2.35 ns; σ=0.00 ns @ 3 trials
-85% Scenario{vm=java, trial=0, benchmark=ModuloIdentityHashNewObject} 165.42 ns; σ=0.63 ns @ 3 trials
-92% Scenario{vm=java, trial=0, benchmark=AndShiftIdentityHashNewObject} 167.93 ns; σ=0.69 ns @ 3 trials
+ 0% Scenario{vm=java, trial=0, benchmark=ModuloConst} 1.43 ns; σ=0.00 ns @ 3 trials
+ 8% Scenario{vm=java, trial=0, benchmark=AndShiftConst} 1.03 ns; σ=0.00 ns @ 3 trials
+15% Scenario{vm=java, trial=0, benchmark=ModuloThreadId} 2.94 ns; σ=0.02 ns @ 3 trials
+23% Scenario{vm=java, trial=0, benchmark=AndShiftThreadId} 1.03 ns; σ=0.00 ns @ 3 trials
+31% Scenario{vm=java, trial=0, benchmark=ModuloAtomicCount} 23.11 ns; σ=0.06 ns @ 3 trials
+38% Scenario{vm=java, trial=0, benchmark=AndShiftAtomicCount} 20.66 ns; σ=0.05 ns @ 3 trials
+46% Scenario{vm=java, trial=0, benchmark=ModuloScalableCounter} 23.00 ns; σ=0.03 ns @ 3 trials
+54% Scenario{vm=java, trial=0, benchmark=AndShiftScalableCounter} 18.80 ns; σ=0.04 ns @ 3 trials
+62% Scenario{vm=java, trial=0, benchmark=ThreadLocalRef} 7.04 ns; σ=0.01 ns @ 3 trials
+69% Scenario{vm=java, trial=0, benchmark=ModuloIdentityHashThread} 5.57 ns; σ=0.06 ns @ 10 trials
+77% Scenario{vm=java, trial=0, benchmark=AndShiftIdentityHashThread} 2.84 ns; σ=0.03 ns @ 4 trials
+85% Scenario{vm=java, trial=0, benchmark=ModuloIdentityHashNewObject} 168.91 ns; σ=0.45 ns @ 3 trials
+92% Scenario{vm=java, trial=0, benchmark=AndShiftIdentityHashNewObject} 167.36 ns; σ=0.93 ns @ 3 trials
 
-                    benchmark       ns linear runtime
-                  ModuloConst   0.0418 =
-                AndShiftConst   0.0418 =
-               ModuloThreadId   0.0430 =
-             AndShiftThreadId   0.0430 =
-            ModuloAtomicCount  22.0401 ===
-          AndShiftAtomicCount  21.1861 ===
-        ModuloScalableCounter  21.2934 ===
-      AndShiftScalableCounter  19.4224 ===
-               ThreadLocalRef   6.4730 =
-     ModuloIdentityHashThread   4.7189 =
-   AndShiftIdentityHashThread   2.3536 =
-  ModuloIdentityHashNewObject 165.4198 =============================
-AndShiftIdentityHashNewObject 167.9324 ==============================
+                    benchmark     ns linear runtime
+                  ModuloConst   1.43 =
+                AndShiftConst   1.03 =
+               ModuloThreadId   2.94 =
+             AndShiftThreadId   1.03 =
+            ModuloAtomicCount  23.11 ====
+          AndShiftAtomicCount  20.66 ===
+        ModuloScalableCounter  23.00 ====
+      AndShiftScalableCounter  18.80 ===
+               ThreadLocalRef   7.04 =
+     ModuloIdentityHashThread   5.57 =
+   AndShiftIdentityHashThread   2.84 =
+  ModuloIdentityHashNewObject 168.91 ==============================
+AndShiftIdentityHashNewObject 167.36 =============================
 
 vm: java
 trial: 0
@@ -50,6 +48,7 @@ public class PartitionSelect extends SimpleBenchmark {
   private static final int partitions = 10;
   private static final int mask =
     ~(0xFFFFFFFF << (32 - Integer.numberOfLeadingZeros(partitions)));
+  private static final int base = -358431684;
   private static volatile int counter;
   private static final ThreadLocal<Integer> tlsInt = new ThreadLocal<Integer>();
   private static int randInt;
@@ -62,18 +61,18 @@ public class PartitionSelect extends SimpleBenchmark {
   }
   
   public int timeModuloConst(int reps) {
-    int result = 0;
+    int result = base;
     for (int i = 0; i < reps; i++) {
-      result += randInt % partitions;
+      result ^= result + randInt % partitions;
     }
     return result;
   }
   
   public int timeAndShiftConst(int reps) {
-    int result = 0;
+    int result = base;
     for (int i = 0; i < reps; i++) {
       int n = randInt & mask;
-      result += n < partitions? n : n >>> 1;
+      result ^= result + n < partitions? n : n >>> 1;
     }
     return result;
   }
@@ -83,22 +82,22 @@ public class PartitionSelect extends SimpleBenchmark {
    * them, and constant-folds them into oblivion.
    */
   public int timeModuloThreadId(int reps) {
-    int result = 0;
+    int result = base;
     for (int i = 0; i < reps; i++) {
-      result += Thread.currentThread().getId() % partitions;
+      result ^= result + Thread.currentThread().getId() % partitions;
     }
     return result;
   }
   
   public int timeAndShiftThreadId(int reps) {
-    int result = 0;
+    int result = base;
     for (int i = 0; i < reps; i++) {
       // This test is flawed in that any bias introduced by the varying values
       // of thread-id, is not observed.
       // In fact, the JIT might optimistically eliminate the branch because of
       // this.
       int n = ((int) Thread.currentThread().getId()) & mask;
-      result += n < partitions? n : n >>> 1;
+      result ^= result + n < partitions? n : n >>> 1;
     }
     return result;
   }
@@ -109,19 +108,19 @@ public class PartitionSelect extends SimpleBenchmark {
    */
   public int timeModuloAtomicCount(int reps) {
     AtomicInteger counter = new AtomicInteger();
-    int result = 0;
+    int result = base;
     for (int i = 0; i < reps; i++) {
-      result += counter.incrementAndGet() % partitions;
+      result ^= result + counter.incrementAndGet() % partitions;
     }
     return result;
   }
   
   public int timeAndShiftAtomicCount(int reps) {
     AtomicInteger counter = new AtomicInteger();
-    int result = 0;
+    int result = base;
     for (int i = 0; i < reps; i++) {
       int n = counter.incrementAndGet() & mask;
-      result += n < partitions? n : n >>> 1;
+      result ^= result + n < partitions? n : n >>> 1;
     }
     return result;
   }
@@ -133,60 +132,61 @@ public class PartitionSelect extends SimpleBenchmark {
    * core. The x86 CPUs knows how to do this fast, presumably.
    */
   public int timeModuloScalableCounter(int reps) {
-    int result = 0;
+    int result = base;
     for (int i = 0; i < reps; i++) {
-      result += (++counter) % partitions;
+      result ^= result + (++counter) % partitions;
     }
     return result;
   }
   
   public int timeAndShiftScalableCounter(int reps) {
-    int result = 0;
+    int result = base;
     for (int i = 0; i < reps; i++) {
       int n = (++counter) & mask;
-      result += n < partitions? n : n >>> 1;
+      result ^= result + n < partitions? n : n >>> 1;
     }
     return result;
   }
   
   public int timeThreadLocalRef(int reps) {
-    int result = 0;
+    int result = base;
     for (int i = 0; i < reps; i++) {
-      result += tlsInt.get().intValue();
+      result ^= result + tlsInt.get().intValue();
     }
     return result;
   }
   
   public int timeModuloIdentityHashThread(int reps) {
-    int result = 0;
+    int result = base;
     for (int i = 0; i < reps; i++) {
-      result += System.identityHashCode(Thread.currentThread()) % partitions;
+      result ^= result +
+          System.identityHashCode(Thread.currentThread()) % partitions;
     }
     return result;
   }
   
   public int timeAndShiftIdentityHashThread(int reps) {
-    int result = 0;
+    int result = base;
     for (int i = 0; i < reps; i++) {
       int n = System.identityHashCode(Thread.currentThread()) & mask;
-      result += n < partitions? n : n >>> 1;
+      result ^= result + n < partitions? n : n >>> 1;
     }
     return result;
   }
   
   public int timeModuloIdentityHashNewObject(int reps) {
-    int result = 0;
+    int result = base;
     for (int i = 0; i < reps; i++) {
-      result += System.identityHashCode(new Object()) % partitions;
+      result ^= result + System.identityHashCode(new Object()) % partitions;
     }
     return result;
   }
   
   public int timeAndShiftIdentityHashNewObject(int reps) {
-    int result = 0;
+    int result = base;
     for (int i = 0; i < reps; i++) {
       int n = System.identityHashCode(new Object()) & mask;
-      result += n < partitions? n : n >>> 1;
+      result ^= result + n < partitions? n : n >>> 1;
     }
     return result;
   }
