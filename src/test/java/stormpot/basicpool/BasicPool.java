@@ -73,7 +73,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
             return null;
           }
         } else {
-          released.awaitUninterruptibly();
+          released.await();
         }
         index = count.get();
       }

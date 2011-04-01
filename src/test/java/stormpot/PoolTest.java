@@ -1042,8 +1042,41 @@ public class PoolTest {
     pool.claim(timeout, unit);
   }
   
-  // TODO blocked claim must throw upon interruption
-  // TODO blocked claim with timeout must throw upon interruption
+  /**
+   * The claim methods checks whether the current thread is interrupted upon
+   * entry, but perhaps what is more important is the interruption of a claim
+   * call that is already waiting when the thread is interrupted.
+   * We test for this by setting a thread to interrupt us, when our thread
+   * enters the WAITING or TIMED_WAITING states. Then we make a call to the
+   * appropriate claim method. If it throws an InterruptException, then the
+   * test passes.
+   * @param fixture
+   * @throws Exception
+   */
+  @Test(timeout = 300, expected = InterruptedException.class)
+  @Theory public void
+  blockedClaimMustThrowUponInterruption(PoolFixture fixture) throws Exception {
+    Pool pool = fixture.initPool(config);
+    pool.claim();
+    fork($interruptUponState(Thread.currentThread(), Thread.State.WAITING));
+    pool.claim();
+  }
+  
+  /**
+   * @see #blockedClaimMustThrowUponInterruption(PoolFixture)
+   * @param fixture
+   * @throws Exception
+   */
+  @Test(timeout = 300, expected = InterruptedException.class)
+  @Theory public void
+  blockedClaimWithTimeoutMustThrowUponInterruption(PoolFixture fixture)
+  throws Exception {
+    Pool pool = fixture.initPool(config);
+    pool.claim();
+    fork($interruptUponState(
+        Thread.currentThread(), Thread.State.TIMED_WAITING));
+    pool.claim(timeout, unit);
+  }
   // TODO throwing InterruptedException must clear the interrupted flag
   
   // NOTE: When adding, removing or modifying tests, also remember to update

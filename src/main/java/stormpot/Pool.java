@@ -29,10 +29,12 @@ import java.util.concurrent.TimeUnit;
  * <li>A pool will use the {@link Allocator} provided in its
  * {@link Config configuration} for allocating and deallocating objects.
  * <li>A call to {@link #claim()} on a depleted pool will wait until an object
- * is released by some thread and claimed by the current thread.
+ * is released by some thread and claimed by the current thread, or the current
+ * thread is {@link Thread#interrupt() interrupted}.
  * <li>A call to {@link #claim(long, TimeUnit)} will return an object if one
  * can be secured within the specified timeout period, or <code>null</code>
- * if the timeout elapses.
+ * if the timeout elapses, or the current thread is {@link Thread#interrupt()
+ * interrupted}.
  * <li>If the current thread is {@link Thread#interrupt() interrupted} upon
  * entry to {@link #claim()} or {@link #claim(long, TimeUnit)} then they will
  * immediately throw an {@link InterruptedException}.
@@ -100,6 +102,10 @@ public interface Pool<T extends Poolable> {
    * objects. That is, if its assigned Allocator throws exceptions from its
    * allocate method.
    * <p>
+   * An {@link InterruptedException} will be thrown if the thread has its
+   * interrupted flag set upon entry to this method, or is interrupted while
+   * waiting.
+   * <p>
    * Memory effects:
    * <ul>
    * <li>The {@link Poolable#release() release} of an object happens-before
@@ -112,7 +118,8 @@ public interface Pool<T extends Poolable> {
    * @throws PoolException If an object allocation failed because the Allocator
    * threw an exception from its allocate method.
    * @throws InterruptedException if the current thread is
-   * {@link Thread#interrupt() interrupted} upon entry.
+   * {@link Thread#interrupt() interrupted} upon entry, or becomes interrupted
+   * while waiting.
    */
   T claim() throws PoolException, InterruptedException;
 
