@@ -57,7 +57,8 @@ import java.util.concurrent.TimeUnit;
  * <ul>
  * <li>A pool that has been shut down will prevent claims by throwing an
  * {@link IllegalStateException}.
- * <li>Threads that are waiting in claim() for an object to become available,
+ * <li>Threads that are waiting in {@link #claim()} or
+ * {@link #claim(long, TimeUnit)} for an object to become available,
  * will also receive and {@link IllegalStateException} when the pool is shut
  * down.
  * <li>A pool will deallocate all of its objects, before the shut down
