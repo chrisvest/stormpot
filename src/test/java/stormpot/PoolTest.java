@@ -70,6 +70,7 @@ public class PoolTest {
    * means that the path from the Allocator out of the pool is somehow broken.
    * @param fixture
    */
+  @Test(timeout = 300)
   @Theory public void
   mustContainObjects(PoolFixture fixture) {
     Pool pool = fixture.initPool(config);
@@ -88,6 +89,7 @@ public class PoolTest {
    * irrelevant detail.
    * @param fixture
    */
+  @Test(timeout = 300)
   @Theory public void
   mustGetPooledObjectsFromAllocator(PoolFixture fixture) {
     Pool pool = fixture.initPool(config);
@@ -145,6 +147,7 @@ public class PoolTest {
    * pool with objects.
    * @param fixture
    */
+  @Test(timeout = 300)
   @Theory public void
   mustReuseAllocatedObjects(PoolFixture fixture) {
     Pool pool = fixture.initPool(config);
@@ -160,7 +163,7 @@ public class PoolTest {
    * to be created.
    * @param fixture
    */
-  @Test(expected = IllegalArgumentException.class)
+  @Test(timeout = 300, expected = IllegalArgumentException.class)
   @Theory public void
   preventConstructionOfPoolsOfSizeLessThanOne(PoolFixture fixture) {
     fixture.initPool(config.goInsane().setSize(0));
@@ -176,6 +179,7 @@ public class PoolTest {
    * memory effects that we want.
    * @param fixture
    */
+  @Test(timeout = 300)
   @Theory public void
   preventClaimFromPoolThatIsShutDown(PoolFixture fixture) {
     Pool pool = fixture.initPool(config);
@@ -201,6 +205,7 @@ public class PoolTest {
    * don't get into any killer-busy-loops or odd-ball exceptions. 
    * @param fixture
    */
+  @Test(timeout = 300)
   @Theory public void
   mustReplaceExpiredPoolables(PoolFixture fixture) {
     Pool pool = fixture.initPool(
@@ -223,6 +228,7 @@ public class PoolTest {
    * and must be deallocated before the next claim can allocate a new object.
    * @param fixture
    */
+  @Test(timeout = 300)
   @Theory public void
   mustDeallocateExpiredPoolablesAndStayWithinSizeLimit(PoolFixture fixture) {
     Pool pool = fixture.initPool(
@@ -253,6 +259,7 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
+  @Test(timeout = 300)
   @Theory public void
   mustDeallocateAllPoolablesBeforeShutdownTaskReturns(PoolFixture fixture)
   throws Exception {
@@ -572,6 +579,7 @@ public class PoolTest {
    * expired object happens before the allocation of its replacement.
    * @param fixture
    */
+  @Test(timeout = 300)
   @Theory public void
   mustSwallowExceptionsFromDeallocateThroughRelease(PoolFixture fixture) {
     Allocator allocator = new CountingAllocator() {
@@ -608,6 +616,7 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
+  @Test(timeout = 300)
   @Theory public void
   mustSwallowExceptionsFromDeallocateThroughShutdown(PoolFixture fixture)
   throws Exception {
