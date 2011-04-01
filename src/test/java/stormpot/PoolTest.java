@@ -1011,6 +1011,13 @@ public class PoolTest {
     pool.claim(timeout, unit);
   }
   
+  /**
+   * Threads that are already interrupted upon entry to the claim method, must
+   * promptly be met with an InterruptedException. This behaviour matches that
+   * of other interruptible methods in java.util.concurrent.
+   * @param fixture
+   * @throws Exception
+   */
   @Test(timeout = 300, expected = InterruptedException.class)
   @Theory public void
   claimWhenInterruptedMustThrow(PoolFixture fixture) throws Exception {
@@ -1018,8 +1025,21 @@ public class PoolTest {
     Thread.currentThread().interrupt();
     pool.claim();
   }
-  // TODO claim when interrupted must throw
-  // TODO claim with timeout when interrupted must throw
+  
+  /**
+   * @see #claimWhenInterruptedMustThrow(PoolFixture)
+   * @param fixture
+   * @throws Exception
+   */
+  @Test(timeout = 300, expected = InterruptedException.class)
+  @Theory public void
+  claimWithTimeoutWhenInterruptedMustThrow(PoolFixture fixture)
+  throws Exception {
+    Pool pool = fixture.initPool(config);
+    Thread.currentThread().interrupt();
+    pool.claim(timeout, unit);
+  }
+  
   // TODO blocked claim must throw upon interruption
   // TODO blocked claim with timeout must throw upon interruption
   
