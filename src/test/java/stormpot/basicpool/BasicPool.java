@@ -59,6 +59,9 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
       if (shutdown) {
         throw new IllegalStateException("pool is shut down");
       }
+      if (Thread.interrupted()) {
+        throw new InterruptedException();
+      }
       int index = count.get();
       boolean withTimeout = timeout > 0 && unit != null;
       long maxWaitNanos = withTimeout? unit.toNanos(timeout) : 0;
