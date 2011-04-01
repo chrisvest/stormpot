@@ -268,18 +268,29 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
+  @Test(timeout = 300, expected = IllegalStateException.class)
   @Theory public void
   preventClaimFromPoolThatIsShutDown(PoolFixture fixture) throws Exception {
     Pool pool = fixture.initPool(config);
     shutdown(pool);
-    try {
-      pool.claim();
-      fail("pool.claim() should have thrown");
-    } catch (IllegalStateException _) {}
+    pool.claim();
   }
 
-  // TODO prevent claim with timeout from pool that is shut down
+  /**
+   * Trying to claim-with-timeout from a pool that has been shut down will
+   * throw an IllegalStateException.
+   * @see #preventClaimFromPoolThatIsShutDown(PoolFixture)
+   * @param fixture
+   * @throws Exception
+   */
+  @Test(timeout = 300, expected = IllegalStateException.class)
+  @Theory public void
+  preventClaimWithTimeoutFromPoolThatIsShutDown(PoolFixture fixture)
+  throws Exception {
+    Pool pool = fixture.initPool(config);
+    shutdown(pool);
+    pool.claim(timeout, unit);
+  }
 
   /**
    * Objects in the pool only live for a certain amount of time, and then
