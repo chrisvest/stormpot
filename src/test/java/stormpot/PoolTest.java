@@ -1015,6 +1015,7 @@ public class PoolTest {
    * Threads that are already interrupted upon entry to the claim method, must
    * promptly be met with an InterruptedException. This behaviour matches that
    * of other interruptible methods in java.util.concurrent.
+   * @see Pool
    * @param fixture
    * @throws Exception
    */
@@ -1028,6 +1029,7 @@ public class PoolTest {
   
   /**
    * @see #claimWhenInterruptedMustThrow(PoolFixture)
+   * @see Pool
    * @param fixture
    * @throws Exception
    */
@@ -1042,6 +1044,7 @@ public class PoolTest {
   
   // TODO blocked claim must throw upon interruption
   // TODO blocked claim with timeout must throw upon interruption
+  // TODO throwing InterruptedException must clear the interrupted flag
   
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the Pool javadoc - especially the part about the promises.
