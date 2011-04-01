@@ -823,8 +823,19 @@ public class PoolTest {
     pool.claim();
   }
   
-  // TODO how does claim() interact with interrupt?
-  // TODO how about a claim() with timeout?
+  // TODO claim with timeout must return object if within timeout
+  // TODO claim with timeout must return null if timeout elapses
+  // TODO blocking claim with timeout must wait if pool is empty
+  // TODO blocking claim with timeout must resume when pools are released
+  // TODO prevent claim with timeout from pool that is shut down
+  // TODO blocked claim with timeout must throw when pool is shut down
+  // TODO must propagate exceptions from allocate through claim with timeout
+  // TODO claim with timeout must throw if allocation returns null
+  
+  // TODO claim when interrupted must throw
+  // TODO claim with timeout when interrupted must throw
+  // TODO blocked claim must throw upon interruption
+  // TODO blocked claim with timeout must throw upon interruption
   
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the Pool javadoc - especially the part about the promises.
