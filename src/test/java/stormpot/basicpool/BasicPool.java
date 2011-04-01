@@ -90,6 +90,11 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
     }
   }
 
+
+  public T claim(long timeout, TimeUnit unit) {
+    return claim();
+  }
+
   private BasicSlot slot(final int index) {
     return new BasicSlot(index, this);
   }

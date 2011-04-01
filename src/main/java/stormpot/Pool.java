@@ -1,5 +1,7 @@
 package stormpot;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * A Pool is a self-renewable set of objects from which one can claim exclusive
  * access to elements, until they are released back into the pool.
@@ -104,4 +106,7 @@ public interface Pool<T extends Poolable> {
    * threw an exception from its allocate method.
    */
   T claim() throws PoolException;
+
+  // TODO javadoc for claim with timeout
+  T claim(long timeout, TimeUnit unit) throws PoolException;
 }

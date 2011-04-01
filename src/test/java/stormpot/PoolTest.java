@@ -50,6 +50,9 @@ import org.junit.runner.RunWith;
  */
 @RunWith(Theories.class)
 public class PoolTest {
+  private static final long timeout = 1;
+  private static final TimeUnit unit = TimeUnit.SECONDS;
+  
   private CountingAllocator allocator;
   private Config config;
   
@@ -72,13 +75,19 @@ public class PoolTest {
    */
   @Test(timeout = 300)
   @Theory public void
-  mustContainObjects(PoolFixture fixture) {
+  claimMustReturnObject(PoolFixture fixture) {
     Pool pool = fixture.initPool(config);
     Poolable obj = pool.claim();
     assertThat(obj, not(nullValue()));
   }
   
-  // TODO claim with timeout must return object if within timeout
+  @Test(timeout = 300)
+  @Theory public void
+  claimWithTimeoutMustReturnIfWithinTimeout(PoolFixture fixture) {
+    Pool pool = fixture.initPool(config);
+    Poolable obj = pool.claim(timeout, unit);
+    assertThat(obj, not(nullValue()));
+  }
   // TODO claim with timeout must return null if timeout elapses
   
   /**
