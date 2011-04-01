@@ -30,6 +30,9 @@ import java.util.concurrent.TimeUnit;
  * {@link Config configuration} for allocating and deallocating objects.
  * <li>A call to {@link #claim()} on a depleted pool will wait until an object
  * is released and claimed by the current thread.
+ * <li>A call to {@link #claim(long, TimeUnit)} will return an object if one
+ * can be secured within the specified timeout period, or <code>null</code>
+ * if the timeout elapses.
  * <li>A pool will reuse allocated objects within a period specified by the
  * configured {@link Config#setTTL(long, java.util.concurrent.TimeUnit)
  * time-to-live}.
@@ -104,9 +107,10 @@ public interface Pool<T extends Poolable> {
    * have been claimed.
    * @throws PoolException If an object allocation failed because the Allocator
    * threw an exception from its allocate method.
+   * @throws InterruptedException 
    */
-  T claim() throws PoolException;
+  T claim() throws PoolException, InterruptedException;
 
   // TODO javadoc for claim with timeout
-  T claim(long timeout, TimeUnit unit) throws PoolException;
+  T claim(long timeout, TimeUnit unit) throws PoolException, InterruptedException;
 }

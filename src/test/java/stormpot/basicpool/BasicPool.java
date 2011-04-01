@@ -53,15 +53,25 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
     this.released = lock.newCondition();
   }
 
-  public T claim() {
+  public T claim(long timeout, TimeUnit unit) throws InterruptedException {
     lock.lock();
     try {
       if (shutdown) {
         throw new IllegalStateException("pool is shut down");
       }
       int index = count.get();
+      boolean withTimeout = timeout > 0 && unit != null;
+      long maxWaitNanos = withTimeout? unit.toNanos(timeout) : 0;
       while (index == pool.length) {
-        released.awaitUninterruptibly();
+        if (withTimeout) {
+          if (maxWaitNanos > 0) {
+            maxWaitNanos = released.awaitNanos(maxWaitNanos);
+          } else {
+            return null;
+          }
+        } else {
+          released.awaitUninterruptibly();
+        }
         index = count.get();
       }
       if (shutdown) {
@@ -91,8 +101,8 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
   }
 
 
-  public T claim(long timeout, TimeUnit unit) {
-    return claim();
+  public T claim() throws InterruptedException {
+    return claim(0, null);
   }
 
   private BasicSlot slot(final int index) {

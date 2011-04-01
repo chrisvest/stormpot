@@ -33,7 +33,13 @@ public class UnitKit {
   public static Callable<Poolable> $claim(final Pool pool) {
     return new Callable<Poolable>() {
       public Poolable call() {
-        return pool.claim();
+        try {
+          return pool.claim();
+        } catch (RuntimeException e) {
+          throw e;
+        } catch (InterruptedException e) {
+          throw new PoolException("claim interrupted", e);
+        }
       }
     };
   }
