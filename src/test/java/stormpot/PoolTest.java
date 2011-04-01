@@ -201,7 +201,26 @@ public class PoolTest {
     join(thread);
   }
 
-  // TODO blocking claim with timeout must resume when poolables are released
+  /**
+   * A thread that is waiting in claim-with-timeout on a depleted pool must
+   * wake up if another thread releases an object back into the pool.
+   * So if we deplete a pool, make a thread wait in claim-with-timeout and
+   * then release an object back into the pool, then we must be able to join
+   * to that thread.
+   * @param fixture
+   * @throws Exception
+   */
+  @Test(timeout = 300)
+  @Theory public void
+  blockingOnClaimWithTimeoutMustResumeWhenPoolablesAreReleased(
+      PoolFixture fixture) throws Exception {
+    Pool pool = fixture.initPool(config);
+    Poolable obj = pool.claim();
+    Thread thread = fork($claim(pool, timeout, unit));
+    waitForThreadState(thread, Thread.State.TIMED_WAITING);
+    obj.release();
+    join(thread);
+  }
   
   /**
    * One uses a pool because a certain type of objects are expensive to
