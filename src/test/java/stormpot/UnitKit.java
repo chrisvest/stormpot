@@ -43,6 +43,21 @@ public class UnitKit {
       }
     };
   }
+
+  public static Callable<Poolable> $claim(
+      final Pool pool, final long timeout, final TimeUnit unit) {
+    return new Callable<Poolable>() {
+      public Poolable call() {
+        try {
+          return pool.claim(timeout, unit);
+        } catch (RuntimeException e) {
+          throw e;
+        } catch (InterruptedException e) {
+          throw new PoolException("claim interrupted", e);
+        }
+      }
+    };
+  }
   
   public static Callable<Completion> $await(final Completion completion) {
     return new Callable<Completion>() {

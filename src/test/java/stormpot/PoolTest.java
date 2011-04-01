@@ -161,7 +161,24 @@ public class PoolTest {
     waitForThreadState(thread, Thread.State.WAITING);
   }
   
-  // TODO blocking claim with timeout must wait if pool is empty
+  /**
+   * If the pool has been depleted for objects, then a call to claim with
+   * timeout will wait until either an object becomes available, or the timeout
+   * elapses. Whichever comes first.
+   * We test for this by observing that a thread that makes a claim-with-timeout
+   * call to a depleted pool, will enter the TIMED_WAITING state.
+   * @param fixture
+   * @throws Exception
+   */
+  @Test(timeout = 300)
+  @Theory public void
+  blockingClaimWithTimeoutMustWaitIfPoolIsEmpty(PoolFixture fixture)
+  throws Exception {
+    Pool pool = fixture.initPool(config);
+    pool.claim();
+    Thread thread = fork($claim(pool, timeout, unit));
+    waitForThreadState(thread, Thread.State.TIMED_WAITING);
+  }
   
   /**
    * When a thread is waiting in claim() on a depleted pool, then it is
