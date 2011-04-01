@@ -551,7 +551,27 @@ public class PoolTest {
     assertThat(caught.get(), instanceOf(IllegalStateException.class));
   }
 
-  // TODO blocked claim with timeout must throw when pool is shut down
+  /**
+   * A thread that is waiting in claim-with-timeout when the pool is shut
+   * down, must quickly unblock and receive an IllegalStateException.
+   * @see #blockedClaimMustThrowWhenPoolIsShutDown(PoolFixture)
+   * @param fixture
+   * @throws Exception
+   */
+  @Test(timeout = 300)
+  @Theory public void
+  blockedClaimWithTimeoutMustThrowWhenPoolIsShutDown(PoolFixture fixture)
+  throws Exception {
+    Pool pool = fixture.initPool(config);
+    AtomicReference caught = new AtomicReference();
+    Poolable obj = pool.claim();
+    Thread thread = fork($catchFrom($claim(pool, timeout, unit), caught));
+    waitForThreadState(thread, Thread.State.TIMED_WAITING);
+    shutdown(pool);
+    obj.release();
+    join(thread);
+    assertThat(caught.get(), instanceOf(IllegalStateException.class));
+  }
   
   /**
    * Clients might hold on to objects after they have been released. This is
@@ -645,7 +665,27 @@ public class PoolTest {
     pool.claim();
   }
 
-  // TODO must propagate exceptions from allocate through claim with timeout
+  /**
+   * If allocate throws an exception, then a later claim or claim-with-timeout
+   * must propagate it wrapped in a PoolException.
+   * We test the claim-with-timeout case here.
+   * @see #mustPropagateExceptionsFromAllocateThroughClaim(PoolFixture)
+   * @param fixture
+   * @throws Exception
+   */
+  @Test(timeout = 300, expected = PoolException.class)
+  @Theory public void
+  mustPropagateExceptionsFromAllocateThroughClaimWithTimeout(
+      PoolFixture fixture) throws Exception {
+    Allocator allocator = new CountingAllocator() {
+      @Override
+      public Poolable allocate(Slot slot) {
+        throw new RuntimeException("boo");
+      }
+    };
+    Pool pool = fixture.initPool(config.setAllocator(allocator));
+    pool.claim(timeout, unit);
+  }
   
   /**
    * A pool must not break its internal invariants if an Allocator throws an
