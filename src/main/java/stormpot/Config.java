@@ -27,7 +27,7 @@ public class Config<T extends Poolable> {
     sane = false;
     return this;
   }
-
+  
   public synchronized Config<T> setTTL(long ttl, TimeUnit unit) {
     if (sane && unit == null) {
       throw new IllegalArgumentException("unit cannot be null");
@@ -45,12 +45,22 @@ public class Config<T extends Poolable> {
     return ttlUnit;
   }
 
-  public <X extends Poolable> Config<X> setAllocator(Allocator<X> allocator) {
+  public synchronized <X extends Poolable> Config<X> setAllocator(
+      Allocator<X> allocator) {
     this.allocator = allocator;
     return (Config<X>) this;
   }
 
-  public Allocator<T> getAllocator() {
+  public synchronized Allocator<T> getAllocator() {
     return allocator;
+  }
+
+  public synchronized void setFieldsOn(Config config) {
+    if (!sane) {
+      config.goInsane();
+    }
+    config.setAllocator(allocator);
+    config.setSize(size);
+    config.setTTL(ttl, ttlUnit);
   }
 }
