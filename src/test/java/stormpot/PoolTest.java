@@ -78,6 +78,9 @@ public class PoolTest {
     assertThat(obj, not(nullValue()));
   }
   
+  // TODO claim with timeout must return object if within timeout
+  // TODO claim with timeout must return null if timeout elapses
+  
   /**
    * While the pool mustn't return null when we claim an object, it likewise
    * mustn't just come up with any random thing that implements Poolable.
@@ -117,6 +120,8 @@ public class PoolTest {
     waitForThreadState(thread, Thread.State.WAITING);
   }
   
+  // TODO blocking claim with timeout must wait if pool is empty
+  
   /**
    * When a thread is waiting in claim() on a depleted pool, then it is
    * basically waiting for another thread to release an object back into the
@@ -135,6 +140,8 @@ public class PoolTest {
     obj.release();
     join(thread);
   }
+
+  // TODO blocking claim with timeout must resume when poolables are released
   
   /**
    * One uses a pool because a certain type of objects are expensive to
@@ -189,6 +196,8 @@ public class PoolTest {
       fail("pool.claim() should have thrown");
     } catch (IllegalStateException _) {}
   }
+
+  // TODO prevent claim with timeout from pool that is shut down
 
   /**
    * Objects in the pool only live for a certain amount of time, and then
@@ -439,6 +448,8 @@ public class PoolTest {
     join(thread);
     assertThat(caught.get(), instanceOf(IllegalStateException.class));
   }
+
+  // TODO blocked claim with timeout must throw when pool is shut down
   
   /**
    * Clients might hold on to objects after they have been released. This is
@@ -527,6 +538,8 @@ public class PoolTest {
     Pool pool = fixture.initPool(config.setAllocator(allocator));
     pool.claim();
   }
+
+  // TODO must propagate exceptions from allocate through claim with timeout
   
   /**
    * A pool must not break its internal invariants if an Allocator throws an
@@ -822,14 +835,6 @@ public class PoolTest {
     Pool pool = fixture.initPool(config.setAllocator(allocator));
     pool.claim();
   }
-  
-  // TODO claim with timeout must return object if within timeout
-  // TODO claim with timeout must return null if timeout elapses
-  // TODO blocking claim with timeout must wait if pool is empty
-  // TODO blocking claim with timeout must resume when pools are released
-  // TODO prevent claim with timeout from pool that is shut down
-  // TODO blocked claim with timeout must throw when pool is shut down
-  // TODO must propagate exceptions from allocate through claim with timeout
   // TODO claim with timeout must throw if allocation returns null
   
   // TODO claim when interrupted must throw
