@@ -989,7 +989,27 @@ public class PoolTest {
     Pool pool = fixture.initPool(config.setAllocator(allocator));
     pool.claim();
   }
-  // TODO claim with timeout must throw if allocation returns null
+  
+  /**
+   * Even claim with timeout must throw a PoolException if an Allocator
+   * returns <code>null</code>.
+   * @see #claimMustThrowIfAllocationReturnsNull(PoolFixture)
+   * @param fixture
+   * @throws Exception
+   */
+  @Test(timeout = 300, expected = PoolException.class)
+  @Theory public void
+  claimWithTimeoutMustThrowIfAllocationReturnsNull(PoolFixture fixture)
+  throws Exception {
+    Allocator allocator = new CountingAllocator() {
+      @Override
+      public Poolable allocate(Slot slot) {
+        return null;
+      }
+    };
+    Pool pool = fixture.initPool(config.setAllocator(allocator));
+    pool.claim(timeout, unit);
+  }
   
   // TODO claim when interrupted must throw
   // TODO claim with timeout when interrupted must throw
