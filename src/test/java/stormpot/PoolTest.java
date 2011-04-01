@@ -73,7 +73,7 @@ public class PoolTest {
    * up to this promise) so if a null comes out then it means that the path
    * from the Allocator out of the pool is somehow broken.
    * @param fixture
-   * @throws Exception 
+   * @throws Exception
    */
   @Test(timeout = 300)
   @Theory public void
@@ -91,7 +91,7 @@ public class PoolTest {
    * enough. If we do, then the pool does not correctly implement the timeout
    * behaviour.
    * @param fixture
-   * @throws Exception 
+   * @throws Exception
    */
   @Test(timeout = 300)
   @Theory public void
@@ -130,7 +130,7 @@ public class PoolTest {
    * source Allocator in a CountingAllocatorWrapper, but that is an
    * irrelevant detail.
    * @param fixture
-   * @throws Exception 
+   * @throws Exception
    */
   @Test(timeout = 300)
   @Theory public void
@@ -150,7 +150,7 @@ public class PoolTest {
    * be put in the WAITING state because it is waiting for some other thread
    * to perform a certain action, namely to release an object.
    * @param fixture
-   * @throws Exception 
+   * @throws Exception
    */
   @Test(timeout = 300)
   @Theory public void
@@ -170,7 +170,7 @@ public class PoolTest {
    * execution of claim() and get an object back out.
    * We only test the awakening here.
    * @param fixture
-   * @throws Exception 
+   * @throws Exception
    */
   @Test(timeout = 300)
   @Theory public void
@@ -196,7 +196,7 @@ public class PoolTest {
    * allocation count - even for pools that like to eagerly saturate the
    * pool with objects.
    * @param fixture
-   * @throws Exception 
+   * @throws Exception
    */
   @Test(timeout = 300)
   @Theory public void
@@ -230,7 +230,7 @@ public class PoolTest {
    * possible to implement in a thread-safe manner and not provide the
    * memory effects that we want.
    * @param fixture
-   * @throws Exception 
+   * @throws Exception
    */
   @Test(timeout = 300)
   @Theory public void
@@ -259,7 +259,7 @@ public class PoolTest {
    * asynchronously, are going to have to deal with the negative TTL so we
    * don't get into any killer-busy-loops or odd-ball exceptions. 
    * @param fixture
-   * @throws Exception 
+   * @throws Exception
    */
   @Test(timeout = 300)
   @Theory public void
@@ -283,7 +283,7 @@ public class PoolTest {
    * Because the TTL is negative, the object is expired when it is released
    * and must be deallocated before the next claim can allocate a new object.
    * @param fixture
-   * @throws Exception 
+   * @throws Exception
    */
   @Test(timeout = 300)
   @Theory public void
@@ -341,7 +341,7 @@ public class PoolTest {
    * its completion. The test passes if this does not dead-lock, hence the
    * test timeout.
    * @param fixture
-   * @throws Exception 
+   * @throws Exception
    */
   @Test(timeout = 300)
   @Theory public void
@@ -392,7 +392,7 @@ public class PoolTest {
    * another thread to do something that will let it resume. In our case,
    * the thread is waiting for someone to release the claimed object.
    * @param fixture
-   * @throws Exception 
+   * @throws Exception
    */
   @Test(timeout = 300)
   @Theory public void
@@ -436,7 +436,7 @@ public class PoolTest {
    * AtomicBoolean, which then must contain true after the thread has been
    * joined. And this must all happen before the test itself times out.
    * @param fixture
-   * @throws Exception 
+   * @throws Exception
    */
   @Test(timeout = 300)
   @Theory public void
@@ -517,7 +517,7 @@ public class PoolTest {
    * At this point, exactly one deallocation must have taken place. No more,
    * no less.
    * @param fixture
-   * @throws Exception 
+   * @throws Exception
    */
   @Test(timeout = 300)
   @Theory public void
@@ -581,7 +581,7 @@ public class PoolTest {
    * Preferably, this PoolException should wrap the original RuntimeException
    * from the Allocator, but we do not test for this here.
    * @param fixture
-   * @throws Exception 
+   * @throws Exception
    * @see PoolException
    */
   @Test(timeout = 300, expected = PoolException.class)
@@ -612,7 +612,7 @@ public class PoolTest {
    * If it does not, then the pool might have broken locks or it might have
    * garbage in the slot location.
    * @param fixture
-   * @throws Exception 
+   * @throws Exception
    */
   @Test(timeout = 300)
   @Theory public void
@@ -652,7 +652,7 @@ public class PoolTest {
    * takes place, because full pools guarantee that the deallocation of an
    * expired object happens before the allocation of its replacement.
    * @param fixture
-   * @throws Exception 
+   * @throws Exception
    */
   @Test(timeout = 300)
   @Theory public void
@@ -794,7 +794,7 @@ public class PoolTest {
    * await of an unfinished completion throws an InterruptedException, then
    * they must also clear the interrupted status.
    * @param fixture
-   * @throws Exception 
+   * @throws Exception
    */
   @Test(timeout = 300)
   @Theory public void
@@ -886,7 +886,7 @@ public class PoolTest {
    * returns null from allocate, and then we try to claim from this pool.
    * This call to claim must then throw a PoolException.
    * @param fixture
-   * @throws Exception 
+   * @throws Exception
    * @see Allocator#allocate(Slot)
    * @see PoolException
    */
