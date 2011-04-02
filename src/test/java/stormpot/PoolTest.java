@@ -1102,6 +1102,8 @@ public class PoolTest {
     assertFalse(Thread.interrupted());
   }
   
+  // TODO test for resilience against spurious wake-ups?
+  
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the Pool javadoc - especially the part about the promises.
 }
