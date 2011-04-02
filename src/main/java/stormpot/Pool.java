@@ -29,15 +29,21 @@ import java.util.concurrent.TimeUnit;
  * <li>A pool will use the {@link Allocator} provided in its
  * {@link Config configuration} for allocating and deallocating objects.
  * <li>A call to {@link #claim()} on a depleted pool will wait until an object
- * is released by some thread and claimed by the current thread, or the current
- * thread is {@link Thread#interrupt() interrupted}.
+ * is released by another thread and claimed by the current thread, or the
+ * current thread is {@link Thread#interrupt() interrupted}.
  * <li>A call to {@link #claim(long, TimeUnit)} will return an object if one
  * can be secured within the specified timeout period, or <code>null</code>
  * if the timeout elapses, or the current thread is {@link Thread#interrupt()
  * interrupted}.
  * <li>If the current thread is {@link Thread#interrupt() interrupted} upon
- * entry to {@link #claim()} or {@link #claim(long, TimeUnit)} then they will
- * immediately throw an {@link InterruptedException}.
+ * entry to {@link #claim()} or {@link #claim(long, TimeUnit)} then an
+ * {@link InterruptedException} will be thrown immediately.
+ * <li>If a thread is waiting in a call to one of the claim methods, and the
+ * thread gets interrupted, then it will wake up and throw an
+ * {@link InterruptedException}.
+ * <li>If a call to one of the claim methods throws an
+ * {@link InterruptedException}, then the threads interrupted flag will be
+ * cleared, and {@link Thread#interrupted()} will return <code>false</code>.
  * <li>A pool will reuse allocated objects within a period specified by the
  * configured {@link Config#setTTL(long, java.util.concurrent.TimeUnit)
  * time-to-live}.
@@ -63,9 +69,8 @@ import java.util.concurrent.TimeUnit;
  * <li>A pool that has been shut down will prevent claims by throwing an
  * {@link IllegalStateException}.
  * <li>Threads that are waiting in {@link #claim()} or
- * {@link #claim(long, TimeUnit)} for an object to become available,
- * will also receive and {@link IllegalStateException} when the pool is shut
- * down.
+ * {@link #claim(long, TimeUnit)} for an object to become available, will wake
+ * up and receive an {@link IllegalStateException} when the pool is shut down.
  * <li>A pool will deallocate all of its objects, before the shut down
  * procedure completes.
  * <li>The shut down procedure of a pool will not deallocate anything other
@@ -109,7 +114,8 @@ public interface Pool<T extends Poolable> {
    * Memory effects:
    * <ul>
    * <li>The {@link Poolable#release() release} of an object happens-before
-   * any subsequent claim of that object, and,
+   * any subsequent claim or {@link Allocator#deallocate(Poolable)
+   * deallocation} of that object, and,
    * <li>The {@link Allocator#allocate(Slot) allocation} of an object
    * happens-before any claim of that object.
    * </ul>
