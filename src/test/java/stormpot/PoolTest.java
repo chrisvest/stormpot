@@ -1077,7 +1077,30 @@ public class PoolTest {
         Thread.currentThread(), Thread.State.TIMED_WAITING));
     pool.claim(timeout, unit);
   }
-  // TODO throwing InterruptedException must clear the interrupted flag
+
+  /**
+   * As per the general contract of interruptible methods, throwing an
+   * InterruptedException will clear the interrupted flag on the thread.
+   * This must also hold for the claim methods.
+   * @param fixture
+   * @throws Exception
+   */
+  @Test(timeout = 300)
+  @Theory public void
+  throwingInterruptedExceptionFromClaimMustClearInterruptedFlag(
+      PoolFixture fixture) throws Exception {
+    try {
+      blockedClaimMustThrowUponInterruption(fixture);
+      fail("expected InterruptedException from claim");
+    } catch (InterruptedException _) {}
+    assertFalse(Thread.interrupted());
+    
+    try {
+      blockedClaimWithTimeoutMustThrowUponInterruption(fixture);
+      fail("expected InterruptedException from claim-with-timeout");
+    } catch (InterruptedException _) {}
+    assertFalse(Thread.interrupted());
+  }
   
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the Pool javadoc - especially the part about the promises.

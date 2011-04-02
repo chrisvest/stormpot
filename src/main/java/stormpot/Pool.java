@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
  * <p>
  * Pools contain {@link Poolable} objects. When you claim an object in a pool,
  * you also take upon yourself the responsibility of eventually
- * {@link Poolable#release() releasing} that object again. The by far most
+ * {@link Poolable#release() releasing} that object again. By far the most
  * common idiom to achieve this is with a try-finally clause:
  * <pre><code> SomePoolable obj = pool.claim();
  * try {
@@ -119,7 +119,8 @@ public interface Pool<T extends Poolable> {
    * threw an exception from its allocate method.
    * @throws InterruptedException if the current thread is
    * {@link Thread#interrupt() interrupted} upon entry, or becomes interrupted
-   * while waiting.
+   * while waiting. The interrupted flag on the thread will be cleared after
+   * this, as per the general contract of interruptible methods.
    */
   T claim() throws PoolException, InterruptedException;
 
