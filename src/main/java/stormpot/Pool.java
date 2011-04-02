@@ -105,11 +105,12 @@ public interface Pool<T extends Poolable> {
    * <p>
    * This method may throw a PoolException if the pool have trouble allocating
    * objects. That is, if its assigned Allocator throws exceptions from its
-   * allocate method.
+   * allocate method, or returns <code>null</code>.
    * <p>
    * An {@link InterruptedException} will be thrown if the thread has its
    * interrupted flag set upon entry to this method, or is interrupted while
-   * waiting.
+   * waiting. The interrupted flag on the thread will be cleared after
+   * this, as per the general contract of interruptible methods.
    * <p>
    * Memory effects:
    * <ul>
@@ -122,14 +123,45 @@ public interface Pool<T extends Poolable> {
    * @return An object of the Poolable subtype T to which the exclusive rights
    * have been claimed.
    * @throws PoolException If an object allocation failed because the Allocator
-   * threw an exception from its allocate method.
+   * threw an exception from its allocate method, or returned
+   * <code>null</code>.
    * @throws InterruptedException if the current thread is
    * {@link Thread#interrupt() interrupted} upon entry, or becomes interrupted
-   * while waiting. The interrupted flag on the thread will be cleared after
-   * this, as per the general contract of interruptible methods.
+   * while waiting.
    */
   T claim() throws PoolException, InterruptedException;
 
-  // TODO javadoc for claim with timeout
+  /**
+   * Claim the exclusive rights until released, to an object in the pool.
+   * Possibly waiting up to the specified amount of time for one to become
+   * available if the pool has been depleted.
+   * <p>
+   * This method may throw a PoolException if the pool have trouble allocating
+   * objects. That is, if its assigned Allocator throws exceptions from its
+   * allocate method, or returns <code>null</code>.
+   * <p>
+   * An {@link InterruptedException} will be thrown if the thread has its
+   * interrupted flag set upon entry to this method, or is interrupted while
+   * waiting. The interrupted flag on the thread will be cleared after
+   * this, as per the general contract of interruptible methods.
+   * <p>
+   * Memory effects:
+   * <ul>
+   * <li>The {@link Poolable#release() release} of an object happens-before
+   * any subsequent claim or {@link Allocator#deallocate(Poolable)
+   * deallocation} of that object, and,
+   * <li>The {@link Allocator#allocate(Slot) allocation} of an object
+   * happens-before any claim of that object.
+   * </ul>
+   * @return An object of the Poolable subtype T to which the exclusive rights
+   * have been claimed, or <code>null</code> if the timeout period elapsed
+   * before an object became available.
+   * @throws PoolException If an object allocation failed because the Allocator
+   * threw an exception from its allocate method, or returned
+   * <code>null</code>.
+   * @throws InterruptedException if the current thread is
+   * {@link Thread#interrupt() interrupted} upon entry, or becomes interrupted
+   * while waiting.
+   */
   T claim(long timeout, TimeUnit unit) throws PoolException, InterruptedException;
 }
