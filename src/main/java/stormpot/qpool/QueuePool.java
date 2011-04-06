@@ -16,21 +16,16 @@ import stormpot.Poolable;
 import stormpot.Slot;
 
 public class QueuePool<T extends Poolable> implements LifecycledPool<T> {
-  private final QSlot killPill = new QSlot(null);
+  private static final QSlot killPill = new QSlot(null);
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;
-  private final long ttlMillis;
   private final QAllocThread allocThread;
-  private final CountDownLatch completionLatch;
   private volatile boolean shutdown = false;
   
   public QueuePool(Config config) {
     live = new LinkedBlockingQueue<QSlot<T>>();
     dead = new LinkedBlockingQueue<QSlot<T>>();
-    ttlMillis = config.getTTLUnit().toMillis(config.getTTL());
-    completionLatch = new CountDownLatch(1);
-    allocThread = new QAllocThread(
-        live, dead, config.getAllocator(), config.getSize());
+    allocThread = new QAllocThread(live, dead, config);
     allocThread.start();
   }
 
@@ -81,12 +76,12 @@ public class QueuePool<T extends Poolable> implements LifecycledPool<T> {
     allocThread.interrupt();
     return new Completion() {
       public void await() throws InterruptedException {
-        completionLatch.await();
+        allocThread.completionLatch.await();
       }
 
       public boolean await(long timeout, TimeUnit unit)
           throws InterruptedException {
-        return completionLatch.await(timeout, unit);
+        return allocThread.completionLatch.await(timeout, unit);
       }
     };
   }
@@ -118,24 +113,28 @@ public class QueuePool<T extends Poolable> implements LifecycledPool<T> {
     }
   }
   
-  private class QAllocThread extends Thread {
+  private static class QAllocThread<T extends Poolable> extends Thread {
+    final CountDownLatch completionLatch;
     private final BlockingQueue<QSlot<T>> live;
     private final BlockingQueue<QSlot<T>> dead;
     private final Allocator<T> allocator;
     private final int targetSize;
+    private final long ttlMillis;
     private int size;
 
     public QAllocThread(
         BlockingQueue<QSlot<T>> live, BlockingQueue<QSlot<T>> dead,
-        Allocator<T> allocator, int size) {
-      if (size < 1) {
+        Config<T> config) {
+      this.targetSize = config.getSize();
+      if (targetSize < 1) {
         throw new IllegalArgumentException("size must be at least 1");
       }
-      this.allocator = allocator;
-      this.targetSize = size;
+      completionLatch = new CountDownLatch(1);
+      this.allocator = config.getAllocator();
       this.size = 0;
       this.live = live;
       this.dead = dead;
+      ttlMillis = config.getTTLUnit().toMillis(config.getTTL());
     }
 
     @Override
