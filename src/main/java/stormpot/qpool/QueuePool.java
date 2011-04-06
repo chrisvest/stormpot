@@ -10,6 +10,20 @@ import stormpot.LifecycledPool;
 import stormpot.PoolException;
 import stormpot.Poolable;
 
+/**
+ * QueuePool is a fairly simple {@link LifecycledPool} implementation that
+ * basically consists of a queue of Poolable instances, and a Thread to
+ * allocate them.
+ * <p>
+ * This means that the object allocation always happens in a dedicated thread.
+ * This means that no thread that calls any of the claim methods, will incur
+ * the overhead of allocating Poolables. This should lead to reduced deviation
+ * in the times it takes claim method to complete, provided the pool is not
+ * depleted.
+ * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
+ *
+ * @param <T>
+ */
 public class QueuePool<T extends Poolable> implements LifecycledPool<T> {
   static final QSlot KILL_PILL = new QSlot(null);
   private final BlockingQueue<QSlot<T>> live;
