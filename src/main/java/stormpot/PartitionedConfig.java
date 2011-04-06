@@ -1,12 +1,11 @@
-package stormpot.whirlpool;
+package stormpot;
 
-import stormpot.Config;
 
-public class WhirlpoolConfig extends Config {
+public class PartitionedConfig extends Config {
 
   private int partitions;
 
-  public WhirlpoolConfig(Config config) {
+  public PartitionedConfig(Config config) {
     config.setFieldsOn(this);
   }
 
@@ -21,8 +20,8 @@ public class WhirlpoolConfig extends Config {
   @Override
   public synchronized void setFieldsOn(Config config) {
     super.setFieldsOn(config);
-    if (config instanceof WhirlpoolConfig) {
-      WhirlpoolConfig cfg = (WhirlpoolConfig) config;
+    if (config instanceof PartitionedConfig) {
+      PartitionedConfig cfg = (PartitionedConfig) config;
       cfg.setPartitionCount(partitions);
     }
   }
