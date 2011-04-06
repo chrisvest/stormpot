@@ -126,4 +126,11 @@ public class UnitKit {
     return ((LifecycledPool) pool).shutdown();
   }
 
+  public static void spinwait(long ms) {
+    long now = System.currentTimeMillis();
+    long deadline = now + ms;
+    while (now < deadline) {
+      now = System.currentTimeMillis();
+    }
+  }
 }

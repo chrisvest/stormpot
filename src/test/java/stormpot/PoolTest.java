@@ -297,8 +297,8 @@ public class PoolTest {
    * they must be replaced/renewed. Pools should generally try to renew
    * before the timeout elapses for the given object, but we don't test for
    * that here.
-   * We set the TTL to be -1 instead of 0 to avoid a data race on
-   * {@link System#currentTimeMillis()}. This way, the objects will always
+   * We set the TTL to be 1 millisecond, because that is short enough that
+   * we can wait for it in a spin-loop. This way, the objects will always
    * appear to have expired when checked. This means that every claim will
    * always allocate a new object, and so our two claims will translate to
    * two allocations, which is what we check for.
@@ -312,8 +312,9 @@ public class PoolTest {
   @Theory public void
   mustReplaceExpiredPoolables(PoolFixture fixture) throws Exception {
     Pool pool = fixture.initPool(
-        config.goInsane().setTTL(-1L, TimeUnit.MILLISECONDS));
+        config.goInsane().setTTL(1, TimeUnit.MILLISECONDS));
     pool.claim().release();
+    spinwait(2);
     pool.claim().release();
     assertThat(allocator.allocations(), is(2));
   }
@@ -337,8 +338,9 @@ public class PoolTest {
   mustDeallocateExpiredPoolablesAndStayWithinSizeLimit(PoolFixture fixture)
   throws Exception {
     Pool pool = fixture.initPool(
-        config.goInsane().setTTL(-1L, TimeUnit.MILLISECONDS));
+        config.setTTL(1, TimeUnit.MILLISECONDS));
     pool.claim().release();
+    spinwait(2);
     pool.claim().release();
     assertThat(allocator.deallocations(), is(greaterThanOrEqualTo(1)));
     // We use greaterThanOrEqualTo because we cannot say whether the second
@@ -577,12 +579,12 @@ public class PoolTest {
    * Clients might hold on to objects after they have been released. This is
    * a user error, but pools must still maintain a coherent allocation and
    * deallocation pattern toward the Allocator.
-   * We test this by configuring a pool with a negative TTL so that the objects
-   * will be deallocated as soon as possible. Then we claim an object and
-   * release it twice. Then claim an object to guarantee that the
-   * deallocation of the first object have taken place when we check the count.
-   * At this point, exactly one deallocation must have taken place. No more,
-   * no less.
+   * We test this by configuring a pool with a short TTL so that the objects
+   * will be deallocated as soon as possible. Then we claim an object, wait
+   * the TTL out and release it twice. Then claim an object to guarantee that
+   * the deallocation of the first object have taken place when we check the
+   * count. At this point, exactly one deallocation must have taken place.
+   * No more, no less.
    * @param fixture
    * @throws Exception
    */
@@ -591,8 +593,9 @@ public class PoolTest {
   mustNotDeallocateTheSameObjectMoreThanOnce(PoolFixture fixture)
   throws Exception {
     Pool pool = fixture.initPool(
-        config.goInsane().setTTL(-1, TimeUnit.MILLISECONDS));
+        config.goInsane().setTTL(1, TimeUnit.MILLISECONDS));
     Poolable obj = pool.claim();
+    spinwait(2);
     obj.release();
     try {
       obj.release();
@@ -611,11 +614,9 @@ public class PoolTest {
    * try to deallocate any null value.
    * We attempt to test for this by having a special Allocator that flags
    * a boolean if a null was deallocated. Then we create a pool with the
-   * Allocator and a negative TTL, and claim and release an object. The
-   * Allocator also counts down a latch, so that we don't have to race with
-   * the deallocation. After the first object has been deallocated, we shut
-   * the pool down. After the shut down procedure completes, we check that
-   * no nulls were deallocated.
+   * Allocator and a negative TTL, and claim and release an object.
+   * Then we shut the pool down. After the shut down procedure completes,
+   * we check that no nulls were deallocated.
    * @param fixture
    * @throws Exception
    */
@@ -623,20 +624,17 @@ public class PoolTest {
   @Theory public void
   shutdownMustNotDeallocateEmptySlots(PoolFixture fixture) throws Exception {
     final AtomicBoolean wasNull = new AtomicBoolean();
-    final CountDownLatch latch = new CountDownLatch(1);
     Allocator allocator = new CountingAllocator() {
       @Override
       public void deallocate(Poolable poolable) {
         if (poolable == null) {
           wasNull.set(true);
         }
-        latch.countDown();
       }
     };
-    Pool pool = fixture.initPool(config.goInsane()
-        .setAllocator(allocator).setTTL(-1, TimeUnit.MILLISECONDS));
+    Pool pool = fixture.initPool(
+        config.setAllocator(allocator).setTTL(1, TimeUnit.MILLISECONDS));
     pool.claim().release();
-    latch.await();
     shutdown(pool).await();
     assertFalse(wasNull.get());
   }
@@ -734,10 +732,11 @@ public class PoolTest {
    * thrown by their allocators deallocate method, are going to have to wrap
    * their allocators in try-catching and logging code.
    * We test this by configuring the pool with an Allocator that always throws
-   * on deallocate, and a negative TTL. Then we claim and release an object,
-   * and then claim another one. This ensures that the deallocation actually
-   * takes place, because full pools guarantee that the deallocation of an
-   * expired object happens before the allocation of its replacement.
+   * on deallocate, and a very short TTL. Then we claim and release an object,
+   * spin the TTL out and then claim another one. This ensures that the
+   * deallocation actually takes place, because full pools guarantee that
+   * the deallocation of an expired object happens before the allocation
+   * of its replacement.
    * @param fixture
    * @throws Exception
    */
@@ -753,8 +752,9 @@ public class PoolTest {
     };
     config.setAllocator(allocator);
     Pool pool = fixture.initPool(
-        config.goInsane().setTTL(-1, TimeUnit.MILLISECONDS));
+        config.setTTL(1, TimeUnit.MILLISECONDS));
     pool.claim().release();
+    spinwait(2);
     pool.claim();
   }
   

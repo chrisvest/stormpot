@@ -82,7 +82,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
       }
       Poolable obj = pool[index];
       BasicSlot slot = slots[index];
-      if (obj == null) {
+      if (obj == null || slot.expired()) {
         try {
           slot = slot(index);
           obj = allocator.allocate(slot);
@@ -147,6 +147,19 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
       this.expires = System.currentTimeMillis() + bpool.ttlMillis;
     }
 
+    public boolean expired() {
+      if (System.currentTimeMillis() > expires) {
+        try {
+          bpool.allocator.deallocate(bpool.pool[index]);
+        } catch (RuntimeException _) {
+          // exceptions from deallocate are ignored as per specification.
+        }
+        bpool.pool[index] = null;
+        return true;
+      }
+      return false;
+    }
+
     private void claim() {
       claimed = true;
     }
@@ -160,14 +173,6 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
       if (!claimed) {
         bpool.lock.unlock();
         return;
-      }
-      if (System.currentTimeMillis() > expires) {
-        try {
-          bpool.allocator.deallocate(bpool.pool[index]);
-        } catch (RuntimeException _) {
-          // exceptions from deallocate are ignored as per specification.
-        }
-        bpool.pool[index] = null;
       }
       claimed = false;
       bpool.count.decrementAndGet();
