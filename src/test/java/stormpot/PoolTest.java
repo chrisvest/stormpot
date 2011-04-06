@@ -4,7 +4,6 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static stormpot.UnitKit.*;
 
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -312,7 +311,7 @@ public class PoolTest {
   @Theory public void
   mustReplaceExpiredPoolables(PoolFixture fixture) throws Exception {
     Pool pool = fixture.initPool(
-        config.goInsane().setTTL(1, TimeUnit.MILLISECONDS));
+        config.setTTL(1, TimeUnit.MILLISECONDS));
     pool.claim().release();
     spinwait(2);
     pool.claim().release();
@@ -593,7 +592,7 @@ public class PoolTest {
   mustNotDeallocateTheSameObjectMoreThanOnce(PoolFixture fixture)
   throws Exception {
     Pool pool = fixture.initPool(
-        config.goInsane().setTTL(1, TimeUnit.MILLISECONDS));
+        config.setTTL(1, TimeUnit.MILLISECONDS));
     Poolable obj = pool.claim();
     spinwait(2);
     obj.release();
@@ -707,7 +706,7 @@ public class PoolTest {
     Allocator allocator = new CountingAllocator() {
       @Override
       public Poolable allocate(Slot slot) {
-        if (doThrow.get()) {
+        if (doThrow.compareAndSet(true, false)) {
           throw new RuntimeException("boo");
         }
         return super.allocate(slot);
@@ -716,9 +715,7 @@ public class PoolTest {
     Pool pool = fixture.initPool(config.setAllocator(allocator));
     try {
       pool.claim();
-    } catch (PoolException _) {
-      doThrow.set(false);
-    }
+    } catch (PoolException _) {}
     assertThat(pool.claim(), is(notNullValue()));
   }
   
