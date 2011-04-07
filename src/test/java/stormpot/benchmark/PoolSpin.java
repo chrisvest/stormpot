@@ -38,7 +38,7 @@ public class PoolSpin extends SimpleBenchmark {
   @Param int poolType = 0;
   @Param long ttl = 10000;
 
-  private Pool pool;
+  protected Pool pool;
   
   @Override
   protected void setUp() throws Exception {
@@ -68,6 +68,4 @@ public class PoolSpin extends SimpleBenchmark {
       p.shutdown().await();
     }
   }
-  
-  
 }
