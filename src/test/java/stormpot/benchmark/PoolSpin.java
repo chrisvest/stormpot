@@ -15,6 +15,7 @@ import stormpot.Slot;
 import com.google.caliper.Param;
 import com.google.caliper.SimpleBenchmark;
 
+@SuppressWarnings("unchecked")
 public class PoolSpin extends SimpleBenchmark {
   private final class SlowAllocator implements Allocator {
     private final long workMs;

@@ -2,6 +2,7 @@ package stormpot;
 
 import java.util.concurrent.TimeUnit;
 
+@SuppressWarnings("unchecked")
 public class Config<T extends Poolable> {
 
   private int size = 10;

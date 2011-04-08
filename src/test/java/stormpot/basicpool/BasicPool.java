@@ -25,6 +25,7 @@ import stormpot.Slot;
  *
  * @param <T>
  */
+@SuppressWarnings("unchecked")
 public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
 
   private final Allocator<T> allocator;

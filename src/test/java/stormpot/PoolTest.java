@@ -47,6 +47,7 @@ import org.junit.runner.RunWith;
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  * @see Pool
  */
+@SuppressWarnings("unchecked")
 @RunWith(Theories.class)
 public class PoolTest {
   private static final long timeout = 1;
