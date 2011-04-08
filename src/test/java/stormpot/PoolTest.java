@@ -253,7 +253,7 @@ public class PoolTest {
   @Test(timeout = 300, expected = IllegalArgumentException.class)
   @Theory public void
   preventConstructionOfPoolsOfSizeLessThanOne(PoolFixture fixture) {
-    fixture.initPool(config.goInsane().setSize(0));
+    fixture.initPool(config.setSize(0));
   }
   
   /**
