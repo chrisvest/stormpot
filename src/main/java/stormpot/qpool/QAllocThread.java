@@ -9,6 +9,7 @@ import stormpot.Allocator;
 import stormpot.Config;
 import stormpot.Poolable;
 
+@SuppressWarnings("unchecked")
 class QAllocThread<T extends Poolable> extends Thread {
   private final CountDownLatch completionLatch;
   private final BlockingQueue<QSlot<T>> live;

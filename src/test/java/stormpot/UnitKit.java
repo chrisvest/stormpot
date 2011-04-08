@@ -80,7 +80,7 @@ public class UnitKit {
   }
   
   public static <T> Callable<T> $catchFrom(
-      final Callable<T> procedure, final AtomicReference caught) {
+      final Callable<T> procedure, final AtomicReference<Exception> caught) {
     return new Callable<T>() {
       public T call() {
         try {
