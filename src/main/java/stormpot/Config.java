@@ -5,16 +5,11 @@ import java.util.concurrent.TimeUnit;
 public class Config<T extends Poolable> {
 
   private int size = 10;
-  private boolean sane = true;
   private long ttl = 10;
   private TimeUnit ttlUnit = TimeUnit.MINUTES;
   private Allocator allocator;
 
   public synchronized Config<T> setSize(int size) {
-    if (sane && size < 1) {
-      throw new IllegalArgumentException(
-          "size must be at least 1 but was " + size);
-    }
     this.size = size;
     return this;
   }
@@ -23,15 +18,7 @@ public class Config<T extends Poolable> {
     return size;
   }
 
-  synchronized Config<T> goInsane() {
-    sane = false;
-    return this;
-  }
-  
   public synchronized Config<T> setTTL(long ttl, TimeUnit unit) {
-    if (sane && unit == null) {
-      throw new IllegalArgumentException("unit cannot be null");
-    }
     this.ttl = ttl;
     this.ttlUnit = unit;
     return this;
@@ -56,9 +43,6 @@ public class Config<T extends Poolable> {
   }
 
   public synchronized void setFieldsOn(Config config) {
-    if (!sane) {
-      config.goInsane();
-    }
     config.setAllocator(allocator);
     config.setSize(size);
     config.setTTL(ttl, ttlUnit);

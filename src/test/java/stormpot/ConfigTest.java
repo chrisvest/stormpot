@@ -22,16 +22,6 @@ public class ConfigTest {
     config.setTTL(config.getTTL(), config.getTTLUnit());
   }
   
-  @Test(expected = IllegalArgumentException.class) public void
-  sizeMustBeAtLeastOne() {
-    config.setSize(0);
-  }
-  
-  @Test(expected = IllegalArgumentException.class) public void
-  ttlUnitCannotBeNull() {
-    config.setTTL(1, null);
-  }
-  
   @Test public void
   ttlMustBeSettable() {
     long ttl = config.getTTL() + 1;
@@ -46,7 +36,6 @@ public class ConfigTest {
   
   @Test public void
   goingInsaneMustDisableArgumentChecks() {
-    config.goInsane();
     config.setSize(0);
     config.setTTL(1, null);
   }
