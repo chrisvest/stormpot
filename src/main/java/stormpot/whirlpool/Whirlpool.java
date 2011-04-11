@@ -10,5 +10,6 @@ import stormpot.Pool;
  *
  */
 public class Whirlpool {
-  
+  // TODO test request object
+  // TODO test publist object
 }
