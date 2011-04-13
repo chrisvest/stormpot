@@ -5,19 +5,25 @@ class Request {
 
   public static Request get() {
     Request request = requestRef.get();
-    if (request == null) {
+    if (request == null || !request.active) {
       request = new Request();
       requestRef.set(request);
     }
     return request;
   }
 
+  private boolean active = true;
+
   public boolean active() {
-    return true;
+    return active;
   }
 
   static void clear() {
     requestRef.set(null);
+  }
+
+  public void deactivate() {
+    active = false;
   }
 
 }

@@ -7,9 +7,15 @@ import static stormpot.UnitKit.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.Before;
 import org.junit.Test;
 
 public class RequestTest {
+  @Before public void
+  setUp() {
+    Request.clear();
+  }
+  
   @Test public void
   getMustReturnRequestRequest() {
     assertNotNull(Request.get());
@@ -19,7 +25,7 @@ public class RequestTest {
   getMustReturnExistingRequest() {
     Request r1 = Request.get();
     Request r2 = Request.get();
-    assertTrue( r1 == r2);
+    assertTrue(r1 == r2);
   }
   
   @Test(timeout = 300) public void
@@ -51,5 +57,12 @@ public class RequestTest {
     Request r2 = Request.get();
     assertTrue(r1 != r2);
   }
-  // TODO get must allocate new request if existing is inactive
+  
+  @Test public void
+  getMustAllocateNewRequestIfExistingIsInactive() {
+    Request r1 = Request.get();
+    r1.deactivate();
+    Request r2 = Request.get();
+    assertTrue(r1 != r2);
+  }
 }
