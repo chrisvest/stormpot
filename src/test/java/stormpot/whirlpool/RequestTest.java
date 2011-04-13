@@ -43,6 +43,13 @@ public class RequestTest {
   getMustReturnActiveRequest() {
     assertTrue(Request.get().active());
   }
-  // TODO get must return active request
+  
+  @Test public void
+  clearMustResetAssignedRequest() {
+    Request r1 = Request.get();
+    Request.clear();
+    Request r2 = Request.get();
+    assertTrue(r1 != r2);
+  }
   // TODO get must allocate new request if existing is inactive
 }

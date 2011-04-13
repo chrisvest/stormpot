@@ -1,6 +1,6 @@
 package stormpot.whirlpool;
 
-public class Request {
+class Request {
   private static ThreadLocal<Request> requestRef = new ThreadLocal<Request>();
 
   public static Request get() {
@@ -14,6 +14,10 @@ public class Request {
 
   public boolean active() {
     return true;
+  }
+
+  static void clear() {
+    requestRef.set(null);
   }
 
 }
