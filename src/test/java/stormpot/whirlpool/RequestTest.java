@@ -39,7 +39,10 @@ public class RequestTest {
     };
   }
   
-  // TODO request must be thread local
+  @Test public void
+  getMustReturnActiveRequest() {
+    assertTrue(Request.get().active());
+  }
   // TODO get must return active request
   // TODO get must allocate new request if existing is inactive
 }

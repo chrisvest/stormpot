@@ -1,15 +1,19 @@
 package stormpot.whirlpool;
 
 public class Request {
-  private static ThreadLocal<Request> request = new ThreadLocal<Request>() {
-    @Override
-    protected Request initialValue() {
-      return new Request();
-    }
-  };
+  private static ThreadLocal<Request> requestRef = new ThreadLocal<Request>();
 
   public static Request get() {
-    return request.get();
+    Request request = requestRef.get();
+    if (request == null) {
+      request = new Request();
+      requestRef.set(request);
+    }
+    return request;
+  }
+
+  public boolean active() {
+    return true;
   }
 
 }
