@@ -24,7 +24,7 @@ import stormpot.Poolable;
  *
  * @param <T>
  */
-public class QueuePool<T extends Poolable> implements LifecycledPool<T> {
+public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
   static final QSlot KILL_PILL = new QSlot(null);
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;
