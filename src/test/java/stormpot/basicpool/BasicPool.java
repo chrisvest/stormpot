@@ -86,7 +86,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
         try {
           slot = slot(index);
           obj = allocator.allocate(slot);
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
           throw new PoolException("Failed allocation", e);
         }
         if (obj == null) {
@@ -151,7 +151,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
       if (System.currentTimeMillis() > expires) {
         try {
           bpool.allocator.deallocate(bpool.pool[index]);
-        } catch (RuntimeException _) {
+        } catch (Exception _) {
           // exceptions from deallocate are ignored as per specification.
         }
         bpool.pool[index] = null;
@@ -202,7 +202,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
           pool[index] = null;
           try {
             allocator.deallocate(poolable);
-          } catch (RuntimeException _) {
+          } catch (Exception _) {
             // exceptions from deallocate are ignored as per specification.
           }
         }
