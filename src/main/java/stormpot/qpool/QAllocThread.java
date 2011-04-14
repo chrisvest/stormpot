@@ -75,7 +75,6 @@ class QAllocThread<T extends Poolable> extends Thread {
       slot.obj = allocator.allocate(slot);
       if (slot.obj == null) {
         slot.poison = new NullPointerException("allocation returned null");
-      } else {
       }
     } catch (Exception e) {
       slot.poison = e;
