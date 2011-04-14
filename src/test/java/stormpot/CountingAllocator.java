@@ -6,12 +6,12 @@ public class CountingAllocator implements Allocator {
   private final AtomicInteger allocations = new AtomicInteger();
   private final AtomicInteger deallocations = new AtomicInteger();
 
-  public Poolable allocate(Slot slot) {
+  public Poolable allocate(Slot slot) throws Exception {
     allocations.incrementAndGet();
     return new GenericPoolable(slot);
   }
 
-  public void deallocate(Poolable poolable) {
+  public void deallocate(Poolable poolable) throws Exception {
     deallocations.incrementAndGet();
   }
 

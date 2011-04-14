@@ -3,6 +3,7 @@ package stormpot.basicpool;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -86,7 +87,23 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
       if (obj == null || slot.expired()) {
         try {
           slot = slot(index);
-          obj = allocator.allocate(slot);
+          if (withTimeout) {
+            Object NULL = new Object();
+            AtomicReference ref = new AtomicReference(NULL);
+            Thread alloc = alloc(ref, slot);
+            alloc.join(maxWaitNanos / 1000000);
+            Object value = ref.get();
+            if (value == NULL) {
+              // timeout
+              return null;
+            }
+            if (value instanceof ExceptionHolder) {
+              throw ((ExceptionHolder) value).exception;
+            }
+            obj = (Poolable) value;
+          } else {
+            obj = allocator.allocate(slot);
+          }
         } catch (Exception e) {
           throw new PoolException("Failed allocation", e);
         }
@@ -104,6 +121,26 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
     }
   }
 
+  private static class ExceptionHolder {
+    Exception exception;
+  }
+
+  private Thread alloc(final AtomicReference ref, final Slot slot) {
+    Runnable runnable  = new Runnable() {
+      public void run() {
+        try {
+          ref.set(allocator.allocate(slot));
+        } catch (Exception e) {
+          ExceptionHolder holder = new ExceptionHolder();
+          holder.exception = e;
+          ref.set(holder);
+        }
+      }
+    };
+    Thread thread = new Thread(runnable);
+    thread.start();
+    return thread;
+  }
 
   public T claim() throws InterruptedException {
     return claim(0, null);
