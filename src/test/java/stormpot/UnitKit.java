@@ -9,6 +9,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
 
 public class UnitKit {
 
@@ -99,6 +100,19 @@ public class UnitKit {
       public Object call() throws Exception {
         waitForThreadState(thread, state);
         thread.interrupt();
+        return null;
+      }
+    };
+  }
+  
+  public static Callable $delayedRelease(
+      final Poolable obj, long delay, TimeUnit delayUnit) {
+    final long deadline =
+      System.currentTimeMillis() + delayUnit.toMillis(delay);
+    return new Callable() {
+      public Object call() throws Exception {
+        LockSupport.parkUntil(deadline);
+        obj.release();
         return null;
       }
     };

@@ -4,6 +4,8 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static stormpot.UnitKit.*;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -706,7 +708,7 @@ public class PoolTest {
     final AtomicBoolean doThrow = new AtomicBoolean(true);
     Allocator allocator = new CountingAllocator() {
       @Override
-      public Poolable allocate(Slot slot) {
+      public Poolable allocate(Slot slot) throws Exception {
         if (doThrow.compareAndSet(true, false)) {
           throw new RuntimeException("boo");
         }
@@ -783,7 +785,7 @@ public class PoolTest {
   throws Exception {
     CountingAllocator allocator = new CountingAllocator() {
       @Override
-      public void deallocate(Poolable poolable) {
+      public void deallocate(Poolable poolable) throws Exception {
         super.deallocate(poolable);
         throw new RuntimeException("boo");
       }
@@ -1100,6 +1102,21 @@ public class PoolTest {
     assertFalse(Thread.interrupted());
   }
   
+  @Test(timeout = 300)
+  @Theory public void
+  claimMustStayWithinDeadlineEvenIfAllocatorBlocks(PoolFixture fixture)
+  throws Exception {
+    final CountDownLatch never = new CountDownLatch(1);
+    Allocator allocator = new CountingAllocator() {
+      @Override
+      public Poolable allocate(Slot slot) throws Exception {
+        never.await(); // this will never return
+        return super.allocate(slot);
+      }
+    };
+    Pool pool = fixture.initPool(config.setAllocator(allocator));
+    pool.claim(10, TimeUnit.MILLISECONDS);
+  }
   // TODO test for resilience against spurious wake-ups?
   
   // NOTE: When adding, removing or modifying tests, also remember to update
