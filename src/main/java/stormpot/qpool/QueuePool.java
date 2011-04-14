@@ -74,6 +74,7 @@ public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
       InterruptedException {
     QSlot<T> slot;
     do {
+      // TODO timeout-reset bug
       slot = live.poll(timeout, unit);
     } while (invalid(slot));
     return slot == null? null : slot.obj;
