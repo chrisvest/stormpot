@@ -38,8 +38,9 @@ public interface Allocator<T extends Poolable> {
    * pools slot objects. They just have to call release on them as the
    * protocol demands.
    * @return A newly created instance of T. Never <code>null</code>.
+   * @throws Exception if the allocation fails.
    */
-  T allocate(Slot slot);
+  T allocate(Slot slot) throws Exception;
 
   /**
    * Deallocate, if applicable, the given Poolable and free any resources
@@ -70,6 +71,7 @@ public interface Allocator<T extends Poolable> {
    * complete, and release will still maintain the internal data structures of
    * the pool to make the slot available for new allocations.
    * @param poolable a non-null Poolable instance to be deallocated.
+   * @throws Exception if the deallocation encounters an error.
    */
-  void deallocate(T poolable);
+  void deallocate(T poolable) throws Exception;
 }

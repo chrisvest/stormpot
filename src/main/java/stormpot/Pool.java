@@ -153,6 +153,9 @@ public interface Pool<T extends Poolable> {
    * <li>The {@link Allocator#allocate(Slot) allocation} of an object
    * happens-before any claim of that object.
    * </ul>
+   * @param timeout The value of the maximum permitted time-slice to wait for
+   * an object to become available.
+   * @param unit The unit of the timeout parameter.
    * @return An object of the Poolable subtype T to which the exclusive rights
    * have been claimed, or <code>null</code> if the timeout period elapsed
    * before an object became available.
