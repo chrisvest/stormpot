@@ -1,6 +1,5 @@
 package stormpot.benchmark;
 
-import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.caliper.SimpleBenchmark;
