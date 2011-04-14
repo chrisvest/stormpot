@@ -74,9 +74,10 @@ public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
   public T claim(long timeout, TimeUnit unit) throws PoolException,
       InterruptedException {
     QSlot<T> slot;
+    long deadline = System.currentTimeMillis() + unit.toMillis(timeout);
     do {
-      // TODO timeout-reset bug
-      slot = live.poll(timeout, unit);
+      long timeoutLeft = deadline - System.currentTimeMillis();
+      slot = live.poll(timeoutLeft, TimeUnit.MILLISECONDS);
     } while (invalid(slot));
     return slot == null? null : slot.obj;
   }

@@ -1106,16 +1106,37 @@ public class PoolTest {
   @Theory public void
   claimMustStayWithinDeadlineEvenIfAllocatorBlocks(PoolFixture fixture)
   throws Exception {
-    final CountDownLatch never = new CountDownLatch(1);
     Allocator allocator = new CountingAllocator() {
       @Override
       public Poolable allocate(Slot slot) throws Exception {
-        never.await(); // this will never return
+        new CountDownLatch(1).await(); // this will never return
         return super.allocate(slot);
       }
     };
     Pool pool = fixture.initPool(config.setAllocator(allocator));
     pool.claim(10, TimeUnit.MILLISECONDS);
+  }
+  
+  @Test(timeout = 300)
+  @Theory public void
+  claimMustStayWithinTimeoutEvenIfExpiredObjectIsReleased(PoolFixture fixture)
+  throws Exception {
+    final Semaphore semaphore = new Semaphore(1);
+    Allocator allocator = new CountingAllocator() {
+      @Override
+      public Poolable allocate(Slot slot) throws Exception {
+        semaphore.acquire();
+        return super.allocate(slot);
+      }
+    };
+    Pool pool = fixture.initPool(
+        config.setAllocator(allocator).setTTL(1, TimeUnit.MILLISECONDS));
+    Poolable obj = pool.claim();
+    fork($delayedRelease(obj, 40, TimeUnit.MILLISECONDS));
+    long start = System.currentTimeMillis();
+    pool.claim(50, TimeUnit.MILLISECONDS);
+    long elapsed = System.currentTimeMillis() - start;
+    assertThat(elapsed, lessThan(60L));
   }
   // TODO test for resilience against spurious wake-ups?
   
