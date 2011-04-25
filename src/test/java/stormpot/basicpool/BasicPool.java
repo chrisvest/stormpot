@@ -206,7 +206,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
       return claimed;
     }
 
-    public void release() {
+    public void release(Poolable obj) {
       bpool.lock.lock();
       if (!claimed) {
         bpool.lock.unlock();

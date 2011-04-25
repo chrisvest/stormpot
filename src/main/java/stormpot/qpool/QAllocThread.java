@@ -82,7 +82,7 @@ class QAllocThread<T extends Poolable> extends Thread {
     size++;
     slot.expires = System.currentTimeMillis() + ttlMillis;
     slot.claim();
-    slot.release();
+    slot.release(slot.obj);
   }
 
   private void dealloc(QSlot<T> slot) {

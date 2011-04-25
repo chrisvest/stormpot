@@ -26,7 +26,7 @@ class QSlot<T extends Poolable> implements Slot {
     return expires < System.currentTimeMillis();
   }
   
-  public void release() {
+  public void release(Poolable obj) {
     if (claimed.compareAndSet(true, false)) {
       live.offer(this);
     }

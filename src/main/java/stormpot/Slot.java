@@ -28,6 +28,8 @@ public interface Slot {
    * Pools must, however, guarantee that an object is never
    * {@link Allocator#deallocate(Poolable) deallocated} more than once.
    * This guarantee must hold even if release is misused.
+   * @param obj A reference to the Poolable object that is allocated for this
+   * slot, and is being released.
    */
-  void release();
+  void release(Poolable obj);
 }

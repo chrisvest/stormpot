@@ -8,6 +8,6 @@ public class GenericPoolable implements Poolable {
   }
 
   public void release() {
-    slot.release();
+    slot.release(this);
   }
 }

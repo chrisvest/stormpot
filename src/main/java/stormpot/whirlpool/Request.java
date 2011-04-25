@@ -1,29 +1,22 @@
 package stormpot.whirlpool;
 
+
 class Request {
-  private static ThreadLocal<Request> requestRef = new ThreadLocal<Request>();
+  private static ThreadLocal<Request> requestRef = new ThreadLocal<Request>() {
+    @Override
+    protected Request initialValue() {
+      return new Request();
+    }
+  };
 
   public static Request get() {
-    Request request = requestRef.get();
-    if (request == null || !request.active) {
-      request = new Request();
-      requestRef.set(request);
-    }
-    return request;
+    return requestRef.get();
   }
 
-  private boolean active = true;
-
-  public boolean active() {
-    return active;
-  }
-
-  static void clear() {
-    requestRef.set(null);
-  }
-
-  public void deactivate() {
-    active = false;
-  }
-
+  boolean active = false;
+  WSlot requestOp;
+  WSlot response;
+  Request next;
+  int passCount;
+  Thread thread;
 }
