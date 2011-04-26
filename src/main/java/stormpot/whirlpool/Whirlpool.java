@@ -98,6 +98,8 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
   static final AtomicIntegerFieldUpdater<Whirlpool> lockCas =
     newUpdater(Whirlpool.class, "lock");
   
+  private final RequestThreadLocal requestTL = new RequestThreadLocal();
+  
   private volatile Request publist;
   @SuppressWarnings("unused")
   private volatile int lock = UNLOCKED;
@@ -123,7 +125,7 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
   }
 
   WSlot relieve(long timeout, TimeUnit unit) throws InterruptedException {
-    Request request = Request.get();
+    Request request = requestTL.get();
     request.requestOp = RELIEVE;
     return perform(request, timeout, unit, false, true);
   }
@@ -135,7 +137,7 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
   @SuppressWarnings("unchecked")
   public T claim(long timeout, TimeUnit unit) throws PoolException,
       InterruptedException {
-    Request request = Request.get();
+    Request request = requestTL.get();
     request.requestOp = CLAIM;
     WSlot slot = perform(request, timeout, unit, true, true);
     if (slot == null) {
@@ -155,7 +157,7 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
   }
 
   public void release(WSlot slot) {
-    Request request = Request.get();
+    Request request = requestTL.get();
     request.requestOp = slot;
     try {
       perform(request, 0, null, false, false);

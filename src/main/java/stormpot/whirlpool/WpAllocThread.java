@@ -59,9 +59,6 @@ class WpAllocThread extends Thread implements Completion {
     if (size < targetSize) {
       WSlot slot = new WSlot(pool);
       allocate(slot);
-    } else {
-      relieveTimeout = 0;
-      relieveUnit = null;
     }
     WSlot slot;
     try {
@@ -114,7 +111,10 @@ class WpAllocThread extends Thread implements Completion {
     while (size > 0) {
       WSlot slot;
       try {
-        slot = pool.relieve(0, null);
+        slot = pool.relieve(relieveTimeout, relieveUnit);
+        if (slot == null) {
+          continue;
+        }
         deallocate(slot);
       } catch (InterruptedException e) {
         // ignore interrupts - we're already trying to shut down
