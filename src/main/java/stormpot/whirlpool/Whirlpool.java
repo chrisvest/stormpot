@@ -160,7 +160,7 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
     Request request = requestTL.get();
     request.requestOp = slot;
     try {
-      perform(request, 0, null, false, false);
+      perform(request, 1, TimeUnit.HOURS, false, false);
     } catch (InterruptedException e) {
       // this is not possible, but regardless...
       Thread.currentThread().interrupt();
