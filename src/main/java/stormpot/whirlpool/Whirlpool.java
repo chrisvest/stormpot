@@ -84,7 +84,7 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
   private static final int LOCKED = 1;
   private static final int UNLOCKED = 0;
   private static final int WAIT_SPINS = 128;
-  private static final int CLEANUP_INTERVAL = 100;
+  private static final int CLEANUP_MASK = (1 << 12) - 1;
   private static final int PARK_TIME_NS = 1000000;
   private static final int EXPIRE_PASS_COUNT = 100;
   
@@ -189,7 +189,7 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
           // step 4 - got lock - we are now a combiner
           combiningPass++;
           scanCombineApply();
-          if (combiningPass % CLEANUP_INTERVAL == 0) {
+          if ((combiningPass & CLEANUP_MASK) == CLEANUP_MASK) {
             cleanUp();
           }
           lock = UNLOCKED;
