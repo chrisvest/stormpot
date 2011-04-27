@@ -21,8 +21,7 @@ import stormpot.Poolable;
  * in the times it takes claim method to complete, provided the pool is not
  * depleted.
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
- *
- * @param <T>
+ * @param <T> The type of {@link Poolable} managed by this pool.
  */
 @SuppressWarnings("unchecked")
 public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
@@ -32,6 +31,10 @@ public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
   private final QAllocThread allocThread;
   private volatile boolean shutdown = false;
   
+  /**
+   * Construct a new QueuePool instance based on the given {@link Config}.
+   * @param config The pool configuration to use.
+   */
   public QueuePool(Config config) {
     live = new LinkedBlockingQueue<QSlot<T>>();
     dead = new LinkedBlockingQueue<QSlot<T>>();

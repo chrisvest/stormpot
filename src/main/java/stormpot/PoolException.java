@@ -16,10 +16,24 @@ package stormpot;
 public class PoolException extends RuntimeException {
   private static final long serialVersionUID = -1908093409167496640L;
 
+  /**
+   * Construct a new PoolException with the given message.
+   * @param message A description of the exception to be returned from
+   * {@link #getMessage()}.
+   * @see RuntimeException#RuntimeException(String)
+   */
   public PoolException(String message) {
     super(message);
   }
 
+  /**
+   * Construct a new PoolException with the given message and cause.
+   * @param message A description fo the exception to be returned form
+   * {@link #getMessage()}.
+   * @param cause The underlying cause of this exception, as to be shown in the
+   * stack trace, and available through {@link #getCause()}.
+   * @see RuntimeException#RuntimeException(String, Throwable)
+   */
   public PoolException(String message, Throwable cause) {
     super(message, cause);
   }

@@ -78,6 +78,7 @@ import stormpot.Poolable;
  * concurrent using the Flat-Combining technique of Hendler, Incze, Shavit and
  * Tzafrir.
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
+ * @param <T> The type of {@link Poolable} managed by this pool.
  *
  */
 public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
@@ -110,6 +111,10 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
   private long ttl;
   private WpAllocThread alloc;
   
+  /**
+   * Construct a new Whirlpool instance from the given {@link Config}.
+   * @param config The pool configuration to use.
+   */
   public Whirlpool(Config<T> config) {
     synchronized (config) {
       ttl = config.getTTLUnit().toMillis(config.getTTL());
