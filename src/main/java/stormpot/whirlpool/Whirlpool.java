@@ -218,10 +218,7 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
         }
       } else {
         // step 5 - reactivate request and insert into publist
-        request.active = true;
-        do {
-          request.next = publist;
-        } while (!publistCas.compareAndSet(this, request.next, request));
+        activate(request);
       }
     }
   }
@@ -318,6 +315,13 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
 
   private boolean expired(Request request) {
     return combiningPass - request.passCount > EXPIRE_PASS_COUNT;
+  }
+
+  private void activate(Request request) {
+    request.active = true;
+    do {
+      request.next = publist;
+    } while (!publistCas.compareAndSet(this, request.next, request));
   }
 
   public Completion shutdown() {
