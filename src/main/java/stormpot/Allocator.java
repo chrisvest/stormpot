@@ -25,7 +25,7 @@ public interface Allocator<T extends Poolable> {
    * <p>
    * The returned {@link Poolable} must obey the contract that, when
    * {@link Poolable#release() release} is called on it, it must delegate
-   * the call onto the {@link Slot#release() release} method of the here
+   * the call onto the {@link Slot#release(Poolable) release} method of the here
    * given slot object.
    * <p>
    * RuntimeExceptions thrown by this method may propagate out through the

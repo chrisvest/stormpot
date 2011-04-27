@@ -95,7 +95,7 @@ public class Config<T extends Poolable> {
    * Get the configured {@link Allocator} instance. There is no configured
    * allocator by default, so this must be {@link #setAllocator(Allocator) set}
    * before instantiating any Pool implementations from this Config.
-   * @return
+   * @return The configured Allocator instance, if any.
    */
   public synchronized Allocator<T> getAllocator() {
     return allocator;
