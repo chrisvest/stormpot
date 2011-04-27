@@ -1,13 +1,13 @@
 package stormpot;
 
 import static org.junit.Assert.*;
-import static org.hamcrest.Matchers.*;
 
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
 import org.junit.Test;
 
+@SuppressWarnings("unchecked")
 public class ConfigTest {
   Config config;
   
@@ -17,26 +17,43 @@ public class ConfigTest {
   }
   
   @Test public void
-  mustHaveSaneDefaultSize() {
-    config.setSize(config.getSize());
-    config.setTTL(config.getTTL(), config.getTTLUnit());
+  sizeMustBeSettable() {
+    config.setSize(123);
+    assertTrue(config.getSize() == 123);
   }
   
   @Test public void
   ttlMustBeSettable() {
-    long ttl = config.getTTL() + 1;
-    assertThat(config.setTTL(ttl, config.getTTLUnit()).getTTL(), is(ttl));
-  }
-  
-  @Test public void
-  ttlUnitMustBeSettable() {
+    long ttl = 123;
     TimeUnit unit = TimeUnit.DAYS;
-    assertThat(config.setTTL(1, unit).getTTLUnit(), is(unit));
+    config.setTTL(ttl, unit);
+    assertTrue(config.getTTL() == ttl && config.getTTLUnit() == unit);
   }
   
   @Test public void
-  goingInsaneMustDisableArgumentChecks() {
-    config.setSize(0);
-    config.setTTL(1, null);
+  allocatorMustBeSettable() {
+    CountingAllocator allocator = new CountingAllocator();
+    config.setAllocator(allocator);
+    assertTrue(config.getAllocator() == allocator);
+  }
+  
+  @Test public void
+  mustBeCopyableWithSetAllFields() {
+    Allocator allocator = new CountingAllocator();
+    int size = 987;
+    long ttl = 123;
+    TimeUnit unit = TimeUnit.DAYS;
+    config.setAllocator(allocator);
+    config.setSize(size);
+    config.setTTL(ttl, unit);
+    
+    Config copy = new Config();
+    config.setFieldsOn(copy);
+    
+    assertTrue(
+        copy.getAllocator() == allocator &&
+        copy.getSize() == size &&
+        copy.getTTL() == ttl &&
+        copy.getTTLUnit() == unit);
   }
 }
