@@ -156,7 +156,7 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
     return (T) slot.obj;
   }
 
-  public void release(WSlot slot) {
+  void release(WSlot slot) {
     Request request = requestTL.get();
     request.requestOp = slot;
     try {
