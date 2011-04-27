@@ -1140,7 +1140,11 @@ public class PoolTest {
     pool.claim(50, TimeUnit.MILLISECONDS);
     long elapsed = System.currentTimeMillis() - start;
     assertThat(elapsed, lessThan(60L));
+    // TODO racy!!!
   }
+  // TODO must throw if ttl is less than one
+  // TODO must throw if the ttl-unit is null
+  // TODO must throw if the allocator is null
   // TODO test for resilience against spurious wake-ups?
   
   // NOTE: When adding, removing or modifying tests, also remember to update
