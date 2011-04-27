@@ -88,10 +88,10 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
   private static final int PARK_TIME_NS = 1000000;
   private static final int EXPIRE_PASS_COUNT = 100;
   
-  static final WSlot CLAIM = constSlot("claim");
-  static final WSlot RELIEVE = constSlot("relieve");
-  static final WSlot RELEASE = constSlot("release");
-  static final WSlot KILLPILL = constSlot("kill pill");
+  static final WSlot CLAIM = new WSlot(null);
+  static final WSlot RELIEVE = new WSlot(null);
+  static final WSlot RELEASE = new WSlot(null);
+  static final WSlot KILLPILL = new WSlot(null);
   
   static final AtomicReferenceFieldUpdater<Whirlpool, Request> publistCas =
     newUpdater(Whirlpool.class, Request.class, "publist");
@@ -109,12 +109,6 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
   private WSlot deadStack;
   private long ttl;
   private WpAllocThread alloc;
-  
-  private static WSlot constSlot(String name) {
-    WSlot slot = new WSlot(null);
-    slot.obj = name;
-    return slot;
-  }
   
   public Whirlpool(Config<T> config) {
     synchronized (config) {

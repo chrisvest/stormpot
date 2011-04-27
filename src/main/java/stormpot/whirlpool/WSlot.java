@@ -22,9 +22,4 @@ class WSlot implements Slot {
     claimed = false;
     pool.release(this);
   }
-
-  @Override
-  public String toString() {
-    return "WSlot [" + obj + "] @ " + Integer.toHexString(hashCode());
-  }
 }
