@@ -3,10 +3,12 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.github.chrisvest</groupId>
   <artifactId>stormpot</artifactId>
-  <packaging>jar</packaging>
   <version>1.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
   <name>stormpot</name>
+  <description>A fast object pool library.</description>
   <url>http://chrisvest.github.com/stormpot</url>
+  
   <licenses>
     <license>
       <name>Apache 2.0</name>
@@ -14,6 +16,23 @@
       <distribution>repo</distribution>
     </license>
   </licenses>
+  
+  <scm>
+    <url>https://github.com/chrisvest/stormpot</url>
+    <connection>git://github.com/chrisvest/stormpot.git</connection>
+  </scm>
+  
+  <developers>
+    <developer>
+      <id>chrisvest</id>
+      <name>Chris Vest</name>
+      <email>mr.chrisvest@gmail.com</email>
+      <roles>
+        <role>Programmer</role>
+      </roles>
+      <timezone>+2</timezone>
+    </developer>
+  </developers>
   
   <build>
     <plugins>
