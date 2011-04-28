@@ -43,7 +43,7 @@ public class PartitionSelect extends SimpleBenchmark {
   protected void setUp() {
     counter = 0;
     tlsInt.set(new Integer(1));
-    randInt = (int) Math.random();
+    randInt = (int) (Math.random() * 1000.0);
   }
   
   public int timeModuloConst(int reps) {
