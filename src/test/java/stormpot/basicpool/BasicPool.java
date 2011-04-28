@@ -40,11 +40,8 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
 
   public BasicPool(Config<T> config) {
     synchronized (config) {
+      config.validate();
       int size = config.getSize();
-      if (size < 1) {
-        throw new IllegalArgumentException(
-            "size must be at least 1, but was " + size);
-      }
       this.pool = new Poolable[size];
       this.slots = new BasicSlot[size];
       this.ttlMillis = config.getTTLUnit().toMillis(config.getTTL());

@@ -117,6 +117,7 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
    */
   public Whirlpool(Config<T> config) {
     synchronized (config) {
+      config.validate();
       ttl = config.getTTLUnit().toMillis(config.getTTL());
       alloc = new WpAllocThread(config, this);
     }

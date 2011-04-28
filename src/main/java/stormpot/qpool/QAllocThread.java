@@ -23,9 +23,6 @@ class QAllocThread<T extends Poolable> extends Thread {
       BlockingQueue<QSlot<T>> live, BlockingQueue<QSlot<T>> dead,
       Config<T> config) {
     this.targetSize = config.getSize();
-    if (targetSize < 1) {
-      throw new IllegalArgumentException("size must be at least 1");
-    }
     completionLatch = new CountDownLatch(1);
     this.allocator = config.getAllocator();
     this.size = 0;

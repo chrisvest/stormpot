@@ -257,9 +257,17 @@ public class PoolTest {
    */
   @Test(timeout = 300, expected = IllegalArgumentException.class)
   @Theory public void
-  preventConstructionOfPoolsOfSizeLessThanOne(PoolFixture fixture) {
+  constructorMustThrowOnPoolSizeLessThanOne(PoolFixture fixture) {
     fixture.initPool(config.setSize(0));
   }
+  
+  @Test(timeout = 300, expected = IllegalArgumentException.class)
+  @Theory public void
+  constructorMustThrowOnTtlLessThanOne(PoolFixture fixture) {
+    fixture.initPool(config.setTTL(0, unit));
+  }
+  // TODO must throw if the ttl-unit is null
+  // TODO must throw if the allocator is null
   
   /**
    * It is not possible to claim from a pool that has been shut down. Doing
@@ -1142,9 +1150,6 @@ public class PoolTest {
     assertThat(elapsed, lessThan(60L));
     // TODO racy!!!
   }
-  // TODO must throw if ttl is less than one
-  // TODO must throw if the ttl-unit is null
-  // TODO must throw if the allocator is null
   // TODO test for resilience against spurious wake-ups?
   
   // NOTE: When adding, removing or modifying tests, also remember to update

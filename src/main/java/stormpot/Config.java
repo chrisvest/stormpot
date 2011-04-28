@@ -112,4 +112,20 @@ public class Config<T extends Poolable> {
     config.setSize(size);
     config.setTTL(ttl, ttlUnit);
   }
+
+  /**
+   * Validate that the configuration is valid.
+   * @throws IllegalArgumentException If the size is less than one, if the TTL
+   * value is less than one, ... 
+   */
+  public synchronized void validate() throws IllegalArgumentException {
+    if (size < 1) {
+      throw new IllegalArgumentException(
+          "size must be at least 1, but was " + size);
+    }
+    if (ttl < 1) {
+      throw new IllegalArgumentException(
+          "TTL value must be at least 1, but was " + ttl);
+    }
+  }
 }

@@ -38,7 +38,10 @@ public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
   public QueuePool(Config config) {
     live = new LinkedBlockingQueue<QSlot<T>>();
     dead = new LinkedBlockingQueue<QSlot<T>>();
-    allocThread = new QAllocThread(live, dead, config);
+    synchronized (config) {
+      config.validate();
+      allocThread = new QAllocThread(live, dead, config);
+    }
     allocThread.start();
   }
 
