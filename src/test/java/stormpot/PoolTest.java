@@ -269,7 +269,16 @@ public class PoolTest {
   constructorMustThrowOnTtlLessThanOne(PoolFixture fixture) {
     fixture.initPool(config.setTTL(0, unit));
   }
-  // TODO must throw if the ttl-unit is null
+  
+  /**
+   * Prevent the creation of pools with a null TTL TimeUnit.
+   * @param fixture
+   */
+  @Test(timeout = 300, expected = IllegalArgumentException.class)
+  @Theory public void
+  constructorMustThrowOnNullTtlUnit(PoolFixture fixture) {
+    fixture.initPool(config.setTTL(timeout, null));
+  }
   // TODO must throw if the allocator is null
   
   /**

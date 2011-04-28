@@ -127,5 +127,9 @@ public class Config<T extends Poolable> {
       throw new IllegalArgumentException(
           "TTL value must be at least 1, but was " + ttl);
     }
+    if (ttlUnit == null) {
+      throw new IllegalArgumentException(
+          "TTL TimeUnit cannot be null");
+    }
   }
 }
