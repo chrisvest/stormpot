@@ -249,8 +249,7 @@ public class PoolTest {
   }
   
   /**
-   * Be extra careful to prevent the creation of pools of size 0 or less,
-   * even if the configuration is insane.
+   * Be careful and prevent the creation of pools with a size less than one.
    * The contract of claim is to block indefinitely if one such pool were
    * to be created.
    * @param fixture
@@ -261,6 +260,10 @@ public class PoolTest {
     fixture.initPool(config.setSize(0));
   }
   
+  /**
+   * Prevent the creation of pools with a TTL value less than one.
+   * @param fixture
+   */
   @Test(timeout = 300, expected = IllegalArgumentException.class)
   @Theory public void
   constructorMustThrowOnTtlLessThanOne(PoolFixture fixture) {
