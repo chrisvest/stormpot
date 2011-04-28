@@ -114,9 +114,11 @@ public class Config<T extends Poolable> {
   }
 
   /**
-   * Validate that the configuration is valid.
+   * Validate that the configuration is valid. This method is useful in the
+   * Pool implementation constructors.
    * @throws IllegalArgumentException If the size is less than one, if the TTL
-   * value is less than one, ... 
+   * value is less than one, if the TTL {@link TimeUnit} is null, or if the
+   * {@link Allocator} is null.
    */
   public synchronized void validate() throws IllegalArgumentException {
     if (size < 1) {
