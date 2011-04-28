@@ -279,7 +279,16 @@ public class PoolTest {
   constructorMustThrowOnNullTtlUnit(PoolFixture fixture) {
     fixture.initPool(config.setTTL(timeout, null));
   }
-  // TODO must throw if the allocator is null
+  
+  /**
+   * Prevent the creation of pools with a null Allocator.
+   * @param fixture
+   */
+  @Test(timeout = 300, expected = IllegalArgumentException.class)
+  @Theory public void
+  constructorMustThrowOnNullAllocator(PoolFixture fixture) {
+    fixture.initPool(config.setAllocator(null));
+  }
   
   /**
    * It is not possible to claim from a pool that has been shut down. Doing

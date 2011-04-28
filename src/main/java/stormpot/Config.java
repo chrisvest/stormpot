@@ -131,5 +131,9 @@ public class Config<T extends Poolable> {
       throw new IllegalArgumentException(
           "TTL TimeUnit cannot be null");
     }
+    if (allocator == null) {
+      throw new IllegalArgumentException(
+          "Allocator cannot be null");
+    }
   }
 }
