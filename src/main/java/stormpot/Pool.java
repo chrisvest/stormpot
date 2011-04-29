@@ -35,6 +35,9 @@ import java.util.concurrent.TimeUnit;
  * can be secured within the specified timeout period, or <code>null</code>
  * if the timeout elapses, or the current thread is {@link Thread#interrupt()
  * interrupted}.
+ * <li>A call to {@link #claim(long, TimeUnit)} will return within the time-out
+ * period (to a reasonable degree) even if calls to the allocators
+ * {@link Allocator#allocate(Slot) allocate} method blocks forever.
  * <li>If the current thread is {@link Thread#interrupt() interrupted} upon
  * entry to {@link #claim()} or {@link #claim(long, TimeUnit)} then an
  * {@link InterruptedException} will be thrown immediately.
@@ -93,7 +96,6 @@ import java.util.concurrent.TimeUnit;
  * deallocate method that are thrown during the shut down procedure.
  * </ul>
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
- *
  * @param <T> the type of {@link Poolable} contained in the pool, as determined
  * by the {@link Config#setAllocator(Allocator) configured allocator}.
  */

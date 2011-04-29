@@ -1134,6 +1134,17 @@ public class PoolTest {
     assertFalse(Thread.interrupted());
   }
   
+  /**
+   * A call to claim with time-out must complete within the time-out period
+   * even if the Allocator never returns.
+   * We test for this by configuring an Allocator that will never return from
+   * any calls to allocate, and then calling claim with a time-out on the pool.
+   * This claim-call must then complete before the time-out on the test case
+   * itself elapses.
+   * @see Pool
+   * @param fixture
+   * @throws Exception
+   */
   @Test(timeout = 300)
   @Theory public void
   claimMustStayWithinDeadlineEvenIfAllocatorBlocks(PoolFixture fixture)
@@ -1149,6 +1160,21 @@ public class PoolTest {
     pool.claim(10, TimeUnit.MILLISECONDS);
   }
   
+  /**
+   * Claim with timeout must adhere to its timeout value. Some pool
+   * implementations do the waiting in a loop, and if they don't do it right,
+   * they might end up resetting the timeout every time they loop. This tries
+   * to ensure that that no such resetting can happen because an object is
+   * released back into the pool. This may not cover all cases that are
+   * possible with the different pool implementations, but it is at least a
+   * start. And one that can be generally tested for across pool
+   * implementations. Chances are, that if a pool handles this specific case,
+   * then it handles all cases that are relevant to its implementation.
+   * <p>
+   * 
+   * @param fixture
+   * @throws Exception
+   */
   @Test(timeout = 300)
   @Theory public void
   claimMustStayWithinTimeoutEvenIfExpiredObjectIsReleased(PoolFixture fixture)
