@@ -350,6 +350,7 @@ public class PoolTest {
     spinwait(2);
     pool.claim().release();
     assertThat(allocator.allocations(), is(2));
+    // TODO racy [1]!
   }
   
   /**
@@ -1163,9 +1164,9 @@ public class PoolTest {
   /**
    * Claim with timeout must adhere to its timeout value. Some pool
    * implementations do the waiting in a loop, and if they don't do it right,
-   * they might end up resetting the timeout every time they loop. This tries
-   * to ensure that that no such resetting can happen because an object is
-   * released back into the pool. This may not cover all cases that are
+   * they might end up resetting the timeout every time they loop. This test
+   * tries to ensure that that no such resetting can happen because an object
+   * is released back into the pool. This may not cover all cases that are
    * possible with the different pool implementations, but it is at least a
    * start. And one that can be generally tested for across pool
    * implementations. Chances are, that if a pool handles this specific case,
