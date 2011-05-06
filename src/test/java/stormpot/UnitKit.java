@@ -105,14 +105,16 @@ public class UnitKit {
     };
   }
   
-  public static Callable $delayedRelease(
-      final Poolable obj, long delay, TimeUnit delayUnit) {
+  public static Callable $delayedReleases(
+      final Poolable[] objs, long delay, TimeUnit delayUnit) {
     final long deadline =
       System.currentTimeMillis() + delayUnit.toMillis(delay);
     return new Callable() {
       public Object call() throws Exception {
-        LockSupport.parkUntil(deadline);
-        obj.release();
+        for (Poolable obj : objs) {
+          LockSupport.parkUntil(deadline);
+          obj.release();
+        }
         return null;
       }
     };

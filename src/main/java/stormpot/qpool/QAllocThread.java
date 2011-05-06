@@ -18,6 +18,7 @@ class QAllocThread<T extends Poolable> extends Thread {
   private final int targetSize;
   private final long ttlMillis;
   private int size;
+  private long deadPollTimeout = 1;
 
   public QAllocThread(
       BlockingQueue<QSlot<T>> live, BlockingQueue<QSlot<T>> dead,
@@ -38,8 +39,11 @@ class QAllocThread<T extends Poolable> extends Thread {
         if (size < targetSize) {
           QSlot slot = new QSlot(live);
           alloc(slot);
+          if (size == targetSize) {
+            deadPollTimeout = 50;
+          }
         }
-        QSlot slot = dead.poll(50, TimeUnit.MILLISECONDS);
+        QSlot slot = dead.poll(deadPollTimeout, TimeUnit.MILLISECONDS);
         if (slot != null) {
           dealloc(slot);
           alloc(slot);
