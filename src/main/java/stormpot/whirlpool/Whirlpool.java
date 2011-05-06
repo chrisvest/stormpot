@@ -304,7 +304,7 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
     // initial 'current' value is never null because publist at this point is
     // guaranteed to contain at least one Request object - namely our own.
     while (current.next != null) {
-      if (expired(current.next)) {
+      if (expired(current.next) && blocker(current) == null) {
         current.next.active = false;
         current.next = current.next.next;
       } else {
@@ -315,6 +315,14 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
 
   private boolean expired(Request request) {
     return combiningPass - request.passCount > EXPIRE_PASS_COUNT;
+  }
+
+  private Object blocker(Request request) {
+    Thread thread = request.thread;
+    if (thread == null) {
+      return null;
+    }
+    return LockSupport.getBlocker(thread);
   }
 
   private void activate(Request request) {
