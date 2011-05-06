@@ -35,7 +35,7 @@ import stormpot.whirlpool.Whirlpool;
  * <p>
  * The test case uses theories to apply to the set of possible Pool
  * implementations. Each implementation must have a PoolFixture, which is
- * used to construct and initialise the pool, based on a Config.
+ * used to construct and initialise the pool, based on a {@link Config}.
  * <p>
  * The only assumptions used in this test, is whether the Pool is a
  * LifecycledPool or not. And most interesting pools are life-cycled.
@@ -253,6 +253,7 @@ public class PoolTest {
    * The contract of claim is to block indefinitely if one such pool were
    * to be created.
    * @param fixture
+   * @see Config#setSize(int)
    */
   @Test(timeout = 300, expected = IllegalArgumentException.class)
   @Theory public void
@@ -263,6 +264,7 @@ public class PoolTest {
   /**
    * Prevent the creation of pools with a TTL value less than one.
    * @param fixture
+   * @see Config#setTTL(long, TimeUnit)
    */
   @Test(timeout = 300, expected = IllegalArgumentException.class)
   @Theory public void
@@ -273,6 +275,7 @@ public class PoolTest {
   /**
    * Prevent the creation of pools with a null TTL TimeUnit.
    * @param fixture
+   * @see Config#setTTL(long, TimeUnit)
    */
   @Test(timeout = 300, expected = IllegalArgumentException.class)
   @Theory public void
@@ -283,6 +286,7 @@ public class PoolTest {
   /**
    * Prevent the creation of pools with a null Allocator.
    * @param fixture
+   * @see Config#setAllocator(Allocator)
    */
   @Test(timeout = 300, expected = IllegalArgumentException.class)
   @Theory public void
@@ -366,6 +370,7 @@ public class PoolTest {
    * and must be deallocated before the next claim can allocate a new object.
    * @param fixture
    * @throws Exception
+   * @see {@link Config#setSize(int)}
    */
   @Test(timeout = 300)
   @Theory public void
