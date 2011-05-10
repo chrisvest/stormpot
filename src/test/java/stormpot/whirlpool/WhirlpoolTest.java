@@ -23,16 +23,21 @@ public class WhirlpoolTest {
   @Test(timeout = 300) public void
   mustNotRemoveBlockedThreadsFromPublist() throws Exception {
     // Github Issue #14
+    Whirlpool pool = givenDelayedReleaseToContendedPool(1);
+    // this must return before the test times out:
+    pool.claim();
+    pool.shutdown();
+  }
+
+  private Whirlpool givenDelayedReleaseToContendedPool(
+      long claimTrafficTimeoutMs) throws InterruptedException {
     config.setSize(1);
     Whirlpool pool = new Whirlpool(config);
     Poolable[] objs = new Poolable[] {pool.claim()};
-    Thread thread = fork($claimTrafficGenerator(pool, 1));
+    Thread thread = fork($claimTrafficGenerator(pool, claimTrafficTimeoutMs));
     fork($delayedReleases(objs, 20, TimeUnit.MILLISECONDS));
     waitForThreadState(thread, Thread.State.RUNNABLE);
-    
-    // this must return before the test times out:
-    pool.claim();
-    thread.interrupt();
+    return pool;
   }
 
   private Callable $claimTrafficGenerator(
@@ -55,5 +60,12 @@ public class WhirlpoolTest {
     };
   }
   
-  // TODO must prefer to wake up expired waiters over replying
+  @Test(timeout = 300) public void
+  blockedThreadsMustMakeProgressOverExpiredWaiters() throws Exception {
+    // Github Issue #15
+    Whirlpool pool = givenDelayedReleaseToContendedPool(-10);
+    // this must return before the test times out:
+    pool.claim();
+    pool.shutdown();
+  }
 }
