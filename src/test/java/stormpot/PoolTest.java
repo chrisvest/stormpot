@@ -1204,7 +1204,28 @@ public class PoolTest {
     // must return before test times out:
     pool.claim(50, TimeUnit.MILLISECONDS);
   }
-  // TODO claim with a timeout less than one must return immediately
+  
+  /**
+   * When claim is called with a timeout less than one, then it means that
+   * no (observable amount of) waiting should take place.
+   * <p>
+   * We test for this by going through the numbers 0 to 99, both inclusive,
+   * and call claim with those numbers as timeout values. The test is
+   * considered to have passed, if this process completes within the 300
+   * millisecond timeout on the test case.
+   * @param fixture
+   * @throws Exception
+   */
+  @Test(timeout = 300)
+  @Theory public void
+  claimWithTimeoutValueLessThanOneMustReturnImmediately(PoolFixture fixture)
+  throws Exception {
+    Pool pool = fixture.initPool(config);
+    pool.claim(); // depleted
+    for (int i = 0; i > -100; i--) {
+      pool.claim(i, TimeUnit.MILLISECONDS);
+    }
+  }
   // TODO claim with null TimeUnit must throw
   // TODO await completion with timeout less than one must return immediately
   // TODO await completion with null TimeUnit must throw

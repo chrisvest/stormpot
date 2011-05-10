@@ -62,7 +62,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
         throw new InterruptedException();
       }
       int index = count.get();
-      boolean withTimeout = timeout > 0 && unit != null;
+      boolean withTimeout = unit != null;
       long maxWaitNanos = withTimeout? unit.toNanos(timeout) : 0;
       while (index == pool.length) {
         if (withTimeout) {

@@ -138,7 +138,6 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
     return objectOf(slot);
   }
 
-  @SuppressWarnings("unchecked")
   public T claim(long timeout, TimeUnit unit) throws PoolException,
       InterruptedException {
     Request request = requestTL.get();
@@ -148,6 +147,7 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
     return objectOf(slot);
   }
 
+  @SuppressWarnings("unchecked")
   private T objectOf(WSlot slot) {
     if (slot == null) {
       return null;
