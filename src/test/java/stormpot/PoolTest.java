@@ -1275,6 +1275,7 @@ public class PoolTest {
    * make any sense. Passing null is thus an illegal argument.
    * @param fixture
    * @throws Exception
+   * @see Completion
    */
   @Test(timeout = 300, expected = IllegalArgumentException.class)
   @Theory public void
