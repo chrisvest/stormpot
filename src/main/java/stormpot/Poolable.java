@@ -29,9 +29,11 @@ package stormpot;
  * Pools in turn guarantee these memory effects:
  * <ul>
  * <li>The {@link Poolable#release() release} of an object happens-before
- * any subsequent claim of that object, and,
+ * any subsequent claim of that object,
  * <li>The {@link Allocator#allocate(Slot) allocation} of an object
- * happens-before any claim of that object.
+ * happens-before any claim of that object, and,
+ * <li>The the claim of an object happens-before any subsequent release of
+ * that object.
  * </ul>
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  *
