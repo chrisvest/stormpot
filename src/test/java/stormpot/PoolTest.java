@@ -1184,7 +1184,7 @@ public class PoolTest {
   @Theory public void
   claimMustStayWithinTimeoutEvenIfExpiredObjectIsReleased(PoolFixture fixture)
   throws Exception {
-    Poolable[] objs = new Poolable[8];
+    Poolable[] objs = new Poolable[30];
     final Semaphore semaphore = new Semaphore(objs.length);
     Allocator allocator = new CountingAllocator() {
       @Override
@@ -1200,7 +1200,7 @@ public class PoolTest {
     for (int i = 0; i < objs.length; i++) {
       objs[i] = pool.claim();
     }
-    fork($delayedReleases(objs, 40, TimeUnit.MILLISECONDS));
+    fork($delayedReleases(objs, 10, TimeUnit.MILLISECONDS));
     // must return before test times out:
     pool.claim(50, TimeUnit.MILLISECONDS);
   }

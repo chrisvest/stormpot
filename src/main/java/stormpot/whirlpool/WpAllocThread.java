@@ -19,7 +19,7 @@ class WpAllocThread extends Thread implements Completion {
   private volatile boolean runnable = true;
   
   private int size;
-  private long relieveTimeout = 10;
+  private long relieveTimeout = 0;
   private TimeUnit relieveUnit = TimeUnit.MILLISECONDS;
 
   public WpAllocThread(Config config, Whirlpool whirlpool) {
@@ -62,6 +62,9 @@ class WpAllocThread extends Thread implements Completion {
     if (size < targetSize) {
       WSlot slot = new WSlot(pool);
       allocate(slot);
+      if (size == targetSize) {
+        relieveTimeout = 10;
+      }
     }
     WSlot slot;
     try {
