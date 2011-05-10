@@ -1206,6 +1206,8 @@ public class PoolTest {
     pool.claim(50, TimeUnit.MILLISECONDS);
   }
   // TODO test for resilience against spurious wake-ups?
+  // TODO what is the behaviour of claim with a timeout value of zero?
+  // TODO what is the behaviour of claim with a negative timeout value?
   
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the Pool javadoc - especially the part about the promises.

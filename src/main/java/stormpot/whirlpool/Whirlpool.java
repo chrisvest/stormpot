@@ -6,7 +6,6 @@ import static java.util.concurrent.atomic.AtomicIntegerFieldUpdater.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
-import java.util.concurrent.locks.LockSupport;
 
 import stormpot.Completion;
 import stormpot.Config;
@@ -82,13 +81,13 @@ import stormpot.Poolable;
  *
  */
 public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
-  private static final int LOCKED = 1;
-  private static final int UNLOCKED = 0;
-  private static final int WAIT_SPINS = 128;
-  private static final int CLEANUP_MASK = (1 << 12) - 1;
-  private static final int PARK_TIME_NS = 1000000;
-  private static final int EXPIRE_PASS_COUNT = 100;
-  
+  static final int LOCKED = 1;
+  static final int UNLOCKED = 0;
+  static final int WAIT_SPINS = 128;
+  static final int CLEANUP_MASK = (1 << 12) - 1;
+  static final int PARK_TIME_NS = 1000000;
+  static final int EXPIRE_PASS_COUNT = 100;
+
   static final WSlot CLAIM = new WSlot(null);
   static final WSlot RELIEVE = new WSlot(null);
   static final WSlot RELEASE = new WSlot(null);
@@ -126,20 +125,30 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
 
   WSlot relieve(long timeout, TimeUnit unit) throws InterruptedException {
     Request request = requestTL.get();
+    request.setTimeout(timeout, unit);
     request.requestOp = RELIEVE;
-    return perform(request, timeout, unit, false, true);
+    return perform(request, false, true);
   }
   
   public T claim() throws PoolException, InterruptedException {
-    return claim(0, null);
+    Request request = requestTL.get();
+    request.setNoTimeout();
+    request.requestOp = CLAIM;
+    WSlot slot = perform(request, true, true);
+    return objectOf(slot);
   }
 
   @SuppressWarnings("unchecked")
   public T claim(long timeout, TimeUnit unit) throws PoolException,
       InterruptedException {
     Request request = requestTL.get();
+    request.setTimeout(timeout, unit);
     request.requestOp = CLAIM;
-    WSlot slot = perform(request, timeout, unit, true, true);
+    WSlot slot = perform(request, true, true);
+    return objectOf(slot);
+  }
+
+  private T objectOf(WSlot slot) {
     if (slot == null) {
       return null;
     }
@@ -158,9 +167,10 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
 
   void release(WSlot slot) {
     Request request = requestTL.get();
+    request.setTimeout(1, TimeUnit.HOURS);
     request.requestOp = slot;
     try {
-      perform(request, 1, TimeUnit.HOURS, false, false);
+      perform(request, false, false);
     } catch (InterruptedException e) {
       // this is not possible, but regardless...
       Thread.currentThread().interrupt();
@@ -168,14 +178,8 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
   }
 
   private WSlot perform(
-      Request request, long timeout, TimeUnit unit,
-      boolean checkShutdown, boolean interruptible)
+      Request request, boolean checkShutdown, boolean interruptible)
   throws InterruptedException {
-    long deadline =
-      unit == null? 0 : System.currentTimeMillis() + unit.toMillis(timeout);
-    if (deadline == 0) {
-      request.thread = Thread.currentThread();
-    }
     for (;;) {
       if (checkShutdown && shutdown) {
         throw new IllegalStateException("pool is shut down");
@@ -195,7 +199,7 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
           lock = UNLOCKED;
           WSlot response = request.response;
           if (response == null) {
-            if (!takeNapWithinDeadline(deadline)) {
+            if (!request.await()) {
               return null;
             }
             continue;
@@ -211,7 +215,7 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
               return slot;
             }
           }
-          if (!takeNapWithinDeadline(deadline)) {
+          if (!request.await()) {
             return null;
           }
           continue;
@@ -221,18 +225,6 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
         activate(request);
       }
     }
-  }
-
-  private boolean takeNapWithinDeadline(long deadline) {
-    if (deadline != 0 && System.currentTimeMillis() > deadline) {
-      return false;
-    }
-    if (deadline == 0) {
-      LockSupport.park(this);
-    } else {
-      LockSupport.parkNanos(this, PARK_TIME_NS);
-    }
-    return true;
   }
 
   private void scanCombineApply() {
@@ -291,11 +283,7 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
     request.requestOp = null;
     request.response = response;
     request.passCount = combiningPass;
-    Thread requestor = request.thread;
-    if (requestor != null) {
-      request.thread = null;
-      LockSupport.unpark(requestor);
-    }
+    request.unpark();
   }
 
   private void cleanUp() {
@@ -304,7 +292,7 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
     // initial 'current' value is never null because publist at this point is
     // guaranteed to contain at least one Request object - namely our own.
     while (current.next != null) {
-      if (expired(current.next) && blocker(current) != this) {
+      if (expired(current.next) && !current.blockedOnSelf()) {
         current.next.active = false;
         current.next = current.next.next;
       } else {
@@ -315,14 +303,6 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
 
   private boolean expired(Request request) {
     return combiningPass - request.passCount > EXPIRE_PASS_COUNT;
-  }
-
-  private Object blocker(Request request) {
-    Thread thread = request.thread;
-    if (thread == null) {
-      return null;
-    }
-    return LockSupport.getBlocker(thread);
   }
 
   private void activate(Request request) {
