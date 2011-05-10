@@ -260,6 +260,9 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
 
     public boolean await(long timeout, TimeUnit unit)
         throws InterruptedException {
+      if (unit == null) {
+        throw new IllegalArgumentException("timeout TimeUnit cannot be null");
+      }
       return completionLatch.await(timeout, unit);
     }
   }

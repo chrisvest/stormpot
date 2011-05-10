@@ -1241,8 +1241,47 @@ public class PoolTest {
     Pool pool = fixture.initPool(config);
     pool.claim(timeout, null);
   }
-  // TODO await completion with timeout less than one must return immediately
-  // TODO await completion with null TimeUnit must throw
+  
+  /**
+   * When await is called on a shutdown Completion with a timeout value less
+   * than one, then no amount of waiting must take place.
+   * <p>
+   * We test for this by depleting a pool and initiating the shut-down
+   * procedure. The fact that the pool is depleted, means that the shutdown
+   * procedure will not be able to finish. In other words, we know that it is
+   * in progress for our subsequent await calls.
+   * Then we call await on the shut-down Completion object, giving timeout
+   * values ranging from zero to -99. These awaits must all complete before the
+   * test itself times out.
+   * @param fixture
+   * @throws Exception
+   * @see Completion
+   */
+  @Test(timeout = 300)
+  @Theory public void
+  awaitCompletionWithTimeoutLessThanOneMustReturnImmediately(
+      PoolFixture fixture) throws Exception {
+    Pool pool = fixture.initPool(config);
+    pool.claim();
+    Completion completion = shutdown(pool);
+    for (int i = 0; i > -100; i--) {
+      completion.await(i, unit);
+    }
+  }
+  
+  /**
+   * One must provide a TimeUnit argument when awaiting the completion of a
+   * shut-down procedure, with a timeout. Otherwise the timeout value does not
+   * make any sense. Passing null is thus an illegal argument.
+   * @param fixture
+   * @throws Exception
+   */
+  @Test(timeout = 300, expected = IllegalArgumentException.class)
+  @Theory public void
+  awaitCompletionWithNullTimeUnitMustThrow(PoolFixture fixture)
+  throws Exception {
+    shutdown(fixture.initPool(config)).await(timeout, null);
+  }
   // TODO test for resilience against spurious wake-ups?
   
   // NOTE: When adding, removing or modifying tests, also remember to update

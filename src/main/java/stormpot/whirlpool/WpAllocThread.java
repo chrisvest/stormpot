@@ -42,6 +42,9 @@ class WpAllocThread extends Thread implements Completion {
   }
 
   public boolean await(long timeout, TimeUnit unit) throws InterruptedException {
+    if (unit == null) {
+      throw new IllegalArgumentException("timeout TimeUnit cannot be null");
+    }
     return shutdownLatch.await(timeout, unit);
   }
 
