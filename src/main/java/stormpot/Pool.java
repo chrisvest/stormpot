@@ -38,6 +38,9 @@ import java.util.concurrent.TimeUnit;
  * <li>A call to {@link #claim(long, TimeUnit)} will return within the time-out
  * period (to a reasonable degree) even if calls to the allocators
  * {@link Allocator#allocate(Slot) allocate} method blocks forever.
+ * <li>A call to {@link #claim(long, TimeUnit)} will not wait if the timeout
+ * value is less than one. And if a null is passed for the TimeUnit, then an
+ * IllegalArgumentException is thrown.
  * <li>If the current thread is {@link Thread#interrupt() interrupted} upon
  * entry to {@link #claim()} or {@link #claim(long, TimeUnit)} then an
  * {@link InterruptedException} will be thrown immediately.
@@ -156,8 +159,10 @@ public interface Pool<T extends Poolable> {
    * happens-before any claim of that object.
    * </ul>
    * @param timeout The value of the maximum permitted time-slice to wait for
-   * an object to become available.
-   * @param unit The unit of the timeout parameter.
+   * an object to become available. A value of zero or less means that the call
+   * will do no waiting.
+   * @param unit The unit of the timeout parameter. Must not be
+   * <code>null</code>.
    * @return An object of the Poolable subtype T to which the exclusive rights
    * have been claimed, or <code>null</code> if the timeout period elapsed
    * before an object became available.
@@ -167,6 +172,8 @@ public interface Pool<T extends Poolable> {
    * @throws InterruptedException if the current thread is
    * {@link Thread#interrupt() interrupted} upon entry, or becomes interrupted
    * while waiting.
+   * @throws IllegalArgumentException if the <code>unit<code> argument is
+   * <code>null</code>.
    */
   T claim(long timeout, TimeUnit unit) throws PoolException, InterruptedException;
 }

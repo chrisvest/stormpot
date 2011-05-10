@@ -79,6 +79,9 @@ public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
 
   public T claim(long timeout, TimeUnit unit) throws PoolException,
       InterruptedException {
+    if (unit == null) {
+      throw new IllegalArgumentException("timeout TimeUnit cannot be null.");
+    }
     QSlot<T> slot;
     long deadline = System.currentTimeMillis() + unit.toMillis(timeout);
     do {

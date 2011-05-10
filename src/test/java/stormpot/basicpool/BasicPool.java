@@ -53,6 +53,13 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
   }
 
   public T claim(long timeout, TimeUnit unit) throws InterruptedException {
+    if (unit == null) {
+      throw new IllegalArgumentException("timeout TimeUnit cannot be null");
+    }
+    return doClaim(timeout, unit);
+  }
+  
+  private T doClaim(long timeout, TimeUnit unit) throws InterruptedException {
     lock.lock();
     try {
       if (shutdown) {
@@ -140,7 +147,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
   }
 
   public T claim() throws InterruptedException {
-    return claim(0, null);
+    return doClaim(0, null);
   }
 
   private BasicSlot slot(final int index) {

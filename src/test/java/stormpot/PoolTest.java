@@ -1215,6 +1215,7 @@ public class PoolTest {
    * millisecond timeout on the test case.
    * @param fixture
    * @throws Exception
+   * @see {@link Pool#claim(long, TimeUnit)}
    */
   @Test(timeout = 300)
   @Theory public void
@@ -1226,7 +1227,20 @@ public class PoolTest {
       pool.claim(i, TimeUnit.MILLISECONDS);
     }
   }
-  // TODO claim with null TimeUnit must throw
+  
+  /**
+   * One must provide a TimeUnit to a claim call with timeout. Otherwise the
+   * timeout value cannot be made sense of. So if you pass a null in, then
+   * that's an illegal argument.
+   * @param fixture
+   * @throws Exception
+   */
+  @Test(timeout = 300, expected = IllegalArgumentException.class)
+  @Theory public void
+  claimWithNullTimeUnitMustThrow(PoolFixture fixture) throws Exception {
+    Pool pool = fixture.initPool(config);
+    pool.claim(timeout, null);
+  }
   // TODO await completion with timeout less than one must return immediately
   // TODO await completion with null TimeUnit must throw
   // TODO test for resilience against spurious wake-ups?

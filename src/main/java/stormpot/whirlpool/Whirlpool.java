@@ -140,6 +140,9 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
 
   public T claim(long timeout, TimeUnit unit) throws PoolException,
       InterruptedException {
+    if (unit == null) {
+      throw new IllegalArgumentException("timeout TimeUnit cannot be null.");
+    }
     Request request = requestTL.get();
     request.setTimeout(timeout, unit);
     request.requestOp = CLAIM;
