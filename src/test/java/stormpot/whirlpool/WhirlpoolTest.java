@@ -52,7 +52,7 @@ public class WhirlpoolTest {
               obj.release();
             }
           }
-        } catch (InterruptedException _) {
+        } catch (Exception _) {
           // ignore it
         }
         return null;
