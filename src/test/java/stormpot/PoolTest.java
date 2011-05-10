@@ -354,7 +354,6 @@ public class PoolTest {
     spinwait(2);
     pool.claim().release();
     assertThat(allocator.allocations(), is(2));
-    // TODO racy [1]!
   }
   
   /**
