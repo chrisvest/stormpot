@@ -1204,9 +1204,11 @@ public class PoolTest {
     // must return before test times out:
     pool.claim(50, TimeUnit.MILLISECONDS);
   }
+  // TODO claim with a timeout less than one must return immediately
+  // TODO claim with null TimeUnit must throw
+  // TODO await completion with timeout less than one must return immediately
+  // TODO await completion with null TimeUnit must throw
   // TODO test for resilience against spurious wake-ups?
-  // TODO what is the behaviour of claim with a timeout value of zero?
-  // TODO what is the behaviour of claim with a negative timeout value?
   
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the Pool javadoc - especially the part about the promises.
