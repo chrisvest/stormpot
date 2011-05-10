@@ -10,8 +10,8 @@ class Request {
   WSlot response;
   Request next;
   int passCount;
-  final Thread thread;
   
+  private final Thread thread;
   private boolean hasTimeout;
   private long deadline;
   
@@ -44,9 +44,5 @@ class Request {
 
   void unpark() {
     LockSupport.unpark(thread);
-  }
-
-  boolean blockedOnSelf() {
-    return LockSupport.getBlocker(thread) == this;
   }
 }

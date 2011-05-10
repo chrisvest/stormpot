@@ -292,7 +292,7 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
     // initial 'current' value is never null because publist at this point is
     // guaranteed to contain at least one Request object - namely our own.
     while (current.next != null) {
-      if (expired(current.next) && !current.blockedOnSelf()) {
+      if (expired(current.next) && current.requestOp == null) {
         current.next.active = false;
         current.next = current.next.next;
       } else {
