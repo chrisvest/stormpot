@@ -32,7 +32,6 @@ public class WhirlpoolTest {
     
     // this must return before the test times out:
     pool.claim();
-    System.out.println(thread.getState());
     thread.interrupt();
   }
 
