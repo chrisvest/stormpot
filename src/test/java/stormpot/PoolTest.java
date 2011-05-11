@@ -369,7 +369,7 @@ public class PoolTest {
    * and must be deallocated before the next claim can allocate a new object.
    * @param fixture
    * @throws Exception
-   * @see {@link Config#setSize(int)}
+   * @see Config#setSize(int)
    */
   @Test(timeout = 300)
   @Theory public void
@@ -1215,7 +1215,7 @@ public class PoolTest {
    * millisecond timeout on the test case.
    * @param fixture
    * @throws Exception
-   * @see {@link Pool#claim(long, TimeUnit)}
+   * @see Pool#claim(long, TimeUnit)
    */
   @Test(timeout = 300)
   @Theory public void
