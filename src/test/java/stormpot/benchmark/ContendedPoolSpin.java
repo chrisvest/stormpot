@@ -11,12 +11,14 @@ import com.google.caliper.Param;
 public class ContendedPoolSpin extends PoolSpin {
   
   @Param int threads = 2;
+  @Param int poolType;
   
   Thread[] contenders;
   
   @Override
   protected void setUp() throws Exception {
     super.setUp();
+    super.poolType = poolType;
     contenders = new Thread[threads-1];
     for (int i = 0; i < contenders.length; i++) {
       contenders[i] = new ContenderThread(pool);
@@ -27,6 +29,11 @@ public class ContendedPoolSpin extends PoolSpin {
     }
   }
   
+  @Override
+  public int timeClaimReleaseSpin(int reps) throws Exception {
+    return super.timeClaimReleaseSpin(reps);
+  }
+
   @Override
   protected void tearDown() throws Exception {
     super.tearDown();
