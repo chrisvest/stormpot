@@ -28,9 +28,6 @@ class WpAllocThread extends Thread implements Completion {
     targetSize = config.getSize();
     allocator = config.getAllocator();
     pool = whirlpool;
-    if (targetSize < 1) {
-      throw new IllegalArgumentException("pool size must be at least 1");
-    }
   }
 
   public void shutdown() {
