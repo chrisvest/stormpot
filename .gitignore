@@ -3,4 +3,5 @@ bin
 .classpath
 .project
 .settings
+release.properties
 
