@@ -19,7 +19,7 @@
   
   <scm>
     <url>https://github.com/chrisvest/stormpot</url>
-    <connection>git://github.com/chrisvest/stormpot.git</connection>
+    <connection>scm:git:git://github.com/chrisvest/stormpot.git</connection>
   </scm>
   
   <developers>
