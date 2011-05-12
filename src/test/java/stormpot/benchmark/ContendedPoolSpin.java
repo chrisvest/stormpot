@@ -25,8 +25,8 @@ import com.google.caliper.Param;
  */
 public class ContendedPoolSpin extends PoolSpin {
   
-  @Param int threads = 2;
-  @Param int poolType;
+  @Param({"1", "2", "4"}) int threads;
+  @Param({"0", "1", "2"}) int poolType;
   
   Thread[] contenders;
   

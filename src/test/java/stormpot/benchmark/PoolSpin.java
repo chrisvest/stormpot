@@ -41,7 +41,7 @@ public class PoolSpin extends SimpleBenchmark {
     
     public Poolable allocate(Slot slot) {
       long deadline = System.currentTimeMillis() + workMs;
-      while (System.currentTimeMillis() < deadline); // spin
+      LockSupport.parkUntil(deadline);
       return new GenericPoolable(slot);
     }
 
@@ -49,10 +49,10 @@ public class PoolSpin extends SimpleBenchmark {
     }
   }
 
-  @Param int size = 10;
-  @Param long work = 10;
-  @Param int poolType = 0;
-  @Param long ttl = 10000;
+  @Param({"10"}) int size = 10;
+  @Param({"10"}) long work = 10;
+  @Param({"0", "1", "2"}) int poolType;
+  @Param({"10000"}) long ttl = 10000;
 
   protected Pool pool;
   
@@ -63,8 +63,8 @@ public class PoolSpin extends SimpleBenchmark {
     config.setSize(size);
     config.setTTL(ttl, TimeUnit.MILLISECONDS);
     pool = PoolFixtures.poolFixtures()[poolType].initPool(config);
-    // Give the pool 50 ms to boot up any threads it might need
-    LockSupport.parkNanos(50000000);
+    // Give the pool 500 ms to boot up any threads it might need
+    LockSupport.parkNanos(500000000);
   }
   
   public int timeClaimReleaseSpin(int reps) throws Exception {
