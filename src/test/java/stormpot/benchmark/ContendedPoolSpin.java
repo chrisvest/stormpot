@@ -16,6 +16,7 @@
 package stormpot.benchmark;
 
 import stormpot.Pool;
+import stormpot.Poolable;
 import stormpot.UnitKit;
 
 import com.google.caliper.Param;
@@ -32,8 +33,8 @@ public class ContendedPoolSpin extends PoolSpin {
   
   @Override
   protected void setUp() throws Exception {
-    super.setUp();
     super.poolType = poolType;
+    super.setUp();
     contenders = new Thread[threads-1];
     for (int i = 0; i < contenders.length; i++) {
       contenders[i] = new ContenderThread(pool);
@@ -68,9 +69,17 @@ public class ContendedPoolSpin extends PoolSpin {
     
     @Override
     public void run() {
+      Poolable obj = null;
       try {
         for (;;) {
-          pool.claim().release();
+          try {
+            obj = pool.claim();
+          } finally {
+            if (obj != null) {
+              obj.release();
+            }
+            obj = null;
+          }
         }
       } catch (Exception e) {
         // ... aaand, we're done.
