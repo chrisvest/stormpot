@@ -9,6 +9,12 @@
   <description>A fast object pool library.</description>
   <url>http://chrisvest.github.com/stormpot</url>
   
+  <parent>
+    <groupId>org.sonatype.oss</groupId>
+    <artifactId>oss-parent</artifactId>
+    <version>7</version>
+  </parent>
+  
   <licenses>
     <license>
       <name>Apache 2.0</name>
@@ -20,6 +26,7 @@
   <scm>
     <url>https://github.com/chrisvest/stormpot</url>
     <connection>scm:git:git://github.com/chrisvest/stormpot.git</connection>
+    <developerConnection>scm:git:git@github.com:chrisvest/stormpot.git</developerConnection>
   </scm>
   
   <developers>
@@ -65,14 +72,6 @@
           </systemProperties>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-release-plugin</artifactId>
-        <version>2.1</version>
-        <configuration>
-          <mavenExecutorId>forked-path</mavenExecutorId>
-        </configuration>
-      </plugin>
     </plugins>
   </build>
   
@@ -91,33 +90,6 @@
           <!-- Install from http://code.google.com/p/caliper/ -->
         </dependency>
       </dependencies>
-    </profile>
-    <profile>
-      <!-- Activate with `mvn release:perform` -->
-      <id>release-sign-artifacts</id>
-      <activation>
-        <property>
-          <name>performRelease</name>
-          <value>true</value>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-gpg-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>sign-artifacts</id>
-                <phase>verify</phase>
-                <goals>
-                  <goal>sign</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
     </profile>
   </profiles>
   
@@ -171,7 +143,6 @@
 
   <properties>
     <outputEncoding>UTF-8</outputEncoding>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 </project>
 
