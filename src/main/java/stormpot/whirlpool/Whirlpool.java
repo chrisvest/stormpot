@@ -28,11 +28,16 @@ import stormpot.LifecycledPool;
 import stormpot.Pool;
 import stormpot.PoolException;
 import stormpot.Poolable;
+import stormpot.qpool.QueuePool;
 
 /**
  * Whirlpool is a {@link Pool} that is based on a queue-like structure, made
  * concurrent using the Flat-Combining technique of Hendler, Incze, Shavit and
  * Tzafrir.
+ * <p>
+ * <strong>NOTE:</strong> This Pool implementation is still experimental.
+ * Use {@link QueuePool} for an implementation that is currently considered
+ * more reliable.
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  * @param <T> The type of {@link Poolable} managed by this pool.
  *
