@@ -32,8 +32,6 @@ import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
 
-import stormpot.whirlpool.Whirlpool;
-
 /**
  * This is the generic test for Pool implementations. The test ensures that
  * an implementation adheres to the general contract of the Pool interface,
@@ -652,7 +650,6 @@ public class PoolTest {
   throws Exception {
     Pool pool = fixture.initPool(
         config.setTTL(1, TimeUnit.MILLISECONDS));
-    org.junit.Assume.assumeThat(pool, instanceOf(Whirlpool.class));
     Poolable obj = pool.claim();
     spinwait(2);
     obj.release();
@@ -663,7 +660,7 @@ public class PoolTest {
       // we are still going to check with the Allocator.
     }
     pool.claim();
-    assertThat(allocator.deallocations(), is(1));
+    assertThat(allocator.deallocations(), is(1)); // TODO racy[2] (got 2) !!
   }
   
   /**
