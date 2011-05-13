@@ -380,8 +380,8 @@ public class PoolTest {
    * We test for this by configuring a pool with a timeout of one millisecond.
    * Then we claim an release an object, and wait for 2 milliseconds. Now the
    * object is expired, and must therefore be re-allocated before the next
-   * claim can return. So we do a claim and check that we have had at least
-   * one deallocation.
+   * claim can return. So we do a claim (but no release) and check that we have
+   * had exactly one deallocation.
    * @param fixture
    * @throws Exception
    * @see Config#setSize(int)
@@ -394,13 +394,8 @@ public class PoolTest {
         config.setTTL(1, TimeUnit.MILLISECONDS));
     pool.claim().release();
     spinwait(2);
-    pool.claim().release();
-    assertThat(allocator.deallocations(), is(greaterThanOrEqualTo(1)));
-    // We use greaterThanOrEqualTo because we cannot say whether the second
-    // release() will deallocate as well - deallocation might be done
-    // asynchronously. However, because the pool is not allowed to be larger
-    // than 1, we can say for sure that the Poolable we claim first *must*
-    // be deallocated before the allocation in the second claim.
+    pool.claim();
+    assertThat(allocator.deallocations(), is(1));
   }
   
   /**
