@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit;
 import stormpot.Allocator;
 import stormpot.Completion;
 import stormpot.Config;
-import stormpot.Poolable;
 
 @SuppressWarnings("unchecked")
 class WpAllocThread extends Thread implements Completion {

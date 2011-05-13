@@ -73,7 +73,7 @@ public class ContendedPoolSpin extends PoolSpin {
       try {
         for (;;) {
           try {
-            obj = pool.claim();
+            obj = claim(pool);
           } finally {
             if (obj != null) {
               obj.release();

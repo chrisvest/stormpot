@@ -15,6 +15,9 @@
  */
 package stormpot.benchmark;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
@@ -32,20 +35,28 @@ import com.google.caliper.SimpleBenchmark;
 
 @SuppressWarnings("unchecked")
 public class PoolSpin extends SimpleBenchmark {
-  private final class SlowAllocator implements Allocator {
+  private final class SlowAllocator implements Allocator<GenericPoolable> {
+    private final List allocated =
+      Collections.synchronizedList(new ArrayList());
+    private final List deallocated =
+      Collections.synchronizedList(new ArrayList());
     private final long workMs;
 
     public SlowAllocator(long workMs) {
       this.workMs = workMs;
     }
     
-    public Poolable allocate(Slot slot) {
+    public GenericPoolable allocate(Slot slot) {
       long deadline = System.currentTimeMillis() + workMs;
       LockSupport.parkUntil(deadline);
-      return new GenericPoolable(slot);
+      GenericPoolable obj = new GenericPoolable(slot);
+      allocated.add(obj);
+      return obj;
     }
 
-    public void deallocate(Poolable poolable) {
+    public void deallocate(GenericPoolable poolable) {
+      poolable.deallocated = true;
+      deallocated.add(poolable);
     }
   }
 
@@ -54,7 +65,7 @@ public class PoolSpin extends SimpleBenchmark {
   @Param({"0", "1", "2"}) int poolType;
   @Param({"10000"}) long ttl = 10000;
 
-  protected Pool pool;
+  protected Pool<GenericPoolable> pool;
   
   @Override
   protected void setUp() throws Exception {
@@ -70,11 +81,18 @@ public class PoolSpin extends SimpleBenchmark {
   public int timeClaimReleaseSpin(int reps) throws Exception {
     int result = 1235789;
     for (int i = 0; i < reps; i++) {
-      Poolable obj = pool.claim();
+      Poolable obj = claim(pool);
       result ^= obj.hashCode();
       obj.release();
     }
     return result;
+  }
+
+  static GenericPoolable claim(Pool<GenericPoolable> pool)
+  throws InterruptedException {
+    GenericPoolable obj = pool.claim();
+    obj.lastClaimBy = Thread.currentThread();
+    return obj;
   }
 
   @Override
