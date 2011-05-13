@@ -367,7 +367,12 @@ public class PoolTest {
     pool.claim().release();
     spinwait(2);
     pool.claim();
-    assertThat(allocator.allocations(), is(2));
+    try {
+      assertThat(allocator.allocations(), is(2)); // racy[1] (got 3) !!
+    } catch (AssertionError ae) {
+      System.in.read();
+      throw ae;
+    }
   }
   
   /**
