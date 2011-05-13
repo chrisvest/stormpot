@@ -353,10 +353,9 @@ public class PoolTest {
    * we can wait for it in a spin-loop. This way, the objects will always
    * appear to have expired when checked. This means that every claim will
    * always allocate a new object, and so our two claims will translate to
-   * two allocations, which is what we check for.
-   * Pools that renew objects in a background thread, or otherwise
-   * asynchronously, are going to have to deal with the negative TTL so we
-   * don't get into any killer-busy-loops or odd-ball exceptions. 
+   * two allocations, which is what we check for. Further, by not releasing the
+   * last claimed object, we are also preventing it from being re-allocated.
+   * This means that our allocation count must be exactly 2.
    * @param fixture
    * @throws Exception
    */
@@ -367,14 +366,8 @@ public class PoolTest {
         config.setTTL(1, TimeUnit.MILLISECONDS));
     pool.claim().release();
     spinwait(2);
-    pool.claim().release();
-    try {
-      assertThat(allocator.allocations(), is(2)); // racy[1] (got 3) !!
-    } catch (AssertionError ae) {
-      // a "break-point" so we can inspect this failure in VisualVM
-      System.in.read();
-      throw ae;
-    }
+    pool.claim();
+    assertThat(allocator.allocations(), is(2));
   }
   
   /**
@@ -384,10 +377,11 @@ public class PoolTest {
    * So, when the pool renews an object it must make ensure that the
    * deallocation of the old object happens-before the allocation of the
    * new object.
-   * We test for this property by having a pool of size 1 and a negative TTL,
-   * and then claiming and releasing an object two times in a row.
-   * Because the TTL is negative, the object is expired when it is released
-   * and must be deallocated before the next claim can allocate a new object.
+   * We test for this by configuring a pool with a timeout of one millisecond.
+   * Then we claim an release an object, and wait for 2 milliseconds. Now the
+   * object is expired, and must therefore be re-allocated before the next
+   * claim can return. So we do a claim and check that we have had at least
+   * one deallocation.
    * @param fixture
    * @throws Exception
    * @see Config#setSize(int)
