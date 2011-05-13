@@ -25,9 +25,9 @@ class Request {
   WSlot response;
   Request next;
   int passCount;
+  boolean hasTimeout;
   
   private final Thread thread;
-  private boolean hasTimeout;
   private long deadline;
   
   Request() {
@@ -45,19 +45,19 @@ class Request {
     hasTimeout = false;
   }
 
-  boolean await() {
-    if (hasTimeout && System.currentTimeMillis() > deadline) {
-      return false;
-    }
+  void await() {
     if (hasTimeout) {
       LockSupport.parkNanos(this, Whirlpool.PARK_TIME_NS);
     } else {
       LockSupport.park(this);
     }
-    return true;
   }
 
   void unpark() {
     LockSupport.unpark(thread);
+  }
+
+  public boolean deadlineIsPast(long now) {
+    return hasTimeout && deadline < now;
   }
 }

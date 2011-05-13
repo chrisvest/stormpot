@@ -80,7 +80,7 @@ public class WhirlpoolTest {
     // Github Issue #15
     Whirlpool pool = givenDelayedReleaseToContendedPool(-10);
     // this must return before the test times out:
-    pool.claim();
+    pool.claim(); // TODO dead-lock!
     pool.shutdown();
   }
 }
