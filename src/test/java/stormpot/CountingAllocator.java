@@ -15,19 +15,29 @@
  */
 package stormpot;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class CountingAllocator implements Allocator {
   private final AtomicInteger allocations = new AtomicInteger();
   private final AtomicInteger deallocations = new AtomicInteger();
+  private final List allocated =
+    Collections.synchronizedList(new ArrayList());
+  private final List deallocated =
+    Collections.synchronizedList(new ArrayList());
 
   public Poolable allocate(Slot slot) throws Exception {
     allocations.incrementAndGet();
-    return new GenericPoolable(slot);
+    GenericPoolable obj = new GenericPoolable(slot);
+    allocated.add(obj);
+    return obj;
   }
 
   public void deallocate(Poolable poolable) throws Exception {
     deallocations.incrementAndGet();
+    deallocated.add(poolable);
   }
 
   public void reset() {
