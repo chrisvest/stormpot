@@ -19,10 +19,10 @@ import stormpot.Poolable;
 import stormpot.Slot;
 
 class WSlot implements Slot {
-  long created;
-  Object obj;
-  WSlot next;
   final Whirlpool pool;
+  long created;
+  Poolable obj;
+  WSlot next;
   Exception poison;
   boolean claimed;
   

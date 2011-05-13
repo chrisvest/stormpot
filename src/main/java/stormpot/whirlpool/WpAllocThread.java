@@ -113,7 +113,7 @@ class WpAllocThread extends Thread implements Completion {
     try {
       if (slot.obj != null) {
         size--;
-        allocator.deallocate((Poolable) slot.obj);
+        allocator.deallocate(slot.obj);
       }
     } catch (Exception e) {
       // ignored as per spec.
