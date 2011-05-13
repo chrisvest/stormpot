@@ -391,7 +391,7 @@ public class PoolTest {
    * @throws Exception
    * @see Config#setSize(int)
    */
-  @Test(timeout = 300)
+  @Test/*(timeout = 300)*/
   @Theory public void
   mustDeallocateExpiredPoolablesAndStayWithinSizeLimit(PoolFixture fixture)
   throws Exception {
@@ -400,7 +400,12 @@ public class PoolTest {
     pool.claim().release();
     spinwait(2);
     pool.claim();
-    assertThat(allocator.deallocations(), is(1));
+    try {
+      assertThat(allocator.deallocations(), is(1)); // racy[1] (got 2) !!
+    } catch (AssertionError ae) {
+      System.in.read();
+      throw ae;
+    }
   }
   
   /**
