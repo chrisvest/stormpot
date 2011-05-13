@@ -360,7 +360,7 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
+  @Test/*(timeout = 300)*/
   @Theory public void
   mustReplaceExpiredPoolables(PoolFixture fixture) throws Exception {
     Pool pool = fixture.initPool(
@@ -368,7 +368,13 @@ public class PoolTest {
     pool.claim().release();
     spinwait(2);
     pool.claim().release();
-    assertThat(allocator.allocations(), is(2)); // racy[1] (got 3) !!
+    try {
+      assertThat(allocator.allocations(), is(2)); // racy[1] (got 3) !!
+    } catch (AssertionError ae) {
+      // a "break-point" so we can inspect this failure in VisualVM
+      System.in.read();
+      throw ae;
+    }
   }
   
   /**
