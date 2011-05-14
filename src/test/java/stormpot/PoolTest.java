@@ -347,13 +347,14 @@ public class PoolTest {
    * they must be replaced/renewed. Pools should generally try to renew
    * before the timeout elapses for the given object, but we don't test for
    * that here.
-   * We set the TTL to be 1 millisecond, because that is short enough that
+   * We set the TTL to be 1 milliseconds, because that is short enough that
    * we can wait for it in a spin-loop. This way, the objects will always
    * appear to have expired when checked. This means that every claim will
    * always allocate a new object, and so our two claims will translate to
-   * two allocations, which is what we check for. Further, by not releasing the
-   * last claimed object, we are also preventing it from being re-allocated.
-   * This means that our allocation count must be exactly 2.
+   * at least two allocations, which is what we check for. Note that the TTL
+   * is so short that newly allocated objects might actually expire before a
+   * claim call can complete, and thus more than the expected two allocations
+   * are possible. This is why we check for *at least* two allocations.
    * @param fixture
    * @throws Exception
    */
@@ -364,13 +365,8 @@ public class PoolTest {
         config.setTTL(1, TimeUnit.MILLISECONDS));
     pool.claim().release();
     spinwait(2);
-    pool.claim();
-    try {
-      assertThat(allocator.allocations(), is(2)); // racy[1] (got 3) !!
-    } catch (AssertionError ae) {
-      System.in.read();
-      throw ae;
-    }
+    pool.claim().release();
+    assertThat(allocator.allocations(), greaterThanOrEqualTo(2));
   }
   
   /**
@@ -384,7 +380,9 @@ public class PoolTest {
    * Then we claim an release an object, and wait for 2 milliseconds. Now the
    * object is expired, and must therefore be re-allocated before the next
    * claim can return. So we do a claim (but no release) and check that we have
-   * had exactly one deallocation.
+   * had at least one deallocation. Note that our TTL is so short, that an
+   * object might expire before a claim call can complete, so this is why we
+   * check for *at least* one deallocation.
    * @param fixture
    * @throws Exception
    * @see Config#setSize(int)
@@ -398,12 +396,7 @@ public class PoolTest {
     pool.claim().release();
     spinwait(2);
     pool.claim();
-    try {
-      assertThat(allocator.deallocations(), is(1)); // racy[1] (got 2) !!
-    } catch (AssertionError ae) {
-      System.in.read();
-      throw ae;
-    }
+    assertThat(allocator.deallocations(), greaterThanOrEqualTo(1));
   }
   
   /**
