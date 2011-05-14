@@ -261,7 +261,7 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
     // guaranteed to contain at least one Request object - namely our own.
     while (current.next != null) {
       if (expired(current.next) && current.requestOp == null) {
-        current.next.active = false;
+        current.next.deactivate();
         current.next = current.next.next;
       } else {
         current = current.next;

@@ -60,4 +60,9 @@ class Request {
   public boolean deadlineIsPast(long now) {
     return hasTimeout && deadline < now;
   }
+
+  public void deactivate() {
+    active = false;
+    unpark();
+  }
 }
