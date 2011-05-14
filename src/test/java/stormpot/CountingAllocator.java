@@ -23,10 +23,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class CountingAllocator implements Allocator {
   private final AtomicInteger allocations = new AtomicInteger();
   private final AtomicInteger deallocations = new AtomicInteger();
-  private final List allocated =
-    Collections.synchronizedList(new ArrayList());
-  private final List deallocated =
-    Collections.synchronizedList(new ArrayList());
+  private final List<Poolable> allocated =
+    Collections.synchronizedList(new ArrayList<Poolable>());
+  private final List<Poolable> deallocated =
+    Collections.synchronizedList(new ArrayList<Poolable>());
 
   public Poolable allocate(Slot slot) throws Exception {
     allocations.incrementAndGet();
@@ -51,5 +51,9 @@ public class CountingAllocator implements Allocator {
   
   public int deallocations() {
     return deallocations.get();
+  }
+
+  public List<Poolable> deallocationList() {
+    return deallocated;
   }
 }

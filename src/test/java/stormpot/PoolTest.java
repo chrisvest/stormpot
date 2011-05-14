@@ -19,6 +19,8 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static stormpot.UnitKit.*;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -630,10 +632,10 @@ public class PoolTest {
    * deallocation pattern toward the Allocator.
    * We test this by configuring a pool with a short TTL so that the objects
    * will be deallocated as soon as possible. Then we claim an object, wait
-   * the TTL out and release it twice. Then claim an object to guarantee that
-   * the deallocation of the first object have taken place when we check the
-   * count. At this point, exactly one deallocation must have taken place.
-   * No more, no less.
+   * the TTL out and release it numerous times. Then we claim another object
+   * to guarantee that the deallocation of the first object have taken place
+   * when we check the deallocation list for duplicates. The pass if we don't
+   * find any.
    * @param fixture
    * @throws Exception
    */
@@ -646,14 +648,21 @@ public class PoolTest {
     Poolable obj = pool.claim();
     spinwait(2);
     obj.release();
-    try {
-      obj.release();
-    } catch (Exception _) {
-      // we don't really care if the pool is able to detect this or not
-      // we are still going to check with the Allocator.
+    for (int i = 0; i < 10; i++) {
+      try {
+        obj.release();
+      } catch (Exception _) {
+        // we don't really care if the pool is able to detect this or not
+        // we are still going to check with the Allocator.
+      }
     }
     pool.claim();
-    assertThat(allocator.deallocations(), is(1)); // TODO racy[2] (got 2) !!
+    // check if the deallocation list contains duplicates
+    List<Poolable> deallocations = allocator.deallocationList();
+    for (Poolable elm : deallocations) {
+      assertThat("Deallocations of " + elm,
+          Collections.frequency(deallocations, elm), is(1));
+    }
   }
   
   /**
