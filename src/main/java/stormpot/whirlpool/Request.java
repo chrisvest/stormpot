@@ -20,10 +20,10 @@ import java.util.concurrent.locks.LockSupport;
 
 
 class Request {
-  boolean active;
-  WSlot requestOp;
-  WSlot response;
-  Request next;
+  volatile boolean active;
+  volatile WSlot requestOp;
+  volatile WSlot response;
+  volatile Request next;
   int passCount;
   boolean hasTimeout;
   

@@ -71,7 +71,7 @@ class WpAllocThread extends Thread implements Completion {
 
   private void reallocate() {
     if (size < targetSize) {
-      WSlot slot = new WSlot(pool);
+      WSlot slot = new WSlot(pool, "object");
       allocate(slot);
       if (size == targetSize) {
         relieveTimeout = 10;

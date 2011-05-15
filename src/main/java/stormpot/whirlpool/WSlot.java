@@ -20,14 +20,16 @@ import stormpot.Slot;
 
 class WSlot implements Slot {
   final Whirlpool pool;
+  final String name;
   long created;
   Poolable obj;
   WSlot next;
   Exception poison;
   boolean claimed;
   
-  public WSlot(Whirlpool pool) {
+  public WSlot(Whirlpool pool, String name) {
     this.pool = pool;
+    this.name = name;
   }
 
   public void release(Poolable obj) {
@@ -36,5 +38,10 @@ class WSlot implements Slot {
     }
     claimed = false;
     pool.release(this);
+  }
+  
+  @Override
+  public String toString() {
+    return "WSlot[" + name +": " + obj + "]@" + Integer.toHexString(hashCode());
   }
 }

@@ -50,12 +50,12 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
   static final int PARK_TIME_NS = 1000000;
   static final int EXPIRE_PASS_COUNT = 100;
 
-  static final WSlot CLAIM = new WSlot(null);
-  static final WSlot RELIEVE = new WSlot(null);
-  static final WSlot RELEASE = new WSlot(null);
-  static final WSlot SHUTDOWN = new WSlot(null);
-  static final WSlot TIMEOUT = new WSlot(null);
-  static final WSlot INTERRUPT = new WSlot(null);
+  static final WSlot CLAIM = new WSlot(null, "claim");
+  static final WSlot RELIEVE = new WSlot(null, "relieve");
+  static final WSlot RELEASE = new WSlot(null, "release");
+  static final WSlot SHUTDOWN = new WSlot(null, "shutdown");
+  static final WSlot TIMEOUT = new WSlot(null, "timeout");
+  static final WSlot INTERRUPT = new WSlot(null, "interrupt");
   
   static final AtomicReferenceFieldUpdater<Whirlpool, Request> publistCas =
     newUpdater(Whirlpool.class, Request.class, "publist");
@@ -97,10 +97,12 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
   private Request getPrepareRequest() {
     Request request = requestTL.get();
     if (request.requestOp != null) {
-      throw new AssertionError("requesting thread have stale request");
+      throw new AssertionError(
+          "requesting thread have stale request: " + request.requestOp);
     }
     if (request.response != null) {
-      throw new AssertionError("requesting thread have stale response");
+      throw new AssertionError(
+          "requesting thread have stale response: " + request.response);
     }
     return request;
   }
@@ -173,7 +175,7 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
           combiningPass++;
           scanCombineApply();
           if ((combiningPass & CLEANUP_MASK) == CLEANUP_MASK) {
-            cleanUp();
+//            cleanUp();
           }
           lock = UNLOCKED;
           WSlot slot = request.response;
@@ -208,7 +210,8 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
     while (current != null) {
       WSlot op = current.requestOp;
       if (op != null && current.response != null) {
-        throw new AssertionError("request already have response");
+        throw new AssertionError(
+            "request " + op + " already have response: " + current.response);
       }
       if (current.deadlineIsPast(now)) {
         replyTo(current, TIMEOUT);
@@ -306,9 +309,11 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
 
   private void activate(Request request) {
     request.active = true;
+    Request head;
     do {
-      request.next = publist;
-    } while (!publistCas.compareAndSet(this, request.next, request));
+      head = publist;
+      request.next = head;
+    } while (!publistCas.compareAndSet(this, head, request));
   }
 
   public Completion shutdown() {
