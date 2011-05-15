@@ -65,4 +65,8 @@ class Request {
     active = false;
     unpark();
   }
+
+  public boolean isInterrupted() {
+    return thread.isInterrupted();
+  }
 }

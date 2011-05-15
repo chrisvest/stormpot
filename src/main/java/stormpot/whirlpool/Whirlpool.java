@@ -55,6 +55,7 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
   static final WSlot RELEASE = new WSlot(null);
   static final WSlot SHUTDOWN = new WSlot(null);
   static final WSlot TIMEOUT = new WSlot(null);
+  static final WSlot INTERRUPT = new WSlot(null);
   
   static final AtomicReferenceFieldUpdater<Whirlpool, Request> publistCas =
     newUpdater(Whirlpool.class, Request.class, "publist");
@@ -87,13 +88,21 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
   }
 
   WSlot relieve(long timeout, TimeUnit unit) throws InterruptedException {
-    Request request = getThreadLocalRequest();
+    Request request = getPrepareRequest(false, true);
     request.setTimeout(timeout, unit);
     request.requestOp = RELIEVE;
-    return perform(request, false, true);
+    return perform(request);
   }
 
-  private Request getThreadLocalRequest() {
+  private Request getPrepareRequest(
+      boolean checkShutdown, boolean interruptible)
+  throws InterruptedException {
+    if (checkShutdown && shutdown) {
+      throw new IllegalStateException("pool is shut down");
+    }
+    if (interruptible && Thread.interrupted()) {
+      throw new InterruptedException();
+    }
     Request request = requestTL.get();
     if (request.requestOp != null) {
       throw new AssertionError("requesting thread have stale request");
@@ -105,10 +114,10 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
   }
   
   public T claim() throws PoolException, InterruptedException {
-    Request request = getThreadLocalRequest();
+    Request request = getPrepareRequest(true, true);
     request.setNoTimeout();
     request.requestOp = CLAIM;
-    WSlot slot = perform(request, true, true);
+    WSlot slot = perform(request);
     return objectOf(slot);
   }
 
@@ -117,10 +126,10 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
     if (unit == null) {
       throw new IllegalArgumentException("timeout TimeUnit cannot be null.");
     }
-    Request request = getThreadLocalRequest();
+    Request request = getPrepareRequest(true, true);
     request.setTimeout(timeout, unit);
     request.requestOp = CLAIM;
-    WSlot slot = perform(request, true, true);
+    WSlot slot = perform(request);
     return objectOf(slot);
   }
 
@@ -135,35 +144,25 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
       release(slot);
       throw new PoolException("allocation failed", exception);
     }
-    if (slot == SHUTDOWN) {
-      throw new IllegalStateException("pool is shutdown");
-    }
     slot.claimed = true;
     return (T) slot.obj;
   }
 
   void release(WSlot slot) {
-    Request request = getThreadLocalRequest();
-    request.setTimeout(1, TimeUnit.HOURS);
-    request.requestOp = slot;
     try {
-      perform(request, false, false);
+      Request request = getPrepareRequest(false, false);
+      request.setTimeout(1, TimeUnit.HOURS);
+      request.requestOp = slot;
+      perform(request);
     } catch (InterruptedException e) {
       // this is not possible, but regardless...
       Thread.currentThread().interrupt();
     }
   }
 
-  private WSlot perform(
-      Request request, boolean checkShutdown, boolean interruptible)
+  private WSlot perform(Request request)
   throws InterruptedException {
     for (;;) {
-      if (checkShutdown && shutdown) {
-        throw new IllegalStateException("pool is shut down");
-      }
-      if (interruptible && Thread.interrupted()) {
-        throw new InterruptedException();
-      }
       if (request.active) {
         // step 2
         if (lockCas.compareAndSet(this, UNLOCKED, LOCKED)) { // step 3
@@ -179,15 +178,13 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
             request.await();
             continue;
           }
-          request.response = null;
-          return slot == TIMEOUT? null : slot;
+          return replyOf(request);
         } else {
           // step 2 - did not get lock - spin-wait for response
           for (int i = 0; i < WAIT_SPINS; i++) {
             WSlot slot = request.response;
             if (slot != null) {
-              request.response = null;
-              return slot == TIMEOUT? null : slot;
+              return replyOf(request);
             }
           }
           request.await();
@@ -212,7 +209,9 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
       } else if (op == CLAIM) {
         // a claim request
         // TODO optimize when claim comes before release on a depleted pool
-        if (shutdown) {
+        if (current.isInterrupted()) {
+          replyTo(current, INTERRUPT);
+        } else if (shutdown) {
           replyTo(current, SHUTDOWN);
         } else if (liveStack != null) {
           WSlot prospect = liveStack;
@@ -279,6 +278,22 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
 
   private boolean expired(Request request) {
     return combiningPass - request.passCount > EXPIRE_PASS_COUNT;
+  }
+
+  private WSlot replyOf(Request request) throws InterruptedException {
+    WSlot slot = request.response;
+    request.response = null;
+    if (slot == TIMEOUT) {
+      return null;
+    }
+    if (slot == INTERRUPT) {
+      Thread.interrupted();
+      throw new InterruptedException();
+    }
+    if (slot == SHUTDOWN) {
+      throw new IllegalStateException("pool is shutdown");
+    }
+    return slot;
   }
 
   private void activate(Request request) {
