@@ -19,6 +19,7 @@ import static java.util.concurrent.atomic.AtomicReferenceFieldUpdater.*;
 import static java.util.concurrent.atomic.AtomicIntegerFieldUpdater.*;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
@@ -59,14 +60,12 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
   
   static final AtomicReferenceFieldUpdater<Whirlpool, Request> publistCas =
     newUpdater(Whirlpool.class, Request.class, "publist");
-  static final AtomicIntegerFieldUpdater<Whirlpool> lockCas =
-    newUpdater(Whirlpool.class, "lock");
   
   private final RequestThreadLocal requestTL = new RequestThreadLocal();
   
   private volatile Request publist;
   @SuppressWarnings("unused")
-  private volatile int lock = UNLOCKED;
+  private final AtomicInteger lock = new AtomicInteger(UNLOCKED);
   private volatile boolean shutdown = false;
   private int combiningPass;
   private WSlot liveStack;
@@ -170,14 +169,14 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
     for (;;) {
       if (request.active) {
         // step 2
-        if (lockCas.compareAndSet(this, UNLOCKED, LOCKED)) { // step 3
+        if (lock.compareAndSet(UNLOCKED, LOCKED)) { // step 3
           // step 4 - got lock - we are now a combiner
           combiningPass++;
           scanCombineApply();
           if ((combiningPass & CLEANUP_MASK) == CLEANUP_MASK) {
 //            cleanUp();
           }
-          lock = UNLOCKED;
+          lock.set(UNLOCKED);
           WSlot slot = request.response;
           if (slot == null) {
             request.await();
