@@ -87,14 +87,25 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
   }
 
   WSlot relieve(long timeout, TimeUnit unit) throws InterruptedException {
-    Request request = requestTL.get();
+    Request request = getThreadLocalRequest();
     request.setTimeout(timeout, unit);
     request.requestOp = RELIEVE;
     return perform(request, false, true);
   }
+
+  private Request getThreadLocalRequest() {
+    Request request = requestTL.get();
+    if (request.requestOp != null) {
+      throw new AssertionError("requesting thread have stale request");
+    }
+    if (request.response != null) {
+      throw new AssertionError("requesting thread have stale response");
+    }
+    return request;
+  }
   
   public T claim() throws PoolException, InterruptedException {
-    Request request = requestTL.get();
+    Request request = getThreadLocalRequest();
     request.setNoTimeout();
     request.requestOp = CLAIM;
     WSlot slot = perform(request, true, true);
@@ -106,7 +117,7 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
     if (unit == null) {
       throw new IllegalArgumentException("timeout TimeUnit cannot be null.");
     }
-    Request request = requestTL.get();
+    Request request = getThreadLocalRequest();
     request.setTimeout(timeout, unit);
     request.requestOp = CLAIM;
     WSlot slot = perform(request, true, true);
@@ -132,7 +143,7 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
   }
 
   void release(WSlot slot) {
-    Request request = requestTL.get();
+    Request request = getThreadLocalRequest();
     request.setTimeout(1, TimeUnit.HOURS);
     request.requestOp = slot;
     try {
@@ -168,11 +179,8 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
             request.await();
             continue;
           }
-          if (slot == TIMEOUT) {
-            slot = null;
-          }
           request.response = null;
-          return slot;
+          return slot == TIMEOUT? null : slot;
         } else {
           // step 2 - did not get lock - spin-wait for response
           for (int i = 0; i < WAIT_SPINS; i++) {
