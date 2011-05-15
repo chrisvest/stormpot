@@ -207,6 +207,9 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
     boolean shutdown = this.shutdown;
     while (current != null) {
       WSlot op = current.requestOp;
+      if (op != null && current.response != null) {
+        throw new AssertionError("request already have response");
+      }
       if (current.deadlineIsPast(now)) {
         replyTo(current, TIMEOUT);
       } else if (op == CLAIM) {
@@ -269,12 +272,14 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
     Request current = publist;
     // initial 'current' value is never null because publist at this point is
     // guaranteed to contain at least one Request object - namely our own.
-    while (current.next != null) {
-      if (expired(current.next) && current.requestOp == null) {
-        current.next.deactivate();
-        current.next = current.next.next;
+    Request next = current.next;
+    while (next != null) {
+      if (expired(next) && next.requestOp == null) {
+        current.next = next.next;
+        next.deactivate();
       } else {
-        current = current.next;
+        current = next;
+        next = next.next;
       }
     }
   }
