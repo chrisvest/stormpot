@@ -88,21 +88,13 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
   }
 
   WSlot relieve(long timeout, TimeUnit unit) throws InterruptedException {
-    Request request = getPrepareRequest(false, true);
+    Request request = getPrepareRequest();
     request.setTimeout(timeout, unit);
     request.requestOp = RELIEVE;
     return perform(request);
   }
 
-  private Request getPrepareRequest(
-      boolean checkShutdown, boolean interruptible)
-  throws InterruptedException {
-    if (checkShutdown && shutdown) {
-      throw new IllegalStateException("pool is shut down");
-    }
-    if (interruptible && Thread.interrupted()) {
-      throw new InterruptedException();
-    }
+  private Request getPrepareRequest() {
     Request request = requestTL.get();
     if (request.requestOp != null) {
       throw new AssertionError("requesting thread have stale request");
@@ -114,19 +106,30 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
   }
   
   public T claim() throws PoolException, InterruptedException {
-    Request request = getPrepareRequest(true, true);
+    preClaimCheck();
+    Request request = getPrepareRequest();
     request.setNoTimeout();
     request.requestOp = CLAIM;
     WSlot slot = perform(request);
     return objectOf(slot);
   }
 
+  private void preClaimCheck() throws InterruptedException {
+    if (shutdown) {
+      throw new IllegalStateException("pool is shut down");
+    }
+    if (Thread.interrupted()) {
+      throw new InterruptedException();
+    }
+  }
+  
   public T claim(long timeout, TimeUnit unit) throws PoolException,
       InterruptedException {
     if (unit == null) {
       throw new IllegalArgumentException("timeout TimeUnit cannot be null.");
     }
-    Request request = getPrepareRequest(true, true);
+    preClaimCheck();
+    Request request = getPrepareRequest();
     request.setTimeout(timeout, unit);
     request.requestOp = CLAIM;
     WSlot slot = perform(request);
@@ -149,10 +152,10 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
   }
 
   void release(WSlot slot) {
+    Request request = getPrepareRequest();
+    request.setTimeout(1, TimeUnit.HOURS);
+    request.requestOp = slot;
     try {
-      Request request = getPrepareRequest(false, false);
-      request.setTimeout(1, TimeUnit.HOURS);
-      request.requestOp = slot;
       perform(request);
     } catch (InterruptedException e) {
       // this is not possible, but regardless...
