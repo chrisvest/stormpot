@@ -4,4 +4,5 @@ bin
 .project
 .settings
 release.properties
+hs_err_*.log
 
