@@ -22,12 +22,12 @@ public class DaoObjectPoolExample {
       this.connection = connection;
     }
 
-    private void close() throws SQLException {
-      connection.close();
-    }
-
     public void release() {
       slot.release(this);
+    }
+
+    private void close() throws SQLException {
+      connection.close();
     }
     
     // ...
