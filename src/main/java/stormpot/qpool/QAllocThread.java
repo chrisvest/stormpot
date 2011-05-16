@@ -72,6 +72,9 @@ class QAllocThread<T extends Poolable> extends Thread {
           slot = live.poll();
         }
         if (slot == QueuePool.KILL_PILL) {
+          // FindBugs complains that we ignore a possible exceptional return
+          // value from offer(). However, since the queues are unbounded, an
+          // offer will never fail.
           live.offer(QueuePool.KILL_PILL);
           slot = null;
         }
