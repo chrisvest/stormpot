@@ -21,7 +21,10 @@ package stormpot;
  * <p>
  * Note that LifecycledPools are not guaranteed to have overwritten the
  * {@link Object#finalize()} method. LifecycledPools are expected to rely on
- * explicit clean-up, for releasing their resources.
+ * explicit clean-up for releasing their resources.
+ * <p>
+ * See the {@link Pool} interface for the general contract of pools, including
+ * the additional promises made by LifecycledPools.
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  * @see Pool
  * @param <T> The type of {@link Poolable} contained in this pool.
