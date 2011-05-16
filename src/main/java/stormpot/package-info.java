@@ -148,6 +148,37 @@
  * objects that are no longer needed. Recall that MyDao objects need two
  * things: A Slot and a Connection. The Slot will be passed as a parameter to
  * the {@link stormpot.Allocator#allocate(Slot)} method, and the Connection
- * will come from a DataSource.
+ * will come from a DataSource. We will pass the Allocator that DataSource as
+ * a parameter to its constructor, and put it in a <code>final</code> field:
+ * </p><pre><code>   static class MyDaoAllocator implements Allocator&lt;MyDao&gt; {
+ *     private final DataSource dataSource;
+ *     
+ *     public MyDaoAllocator(DataSource dataSource) {
+ *       this.dataSource = dataSource;
+ *     }</code></pre>
+ * <p>
+ * The Allocator needs an allocate method. It is specified in the API that the
+ * Allocator might be used concurrently by multiple threads, and so must be
+ * thread-safe. However, the DataSource interface poses no such requirements on
+ * its implementors, so we must protect access to it with a lock. Having done
+ * that, we can then safely create a new connection and allocate a new MyDao
+ * instance:
+ * </p><pre><code>     public MyDao allocate(Slot slot) throws Exception {
+ *       synchronized (dataSource) {
+ *         return new MyDao(slot, dataSource.getConnection());
+ *       }
+ *     }</code></pre>
+ * <p>
+ * Our Allocator also needs a {@link stormpot.Allocator#deallocate(Poolable)}
+ * method. This one is easy to implement. We just call the close method on our
+ * MyDaos, and that will close the underlying connection:
+ * </p><pre><code>     public void deallocate(MyDao poolable) throws Exception {
+ *       poolable.close();
+ *     }
+ *   }</code></pre>
+ * <p>
+ * And that concludes our Allocator implementation. We now have the needed to
+ * pool our MyDaos with Stormpot.
  */
 package stormpot;
+
