@@ -16,11 +16,9 @@
 package stormpot.whirlpool;
 
 import static java.util.concurrent.atomic.AtomicReferenceFieldUpdater.*;
-import static java.util.concurrent.atomic.AtomicIntegerFieldUpdater.*;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import stormpot.Completion;
@@ -64,7 +62,6 @@ public class Whirlpool<T extends Poolable> implements LifecycledPool<T> {
   private final RequestThreadLocal requestTL = new RequestThreadLocal();
   
   private volatile Request publist;
-  @SuppressWarnings("unused")
   private final AtomicInteger lock = new AtomicInteger(UNLOCKED);
   private volatile boolean shutdown = false;
   private int combiningPass;
