@@ -95,13 +95,13 @@
  * through the constructor:
  * </p>
  * <pre><code>   static class MyDao implements Poolable {
- *    private final Slot slot;
- *    private final Connection connection;
+ *     private final Slot slot;
+ *     private final Connection connection;
  *    
- *    private MyDao(Slot slot, Connection connection) {
- *      this.slot = slot;
- *      this.connection = connection;
- *    }</code></pre>
+ *     private MyDao(Slot slot, Connection connection) {
+ *       this.slot = slot;
+ *       this.connection = connection;
+ *     }</code></pre>
  * <p>
  * The contract of the {@link stormpot.Poolable#release()} method is to call
  * the {@link stormpto.Slot#release(Poolable)} method on the slot object that
@@ -113,8 +113,8 @@
  * object two times in a row. The simplest possible implementation looks like
  * this:
  * </p><pre><code>     public void release() {
- *      slot.release(this);
- *    }</code></pre>
+ *       slot.release(this);
+ *     }</code></pre>
  * <p>
  * When release is called, the object returns to the pool. When the object is
  * no longer considered valid, because it got too old, then it is returned to
@@ -123,8 +123,8 @@
  * closed when the object is deallocated. So we add a method that the Allocator
  * can call to close the Connection, when deallocating an object:
  * </p><pre><code>     private void close() throws SQLException {
- *      connection.close();
- *    }</code></pre>
+ *       connection.close();
+ *     }</code></pre>
  * <p>
  * Private visibility is fine in this case, because we are keeping everything
  * inside a single source file. However, in a more real scenario, you will
@@ -135,13 +135,19 @@
  * meat of the class, which would be the DAO methods. As this is just an
  * example, we will only add one method, and make it a stub:
  * </p><pre><code>     public String getFirstName() {
- *      // Stub: get the name from the database using the connection.
- *      // But for now, just always return "freddy"
- *      return "freddy";
- *    }
- *  }</code></pre>
+ *       // Stub: get the name from the database using the connection.
+ *       // But for now, just always return "freddy"
+ *       return "freddy";
+ *     }
+ *   }</code></pre>
  * <p>
  * And that concludes the MyDao class and the Poolable implementation. Next, we
- * are going to implement our {@link stormpot.Allocator}.
+ * are going to implement our {@link stormpot.Allocator}. The allocator has
+ * two responsibilities: First, it must provide the pool implementation with
+ * fresh instances of MyDao; and second, it must help the pool dispose of
+ * objects that are no longer needed. Recall that MyDao objects need two
+ * things: A Slot and a Connection. The Slot will be passed as a parameter to
+ * the {@link stormpot.Allocator#allocate(Slot)} method, and the Connection
+ * will come from a DataSource.
  */
 package stormpot;

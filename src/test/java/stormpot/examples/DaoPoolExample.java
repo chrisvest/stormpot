@@ -49,7 +49,9 @@ public class DaoPoolExample {
     }
 
     public MyDao allocate(Slot slot) throws Exception {
-      return new MyDao(slot, dataSource.getConnection());
+      synchronized (dataSource) {
+        return new MyDao(slot, dataSource.getConnection());
+      }
     }
 
     public void deallocate(MyDao poolable) throws Exception {
