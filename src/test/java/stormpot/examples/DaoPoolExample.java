@@ -68,8 +68,8 @@ public class DaoPoolExample {
     
     public MyDaoPool(DataSource dataSource) {
       MyDaoAllocator allocator = new MyDaoAllocator(dataSource);
-      Config<MyDao> config = new Config().setAllocator(allocator);
-      pool = new QueuePool(config);
+      Config<MyDao> config = new Config<MyDao>().setAllocator(allocator);
+      pool = new QueuePool<MyDao>(config);
     }
     
     public <T> T doWithDao(WithMyDaoDo<T> action)
