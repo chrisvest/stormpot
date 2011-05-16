@@ -59,10 +59,6 @@ public class DaoPoolExample {
     }
   }
   
-  static interface WithMyDaoDo<T> {
-    public T doWithDao(MyDao dao);
-  }
-  
   static class MyDaoPool {
     private final LifecycledPool<MyDao> pool;
     
@@ -70,6 +66,10 @@ public class DaoPoolExample {
       MyDaoAllocator allocator = new MyDaoAllocator(dataSource);
       Config<MyDao> config = new Config<MyDao>().setAllocator(allocator);
       pool = new QueuePool<MyDao>(config);
+    }
+
+    public void close() throws InterruptedException {
+      pool.shutdown().await();
     }
     
     public <T> T doWithDao(WithMyDaoDo<T> action)
@@ -81,10 +81,10 @@ public class DaoPoolExample {
         dao.release();
       }
     }
-
-    public void close() throws InterruptedException {
-      pool.shutdown().await();
-    }
+  }
+  
+  static interface WithMyDaoDo<T> {
+    public T doWithDao(MyDao dao);
   }
   
   public static void main(String[] args) throws InterruptedException {
