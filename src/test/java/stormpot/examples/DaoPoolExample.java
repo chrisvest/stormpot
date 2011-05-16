@@ -12,12 +12,12 @@ import stormpot.Poolable;
 import stormpot.Slot;
 import stormpot.qpool.QueuePool;
 
-public class DaoObjectPoolExample {
-  static class MyDaoObject implements Poolable {
+public class DaoPoolExample {
+  static class MyDao implements Poolable {
     private final Slot slot;
     private final Connection connection;
     
-    private MyDaoObject(Slot slot, Connection connection) {
+    private MyDao(Slot slot, Connection connection) {
       this.slot = slot;
       this.connection = connection;
     }
@@ -41,38 +41,38 @@ public class DaoObjectPoolExample {
     }
   }
   
-  static class MyDaoObjectAllocator implements Allocator<MyDaoObject> {
+  static class MyDaoAllocator implements Allocator<MyDao> {
     private final DataSource dataSource;
     
-    public MyDaoObjectAllocator(DataSource dataSource) {
+    public MyDaoAllocator(DataSource dataSource) {
       this.dataSource = dataSource;
     }
 
-    public MyDaoObject allocate(Slot slot) throws Exception {
-      return new MyDaoObject(slot, dataSource.getConnection());
+    public MyDao allocate(Slot slot) throws Exception {
+      return new MyDao(slot, dataSource.getConnection());
     }
 
-    public void deallocate(MyDaoObject poolable) throws Exception {
+    public void deallocate(MyDao poolable) throws Exception {
       poolable.close();
     }
   }
   
-  static interface WithMyDaoObjectDo<T> {
-    public T doWithDao(MyDaoObject dao);
+  static interface WithMyDaoDo<T> {
+    public T doWithDao(MyDao dao);
   }
   
-  static class MyDaoObjectPool {
-    private final LifecycledPool<MyDaoObject> pool;
+  static class MyDaoPool {
+    private final LifecycledPool<MyDao> pool;
     
-    public MyDaoObjectPool(DataSource dataSource) {
-      MyDaoObjectAllocator allocator = new MyDaoObjectAllocator(dataSource);
-      Config<MyDaoObject> config = new Config().setAllocator(allocator);
+    public MyDaoPool(DataSource dataSource) {
+      MyDaoAllocator allocator = new MyDaoAllocator(dataSource);
+      Config<MyDao> config = new Config().setAllocator(allocator);
       pool = new QueuePool(config);
     }
     
-    public <T> T doWithDao(WithMyDaoObjectDo<T> action)
+    public <T> T doWithDao(WithMyDaoDo<T> action)
     throws InterruptedException {
-      MyDaoObject dao = pool.claim();
+      MyDao dao = pool.claim();
       try {
         return action.doWithDao(dao);
       } finally {
@@ -87,9 +87,9 @@ public class DaoObjectPoolExample {
   
   public static void main(String[] args) throws InterruptedException {
     DataSource dataSource = configureDataSource();
-    MyDaoObjectPool pool = new MyDaoObjectPool(dataSource);
-    String person = pool.doWithDao(new WithMyDaoObjectDo<String>() {
-      public String doWithDao(MyDaoObject dao) {
+    MyDaoPool pool = new MyDaoPool(dataSource);
+    String person = pool.doWithDao(new WithMyDaoDo<String>() {
+      public String doWithDao(MyDao dao) {
         return dao.getFirstName();
       }
     });
