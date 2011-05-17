@@ -110,7 +110,7 @@ class QAllocThread<T extends Poolable> extends Thread {
       if (slot.poison == null) {
         allocator.deallocate(slot.obj);
       }
-    } catch (Exception _) {
+    } catch (Exception _) { // NOPMD
       // ignored as per specification
     } finally {
       slot.poison = null;

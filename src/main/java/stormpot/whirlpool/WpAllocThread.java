@@ -114,7 +114,7 @@ class WpAllocThread extends Thread implements Completion {
         size--;
         allocator.deallocate(slot.obj);
       }
-    } catch (Exception e) {
+    } catch (Exception e) { // NOPMD
       // ignored as per spec.
     }
     slot.created = 0;
