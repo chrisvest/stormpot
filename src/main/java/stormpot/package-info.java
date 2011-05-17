@@ -104,7 +104,7 @@
  *     }</code></pre>
  * <p>
  * The contract of the {@link stormpot.Poolable#release()} method is to call
- * the {@link stormpto.Slot#release(Poolable)} method on the slot object that
+ * the {@link stormpot.Slot#release(Poolable)} method on the slot object that
  * the Poolable was created with. The Poolable that is taken as a parameter to
  * release on Slot, is always the Poolable that is being released - the
  * Poolable that was created for this very Slot. The Slot takes this parameter
@@ -130,7 +130,7 @@
  * inside a single source file. However, in a more real scenario, you will
  * likely have these classes in multiple source files. In that case,
  * package-protected visibility will probably be a better choice.
- * <p>
+ * </p><p>
  * This is all the ceremony we need to implement MyDao. Now we can get to the
  * meat of the class, which would be the DAO methods. As this is just an
  * example, we will only add one method, and make it a stub:
@@ -179,6 +179,88 @@
  * <p>
  * And that concludes our Allocator implementation. We now have the parts
  * needed to pool our MyDaos with Stormpot.
+ * </p><p>
+ * We could now just create a Config, set the allocator, create a QueuePool
+ * with it and use that directly. However, it is generally a good idea to not
+ * be too dependent on external APIs, because it introduces coupling. So, to
+ * reduce this coupling, we are going to introduce an indirection. We are going
+ * to create a MyDaoPool class that encapsulates all the Stormpot specific
+ * logic, so it doesn't leak into the rest of our code. It will take a
+ * DataSource as a constructor parameter and build a pool from it, using the
+ * parts we have just built, but it will keep this pool hidden and expose
+ * another way of interacting with the MyDao objects.
+ * </p><p>
+ * But let us build that pool before we get to that:
+ * </p><pre><code>   static class MyDaoPool {
+ *     private final LifecycledPool&lt;MyDao&gt; pool;
+ *     
+ *     public MyDaoPool(DataSource dataSource) {
+ *       MyDaoAllocator allocator = new MyDaoAllocator(dataSource);
+ *       Config&lt;MyDao&gt; config = new Config&lt;MyDao&gt;().setAllocator(allocator);
+ *       pool = new QueuePool&lt;MyDao&gt;(config);
+ *     }</code></pre>
+ * <p>
+ * The set-up is simple: The DataSource goes into our Allocator, the Allocator
+ * into a Config, and the Config into a Pool implementation - QueuePool in
+ * this case. The <code>pool</code> field is final because we don't need to
+ * change it once set, and because it has nice memory visibility semantics so
+ * we can safely share MyDaoPool instances among many threads.
+ * </p><p>
+ * We have decided to code against the LifecycledPool interface, because we
+ * want to support a clean shut-down in our code. When our program shuts down,
+ * then so should our pool. When this happens, we will initiate the shut-down
+ * procedure of our pool, and wait for it to complete. To do this, we will add
+ * a close method to our MyDaoPool class, so we don't have to expose our
+ * LifecycledPool field for this purpose:
+ * </p><pre><code>     public void close() throws InterruptedException {
+ *       pool.shutdown().await();
+ *     }</code></pre>
+ * <p>
+ * Next, we need a way to interact with the MyDao instances that are managed by
+ * the pool inside our MyDaoPool. We could simply delegate the claim methods,
+ * but then the release method from the Poolable interface would leak out from
+ * our abstraction. We would also like to make sure, once and for all, that
+ * release is properly called. If we leak objects out of the pool, we will no
+ * longer be able to shut it down.
+ * </p><p>
+ * It turns out that there is a way that we can solve both of these problems
+ * in one go: We can add a method to the MyDaoPool class, that takes an
+ * instance of a function-like interface as a parameter. This method can then
+ * handle the mechanics of claiming a MyDao instance, calling the function with
+ * it as a parameter, and then releasing it. The function type will be defined
+ * as an interface, and the return value of the function can be passed back
+ * through the method:
+ * </p><pre><code>     public &lt;T&gt; T doWithDao(WithMyDaoDo&lt;T&gt; action)
+ *     throws InterruptedException {
+ *       MyDao dao = pool.claim();
+ *       try {
+ *         return action.doWithDao(dao);
+ *       } finally {
+ *         dao.release();
+ *       }
+ *     }
+ *   }
+ *   
+ *   static interface WithMyDaoDo&lt;T&gt; {
+ *     public T doWithDao(MyDao dao);
+ *   }</code></pre>
+ * <p>
+ * And that concludes our MyDaoPool class. Our use of Stormpot has been hidden
+ * behind a nice API. Now it is just a small matter of using the code:
+ * </p><pre><code>   public static void main(String[] args) throws InterruptedException {
+ *     DataSource dataSource = configureDataSource();
+ *     MyDaoPool pool = new MyDaoPool(dataSource);
+ *     String person = pool.doWithDao(new WithMyDaoDo<String>() {
+ *       public String doWithDao(MyDao dao) {
+ *         return dao.getFirstName();
+ *       }
+ *     });
+ *     System.out.println("Hello there, " + person + "!");
+ *     pool.close();
+ *   }
+ * }</code></pre>
+ * <p>
+ * The implementation of the <code>configureDataSource</code> is left as an
+ * exercise for the reader.
  */
 package stormpot;
-
