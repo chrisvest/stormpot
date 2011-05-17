@@ -90,13 +90,16 @@ public class DaoPoolExample {
   public static void main(String[] args) throws InterruptedException {
     DataSource dataSource = configureDataSource();
     MyDaoPool pool = new MyDaoPool(dataSource);
-    String person = pool.doWithDao(new WithMyDaoDo<String>() {
-      public String doWithDao(MyDao dao) {
-        return dao.getFirstName();
-      }
-    });
-    System.out.println("Hello there, " + person + "!");
-    pool.close();
+    try {
+      String person = pool.doWithDao(new WithMyDaoDo<String>() {
+        public String doWithDao(MyDao dao) {
+          return dao.getFirstName();
+        }
+      });
+      System.out.println("Hello there, " + person + "!");
+    } finally {
+      pool.close();
+    }
   }
 
   private static DataSource configureDataSource() {

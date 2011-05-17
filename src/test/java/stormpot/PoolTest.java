@@ -1303,6 +1303,13 @@ public class PoolTest {
     shutdown(fixture.initPool(config)).await(timeout, null);
   }
   
+  /**
+   * Even if the Allocator has never made a successful allocation, the pool
+   * must still be able to complete its shut-down procedure.
+   * In this case we test with an allocator that always returns null.
+   * @param fixture
+   * @throws InterruptedException
+   */
   @Test(timeout = 300)
   @Theory public void
   mustCompleteShutDownEvenIfAllSlotsHaveNullErrors(PoolFixture fixture)
@@ -1328,6 +1335,30 @@ public class PoolTest {
       // we don't care about this one
     }
     return pool;
+  }
+  
+  /**
+   * As with
+   * {@link #mustCompleteShutDownEvenIfAllSlotsHaveNullErrors(PoolFixture)},
+   * the pool must be able to shut down if it has never been able to allocate
+   * anything.
+   * In this case we test with an allocator that always throws an exception.
+   * @param fixture
+   * @throws InterruptedException
+   */
+  @Test(timeout = 300)
+  @Theory public void
+  mustCompleteShutDownEvenIfAllSlotsHaveAllocationErrors(PoolFixture fixture)
+  throws InterruptedException {
+    Allocator allocator = new CountingAllocator() {
+      @Override
+      public Poolable allocate(Slot slot) throws Exception {
+        throw new Exception("it's terrible stuff!!!");
+      }
+    };
+    Pool pool = givenPoolWithFailedAllocation(fixture, allocator);
+    // must complete before the test timeout:
+    shutdown(pool).await();
   }
   // TODO test for resilience against spurious wake-ups?
   
