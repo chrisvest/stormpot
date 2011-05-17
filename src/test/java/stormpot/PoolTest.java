@@ -1302,6 +1302,33 @@ public class PoolTest {
   throws Exception {
     shutdown(fixture.initPool(config)).await(timeout, null);
   }
+  
+  @Test(timeout = 300)
+  @Theory public void
+  mustCompleteShutDownEvenIfAllSlotsHaveNullErrors(PoolFixture fixture)
+  throws InterruptedException {
+    Allocator allocator = new CountingAllocator() {
+      @Override
+      public Poolable allocate(Slot slot) throws Exception {
+        return null;
+      }
+    };
+    Pool pool = givenPoolWithFailedAllocation(fixture, allocator);
+    // the shut-down procedure must complete before the test times out.
+    shutdown(pool).await();
+  }
+
+  private Pool givenPoolWithFailedAllocation(
+      PoolFixture fixture, Allocator allocator) {
+    Pool pool = fixture.initPool(config.setAllocator(allocator));
+    try {
+      // ensure at least one allocation attempt has taken place
+      pool.claim();
+    } catch (Exception _) {
+      // we don't care about this one
+    }
+    return pool;
+  }
   // TODO test for resilience against spurious wake-ups?
   
   // NOTE: When adding, removing or modifying tests, also remember to update
