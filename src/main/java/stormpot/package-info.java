@@ -177,8 +177,8 @@
  *     }
  *   }</code></pre>
  * <p>
- * And that concludes our Allocator implementation. We now have the needed to
- * pool our MyDaos with Stormpot.
+ * And that concludes our Allocator implementation. We now have the parts
+ * needed to pool our MyDaos with Stormpot.
  */
 package stormpot;
 
