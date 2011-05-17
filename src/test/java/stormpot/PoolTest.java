@@ -1244,7 +1244,7 @@ public class PoolTest {
     pool.claim(); // depleted
     for (int i = 0; i > -100; i--) {
       pool.claim(i, TimeUnit.MILLISECONDS);
-    }
+    } // racy[2]!!
   }
   
   /**
