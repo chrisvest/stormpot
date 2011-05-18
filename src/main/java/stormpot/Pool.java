@@ -99,6 +99,10 @@ import java.util.concurrent.TimeUnit;
  * types of garbage.
  * <li>Calling {@link LifecycledPool#shutdown() shutdown} on a LifecycledPool
  * will return fast, even if objects are claimed at the time of invocation.
+ * <li>Calling {@link LifecycledPool#shutdown() shutdown} on a LifecycledPool
+ * will initiate the shut down procedure even if the calling thread is in
+ * the interrupted state. The interruption state of the thread will not be
+ * affected by calling this method.
  * <li>{@link Completion#await() Awaiting} the completion of the shut down
  * procedure of a pool, will return when all claimed objects are released and
  * subsequently deallocated, and all internal resources of the pool have been
@@ -110,6 +114,9 @@ import java.util.concurrent.TimeUnit;
  * completion with a timeout, of a shut down procedure that has already
  * finished by the time the await method is called, will immediately return
  * <code>true</code>.
+ * <li>An {@link InterruptedException} will be thrown if a thread is in the
+ * interrupted state when calling an await method on the shut down
+ * {@link Completion}, or if the thread becomes interrupted while waiting.
  * <li>A pool will silently swallow exceptions thrown the Allocators
  * deallocate method that are thrown during the shut down procedure.
  * </ul>
