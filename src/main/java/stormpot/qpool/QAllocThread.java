@@ -84,9 +84,8 @@ class QAllocThread<T extends Poolable> extends Thread {
           dealloc(slot);
         }
       }
-    } finally {
-      completionLatch.countDown();
     }
+    completionLatch.countDown();
   }
 
   private void alloc(QSlot slot) {
