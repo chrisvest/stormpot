@@ -1371,6 +1371,7 @@ public class PoolTest {
    * the procedure did NOT start, and so the test fails.
    * @param fixture
    * @throws InterruptedException
+   * @see Pool
    */
   @Test(timeout = 300)
   @Theory public void
@@ -1381,6 +1382,25 @@ public class PoolTest {
     Completion completion = shutdown(pool);
     Thread.interrupted(); // clear interrupted flag
     completion.await(); // must complete before test timeout
+  }
+  
+  /**
+   * Initiating the shut-down procedure must not influence the threads
+   * interruption status.
+   * We test for this by calling shutdown on the pool while being interrupted.
+   * Then we check that we are still interrupted.
+   * @param fixture
+   * @throws InterruptedException
+   * @see Pool
+   */
+  @Test(timeout = 300)
+  @Theory public void
+  callingShutdownMustNotAffectInterruptionStatus(PoolFixture fixture)
+  throws InterruptedException {
+    Pool pool = fixture.initPool(config);
+    Thread.currentThread().interrupt();
+    shutdown(pool);
+    assertTrue(Thread.interrupted());
   }
   // TODO test for resilience against spurious wake-ups?
   
