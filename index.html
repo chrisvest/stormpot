@@ -3,74 +3,113 @@
 <head>
   <meta charset='utf-8'>
 
-  <title>chrisvest/stormpot @ GitHub</title>
+  <title>Stormpot - Object pooling for Java</title>
 
   <style type="text/css">
     body {
-      margin-top: 1.0em;
-      background-color: #dec4db;
-      font-family: Helvetica, Arial, FreeSans, san-serif;
+      margin: 1.0em 0 0 1.0em;
+      margin-left: 0px;
+      margin-right: 0px;
+      font-family: Geogia, Palatino, Cambria, serif;
       color: #000000;
     }
-    #container {
-      margin: 0 auto;
-      width: 700px;
+    body div {
+      padding: 0.1em 7.0em 0.1em 7.0em;
+      margin-top: 10px;
     }
-    h1 { font-size: 3.8em; color: #213b24; margin-bottom: 3px; }
+    body div:nth-of-type(even) {
+      -moz-box-shadow: 0 0 25px #333;
+      -webkit-box-shadow: 0 0 25px #333;
+      box-shadow: 0 0 25px #333;
+      background:#8dca16;
+      filter:progid:DXImageTransform.Microsoft.gradient(
+        GradientType=0, startColorstr='#8dca16', endColorstr='#65b010');
+      background:-webkit-gradient(linear, left top, left bottom, from(#8dca16), to(#65b010));
+      background:-moz-linear-gradient(top,  #8dca16,  #65b010);
+      color: #FFFFFF;
+    }
+    h1 { font-size: 3.8em; margin-bottom: 3px; text-shadow: 3px 3px 5px #666; }
     h1 .small { font-size: 0.4em; }
     h1 a { text-decoration: none }
-    h2 { font-size: 1.5em; color: #213b24; }
-    h3 { text-align: center; color: #213b24; }
+    h2 { font-size: 1.5em; }
     a { color: #213b24; }
-    .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px; font-style: italic;}
+    .description { font-size: 1.3em; margin-bottom: 10px; margin-top: 10px; font-style: italic;}
     .download { float: right; }
-    pre { background: #000; color: #fff; padding: 15px;}
+    pre { background: #000; color: #ddd; padding: 15px; border-radius: 15px;}
     hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
     .footer { text-align:center; padding-top:30px; font-style: italic; }
+    table { border: none; width: 100%; }
+    pre span { color: #65b010; }
+    td { vertical-align: top; width: 50%; }
   </style>
 </head>
 
 <body>
   <a href="http://github.com/chrisvest/stormpot"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
 
-  <div id="container">
-
-    <div class="download">
-      <a href="http://github.com/chrisvest/stormpot/zipball/master">
-        <img border="0" width="90" src="http://github.com/images/modules/download/zip.png"></a>
-      <a href="http://github.com/chrisvest/stormpot/tarball/master">
-        <img border="0" width="90" src="http://github.com/images/modules/download/tar.png"></a>
-    </div>
-
-    <h1><a href="http://github.com/chrisvest/stormpot">stormpot</a>
-      <span class="small">by <a href="http://github.com/chrisvest">chrisvest</a></span></h1>
-
+  <div>
+    <h1><a href="http://github.com/chrisvest/stormpot">Stormpot</a>
+      <span class="small">by <a href="http://github.com/chrisvest">Chris Vest</a></span></h1>
     <div class="description">
-      A fast object pool in Java
+      Generic object pooling for Java
     </div>
-
-    <h2>Authors</h2>
-<p>Chris Vest (mr.chrisvest+stormpot@gmail.com)<br/><br/>      </p>
-<h2>Contact</h2>
-<p>Christ Vest (mr.chrisvest+stormpot@gmail.com)<br/>      </p>
-
-
-    <h2>Download</h2>
-    <p>
-      You can download this project in either
-      <a href="http://github.com/chrisvest/stormpot/zipball/master">zip</a> or
-      <a href="http://github.com/chrisvest/stormpot/tarball/master">tar</a> formats.
-    </p>
-    <p>You can also clone the project with <a href="http://git-scm.com">Git</a>
-      by running:
-      <pre>$ git clone git://github.com/chrisvest/stormpot</pre>
-    </p>
-
-    <div class="footer">
-      get the source code on GitHub : <a href="http://github.com/chrisvest/stormpot">chrisvest/stormpot</a>
-    </div>
-
   </div>
+
+  <div>
+    <table>
+      <tr>
+        <td>
+          <p>
+            Stormpot is an object pooling library for Java. Use it to recycle
+            objects that are expensive to create. The library will take care of
+            creating and destroying your objects in the background.
+          </p>
+          <p>
+            The library is distributed under the
+            <a href="http://www.apache.org/licenses/LICENSE-2.0.html">Apache 2.0 license</a>.
+            You can get the <a href="https://github.com/chrisvest/stormpot">source</a>,
+            read the <a href="http://chrisvest.github.com/stormpot/site/apidocs/">documentation</a>
+            and report <a href="https://github.com/chrisvest/stormpot/issues">issues</a>.
+          </p>
+        </td>
+        <td>
+          <pre><span>&lt;dependency&gt;
+  &lt;groupId&gt;</span>com.github.chrisvest<span>&lt;/groupId&gt;
+  &lt;artifactId&gt;</span>stormpot<span>&lt;/artifactId&gt;
+  &lt;version&gt;</span>1.0<span>&lt;/version&gt;
+&lt;/dependency&gt;</span></pre>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div>
+    <h2>Why choose Stormpot?</h2>
+    <p>
+      &hellip; over, say, <a href="http://commons.apache.org/pool/">Commons-Pool</a>?
+      Good question!
+    </p>
+  </div>
+
+  <div>
+    <h2>Want to help out?</h2>
+    <p>
+      You don't have to be able to code. There is documentation to be written,
+      reviewed and polished. There is a web site to maintain. There are
+      benchmarks to run. And of course, there are also features to implement
+      and bugs to fix.
+    </p>
+    <p>
+      Take a look at the issues that have been marked with
+      <a href="https://github.com/chrisvest/stormpot/issues?labels=help-wanted">help-wanted</a>
+      for good places to start. Then fork the project, make your changes and
+      send me a pull request.
+    </p>
+  </div>
+
+  <p class="footer">
+    Get the source code on GitHub : <a href="http://github.com/chrisvest/stormpot">chrisvest/stormpot</a>
+  </p>
 
   <script type="text/javascript">
 var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
