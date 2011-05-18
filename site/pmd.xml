@@ -1,21 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<pmd version="4.2.2" timestamp="2011-05-17T16:39:24.574">
-<file name="/home/cvh/things/work/stormpot/src/main/java/stormpot/qpool/QAllocThread.java">
-<violation beginline="113" endline="115" begincolumn="7" endcolumn="5" rule="EmptyCatchBlock" ruleset="Basic Rules" package="stormpot.qpool" class="QAllocThread" method="dealloc" externalInfoUrl="http://pmd.sourceforge.net/rules/basic.html#EmptyCatchBlock" priority="3">
-Avoid empty catch blocks
-</violation>
-</file>
-<file name="/home/cvh/things/work/stormpot/src/main/java/stormpot/whirlpool/Whirlpool.java">
-<violation beginline="173" endline="175" begincolumn="63" endcolumn="11" rule="EmptyIfStmt" ruleset="Basic Rules" package="stormpot.whirlpool" class="Whirlpool" method="perform" externalInfoUrl="http://pmd.sourceforge.net/rules/basic.html#EmptyIfStmt" priority="3">
-Avoid empty if statements
-</violation>
-<violation beginline="269" endline="269" begincolumn="16" endcolumn="24" rule="UnusedPrivateMethod" ruleset="Unused Code Rules" package="stormpot.whirlpool" class="Whirlpool" method="cleanUp" externalInfoUrl="http://pmd.sourceforge.net/rules/unusedcode.html#UnusedPrivateMethod" priority="3">
-Avoid unused private methods such as 'cleanUp()'.
-</violation>
-</file>
-<file name="/home/cvh/things/work/stormpot/src/main/java/stormpot/whirlpool/WpAllocThread.java">
-<violation beginline="117" endline="119" begincolumn="7" endcolumn="5" rule="EmptyCatchBlock" ruleset="Basic Rules" package="stormpot.whirlpool" class="WpAllocThread" method="deallocate" externalInfoUrl="http://pmd.sourceforge.net/rules/basic.html#EmptyCatchBlock" priority="3">
-Avoid empty catch blocks
-</violation>
-</file>
+<pmd version="4.2.2" timestamp="2011-05-18T11:21:59.075">
+<suppressedviolation filename="/home/cvh/things/work/stormpot/src/main/java/stormpot/qpool/QAllocThread.java" suppressiontype="nopmd" msg="Avoid empty catch blocks" usermsg="
+"/>
 </pmd>

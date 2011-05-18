@@ -109,99 +109,106 @@
 <a name="99" href="#99">99</a>  <em class="jxr_javadoccomment"> * types of garbage.</em>
 <a name="100" href="#100">100</a> <em class="jxr_javadoccomment"> * &lt;li&gt;Calling {@link LifecycledPool#shutdown() shutdown} on a LifecycledPool</em>
 <a name="101" href="#101">101</a> <em class="jxr_javadoccomment"> * will return fast, even if objects are claimed at the time of invocation.</em>
-<a name="102" href="#102">102</a> <em class="jxr_javadoccomment"> * &lt;li&gt;{@link Completion#await() Awaiting} the completion of the shut down</em>
-<a name="103" href="#103">103</a> <em class="jxr_javadoccomment"> * procedure of a pool, will return when all claimed objects are released and</em>
-<a name="104" href="#104">104</a> <em class="jxr_javadoccomment"> * subsequently deallocated, and all internal resources of the pool have been</em>
-<a name="105" href="#105">105</a> <em class="jxr_javadoccomment"> * freed.</em>
-<a name="106" href="#106">106</a> <em class="jxr_javadoccomment"> * &lt;li&gt;{@link Completion#await(long, java.util.concurrent.TimeUnit)</em>
-<a name="107" href="#107">107</a> <em class="jxr_javadoccomment"> * Awaiting the completion with a timeout} will return &lt;code&gt;false&lt;/code&gt; if</em>
-<a name="108" href="#108">108</a> <em class="jxr_javadoccomment"> * the wait time elapses before the shut down procedure completes. If it does</em>
-<a name="109" href="#109">109</a> <em class="jxr_javadoccomment"> * complete, however, then the method returns &lt;code&gt;true&lt;/code&gt;. Awaiting the</em>
-<a name="110" href="#110">110</a> <em class="jxr_javadoccomment"> * completion with a timeout, of a shut down procedure that has already</em>
-<a name="111" href="#111">111</a> <em class="jxr_javadoccomment"> * finished by the time the await method is called, will immediately return</em>
-<a name="112" href="#112">112</a> <em class="jxr_javadoccomment"> * &lt;code&gt;true&lt;/code&gt;.</em>
-<a name="113" href="#113">113</a> <em class="jxr_javadoccomment"> * &lt;li&gt;A pool will silently swallow exceptions thrown the Allocators</em>
-<a name="114" href="#114">114</a> <em class="jxr_javadoccomment"> * deallocate method that are thrown during the shut down procedure.</em>
-<a name="115" href="#115">115</a> <em class="jxr_javadoccomment"> * &lt;/ul&gt;</em>
-<a name="116" href="#116">116</a> <em class="jxr_javadoccomment"> * @author Chris Vest &amp;lt;mr.chrisvest@gmail.com&amp;gt;</em>
-<a name="117" href="#117">117</a> <em class="jxr_javadoccomment"> * @param &lt;T&gt; the type of {@link Poolable} contained in the pool, as determined</em>
-<a name="118" href="#118">118</a> <em class="jxr_javadoccomment"> * by the {@link Config#setAllocator(Allocator) configured allocator}.</em>
-<a name="119" href="#119">119</a> <em class="jxr_javadoccomment"> */</em>
-<a name="120" href="#120">120</a> <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">interface</strong> Pool&lt;T <strong class="jxr_keyword">extends</strong> Poolable&gt; {
-<a name="121" href="#121">121</a>   <em class="jxr_javadoccomment">/**</em>
-<a name="122" href="#122">122</a> <em class="jxr_javadoccomment">   * Claim the exclusive rights until released, to an object in the pool.</em>
-<a name="123" href="#123">123</a> <em class="jxr_javadoccomment">   * Possibly waiting for one to become available if the pool has been</em>
-<a name="124" href="#124">124</a> <em class="jxr_javadoccomment">   * depleted.</em>
-<a name="125" href="#125">125</a> <em class="jxr_javadoccomment">   * &lt;p&gt;</em>
-<a name="126" href="#126">126</a> <em class="jxr_javadoccomment">   * This method may throw a PoolException if the pool have trouble allocating</em>
-<a name="127" href="#127">127</a> <em class="jxr_javadoccomment">   * objects. That is, if its assigned Allocator throws exceptions from its</em>
-<a name="128" href="#128">128</a> <em class="jxr_javadoccomment">   * allocate method, or returns &lt;code&gt;null&lt;/code&gt;.</em>
-<a name="129" href="#129">129</a> <em class="jxr_javadoccomment">   * &lt;p&gt;</em>
-<a name="130" href="#130">130</a> <em class="jxr_javadoccomment">   * An {@link InterruptedException} will be thrown if the thread has its</em>
-<a name="131" href="#131">131</a> <em class="jxr_javadoccomment">   * interrupted flag set upon entry to this method, or is interrupted while</em>
-<a name="132" href="#132">132</a> <em class="jxr_javadoccomment">   * waiting. The interrupted flag on the thread will be cleared after</em>
-<a name="133" href="#133">133</a> <em class="jxr_javadoccomment">   * this, as per the general contract of interruptible methods.</em>
-<a name="134" href="#134">134</a> <em class="jxr_javadoccomment">   * &lt;p&gt;</em>
-<a name="135" href="#135">135</a> <em class="jxr_javadoccomment">   * Memory effects:</em>
-<a name="136" href="#136">136</a> <em class="jxr_javadoccomment">   * &lt;ul&gt;</em>
-<a name="137" href="#137">137</a> <em class="jxr_javadoccomment">   * &lt;li&gt;The {@link Poolable#release() release} of an object happens-before</em>
-<a name="138" href="#138">138</a> <em class="jxr_javadoccomment">   * any subsequent claim or {@link Allocator#deallocate(Poolable)</em>
-<a name="139" href="#139">139</a> <em class="jxr_javadoccomment">   * deallocation} of that object, and,</em>
-<a name="140" href="#140">140</a> <em class="jxr_javadoccomment">   * &lt;li&gt;The {@link Allocator#allocate(Slot) allocation} of an object</em>
-<a name="141" href="#141">141</a> <em class="jxr_javadoccomment">   * happens-before any claim of that object.</em>
-<a name="142" href="#142">142</a> <em class="jxr_javadoccomment">   * &lt;/ul&gt;</em>
-<a name="143" href="#143">143</a> <em class="jxr_javadoccomment">   * @return An object of the Poolable subtype T to which the exclusive rights</em>
-<a name="144" href="#144">144</a> <em class="jxr_javadoccomment">   * have been claimed.</em>
-<a name="145" href="#145">145</a> <em class="jxr_javadoccomment">   * @throws PoolException If an object allocation failed because the Allocator</em>
-<a name="146" href="#146">146</a> <em class="jxr_javadoccomment">   * threw an exception from its allocate method, or returned</em>
-<a name="147" href="#147">147</a> <em class="jxr_javadoccomment">   * &lt;code&gt;null&lt;/code&gt;.</em>
-<a name="148" href="#148">148</a> <em class="jxr_javadoccomment">   * @throws InterruptedException if the current thread is</em>
-<a name="149" href="#149">149</a> <em class="jxr_javadoccomment">   * {@link Thread#interrupt() interrupted} upon entry, or becomes interrupted</em>
-<a name="150" href="#150">150</a> <em class="jxr_javadoccomment">   * while waiting.</em>
-<a name="151" href="#151">151</a> <em class="jxr_javadoccomment">   */</em>
-<a name="152" href="#152">152</a>   T claim() <strong class="jxr_keyword">throws</strong> PoolException, InterruptedException;
-<a name="153" href="#153">153</a> 
-<a name="154" href="#154">154</a>   <em class="jxr_javadoccomment">/**</em>
-<a name="155" href="#155">155</a> <em class="jxr_javadoccomment">   * Claim the exclusive rights until released, to an object in the pool.</em>
-<a name="156" href="#156">156</a> <em class="jxr_javadoccomment">   * Possibly waiting up to the specified amount of time for one to become</em>
-<a name="157" href="#157">157</a> <em class="jxr_javadoccomment">   * available if the pool has been depleted.</em>
-<a name="158" href="#158">158</a> <em class="jxr_javadoccomment">   * &lt;p&gt;</em>
-<a name="159" href="#159">159</a> <em class="jxr_javadoccomment">   * This method may throw a PoolException if the pool have trouble allocating</em>
-<a name="160" href="#160">160</a> <em class="jxr_javadoccomment">   * objects. That is, if its assigned Allocator throws exceptions from its</em>
-<a name="161" href="#161">161</a> <em class="jxr_javadoccomment">   * allocate method, or returns &lt;code&gt;null&lt;/code&gt;.</em>
-<a name="162" href="#162">162</a> <em class="jxr_javadoccomment">   * &lt;p&gt;</em>
-<a name="163" href="#163">163</a> <em class="jxr_javadoccomment">   * An {@link InterruptedException} will be thrown if the thread has its</em>
-<a name="164" href="#164">164</a> <em class="jxr_javadoccomment">   * interrupted flag set upon entry to this method, or is interrupted while</em>
-<a name="165" href="#165">165</a> <em class="jxr_javadoccomment">   * waiting. The interrupted flag on the thread will be cleared after</em>
-<a name="166" href="#166">166</a> <em class="jxr_javadoccomment">   * this, as per the general contract of interruptible methods.</em>
-<a name="167" href="#167">167</a> <em class="jxr_javadoccomment">   * &lt;p&gt;</em>
-<a name="168" href="#168">168</a> <em class="jxr_javadoccomment">   * Memory effects:</em>
-<a name="169" href="#169">169</a> <em class="jxr_javadoccomment">   * &lt;ul&gt;</em>
-<a name="170" href="#170">170</a> <em class="jxr_javadoccomment">   * &lt;li&gt;The {@link Poolable#release() release} of an object happens-before</em>
-<a name="171" href="#171">171</a> <em class="jxr_javadoccomment">   * any subsequent claim or {@link Allocator#deallocate(Poolable)</em>
-<a name="172" href="#172">172</a> <em class="jxr_javadoccomment">   * deallocation} of that object, and,</em>
-<a name="173" href="#173">173</a> <em class="jxr_javadoccomment">   * &lt;li&gt;The {@link Allocator#allocate(Slot) allocation} of an object</em>
-<a name="174" href="#174">174</a> <em class="jxr_javadoccomment">   * happens-before any claim of that object.</em>
-<a name="175" href="#175">175</a> <em class="jxr_javadoccomment">   * &lt;/ul&gt;</em>
-<a name="176" href="#176">176</a> <em class="jxr_javadoccomment">   * @param timeout The value of the maximum permitted time-slice to wait for</em>
-<a name="177" href="#177">177</a> <em class="jxr_javadoccomment">   * an object to become available. A value of zero or less means that the call</em>
-<a name="178" href="#178">178</a> <em class="jxr_javadoccomment">   * will do no waiting.</em>
-<a name="179" href="#179">179</a> <em class="jxr_javadoccomment">   * @param unit The unit of the timeout parameter. Must not be</em>
-<a name="180" href="#180">180</a> <em class="jxr_javadoccomment">   * &lt;code&gt;null&lt;/code&gt;.</em>
-<a name="181" href="#181">181</a> <em class="jxr_javadoccomment">   * @return An object of the Poolable subtype T to which the exclusive rights</em>
-<a name="182" href="#182">182</a> <em class="jxr_javadoccomment">   * have been claimed, or &lt;code&gt;null&lt;/code&gt; if the timeout period elapsed</em>
-<a name="183" href="#183">183</a> <em class="jxr_javadoccomment">   * before an object became available.</em>
-<a name="184" href="#184">184</a> <em class="jxr_javadoccomment">   * @throws PoolException If an object allocation failed because the Allocator</em>
-<a name="185" href="#185">185</a> <em class="jxr_javadoccomment">   * threw an exception from its allocate method, or returned</em>
-<a name="186" href="#186">186</a> <em class="jxr_javadoccomment">   * &lt;code&gt;null&lt;/code&gt;.</em>
-<a name="187" href="#187">187</a> <em class="jxr_javadoccomment">   * @throws InterruptedException if the current thread is</em>
-<a name="188" href="#188">188</a> <em class="jxr_javadoccomment">   * {@link Thread#interrupt() interrupted} upon entry, or becomes interrupted</em>
-<a name="189" href="#189">189</a> <em class="jxr_javadoccomment">   * while waiting.</em>
-<a name="190" href="#190">190</a> <em class="jxr_javadoccomment">   * @throws IllegalArgumentException if the &lt;code&gt;unit&lt;code&gt; argument is</em>
-<a name="191" href="#191">191</a> <em class="jxr_javadoccomment">   * &lt;code&gt;null&lt;/code&gt;.</em>
-<a name="192" href="#192">192</a> <em class="jxr_javadoccomment">   */</em>
-<a name="193" href="#193">193</a>   T claim(<strong class="jxr_keyword">long</strong> timeout, TimeUnit unit) <strong class="jxr_keyword">throws</strong> PoolException, InterruptedException;
-<a name="194" href="#194">194</a> }
+<a name="102" href="#102">102</a> <em class="jxr_javadoccomment"> * &lt;li&gt;Calling {@link LifecycledPool#shutdown() shutdown} on a LifecycledPool</em>
+<a name="103" href="#103">103</a> <em class="jxr_javadoccomment"> * will initiate the shut down procedure even if the calling thread is in</em>
+<a name="104" href="#104">104</a> <em class="jxr_javadoccomment"> * the interrupted state. The interruption state of the thread will not be</em>
+<a name="105" href="#105">105</a> <em class="jxr_javadoccomment"> * affected by calling this method.</em>
+<a name="106" href="#106">106</a> <em class="jxr_javadoccomment"> * &lt;li&gt;{@link Completion#await() Awaiting} the completion of the shut down</em>
+<a name="107" href="#107">107</a> <em class="jxr_javadoccomment"> * procedure of a pool, will return when all claimed objects are released and</em>
+<a name="108" href="#108">108</a> <em class="jxr_javadoccomment"> * subsequently deallocated, and all internal resources of the pool have been</em>
+<a name="109" href="#109">109</a> <em class="jxr_javadoccomment"> * freed.</em>
+<a name="110" href="#110">110</a> <em class="jxr_javadoccomment"> * &lt;li&gt;{@link Completion#await(long, java.util.concurrent.TimeUnit)</em>
+<a name="111" href="#111">111</a> <em class="jxr_javadoccomment"> * Awaiting the completion with a timeout} will return &lt;code&gt;false&lt;/code&gt; if</em>
+<a name="112" href="#112">112</a> <em class="jxr_javadoccomment"> * the wait time elapses before the shut down procedure completes. If it does</em>
+<a name="113" href="#113">113</a> <em class="jxr_javadoccomment"> * complete, however, then the method returns &lt;code&gt;true&lt;/code&gt;. Awaiting the</em>
+<a name="114" href="#114">114</a> <em class="jxr_javadoccomment"> * completion with a timeout, of a shut down procedure that has already</em>
+<a name="115" href="#115">115</a> <em class="jxr_javadoccomment"> * finished by the time the await method is called, will immediately return</em>
+<a name="116" href="#116">116</a> <em class="jxr_javadoccomment"> * &lt;code&gt;true&lt;/code&gt;.</em>
+<a name="117" href="#117">117</a> <em class="jxr_javadoccomment"> * &lt;li&gt;An {@link InterruptedException} will be thrown if a thread is in the</em>
+<a name="118" href="#118">118</a> <em class="jxr_javadoccomment"> * interrupted state when calling an await method on the shut down</em>
+<a name="119" href="#119">119</a> <em class="jxr_javadoccomment"> * {@link Completion}, or if the thread becomes interrupted while waiting.</em>
+<a name="120" href="#120">120</a> <em class="jxr_javadoccomment"> * &lt;li&gt;A pool will silently swallow exceptions thrown the Allocators</em>
+<a name="121" href="#121">121</a> <em class="jxr_javadoccomment"> * deallocate method that are thrown during the shut down procedure.</em>
+<a name="122" href="#122">122</a> <em class="jxr_javadoccomment"> * &lt;/ul&gt;</em>
+<a name="123" href="#123">123</a> <em class="jxr_javadoccomment"> * @author Chris Vest &amp;lt;mr.chrisvest@gmail.com&amp;gt;</em>
+<a name="124" href="#124">124</a> <em class="jxr_javadoccomment"> * @param &lt;T&gt; the type of {@link Poolable} contained in the pool, as determined</em>
+<a name="125" href="#125">125</a> <em class="jxr_javadoccomment"> * by the {@link Config#setAllocator(Allocator) configured allocator}.</em>
+<a name="126" href="#126">126</a> <em class="jxr_javadoccomment"> */</em>
+<a name="127" href="#127">127</a> <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">interface</strong> Pool&lt;T <strong class="jxr_keyword">extends</strong> Poolable&gt; {
+<a name="128" href="#128">128</a>   <em class="jxr_javadoccomment">/**</em>
+<a name="129" href="#129">129</a> <em class="jxr_javadoccomment">   * Claim the exclusive rights until released, to an object in the pool.</em>
+<a name="130" href="#130">130</a> <em class="jxr_javadoccomment">   * Possibly waiting for one to become available if the pool has been</em>
+<a name="131" href="#131">131</a> <em class="jxr_javadoccomment">   * depleted.</em>
+<a name="132" href="#132">132</a> <em class="jxr_javadoccomment">   * &lt;p&gt;</em>
+<a name="133" href="#133">133</a> <em class="jxr_javadoccomment">   * This method may throw a PoolException if the pool have trouble allocating</em>
+<a name="134" href="#134">134</a> <em class="jxr_javadoccomment">   * objects. That is, if its assigned Allocator throws exceptions from its</em>
+<a name="135" href="#135">135</a> <em class="jxr_javadoccomment">   * allocate method, or returns &lt;code&gt;null&lt;/code&gt;.</em>
+<a name="136" href="#136">136</a> <em class="jxr_javadoccomment">   * &lt;p&gt;</em>
+<a name="137" href="#137">137</a> <em class="jxr_javadoccomment">   * An {@link InterruptedException} will be thrown if the thread has its</em>
+<a name="138" href="#138">138</a> <em class="jxr_javadoccomment">   * interrupted flag set upon entry to this method, or is interrupted while</em>
+<a name="139" href="#139">139</a> <em class="jxr_javadoccomment">   * waiting. The interrupted flag on the thread will be cleared after</em>
+<a name="140" href="#140">140</a> <em class="jxr_javadoccomment">   * this, as per the general contract of interruptible methods.</em>
+<a name="141" href="#141">141</a> <em class="jxr_javadoccomment">   * &lt;p&gt;</em>
+<a name="142" href="#142">142</a> <em class="jxr_javadoccomment">   * Memory effects:</em>
+<a name="143" href="#143">143</a> <em class="jxr_javadoccomment">   * &lt;ul&gt;</em>
+<a name="144" href="#144">144</a> <em class="jxr_javadoccomment">   * &lt;li&gt;The {@link Poolable#release() release} of an object happens-before</em>
+<a name="145" href="#145">145</a> <em class="jxr_javadoccomment">   * any subsequent claim or {@link Allocator#deallocate(Poolable)</em>
+<a name="146" href="#146">146</a> <em class="jxr_javadoccomment">   * deallocation} of that object, and,</em>
+<a name="147" href="#147">147</a> <em class="jxr_javadoccomment">   * &lt;li&gt;The {@link Allocator#allocate(Slot) allocation} of an object</em>
+<a name="148" href="#148">148</a> <em class="jxr_javadoccomment">   * happens-before any claim of that object.</em>
+<a name="149" href="#149">149</a> <em class="jxr_javadoccomment">   * &lt;/ul&gt;</em>
+<a name="150" href="#150">150</a> <em class="jxr_javadoccomment">   * @return An object of the Poolable subtype T to which the exclusive rights</em>
+<a name="151" href="#151">151</a> <em class="jxr_javadoccomment">   * have been claimed.</em>
+<a name="152" href="#152">152</a> <em class="jxr_javadoccomment">   * @throws PoolException If an object allocation failed because the Allocator</em>
+<a name="153" href="#153">153</a> <em class="jxr_javadoccomment">   * threw an exception from its allocate method, or returned</em>
+<a name="154" href="#154">154</a> <em class="jxr_javadoccomment">   * &lt;code&gt;null&lt;/code&gt;.</em>
+<a name="155" href="#155">155</a> <em class="jxr_javadoccomment">   * @throws InterruptedException if the current thread is</em>
+<a name="156" href="#156">156</a> <em class="jxr_javadoccomment">   * {@link Thread#interrupt() interrupted} upon entry, or becomes interrupted</em>
+<a name="157" href="#157">157</a> <em class="jxr_javadoccomment">   * while waiting.</em>
+<a name="158" href="#158">158</a> <em class="jxr_javadoccomment">   */</em>
+<a name="159" href="#159">159</a>   T claim() <strong class="jxr_keyword">throws</strong> PoolException, InterruptedException;
+<a name="160" href="#160">160</a> 
+<a name="161" href="#161">161</a>   <em class="jxr_javadoccomment">/**</em>
+<a name="162" href="#162">162</a> <em class="jxr_javadoccomment">   * Claim the exclusive rights until released, to an object in the pool.</em>
+<a name="163" href="#163">163</a> <em class="jxr_javadoccomment">   * Possibly waiting up to the specified amount of time for one to become</em>
+<a name="164" href="#164">164</a> <em class="jxr_javadoccomment">   * available if the pool has been depleted.</em>
+<a name="165" href="#165">165</a> <em class="jxr_javadoccomment">   * &lt;p&gt;</em>
+<a name="166" href="#166">166</a> <em class="jxr_javadoccomment">   * This method may throw a PoolException if the pool have trouble allocating</em>
+<a name="167" href="#167">167</a> <em class="jxr_javadoccomment">   * objects. That is, if its assigned Allocator throws exceptions from its</em>
+<a name="168" href="#168">168</a> <em class="jxr_javadoccomment">   * allocate method, or returns &lt;code&gt;null&lt;/code&gt;.</em>
+<a name="169" href="#169">169</a> <em class="jxr_javadoccomment">   * &lt;p&gt;</em>
+<a name="170" href="#170">170</a> <em class="jxr_javadoccomment">   * An {@link InterruptedException} will be thrown if the thread has its</em>
+<a name="171" href="#171">171</a> <em class="jxr_javadoccomment">   * interrupted flag set upon entry to this method, or is interrupted while</em>
+<a name="172" href="#172">172</a> <em class="jxr_javadoccomment">   * waiting. The interrupted flag on the thread will be cleared after</em>
+<a name="173" href="#173">173</a> <em class="jxr_javadoccomment">   * this, as per the general contract of interruptible methods.</em>
+<a name="174" href="#174">174</a> <em class="jxr_javadoccomment">   * &lt;p&gt;</em>
+<a name="175" href="#175">175</a> <em class="jxr_javadoccomment">   * Memory effects:</em>
+<a name="176" href="#176">176</a> <em class="jxr_javadoccomment">   * &lt;ul&gt;</em>
+<a name="177" href="#177">177</a> <em class="jxr_javadoccomment">   * &lt;li&gt;The {@link Poolable#release() release} of an object happens-before</em>
+<a name="178" href="#178">178</a> <em class="jxr_javadoccomment">   * any subsequent claim or {@link Allocator#deallocate(Poolable)</em>
+<a name="179" href="#179">179</a> <em class="jxr_javadoccomment">   * deallocation} of that object, and,</em>
+<a name="180" href="#180">180</a> <em class="jxr_javadoccomment">   * &lt;li&gt;The {@link Allocator#allocate(Slot) allocation} of an object</em>
+<a name="181" href="#181">181</a> <em class="jxr_javadoccomment">   * happens-before any claim of that object.</em>
+<a name="182" href="#182">182</a> <em class="jxr_javadoccomment">   * &lt;/ul&gt;</em>
+<a name="183" href="#183">183</a> <em class="jxr_javadoccomment">   * @param timeout The value of the maximum permitted time-slice to wait for</em>
+<a name="184" href="#184">184</a> <em class="jxr_javadoccomment">   * an object to become available. A value of zero or less means that the call</em>
+<a name="185" href="#185">185</a> <em class="jxr_javadoccomment">   * will do no waiting.</em>
+<a name="186" href="#186">186</a> <em class="jxr_javadoccomment">   * @param unit The unit of the timeout parameter. Must not be</em>
+<a name="187" href="#187">187</a> <em class="jxr_javadoccomment">   * &lt;code&gt;null&lt;/code&gt;.</em>
+<a name="188" href="#188">188</a> <em class="jxr_javadoccomment">   * @return An object of the Poolable subtype T to which the exclusive rights</em>
+<a name="189" href="#189">189</a> <em class="jxr_javadoccomment">   * have been claimed, or &lt;code&gt;null&lt;/code&gt; if the timeout period elapsed</em>
+<a name="190" href="#190">190</a> <em class="jxr_javadoccomment">   * before an object became available.</em>
+<a name="191" href="#191">191</a> <em class="jxr_javadoccomment">   * @throws PoolException If an object allocation failed because the Allocator</em>
+<a name="192" href="#192">192</a> <em class="jxr_javadoccomment">   * threw an exception from its allocate method, or returned</em>
+<a name="193" href="#193">193</a> <em class="jxr_javadoccomment">   * &lt;code&gt;null&lt;/code&gt;.</em>
+<a name="194" href="#194">194</a> <em class="jxr_javadoccomment">   * @throws InterruptedException if the current thread is</em>
+<a name="195" href="#195">195</a> <em class="jxr_javadoccomment">   * {@link Thread#interrupt() interrupted} upon entry, or becomes interrupted</em>
+<a name="196" href="#196">196</a> <em class="jxr_javadoccomment">   * while waiting.</em>
+<a name="197" href="#197">197</a> <em class="jxr_javadoccomment">   * @throws IllegalArgumentException if the &lt;code&gt;unit&lt;code&gt; argument is</em>
+<a name="198" href="#198">198</a> <em class="jxr_javadoccomment">   * &lt;code&gt;null&lt;/code&gt;.</em>
+<a name="199" href="#199">199</a> <em class="jxr_javadoccomment">   */</em>
+<a name="200" href="#200">200</a>   T claim(<strong class="jxr_keyword">long</strong> timeout, TimeUnit unit) <strong class="jxr_keyword">throws</strong> PoolException, InterruptedException;
+<a name="201" href="#201">201</a> }
 </pre>
 <hr/><div id="footer">This page was automatically generated by <a href="http://maven.apache.org/">Maven</a></div></body>
 </html>
