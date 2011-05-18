@@ -108,7 +108,6 @@ public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
 
   public Completion shutdown() {
     shutdown = true;
-    live.offer(KILL_PILL);
     allocThread.interrupt();
     return new QPoolShutdownCompletion(allocThread);
   }
