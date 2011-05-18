@@ -3,4 +3,5 @@
 .settings
 release.properties
 target
+*.swp
 
