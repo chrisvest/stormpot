@@ -1360,6 +1360,28 @@ public class PoolTest {
     // must complete before the test timeout:
     shutdown(pool).await();
   }
+  
+  /**
+   * Calling shutdown on a pool while being interrupted must still start the
+   * shut-down procedure.
+   * We test for this by initiating the shut-down procedure on a pool while
+   * being interrupted. Then we clear our interrupted flag and await the
+   * completion of the shut-down procedure. The procedure must complete within
+   * the test timeout. If it does not, then that is taken as evidence that
+   * the procedure did NOT start, and so the test fails.
+   * @param fixture
+   * @throws InterruptedException
+   */
+  @Test(timeout = 300)
+  @Theory public void
+  mustBeAbleToShutDownEvenIfInterrupted(PoolFixture fixture)
+  throws InterruptedException {
+    Pool pool = fixture.initPool(config);
+    Thread.currentThread().interrupt();
+    Completion completion = shutdown(pool);
+    Thread.interrupted(); // clear interrupted flag
+    completion.await(); // must complete before test timeout
+  }
   // TODO test for resilience against spurious wake-ups?
   
   // NOTE: When adding, removing or modifying tests, also remember to update
