@@ -6,6 +6,7 @@
   <title>Stormpot - Object pooling for Java</title>
 
   <style type="text/css">
+    html { -webkit-text-size-adjust: none; } /* no odd font-size in mobile safari */
     body {
       margin: 1.0em 0 0 1.0em;
       margin-left: 0px;
@@ -22,6 +23,7 @@
       -webkit-box-shadow: 0 0 25px #333;
       box-shadow: 0 0 25px #333;
       background:#8dca16;
+      background-image: -o-linear-gradient(#8dca16, #65b010);
       filter:progid:DXImageTransform.Microsoft.gradient(
         GradientType=0, startColorstr='#8dca16', endColorstr='#65b010');
       background:-webkit-gradient(linear, left top, left bottom, from(#8dca16), to(#65b010));
@@ -40,6 +42,7 @@
     .footer { text-align:center; padding-top:30px; font-style: italic; }
     table { border: none; width: 100%; }
     pre span { color: #65b010; }
+    pre span.comment { color: gray; }
     td { vertical-align: top; width: 50%; }
   </style>
 </head>
@@ -68,7 +71,7 @@
             The library is distributed under the
             <a href="http://www.apache.org/licenses/LICENSE-2.0.html">Apache 2.0 license</a>.
             You can get the <a href="https://github.com/chrisvest/stormpot">source</a>,
-            read the <a href="http://chrisvest.github.com/stormpot/site/apidocs/">documentation</a>
+            read the <a href="site/apidocs/index.html">documentation</a>
             and report <a href="https://github.com/chrisvest/stormpot/issues">issues</a>.
           </p>
         </td>
@@ -87,12 +90,75 @@
     <h2>Why choose Stormpot?</h2>
     <p>
       &hellip; over, say, <a href="http://commons.apache.org/pool/">Commons-Pool</a>?
-      Good question!
+      Good question! Both libraries are released under the Apache 2.0 license,
+      both have thorough documentation, both have high test coverage (Stormpot have
+      <a href="site/cobertura/index.html">100%</a>) and both depend on nothing
+      but Java itself.
     </p>
     <p>
-      [I'll finish this part, and include a short tutorial, once the artifacts
-      become available in Maven Central.]
+      There are differences, though. Stormpot has an invasive but small API,
+      whereas Commons-Pool has a richer and less intrusive API. The different
+      slants in their API design comes from differring focus. Stormpot is
+      designed for performance and a unified API for different implemenations.
+      This means that those who use Stormpot can switch between implementations
+      without worrying about compatibility. Commons-Pool, on the other hand,
+      have different APIs for different kinds of pools, so changing pool
+      implementation might mean also having to change the code that uses the
+      pool.
     </p>
+    <h2>Getting started</h2>
+    <p>
+      You have decided to use Stormpot for something and want to get started.
+      In this section, I will show you the minimum amount of code it takes, to
+      get started with Stormpot. I mentioned above that Stormpot has an
+      invasive API. This  means that there are things you need to do to your
+      code before you can use it. Specifically, there are two interfaces that
+      you need to implement:
+      <a href="site/apidocs/stormpot/Poolable.html">Poolable</a>, for the
+      objects that you want pooled, and
+      <a href="site/apidocs/stormpot/Allocator.html">Allocator</a>, which is a
+      kind of factory for your Poolables. Their minimum correct
+      implementations look like this:
+    </p>
+    <table>
+      <tr>
+        <td><pre><span class="comment">// MyPoolable.java - minimum Poolable implementation</span>
+<span>import</span> stormpot.Poolable;
+<span>import</span> stormpot.Slot;
+
+<span>public class</span> MyPoolable <span>implements</span> Poolable <span>{
+  private final</span> Slot slot;
+  <span>public</span> MyPoolable(Slot slot) <span>{
+    this</span>.slot = slot;
+  <span>}
+
+  public void</span> release() <span>{</span>
+    slot.release(<span>this</span>);
+  <span>}
+}</span></pre></td>
+        <td><pre><span class="comment">// MyAllocator.java - minimum Allocator implementation</span>
+<span>import</span> stormpot.Allocator;
+<span>import</span> stormpot.Slot;
+
+<span>public class</span> MyAllocator <span>implements</span> Allocator&lt;MyPoolable&gt; <span>{
+  public</span> MyPoolable allocate(Slot slot) <span>throws</span> Exception <span>{
+    return new</span> MyPoolable(slot);
+  <span>}
+  
+  public void</span> deallocate(MyPoolable poolable) <span>throws</span> Exception <span>{</span>
+    <span class="comment">// Nothing to do here
+    // But it's a perfect place to close sockets, files, etc.</span>
+  <span>}
+}</span></pre></td>
+      </tr>
+    </table>
+    <p>
+      And with that, it is just a simple matter of configuring and wiring
+      up a <a href="site/apidocs/stormpot/Pool.html">Pool</a> implementation:
+    </p>
+    <pre>MyAllocator allocator = <span>new</span> MyAllocator();
+Config&lt;MyPoolable&gt; config = <span>new</span> Config&lt;MyPoolable&gt;().setAllocator(allocator);
+Pool pool = <span>new</span> QueuePool(config);</pre>
   </div>
 
   <div>
