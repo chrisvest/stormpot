@@ -28,4 +28,30 @@ public class Unpark extends SimpleBenchmark {
     }
     return result;
   }
+  
+  public int timeUnparkPark(int reps) {
+    int result = 83742;
+    for (int i = 0; i < reps; i++) {
+      LockSupport.unpark(Thread.currentThread());
+      LockSupport.park();
+      result ^= result + i;
+    }
+    return result;
+  }
+  
+  public int timeObjectAllocation(int reps) {
+    int result = 83742;
+    for (int i = 0; i < reps; i++) {
+      result ^= System.identityHashCode(new Object()) + i;
+    }
+    return result;
+  }
+  
+  public int timeSystemIdentityHashCode(int reps) {
+    int result = 83742;
+    for (int i = 0; i < reps; i++) {
+      result ^= System.identityHashCode(Unpark.class) + i;
+    }
+    return result;
+  }
 }
