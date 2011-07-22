@@ -51,8 +51,8 @@ import java.util.concurrent.TimeUnit;
 public class Config<T extends Poolable> {
 
   private int size = 10;
-  private long ttl = 10;
-  private TimeUnit ttlUnit = TimeUnit.MINUTES;
+  private long ttl = 600; // 10 minutes
+  private TimeUnit ttlUnit = TimeUnit.SECONDS;
   private Allocator allocator;
 
   /**
