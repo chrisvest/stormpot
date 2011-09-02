@@ -58,6 +58,7 @@
         <configuration>
           <downloadSources>true</downloadSources>
           <downloadJavadocs>true</downloadJavadocs>
+          <useProjectReferences>false</useProjectReferences>
         </configuration>
       </plugin>
       <plugin>
