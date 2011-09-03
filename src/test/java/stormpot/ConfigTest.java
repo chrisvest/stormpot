@@ -40,7 +40,7 @@ public class ConfigTest {
   @Test public void
   ttlMustBeSettable() {
     long ttl = 123;
-    TimeUnit unit = TimeUnit.DAYS;
+    TimeUnit unit = TimeUnit.HOURS;
     config.setTTL(ttl, unit);
     assertTrue(config.getTTL() == ttl && config.getTTLUnit() == unit);
   }
@@ -57,7 +57,7 @@ public class ConfigTest {
     Allocator allocator = new CountingAllocator();
     int size = 987;
     long ttl = 123;
-    TimeUnit unit = TimeUnit.DAYS;
+    TimeUnit unit = TimeUnit.HOURS;
     config.setAllocator(allocator);
     config.setSize(size);
     config.setTTL(ttl, unit);
