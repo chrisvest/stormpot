@@ -1,0 +1,10 @@
+
+#@using = jpf-awt
+@using = jpf-shell
+target = stormpot.JpfRunner
+
+classpath=/Users/cvh/.m2/repository/junit/junit/4.8.2/junit-4.8.2.jar;/Users/cvh/.m2/repository/org/hamcrest/hamcrest-all/1.1/hamcrest-all-1.1.jar;${stormpot.classpath};${stormpot.test_classpath};${classpath}
+
+#shell = .shell.basicshell.BasicShell
+listener=gov.nasa.jpf.listener.PreciseRaceDetector 
+report.console.property_violation=error,trace
