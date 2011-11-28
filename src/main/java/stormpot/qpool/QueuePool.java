@@ -77,8 +77,9 @@ public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
       throw new IllegalStateException("pool is shut down");
     }
     if (slot.poison != null) {
+      Exception poison = slot.poison;
       dead.offer(slot);
-      throw new PoolException("allocation failed", slot.poison);
+      throw new PoolException("allocation failed", poison);
     }
     if (slot.expired()) {
       dead.offer(slot);
