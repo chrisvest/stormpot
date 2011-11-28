@@ -360,7 +360,7 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test/*(timeout = 300)*/
+  @Test(timeout = 300)
   @Theory public void
   mustReplaceExpiredPoolables(PoolFixture fixture) throws Exception {
     Pool pool = fixture.initPool(
@@ -389,7 +389,7 @@ public class PoolTest {
    * @throws Exception
    * @see Config#setSize(int)
    */
-  @Test/*(timeout = 300)*/
+  @Test(timeout = 300)
   @Theory public void
   mustDeallocateExpiredPoolablesAndStayWithinSizeLimit(PoolFixture fixture)
   throws Exception {
