@@ -1,5 +1,5 @@
 
-#@using = jpf-awt
+@using = jpf-awt
 @using = jpf-shell
 target = stormpot.JpfRunner
 
