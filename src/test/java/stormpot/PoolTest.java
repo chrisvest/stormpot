@@ -707,18 +707,24 @@ public class PoolTest {
    * @throws Exception
    * @see PoolException
    */
-  @Test(timeout = 300, expected = PoolException.class)
+  @Test(timeout = 300)
   @Theory public void
   mustPropagateExceptionsFromAllocateThroughClaim(PoolFixture fixture)
   throws Exception {
+    final RuntimeException expectedEception = new RuntimeException("boo");
     Allocator allocator = new CountingAllocator() {
       @Override
       public Poolable allocate(Slot slot) {
-        throw new RuntimeException("boo");
+        throw expectedEception;
       }
     };
     Pool pool = fixture.initPool(config.setAllocator(allocator));
-    pool.claim();
+    try {
+      pool.claim();
+      fail("expected claim to throw");
+    } catch (PoolException poolException) {
+      assertThat(poolException.getCause(), is((Throwable) expectedEception));
+    }
   }
 
   /**
@@ -729,18 +735,24 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300, expected = PoolException.class)
+  @Test(timeout = 300)
   @Theory public void
   mustPropagateExceptionsFromAllocateThroughClaimWithTimeout(
       PoolFixture fixture) throws Exception {
+    final RuntimeException expectedEception = new RuntimeException("boo");
     Allocator allocator = new CountingAllocator() {
       @Override
       public Poolable allocate(Slot slot) {
-        throw new RuntimeException("boo");
+        throw expectedEception;
       }
     };
     Pool pool = fixture.initPool(config.setAllocator(allocator));
-    pool.claim(timeout, unit);
+    try {
+      pool.claim(timeout, unit);
+      fail("expected claim-with-timeout to throw");
+    } catch (PoolException poolException) {
+      assertThat(poolException.getCause(), is((Throwable) expectedEception));
+    }
   }
   
   /**
