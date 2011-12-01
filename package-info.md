@@ -246,7 +246,7 @@ as an interface, and the return value of the function can be passed back
 through the method:
 
     ::: java
-        public &lt;T&gt; T doWithDao(WithMyDaoDo&lt;T&gt; action)
+        public <T> T doWithDao(WithMyDaoDo<T> action)
         throws InterruptedException {
           MyDao dao = pool.claim();
           try {
@@ -257,7 +257,7 @@ through the method:
         }
       }
       
-      static interface WithMyDaoDo&lt;T&gt; {
+      static interface WithMyDaoDo<T> {
         public T doWithDao(MyDao dao);
       }
 
