@@ -118,7 +118,7 @@
               <configuration>
                 <linkXref>true</linkXref>
                 <sourceEncoding>utf-8</sourceEncoding>
-                <targetJdk>1.5</targetJdk>
+                <targetJdk>1.6</targetJdk>
               </configuration>
             </plugin>
           </reportPlugins>
