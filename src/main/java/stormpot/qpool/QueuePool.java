@@ -38,12 +38,12 @@ import stormpot.Poolable;
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  * @param <T> The type of {@link Poolable} managed by this pool.
  */
-@SuppressWarnings("unchecked")
 public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
   /**
    * Special slot used to signal that the pool has been shut down.
    */
   static final QSlot<?> POISON_PILL = new QSlot<Poolable>(null);
+  
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;
   private final QAllocThread<T> allocThread;
@@ -67,14 +67,13 @@ public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
     QSlot<T> slot;
     do {
       slot = live.take();
-    } while (invalid(slot));
+      checkForPoison(slot);
+    } while (isInvalid(slot));
     return slot.obj;
   }
 
-  private boolean invalid(QSlot<T> slot) {
-    if (slot == null) {
-      return false;
-    }
+  @SuppressWarnings("unchecked")
+  private void checkForPoison(QSlot<T> slot) {
     if (slot == POISON_PILL) {
       live.offer((QSlot<T>) POISON_PILL);
       throw new IllegalStateException("pool is shut down");
@@ -84,14 +83,19 @@ public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
       dead.offer(slot);
       throw new PoolException("allocation failed", poison);
     }
-    if (slot.expired()) {
-      dead.offer(slot);
-      return true;
-    }
     if (shutdown) {
       dead.offer(slot);
       throw new IllegalStateException("pool is shut down");
     }
+  }
+
+  private boolean isInvalid(QSlot<T> slot) {
+    if (slot.expired()) {
+      // it's invalid - into the dead queue with it and continue looping
+      dead.offer(slot);
+      return true;
+    }
+    // it's valid - claim it and stop looping
     slot.claim();
     return false;
   }
@@ -106,8 +110,13 @@ public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
     do {
       long timeoutLeft = deadline - System.currentTimeMillis();
       slot = live.poll(timeoutLeft, TimeUnit.MILLISECONDS);
-    } while (invalid(slot));
-    return slot == null? null : slot.obj;
+      if (slot == null) {
+        // we timed out while taking from the queue - just return null
+        return null;
+      }
+      checkForPoison(slot);
+    } while (isInvalid(slot));
+    return slot.obj;
   }
 
   public Completion shutdown() {
