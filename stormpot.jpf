@@ -8,3 +8,10 @@ classpath=/Users/cvh/.m2/repository/junit/junit/4.8.2/junit-4.8.2.jar;/Users/cvh
 #shell = .shell.basicshell.BasicShell
 listener=gov.nasa.jpf.listener.PreciseRaceDetector 
 report.console.property_violation=error,trace
+
+# jpf-symbc part:
+#+vm.insn_factory.class=gov.nasa.jpf.symbc.SymbolicInstructionFactory
+#+jpf.listener=gov.nasa.jpf.symbc.SymbolicListener
+#+symbolic.method=claim()
+#+vm.peer.packages=gov.nasa.jpf.symbc,gov.nasa.jpf.jvm
+#+symbolic.dp=iasolver
