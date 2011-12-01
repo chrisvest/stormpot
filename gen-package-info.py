@@ -10,6 +10,8 @@ markdown_options = {
 }
 
 template = """
+// GENERATED FILE!
+// Look at package-info.md in project root, and gen-package-info.py
 /**
 %s
 */
