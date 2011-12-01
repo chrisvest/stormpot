@@ -18,11 +18,11 @@ package stormpot.basicpool;
 import stormpot.Config;
 import stormpot.Pool;
 import stormpot.PoolFixture;
+import stormpot.Poolable;
 
-@SuppressWarnings("unchecked")
 public class BasicPoolFixture implements PoolFixture {
-  public Pool initPool(Config config) {
-    BasicPool pool = new BasicPool(config);
+  public <T extends Poolable> Pool<T> initPool(Config<T> config) {
+    BasicPool<T> pool = new BasicPool<T>(config);
     return pool;
   }
 }

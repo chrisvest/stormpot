@@ -20,9 +20,9 @@ import java.util.concurrent.TimeUnit;
 import stormpot.Completion;
 
 final class QPoolShutdownCompletion implements Completion {
-  private final QAllocThread allocThread;
+  private final QAllocThread<?> allocThread;
   
-  public QPoolShutdownCompletion(QAllocThread allocThread) {
+  public QPoolShutdownCompletion(QAllocThread<?> allocThread) {
     this.allocThread = allocThread;
   }
   

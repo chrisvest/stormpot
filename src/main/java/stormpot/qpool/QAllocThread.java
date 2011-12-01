@@ -58,13 +58,13 @@ class QAllocThread<T extends Poolable> extends Thread {
     try {
       for (;;) {
         if (size < targetSize) {
-          QSlot slot = new QSlot(live);
+          QSlot<T> slot = new QSlot<T>(live);
           alloc(slot);
           if (size == targetSize) {
             deadPollTimeout = 50;
           }
         }
-        QSlot slot = dead.poll(deadPollTimeout, TimeUnit.MILLISECONDS);
+        QSlot<T> slot = dead.poll(deadPollTimeout, TimeUnit.MILLISECONDS);
         if (slot != null) {
           dealloc(slot);
           alloc(slot);
@@ -73,7 +73,7 @@ class QAllocThread<T extends Poolable> extends Thread {
     } catch (InterruptedException _) {
       // this means we've been shut down.
       // let the kill-pill enter the system
-      live.offer(QueuePool.KILL_PILL);
+      live.offer((QSlot<T>) QueuePool.POISON_PILL);
     }
   }
 
@@ -83,11 +83,11 @@ class QAllocThread<T extends Poolable> extends Thread {
       if (slot == null) {
         slot = live.poll();
       }
-      if (slot == QueuePool.KILL_PILL) {
+      if (slot == QueuePool.POISON_PILL) {
         // FindBugs complains that we ignore a possible exceptional return
         // value from offer(). However, since the queues are unbounded, an
         // offer will never fail.
-        live.offer(QueuePool.KILL_PILL);
+        live.offer((QSlot<T>) QueuePool.POISON_PILL);
         slot = null;
       }
       if (slot == null) {
@@ -98,7 +98,7 @@ class QAllocThread<T extends Poolable> extends Thread {
     }
   }
 
-  private void alloc(QSlot slot) {
+  private void alloc(QSlot<T> slot) {
     try {
       slot.obj = allocator.allocate(slot);
       if (slot.obj == null) {

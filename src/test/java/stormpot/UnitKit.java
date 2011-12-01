@@ -28,13 +28,13 @@ import java.util.concurrent.locks.LockSupport;
 
 public class UnitKit {
 
-  public static Thread fork(Callable procedure) {
+  public static Thread fork(Callable<?> procedure) {
     Thread thread = new Thread(asRunnable(procedure));
     thread.start();
     return thread;
   }
 
-  public static Runnable asRunnable(final Callable procedure) {
+  public static Runnable asRunnable(final Callable<?> procedure) {
     return new Runnable() {
       public void run() {
         try {
@@ -46,9 +46,9 @@ public class UnitKit {
     };
   }
 
-  public static Callable<Poolable> $claim(final Pool pool) {
-    return new Callable<Poolable>() {
-      public Poolable call() {
+  public static <T extends Poolable> Callable<T> $claim(final Pool<T> pool) {
+    return new Callable<T>() {
+      public T call() {
         try {
           return pool.claim();
         } catch (RuntimeException e) {
@@ -60,10 +60,10 @@ public class UnitKit {
     };
   }
 
-  public static Callable<Poolable> $claim(
-      final Pool pool, final long timeout, final TimeUnit unit) {
-    return new Callable<Poolable>() {
-      public Poolable call() {
+  public static <T extends Poolable> Callable<T> $claim(
+      final Pool<T> pool, final long timeout, final TimeUnit unit) {
+    return new Callable<T>() {
+      public T call() {
         try {
           return pool.claim(timeout, unit);
         } catch (RuntimeException e) {
@@ -109,10 +109,10 @@ public class UnitKit {
     };
   }
   
-  public static Callable $interruptUponState(
+  public static Callable<Void> $interruptUponState(
       final Thread thread, final Thread.State state) {
-    return new Callable() {
-      public Object call() throws Exception {
+    return new Callable<Void>() {
+      public Void call() throws Exception {
         waitForThreadState(thread, state);
         thread.interrupt();
         return null;
@@ -120,12 +120,12 @@ public class UnitKit {
     };
   }
   
-  public static Callable $delayedReleases(
+  public static Callable<Void> $delayedReleases(
       final Poolable[] objs, long delay, TimeUnit delayUnit) {
     final long deadline =
       System.currentTimeMillis() + delayUnit.toMillis(delay);
-    return new Callable() {
-      public Object call() throws Exception {
+    return new Callable<Void>() {
+      public Void call() throws Exception {
         for (Poolable obj : objs) {
           LockSupport.parkUntil(deadline);
           obj.release();
@@ -152,9 +152,9 @@ public class UnitKit {
     }
   }
 
-  public static Completion shutdown(Pool pool) {
+  public static Completion shutdown(Pool<?> pool) {
     assumeThat(pool, instanceOf(LifecycledPool.class));
-    return ((LifecycledPool) pool).shutdown();
+    return ((LifecycledPool<?>) pool).shutdown();
   }
 
   public static void spinwait(long ms) {

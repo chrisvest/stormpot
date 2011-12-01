@@ -40,22 +40,25 @@ import stormpot.Poolable;
  */
 @SuppressWarnings("unchecked")
 public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
-  static final QSlot KILL_PILL = new QSlot(null);
+  /**
+   * Special slot used to signal that the pool has been shut down.
+   */
+  static final QSlot<?> POISON_PILL = new QSlot<Poolable>(null);
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;
-  private final QAllocThread allocThread;
+  private final QAllocThread<T> allocThread;
   private volatile boolean shutdown = false;
   
   /**
    * Construct a new QueuePool instance based on the given {@link Config}.
    * @param config The pool configuration to use.
    */
-  public QueuePool(Config config) {
+  public QueuePool(Config<T> config) {
     live = new LinkedBlockingQueue<QSlot<T>>();
     dead = new LinkedBlockingQueue<QSlot<T>>();
     synchronized (config) {
       config.validate();
-      allocThread = new QAllocThread(live, dead, config);
+      allocThread = new QAllocThread<T>(live, dead, config);
     }
     allocThread.start();
   }
@@ -72,8 +75,8 @@ public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
     if (slot == null) {
       return false;
     }
-    if (slot == KILL_PILL) {
-      live.offer(KILL_PILL);
+    if (slot == POISON_PILL) {
+      live.offer((QSlot<T>) POISON_PILL);
       throw new IllegalStateException("pool is shut down");
     }
     if (slot.poison != null) {

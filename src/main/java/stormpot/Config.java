@@ -53,7 +53,7 @@ public class Config<T extends Poolable> {
   private int size = 10;
   private long ttl = 600; // 10 minutes
   private TimeUnit ttlUnit = TimeUnit.SECONDS;
-  private Allocator allocator;
+  private Allocator<?> allocator;
 
   /**
    * Set the size of the pools we want to configure them with. Pools are
@@ -156,19 +156,7 @@ public class Config<T extends Poolable> {
    * @return The configured Allocator instance, if any.
    */
   public synchronized Allocator<T> getAllocator() {
-    return allocator;
-  }
-
-  /**
-   * Configure the Config instance given as a parameter, with all the values
-   * of this Config.
-   * @param config The Config instance whose allocator, size and TTL we want
-   * to configure such that they match our configuration.
-   */
-  public synchronized void setFieldsOn(Config config) {
-    config.setAllocator(allocator);
-    config.setSize(size);
-    config.setTTL(ttl, ttlUnit);
+    return (Allocator<T>) allocator;
   }
 
   /**

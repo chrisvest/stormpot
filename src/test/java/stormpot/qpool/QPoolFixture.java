@@ -18,11 +18,10 @@ package stormpot.qpool;
 import stormpot.Config;
 import stormpot.Pool;
 import stormpot.PoolFixture;
+import stormpot.Poolable;
 
 public class QPoolFixture implements PoolFixture {
-
-  public Pool initPool(Config config) {
-    return new QueuePool(config);
+  public <T extends Poolable> Pool<T> initPool(Config<T> config) {
+    return new QueuePool<T>(config);
   }
-
 }

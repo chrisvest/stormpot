@@ -16,5 +16,5 @@
 package stormpot;
 
 public interface PoolFixture {
-  Pool initPool(Config config);
+  <T extends Poolable> Pool<T> initPool(Config<T> config);
 }

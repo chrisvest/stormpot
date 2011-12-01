@@ -20,7 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class CountingAllocator implements Allocator {
+public class CountingAllocator implements Allocator<GenericPoolable> {
   private final AtomicInteger allocations = new AtomicInteger();
   private final AtomicInteger deallocations = new AtomicInteger();
   private final List<Poolable> allocated =
@@ -28,14 +28,14 @@ public class CountingAllocator implements Allocator {
   private final List<Poolable> deallocated =
     Collections.synchronizedList(new ArrayList<Poolable>());
 
-  public Poolable allocate(Slot slot) throws Exception {
+  public GenericPoolable allocate(Slot slot) throws Exception {
     allocations.incrementAndGet();
     GenericPoolable obj = new GenericPoolable(slot);
     allocated.add(obj);
     return obj;
   }
 
-  public void deallocate(Poolable poolable) throws Exception {
+  public void deallocate(GenericPoolable poolable) throws Exception {
     deallocations.incrementAndGet();
     deallocated.add(poolable);
   }

@@ -25,29 +25,30 @@ import org.junit.Test;
 
 import stormpot.Config;
 import stormpot.CountingAllocator;
+import stormpot.GenericPoolable;
 import stormpot.Poolable;
 
 public class WhirlpoolTest {
-  Config config;
+  Config<GenericPoolable> config;
   
   @Before public void
   setUp() {
-    config = new Config().setAllocator(new CountingAllocator());
+    config = new Config<GenericPoolable>().setAllocator(new CountingAllocator());
   }
   
   @Test(timeout = 300) public void
   mustNotRemoveBlockedThreadsFromPublist() throws Exception {
     // Github Issue #14
-    Whirlpool pool = givenDelayedReleaseToContendedPool(1);
+    Whirlpool<GenericPoolable> pool = givenDelayedReleaseToContendedPool(1);
     // this must return before the test times out:
     pool.claim();
     pool.shutdown();
   }
 
-  private Whirlpool givenDelayedReleaseToContendedPool(
+  private Whirlpool<GenericPoolable> givenDelayedReleaseToContendedPool(
       long claimTrafficTimeoutMs) throws InterruptedException {
     config.setSize(1);
-    Whirlpool pool = new Whirlpool(config);
+    Whirlpool<GenericPoolable> pool = new Whirlpool<GenericPoolable>(config);
     Poolable[] objs = new Poolable[] {pool.claim()};
     Thread thread = fork($claimTrafficGenerator(pool, claimTrafficTimeoutMs));
     fork($delayedReleases(objs, 20, TimeUnit.MILLISECONDS));
@@ -55,10 +56,10 @@ public class WhirlpoolTest {
     return pool;
   }
 
-  private Callable $claimTrafficGenerator(
-      final Whirlpool pool, final long timeout) {
-    return new Callable() {
-      public Object call() throws Exception {
+  private Callable<Void> $claimTrafficGenerator(
+      final Whirlpool<GenericPoolable> pool, final long timeout) {
+    return new Callable<Void>() {
+      public Void call() throws Exception {
         try {
           for (;;) {
             // runs until interrupted
@@ -78,7 +79,7 @@ public class WhirlpoolTest {
   @Test(timeout = 300) public void
   blockedThreadsMustMakeProgressOverExpiredWaiters() throws Exception {
     // Github Issue #15
-    Whirlpool pool = givenDelayedReleaseToContendedPool(-10);
+    Whirlpool<GenericPoolable> pool = givenDelayedReleaseToContendedPool(-10);
     // this must return before the test times out:
     pool.claim(); // TODO dead-lock!
     pool.shutdown();

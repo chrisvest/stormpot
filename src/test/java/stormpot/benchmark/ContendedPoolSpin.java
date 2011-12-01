@@ -15,6 +15,7 @@
  */
 package stormpot.benchmark;
 
+import stormpot.GenericPoolable;
 import stormpot.Pool;
 import stormpot.Poolable;
 import stormpot.UnitKit;
@@ -62,8 +63,8 @@ public class ContendedPoolSpin extends PoolSpin {
   }
   
   public static class ContenderThread extends Thread {
-    private final Pool pool;
-    public ContenderThread(Pool pool) {
+    private final Pool<GenericPoolable> pool;
+    public ContenderThread(Pool<GenericPoolable> pool) {
       this.pool = pool;
     }
     

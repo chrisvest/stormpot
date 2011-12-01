@@ -18,12 +18,11 @@ package stormpot.whirlpool;
 import stormpot.Config;
 import stormpot.Pool;
 import stormpot.PoolFixture;
+import stormpot.Poolable;
 
 public class WhirlpoolFixture implements PoolFixture {
-
-  @SuppressWarnings("unchecked")
-  public Pool initPool(Config config) {
-    return new Whirlpool(config);
+  public <T extends Poolable> Pool<T> initPool(Config<T> config) {
+    return new Whirlpool<T>(config);
   }
 
 }

@@ -33,13 +33,12 @@ import stormpot.Slot;
 import com.google.caliper.Param;
 import com.google.caliper.SimpleBenchmark;
 
-@SuppressWarnings("unchecked")
 public class PoolSpin extends SimpleBenchmark {
   private final class SlowAllocator implements Allocator<GenericPoolable> {
-    private final List allocated =
-      Collections.synchronizedList(new ArrayList());
-    private final List deallocated =
-      Collections.synchronizedList(new ArrayList());
+    private final List<GenericPoolable> allocated =
+      Collections.synchronizedList(new ArrayList<GenericPoolable>());
+    private final List<GenericPoolable> deallocated =
+      Collections.synchronizedList(new ArrayList<GenericPoolable>());
     private final long workMs;
 
     public SlowAllocator(long workMs) {
@@ -69,7 +68,7 @@ public class PoolSpin extends SimpleBenchmark {
   
   @Override
   protected void setUp() throws Exception {
-    Config config = new Config();
+    Config<GenericPoolable> config = new Config<GenericPoolable>();
     config.setAllocator(new SlowAllocator(work));
     config.setSize(size);
     config.setTTL(ttl, TimeUnit.MILLISECONDS);
@@ -98,7 +97,7 @@ public class PoolSpin extends SimpleBenchmark {
   @Override
   protected void tearDown() throws Exception {
     if (pool instanceof LifecycledPool) {
-      LifecycledPool p = (LifecycledPool) pool;
+      LifecycledPool<GenericPoolable> p = (LifecycledPool<GenericPoolable>) pool;
       p.shutdown().await();
     }
   }

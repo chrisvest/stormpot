@@ -41,23 +41,23 @@ import stormpot.Slot;
  *
  * @param <T>
  */
-@SuppressWarnings("unchecked")
 public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
 
   private final Allocator<T> allocator;
-  private final Poolable[] pool;
-  private final BasicSlot[] slots;
+  private final T[] pool;
+  private final BasicSlot<T>[] slots;
   private final AtomicInteger count;
   private final Lock lock;
   private final Condition released;
   private final long ttlMillis;
   private boolean shutdown;
 
+  @SuppressWarnings("unchecked")
   public BasicPool(Config<T> config) {
     synchronized (config) {
       config.validate();
       int size = config.getSize();
-      this.pool = new Poolable[size];
+      this.pool = (T[]) new Poolable[size];
       this.slots = new BasicSlot[size];
       this.ttlMillis = config.getTTLUnit().toMillis(config.getTTL());
       this.allocator = config.getAllocator();
@@ -74,6 +74,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
     return doClaim(timeout, unit);
   }
   
+  @SuppressWarnings("unchecked")
   private T doClaim(long timeout, TimeUnit unit) throws InterruptedException {
     lock.lock();
     try {
@@ -101,14 +102,14 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
       if (shutdown) {
         throw new IllegalStateException("pool is shut down");
       }
-      Poolable obj = pool[index];
-      BasicSlot slot = slots[index];
+      T obj = pool[index];
+      BasicSlot<T> slot = slots[index];
       if (obj == null || slot.expired()) {
         try {
           slot = slot(index);
           if (withTimeout) {
             Object NULL = new Object();
-            AtomicReference ref = new AtomicReference(NULL);
+            AtomicReference<Object> ref = new AtomicReference<Object>(NULL);
             Thread alloc = alloc(ref, slot);
             alloc.join(maxWaitNanos / 1000000);
             Object value = ref.get();
@@ -119,7 +120,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
             if (value instanceof ExceptionHolder) {
               throw ((ExceptionHolder) value).exception;
             }
-            obj = (Poolable) value;
+            obj = (T) value;
           } else {
             obj = allocator.allocate(slot);
           }
@@ -144,7 +145,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
     Exception exception;
   }
 
-  private Thread alloc(final AtomicReference ref, final Slot slot) {
+  private Thread alloc(final AtomicReference<Object> ref, final Slot slot) {
     Runnable runnable  = new Runnable() {
       public void run() {
         try {
@@ -165,8 +166,8 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
     return doClaim(0, null);
   }
 
-  private BasicSlot slot(final int index) {
-    return new BasicSlot(index, this);
+  private BasicSlot<T> slot(final int index) {
+    return new BasicSlot<T>(index, this);
   }
 
   public Completion shutdown() {
@@ -192,13 +193,13 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
    * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
    *
    */
-  private final static class BasicSlot implements Slot {
+  private final static class BasicSlot<T extends Poolable> implements Slot {
     private final int index;
     private final long expires;
     private boolean claimed;
-    private final BasicPool bpool;
+    private final BasicPool<T> bpool;
 
-    private BasicSlot(int index, BasicPool bpool) {
+    private BasicSlot(int index, BasicPool<T> bpool) {
       this.index = index;
       this.bpool = bpool;
       this.expires = System.currentTimeMillis() + bpool.ttlMillis;
