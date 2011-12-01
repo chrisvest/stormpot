@@ -1,5 +1,20 @@
 Stormpot is a generic and thread-safe object pooling library.
 
+The object pools themselves implement the {@link stormpot.Pool} or the
+{@link stormpot.LifecycledPool} interfaces. The things you actually want to
+pool must all implement the {@link stormpot.Poolable} interface, and you must
+also provide an implementation of the {@link stormpot.Allocator} interface as
+a factory to create your pooled objects.
+
+*Why is it called "Stormpot"?*
+
+A pot is a container of things (like gold, for instance) that you can put stuff
+into and get stuff out of. The storm part refers to the proverbial storm in a
+glass of water or teacup (or temptest in a teapot, depending on where you are
+from) and is a reference to the size of the library and what it does. A storm
+is also a wind that moves really fast, and that is a reference to the goal of
+having a fast and scalable implementation.
+
 **Contents:**
 
 {toc}
@@ -14,20 +29,20 @@ these:
 
 * Stormpot has a slightly more invasive API.
 * Stormpot depends on Java5 or newer, whereas Commons-Pool needs at least
-Java 1.3
+  Java 1.3
 * Stormpot has a simpler API with fewer methods, whereas Commons-Pool has
-a much larger API surface.
+  a much larger API surface.
 * Stormpot pools are guaranteed to be thread-safe, whereas thread-safety
-in Commons-Pool is up to the individual implementations.
+  in Commons-Pool is up to the individual implementations.
 * Stormpot pools prefer to allocate objects in a "back-ground" thread,
-whereas Commons-Pool prefer that objects are explicitly added to the
-pools
+  whereas Commons-Pool prefer that objects are explicitly added to the
+  pools
 * Commons-Pool supports custom object invalidation mechanisms, whereas
-Stormpot invalidates objects based on their age.
+  Stormpot invalidates objects based on their age.
 * Commons-Pool has support for keyed pools, akin to caches, whereas
-Stormpot does not.
+  Stormpot does not.
 * The Stormpot API is slanted towards high through-put. The Commons-Pool
-API is slanted towards a rich feature set.
+  API is slanted towards a rich feature set.
 
 Apart from the differences, there are also a number of similarities:
 
@@ -39,16 +54,76 @@ Apart from the differences, there are also a number of similarities:
 
 So those are the things to keep in mind, when deciding on which pool to use.
 
+Simplest Possible Usage
+=======================
 
-User Guide
-==========
+Stormpot has an invasive API which means that there is a minimum of things your
+code needs to do to use it. However, the requirements are quite benign, as this
+section is all about showing you.
 
-As mentioned in the introduction, Stormpot has an invasive API. This means
+The objects that you store in a Stormpot pool needs to implement the
+{@link stormpot.Poolable} interface. The absolute minimum amount of code
+required for its implementation is this:
+
+    ::: java
+    // MyPoolable.java - minimum Poolable implementation
+    import stormpot.Poolable;
+    import stormpot.Slot;
+    
+    public class MyPoolable implements Poolable {
+      private final Slot slot;
+      public MyPoolable(Slot slot) {
+        this.slot = slot;
+      }
+    
+      public void release() {
+        slot.release(this);
+      }
+    }
+
+The object in essence just needs to keep its `Slot` instance around, and give
+itself as a parameter to the {@link stormpot.Slot#release(Poolable)} method.
+
+Apart from a class for the objects that we intend to pool, is the
+{@link stormpot.Allocator} implementation that is going to create these objects:
+
+    ::: java
+    // MyAllocator.java - minimum Allocator implementation
+    import stormpot.Allocator;
+    import stormpot.Slot;
+    
+    public class MyAllocator implements Allocator<MyPoolable> {
+      public MyPoolable allocate(Slot slot) throws Exception {
+        return new MyPoolable(slot);
+      }
+      
+      public void deallocate(MyPoolable poolable) throws Exception {
+        // Nothing to do here
+        // But it's a perfect place to close sockets, files, etc.
+      }
+    }
+
+That's it. Given a slot, create a `MyPoolable`. Or given a `MyPoolable`,
+deallocate it. And that is actually all the parts we need to start using
+Stormpot. All that is left is a little bit of configuration:
+
+    ::: java
+    MyAllocator allocator = new MyAllocator();
+    Config<MyPoolable> config = new Config<MyPoolable>().setAllocator(allocator);
+    Pool<MyPoolable> pool = new QueuePool<MyPoolable>(config);
+
+Create a `Config` object and set the allocator, then create a pool with
+the configuration and off we go!
+
+Tutorial
+========
+
+As mentioned in the sections above, Stormpot has an invasive API. This means
 that there are things you have to do, before you can make use of its pooling
 capabilities. In this section, we will take a look at these things, and see
-what it takes to implement pooling of some DAOs. This is just an
-example, but it will touch on all of the basics you need to know, in order
-to get started with Stormpot.
+what it takes to implement pooling of some DAOs. This is just an example, but
+it will touch on all of the basics you need to know, in order to get started
+with Stormpot.
 
 We are going to pool Data Access Objects, or DAOs, and each of these will
 work with a database {@link java.sql.Connection connection} that comes from
@@ -67,8 +142,8 @@ because we want our code to have a clean shut-down path;
 {@link stormpot.Allocator} and {@link stormpot.Poolable} are interfaces we
 are going to have to implement in our own code, and we will be needing the
 {@link stormpot.Slot} interface to do that; and finally we are going to
-need a concrete pool implementation from the library:
-{@link stormpot.qpool.QueuePool}.
+need a concrete pool implementation from the library: the
+{@link stormpot.qpool.QueuePool QueuePool}.
 
     ::: java
     import stormpot.Allocator;
@@ -79,15 +154,15 @@ need a concrete pool implementation from the library:
     import stormpot.qpool.QueuePool;
 
 The next thing we want to do, is to implement our pooled object - in this
-case our DAO class called MyDao. To keep everything in one file, we
+case our DAO class called `MyDao`. To keep everything in one file, we
 wrap the lot in a class:
 
     ::: java
     public class DaoPoolExample {
 
-Since MyDao is the class of the objects we want to pool, it must implement
-Poolable. To do this, it must have a field of type Slot, and a
-`release` method. As it is a DAO, we also give it a Connection
+Since `MyDao` is the class of the objects we want to pool, it must implement
+`Poolable`. To do this, it must have a field of type `Slot`, and a
+`release` method. As it is a DAO, we also give it a `Connection`
 field. We make these fields `final` and pass their values in
 through the constructor:
 
@@ -103,9 +178,9 @@ through the constructor:
 
 The contract of the {@link stormpot.Poolable#release()} method is to call
 the {@link stormpot.Slot#release(Poolable)} method on the slot object that
-the Poolable was created with. The Poolable that is taken as a parameter to
-release on Slot, is always the Poolable that is being released - the
-Poolable that was created for this very Slot. The Slot takes this parameter
+the `Poolable` was created with. The `Poolable` that is taken as a parameter to
+release on `Slot`, is always the `Poolable` that is being released - the
+`Poolable` that was created for this very `Slot`. The `Slot` takes this parameter
 to sanity-check that the correct objects are being released for the correct
 slots, and to prevent errors that might arise from mistakenly releasing an
 object two times in a row. The simplest possible implementation looks like
@@ -116,12 +191,12 @@ this:
           slot.release(this);
         }
 
-When release is called, the object returns to the pool. When the object is
+When `release()` is called, the object returns to the pool. When the object is
 no longer considered valid, because it got too old, then it is returned to
-the Allocator through the {@link stormpot.Allocator#deallocate(Poolable)}
-method. The DAO is holding on to a Connection, we would like to have this
-closed when the object is deallocated. So we add a method that the Allocator
-can call to close the Connection, when deallocating an object:
+the `Allocator` through the {@link stormpot.Allocator#deallocate(Poolable)}
+method. The DAO is holding on to a `Connection`, we would like to have this
+closed when the object is deallocated. So we add a method that the `Allocator`
+can call to close the `Connection`, when deallocating an object:
 
     ::: java
         private void close() throws SQLException {
@@ -145,27 +220,27 @@ example, we will only add one method, and make it a stub:
         }
       }
 
-And that concludes the MyDao class and the Poolable implementation. Next, we
+And that concludes the `MyDao` class and the `Poolable` implementation. Next, we
 are going to implement our {@link stormpot.Allocator}. The allocator has
 two responsibilities: First, it must provide the pool implementation with
-fresh instances of MyDao; and second, it must help the pool dispose of
-objects that are no longer needed. Recall that MyDao objects need two
-things: A Slot and a Connection. The Slot will be passed as a parameter to
-the {@link stormpot.Allocator#allocate(Slot)} method, and the Connection
-will come from a DataSource. We will pass the Allocator that DataSource as
+fresh instances of `MyDao`; and second, it must help the pool dispose of
+objects that are no longer needed. Recall that `MyDao` objects need two
+things: A `Slot` and a `Connection`. The `Slot` will be passed as a parameter to
+the {@link stormpot.Allocator#allocate(Slot)} method, and the `Connection`
+will come from a `DataSource`. We will pass the `Allocator` that `DataSource` as
 a parameter to its constructor, and put it in a `final` field:
 
     ::: java
-      static class MyDaoAllocator implements Allocator&lt;MyDao&gt; {
+      static class MyDaoAllocator implements Allocator<MyDao> {
         private final DataSource dataSource;
         
         public MyDaoAllocator(DataSource dataSource) {
           this.dataSource = dataSource;
         }
 
-The Allocator needs an allocate method. It is specified in the API that the
-Allocator might be used concurrently by multiple threads, and so must be
-thread-safe. However, the DataSource interface poses no such requirements on
+The `Allocator` needs an allocate method. It is specified in the API that the
+`Allocator` might be used concurrently by multiple threads, and so must be
+thread-safe. However, the `DataSource` interface poses no such requirements on
 its implementors, so we must protect access to it with a lock. Having done
 that, we can then safely create a new connection and allocate a new `MyDao`
 instance:
@@ -177,9 +252,9 @@ instance:
           }
         }
 
-Our Allocator also needs a {@link stormpot.Allocator#deallocate(Poolable)}
-method. This one is easy to implement. We just call the close method on our
-MyDaos, and that will close the underlying connection:
+Our `Allocator` also needs a {@link stormpot.Allocator#deallocate(Poolable)}
+method. This one is easy to implement. We just call the `close()` method on our
+`MyDaos`, and that will close the underlying connection:
 
     ::: java
         public void deallocate(MyDao poolable) throws Exception {
@@ -187,16 +262,16 @@ MyDaos, and that will close the underlying connection:
         }
       }
 
-And that concludes our Allocator implementation. We now have the parts
+And that concludes our `Allocator` implementation. We now have the parts
 needed to pool our `MyDaos` with Stormpot.
 
-We could now just create a Config, set the allocator, create a QueuePool
+We could now just create a `Config`, set the allocator, create a `QueuePool`
 with it and use that directly. However, it is generally a good idea to not
 be too dependent on external APIs, because it introduces coupling. So, to
 reduce this coupling, we are going to introduce an indirection. We are going
 to create a `MyDaoPool` class that encapsulates all the Stormpot specific
 logic, so it doesn't leak into the rest of our code. It will take a
-DataSource as a constructor parameter and build a pool from it, using the
+`DataSource` as a constructor parameter and build a pool from it, using the
 parts we have just built, but it will keep this pool hidden and expose
 another way of interacting with the `MyDao` objects.
 
@@ -204,19 +279,19 @@ But let us build that pool before we get to that:
 
     ::: java
       static class MyDaoPool {
-        private final LifecycledPool&lt;MyDao&gt; pool;
+        private final LifecycledPool<MyDao> pool;
         
         public MyDaoPool(DataSource dataSource) {
           MyDaoAllocator allocator = new MyDaoAllocator(dataSource);
-          Config&lt;MyDao&gt; config = new Config&lt;MyDao&gt;().setAllocator(allocator);
-          pool = new QueuePool&lt;MyDao&gt;(config);
+          Config<MyDao> config = new Config<MyDao>().setAllocator(allocator);
+          pool = new QueuePool<MyDao>(config);
         }
 
-The set-up is simple: The DataSource goes into our Allocator, the Allocator
-into a Config, and the Config into a Pool implementation - QueuePool in
-this case. The `pool` field is final because we don't need to
-change it once set, and because it has nice memory visibility semantics so
-we can safely share `MyDaoPool` instances among many threads.
+The set-up is simple: The `DataSource` goes into our `Allocator`, the `Allocator`
+into a `Config`, and the `Config` into a `Pool` implementation - `QueuePool` in
+this case. The `pool` field is `final` because we don't need to change it once
+set, and because it has nice memory visibility semantics so we can safely share
+`MyDaoPool` instances among many threads.
 
 We have decided to code against the `LifecycledPool` interface, because we
 want to support a clean shut-down in our code. When our program shuts down,
@@ -231,7 +306,7 @@ a close method to our `MyDaoPool` class, so we don't have to expose our
         }
 
 Next, we need a way to interact with the `MyDao` instances that are managed by
-the pool inside our `MyDaoPool`. We could simply delegate the claim methods,
+the pool inside our `MyDaoPool`. We could simply delegate the `claim()` methods,
 but then the release method from the `Poolable` interface would leak out from
 our abstraction. We would also like to make sure, once and for all, that
 release is properly called. If we leak objects out of the pool, we will no
@@ -247,7 +322,7 @@ through the method:
 
     ::: java
         public <T> T doWithDao(WithMyDaoDo<T> action)
-        throws InterruptedException {
+            throws InterruptedException {
           MyDao dao = pool.claim();
           try {
             return action.doWithDao(dao);
@@ -266,7 +341,7 @@ behind a nice API. Now it is just a small matter of using the code:
 
     ::: java
       public static void main(String[] args) throws InterruptedException {
-        DataSource dataSource = configureDataSource();
+        DataSource dataSource = configureDataSource(); // TODO implement
         MyDaoPool pool = new MyDaoPool(dataSource);
         String person = pool.doWithDao(new WithMyDaoDo<String>() {
           public String doWithDao(MyDao dao) {

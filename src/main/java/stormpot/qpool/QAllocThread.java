@@ -72,7 +72,7 @@ class QAllocThread<T extends Poolable> extends Thread {
       }
     } catch (InterruptedException _) {
       // this means we've been shut down.
-      // let the kill-pill enter the system
+      // let the poison-pill enter the system
       live.offer((QSlot<T>) QueuePool.POISON_PILL);
     }
   }
