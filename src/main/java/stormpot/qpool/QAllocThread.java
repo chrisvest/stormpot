@@ -24,8 +24,12 @@ import stormpot.Allocator;
 import stormpot.Config;
 import stormpot.Poolable;
 
-@SuppressWarnings("unchecked")
 class QAllocThread<T extends Poolable> extends Thread {
+  /**
+   * Special slot used to signal that the pool has been shut down.
+   */
+  final QSlot<T> POISON_PILL = new QSlot<T>(null);
+  
   private final CountDownLatch completionLatch;
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;
@@ -73,7 +77,7 @@ class QAllocThread<T extends Poolable> extends Thread {
     } catch (InterruptedException _) {
       // this means we've been shut down.
       // let the poison-pill enter the system
-      live.offer((QSlot<T>) QueuePool.POISON_PILL);
+      live.offer(POISON_PILL);
     }
   }
 
@@ -83,11 +87,11 @@ class QAllocThread<T extends Poolable> extends Thread {
       if (slot == null) {
         slot = live.poll();
       }
-      if (slot == QueuePool.POISON_PILL) {
+      if (slot == POISON_PILL) {
         // FindBugs complains that we ignore a possible exceptional return
         // value from offer(). However, since the queues are unbounded, an
         // offer will never fail.
-        live.offer((QSlot<T>) QueuePool.POISON_PILL);
+        live.offer(POISON_PILL);
         slot = null;
       }
       if (slot == null) {

@@ -39,11 +39,6 @@ import stormpot.Poolable;
  * @param <T> The type of {@link Poolable} managed by this pool.
  */
 public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
-  /**
-   * Special slot used to signal that the pool has been shut down.
-   */
-  static final QSlot<?> POISON_PILL = new QSlot<Poolable>(null);
-  
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;
   private final QAllocThread<T> allocThread;
@@ -72,10 +67,9 @@ public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
     return slot.obj;
   }
 
-  @SuppressWarnings("unchecked")
   private void checkForPoison(QSlot<T> slot) {
-    if (slot == POISON_PILL) {
-      live.offer((QSlot<T>) POISON_PILL);
+    if (slot == allocThread.POISON_PILL) {
+      live.offer(allocThread.POISON_PILL);
       throw new IllegalStateException("pool is shut down");
     }
     if (slot.poison != null) {
