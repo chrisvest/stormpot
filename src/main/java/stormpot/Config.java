@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit;
  * <p>
  * It is conceivable that some pool implementations will come with their own
  * sub-classes of Config, that allow greater control over the pools behaviour.
- * It is even permissible that these pool that these pool implementations may
+ * It is even permissible that these pool implementations may
  * deviate from the contract of the Pool interface. However, they are only
  * allowed to do so in a non-standard configuration. That is, any deviation
  * from the specified contracts must be explicitly enabled.
@@ -54,6 +54,14 @@ public class Config<T extends Poolable> {
   private long ttl = 600; // 10 minutes
   private TimeUnit ttlUnit = TimeUnit.SECONDS;
   private Allocator<?> allocator;
+  
+  /**
+   * Build a new empty Config object. Most settings have reasonable default
+   * values. However, no {@link Allocator} is configured by default, and one
+   * must make sure to set one.
+   */
+  public Config() {
+  }
 
   /**
    * Set the size of the pools we want to configure them with. Pools are
@@ -100,7 +108,7 @@ public class Config<T extends Poolable> {
    * A Pool will throw an {@link IllegalArgumentException} from their
    * constructor if this is not the case.
    * @param ttl The scalar value of the time-to-live value. Must be at least 1.
-   * @param unit The unit of the 'ttl' value. Cannot be null.
+   * @param unit The unit of the 'ttl' value. Cannot be <code>null</code>.
    * @return This Config instance.
    */
   public synchronized Config<T> setTTL(long ttl, TimeUnit unit) {
@@ -160,11 +168,11 @@ public class Config<T extends Poolable> {
   }
 
   /**
-   * Validate that the configuration is valid. This method is useful in the
+   * Check that the configuration is valid. This method is useful in the
    * Pool implementation constructors.
    * @throws IllegalArgumentException If the size is less than one, if the TTL
-   * value is less than one, if the TTL {@link TimeUnit} is null, or if the
-   * {@link Allocator} is null.
+   * value is less than one, if the TTL {@link TimeUnit} is <code>null</code>,
+   * or if the {@link Allocator} is <code>null</code>.
    */
   public synchronized void validate() throws IllegalArgumentException {
     if (size < 1) {

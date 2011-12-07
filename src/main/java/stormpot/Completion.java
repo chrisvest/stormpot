@@ -37,7 +37,7 @@ public interface Completion {
    * the method returns immediately.
    * <p>
    * If the current thread already has its interrupted status set upon entry
-   * to this method, or the thread is interrupted while waiting, then
+   * to this method, or the thread is interrupted while waiting, then an
    * {@link InterruptedException} is thrown and the current threads interrupted
    * status is cleared.
    * @throws InterruptedException if the current thread is interrupted while
@@ -54,7 +54,7 @@ public interface Completion {
    * the method immediately returns <code>true</code>.
    * <p>
    * If the current thread already has its interrupted status set upon entry
-   * to this method, or the thread is interrupted while waiting, then
+   * to this method, or the thread is interrupted while waiting, then an
    * {@link InterruptedException} is thrown and the current threads interrupted
    * status is cleared.
    * <p>
@@ -71,7 +71,7 @@ public interface Completion {
    * @throws InterruptedException if the current thread is interrupted while
    * waiting.
    * @throws IllegalArgumentException if the provided <code>unit</code>
-   * parameter is null.
+   * parameter is <code>null</code>.
    */
   boolean await(long timeout, TimeUnit unit) throws InterruptedException;
 }
