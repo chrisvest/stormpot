@@ -25,6 +25,11 @@ having a fast and scalable implementation.</p>
   <li><a href="#introduction">Introduction</a></li>
   <li><a href="#simplest-possible-usage">Simplest Possible Usage</a></li>
   <li><a href="#tutorial">Tutorial</a></li>
+  <li><a href="#memory-effects-and-threading">Memory Effects and Threading</a>
+  <ul>
+    <li><a href="#happens-before-edges"><em>Happens-Before</em> Edges</a></li>
+    <li><a href="#interruption">Interruption</a></li>
+  </ul></li>
 </ul>
 </p>
 
@@ -365,6 +370,43 @@ behind a nice API. Now it is just a small matter of using the code:</p>
 
 <p>The implementation of the <code>configureDataSource</code> method is left as an
 exercise for the reader.</p>
+
+<h1 id="memory-effects-and-threading">Memory Effects and Threading</h1>
+
+<p>When configured within the bounds of the {@link stormpot.Config standard configuration},
+the Stormpot poolig library will exhibit and guarantee a number of memory
+effects, that can be relied upon in concurrent and multi-threaded programs.</p>
+
+<h3 id="happens-before-edges"><em>Happens-Before</em> Edges</h3>
+
+<ol>
+<li>The {@link stormpot.Allocator#allocate(Slot) allocation} of an object
+<em>happens-before</em> any {@link Pool#claim() claim} of that object.</li>
+<li>The claim of an object <em>happens-before</em> any subsequent release of the object.</li>
+<li>The {@link Poolable#release() release} of an object <em>happens-before</em>
+any subsequent claim of that object.</li>
+<li>The release of an object <em>happens-before</em> the
+{@link Allocator#deallocate(Poolable) deallocation} of that object.</li>
+<li>For {@link LifecycledPool life-cycled pools}, the deallocation of all
+objects <em>happens-before</em> the
+{@link Completion#await() await of a shutdown completion} returns.</li>
+</ol>
+
+<h3 id="interruption">Interruption</h3>
+
+<p>All blocking methods behave correctly with respect to interruption:</p>
+
+<ul>
+<li>{@link Pool#claim()}</li>
+<li>{@link Pool#claim(long,TimeUnit)}</li>
+<li>{@link Completion#await()}</li>
+<li>{@link Completion#await(long,TimeUnit)}</li>
+</ul>
+
+<p>If a thread is interrupted when it calls one of these methods, or the thread is
+interrupted while waiting in one these methods, then an
+{@link InterruptedException} will be thrown, and the threads interruption flag
+will be cleared.</p>
 
 */
 package stormpot;

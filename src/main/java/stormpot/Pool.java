@@ -120,6 +120,10 @@ import java.util.concurrent.TimeUnit;
  * <li>A pool will silently swallow exceptions thrown the Allocators
  * deallocate method that are thrown during the shut down procedure.
  * </ul>
+ * <p>
+ * See also <a href="package-summary.html#memory-effects-and-threading">
+ * Memory Effects and Threading</a> for details of the behaviour in concurrent
+ * programs
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  * @param <T> the type of {@link Poolable} contained in the pool, as determined
  * by the {@link Config#setAllocator(Allocator) configured allocator}.

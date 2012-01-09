@@ -356,4 +356,41 @@ behind a nice API. Now it is just a small matter of using the code:
 The implementation of the `configureDataSource` method is left as an
 exercise for the reader.
 
+
+Memory Effects and Threading
+============================
+
+When configured within the bounds of the {@link stormpot.Config standard
+configuration}, the Stormpot poolig library will exhibit and guarantee a number
+of memory effects, that can be relied upon in concurrent and multi-threaded
+programs.
+
+### *Happens-Before* Edges
+
+1. The {@link stormpot.Allocator#allocate(Slot) allocation} of an object
+   *happens-before* any {@link stormpot.Pool#claim() claim} of that object.
+2. The claim of an object *happens-before* any subsequent release of the object.
+3. The {@link stormpot.Poolable#release() release} of an object *happens-before*
+   any subsequent claim of that object.
+4. The release of an object *happens-before* the
+   {@link stormpot.Allocator#deallocate(Poolable) deallocation} of that object.
+5. For {@link stormpot.LifecycledPool life-cycled pools}, the deallocation of
+   all objects *happens-before* the
+   {@link stormpot.Completion#await() await of a shutdown completion} returns.
+
+### Interruption
+
+All blocking methods behave correctly with respect to interruption:
+
+* {@link stormpot.Pool#claim()}
+* {@link stormpot.Pool#claim(long,TimeUnit)}
+* {@link stormpot.Completion#await()}
+* {@link stormpot.Completion#await(long,TimeUnit)}
+
+If a thread is interrupted when it calls one of these methods, or the thread is
+interrupted while waiting in one these methods, then an
+{@link java.lang.InterruptedException} will be thrown, and the threads
+interruption flag will be cleared.
+
+
 [1]: http://commons.apache.org/pool/

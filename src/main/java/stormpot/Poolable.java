@@ -41,15 +41,11 @@ package stormpot;
  *     slot.release(this);
  *   }
  * }</code></pre>
- * Pools in turn guarantee these memory effects:
- * <ul>
- * <li>The {@link Poolable#release() release} of an object happens-before
- * any subsequent claim of that object,
- * <li>The {@link Allocator#allocate(Slot) allocation} of an object
- * happens-before any claim of that object, and,
- * <li>The the claim of an object happens-before any subsequent release of
- * that object.
- * </ul>
+ * <p>
+ * See also <a href="package-summary.html#memory-effects-and-threading">
+ * Memory Effects and Threading</a> for details of the behaviour in concurrent
+ * programs.
+ * 
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  *
  */
