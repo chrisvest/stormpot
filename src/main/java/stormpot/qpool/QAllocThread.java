@@ -71,7 +71,7 @@ class QAllocThread<T extends Poolable> extends Thread {
         QSlot<T> slot = dead.poll(deadPollTimeout, TimeUnit.MILLISECONDS);
         if (slot != null) {
           dealloc(slot);
-          alloc(slot);
+          alloc(slot); // TODO not covered
         }
       }
     } catch (InterruptedException _) {

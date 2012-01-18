@@ -124,6 +124,27 @@
           </reportPlugins>
         </configuration>
       </plugin>
+      <plugin>
+        <!--
+          Run mutation tests like this:
+          mvn clean install org.pitest:pitest-maven:mutationCoverage 
+        -->
+        <groupId>org.pitest</groupId>
+        <artifactId>pitest-maven</artifactId>
+        <version>0.24</version>
+        <configuration>
+          <inScopeClasses>
+            <param>stormpot*</param>
+          </inScopeClasses>
+          <targetClasses>
+            <param>stormpot.Config</param>
+            <param>stormpot.PoolException</param>
+            <param>stormpot.qpool.*</param>
+            <param>stormpot.basicpool.*</param>
+          </targetClasses>
+          <threads>4</threads>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
   

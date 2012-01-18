@@ -229,7 +229,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
     public void release(Poolable obj) {
       bpool.lock.lock();
       if (!claimed) {
-        bpool.lock.unlock();
+        bpool.lock.unlock(); // TODO not covered
         return;
       }
       claimed = false;
