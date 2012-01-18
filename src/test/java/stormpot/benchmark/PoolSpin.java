@@ -26,9 +26,10 @@ import stormpot.Config;
 import stormpot.GenericPoolable;
 import stormpot.LifecycledPool;
 import stormpot.Pool;
-import stormpot.PoolFixtures;
 import stormpot.Poolable;
 import stormpot.Slot;
+import stormpot.basicpool.BasicPoolFixture;
+import stormpot.qpool.QPoolFixture;
 
 import com.google.caliper.Param;
 import com.google.caliper.SimpleBenchmark;
@@ -61,7 +62,7 @@ public class PoolSpin extends SimpleBenchmark {
 
   @Param({"10"}) int size = 10;
   @Param({"10"}) long work = 10;
-  @Param({"0", "1", "2"}) int poolType;
+  @Param({"0", "1"}) int poolType;
   @Param({"10000"}) long ttl = 10000;
 
   protected Pool<GenericPoolable> pool;
@@ -72,7 +73,7 @@ public class PoolSpin extends SimpleBenchmark {
     config.setAllocator(new SlowAllocator(work));
     config.setSize(size);
     config.setTTL(ttl, TimeUnit.MILLISECONDS);
-    pool = PoolFixtures.poolFixtures()[poolType].initPool(config);
+    pool = (poolType == 0? new BasicPoolFixture() : new QPoolFixture()).initPool(config);
     // Give the pool 500 ms to boot up any threads it might need
     LockSupport.parkNanos(500000000);
   }

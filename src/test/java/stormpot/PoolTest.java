@@ -29,10 +29,13 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.experimental.theories.DataPoints;
+import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
+
+import stormpot.basicpool.BasicPoolFixture;
+import stormpot.qpool.QPoolFixture;
 
 /**
  * This is the generic test for Pool implementations. The test ensures that
@@ -73,11 +76,9 @@ public class PoolTest {
   
   private CountingAllocator allocator;
   private Config<GenericPoolable> config;
-  
-  @DataPoints
-  public static PoolFixture[] pools() {
-    return PoolFixtures.poolFixtures();
-  }
+
+  @DataPoint public static PoolFixture basicPool = new BasicPoolFixture();
+  @DataPoint public static PoolFixture queuePool = new QPoolFixture();
   
   @Before public void
   setUp() {
