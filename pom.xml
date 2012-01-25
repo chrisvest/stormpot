@@ -127,14 +127,14 @@
       <plugin>
         <!--
           Run mutation tests like this:
-          mvn clean install org.pitest:pitest-maven:mutationCoverage 
+          mvn clean install org.pitest:pitest-maven:mutationCoverage
         -->
         <groupId>org.pitest</groupId>
         <artifactId>pitest-maven</artifactId>
-        <version>0.24</version>
+        <version>0.25</version>
         <configuration>
           <inScopeClasses>
-            <param>stormpot*</param>
+            <param>stormpot.*</param>
           </inScopeClasses>
           <targetClasses>
             <param>stormpot.Config</param>
