@@ -24,6 +24,7 @@ import stormpot.Config;
 import stormpot.LifecycledPool;
 import stormpot.PoolException;
 import stormpot.Poolable;
+import stormpot.Timeout;
 
 /**
  * QueuePool is a fairly simple {@link LifecycledPool} implementation that
@@ -58,15 +59,6 @@ public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
     allocThread.start();
   }
 
-  public T claim() throws PoolException, InterruptedException {
-    QSlot<T> slot;
-    do {
-      slot = live.take();
-      checkForPoison(slot);
-    } while (isInvalid(slot));
-    return slot.obj;
-  }
-
   private void checkForPoison(QSlot<T> slot) {
     if (slot == allocThread.POISON_PILL) {
       live.offer(allocThread.POISON_PILL);
@@ -94,16 +86,16 @@ public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
     return false;
   }
 
-  public T claim(long timeout, TimeUnit unit) throws PoolException,
+  public T claim(Timeout timeout) throws PoolException,
       InterruptedException {
-    if (unit == null) {
-      throw new IllegalArgumentException("timeout TimeUnit cannot be null.");
+    if (timeout == null) {
+      throw new IllegalArgumentException("timeout cannot be null.");
     }
     QSlot<T> slot;
-    long deadline = System.currentTimeMillis() + unit.toMillis(timeout);
+    long deadline = timeout.getDeadlineNanos();
     do {
-      long timeoutLeft = deadline - System.currentTimeMillis();
-      slot = live.poll(timeoutLeft, TimeUnit.MILLISECONDS);
+      long timeoutLeft = timeout.getTimeLeftNanos(deadline);
+      slot = live.poll(timeoutLeft, TimeUnit.NANOSECONDS);
       if (slot == null) {
         // we timed out while taking from the queue - just return null
         return null;

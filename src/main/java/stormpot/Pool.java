@@ -15,8 +15,6 @@
  */
 package stormpot;
 
-import java.util.concurrent.TimeUnit;
-
 /**
  * A Pool is a self-renewable set of objects from which one can claim exclusive
  * access to elements, until they are released back into the pool.
@@ -46,18 +44,18 @@ import java.util.concurrent.TimeUnit;
  * <li>A call to {@link #claim()} on a depleted pool will wait until an object
  * is released by another thread and claimed by the current thread, or the
  * current thread is {@link Thread#interrupt() interrupted}.
- * <li>A call to {@link #claim(long, TimeUnit)} will return an object if one
+ * <li>A call to {@link #claim(Timeout)} will return an object if one
  * can be secured within the specified timeout period, or <code>null</code>
  * if the timeout elapses, or the current thread is {@link Thread#interrupt()
  * interrupted}.
- * <li>A call to {@link #claim(long, TimeUnit)} will return within the time-out
+ * <li>A call to {@link #claim(Timeout)} will return within the time-out
  * period (to a reasonable degree) even if calls to the allocators
  * {@link Allocator#allocate(Slot) allocate} method blocks forever.
- * <li>A call to {@link #claim(long, TimeUnit)} will not wait if the timeout
+ * <li>A call to {@link #claim(Timeout)} will not wait if the timeout
  * value is less than one. And if a null is passed for the TimeUnit, then an
  * IllegalArgumentException is thrown.
  * <li>If the current thread is {@link Thread#interrupt() interrupted} upon
- * entry to {@link #claim()} or {@link #claim(long, TimeUnit)} then an
+ * entry to {@link #claim()} or {@link #claim(Timeout)} then an
  * {@link InterruptedException} will be thrown immediately.
  * <li>If a thread is waiting in a call to one of the claim methods, and the
  * thread gets interrupted, then it will wake up and throw an
@@ -90,7 +88,7 @@ import java.util.concurrent.TimeUnit;
  * <li>A pool that has been shut down will prevent claims by throwing an
  * {@link IllegalStateException}.
  * <li>Threads that are waiting in {@link #claim()} or
- * {@link #claim(long, TimeUnit)} for an object to become available, will wake
+ * {@link #claim(Timeout)} for an object to become available, will wake
  * up and receive an {@link IllegalStateException} when the pool is shut down.
  * <li>A pool will deallocate all of its objects, before the shut down
  * procedure completes.
@@ -131,39 +129,6 @@ import java.util.concurrent.TimeUnit;
 public interface Pool<T extends Poolable> {
   /**
    * Claim the exclusive rights until released, to an object in the pool.
-   * Possibly waiting for one to become available if the pool has been
-   * depleted.
-   * <p>
-   * This method may throw a PoolException if the pool have trouble allocating
-   * objects. That is, if its assigned Allocator throws exceptions from its
-   * allocate method, or returns <code>null</code>.
-   * <p>
-   * An {@link InterruptedException} will be thrown if the thread has its
-   * interrupted flag set upon entry to this method, or is interrupted while
-   * waiting. The interrupted flag on the thread will be cleared after
-   * this, as per the general contract of interruptible methods.
-   * <p>
-   * Memory effects:
-   * <ul>
-   * <li>The {@link Poolable#release() release} of an object happens-before
-   * any subsequent claim or {@link Allocator#deallocate(Poolable)
-   * deallocation} of that object, and,
-   * <li>The {@link Allocator#allocate(Slot) allocation} of an object
-   * happens-before any claim of that object.
-   * </ul>
-   * @return An object of the Poolable subtype T to which the exclusive rights
-   * have been claimed.
-   * @throws PoolException If an object allocation failed because the Allocator
-   * threw an exception from its allocate method, or returned
-   * <code>null</code>.
-   * @throws InterruptedException if the current thread is
-   * {@link Thread#interrupt() interrupted} upon entry, or becomes interrupted
-   * while waiting.
-   */
-  T claim() throws PoolException, InterruptedException;
-
-  /**
-   * Claim the exclusive rights until released, to an object in the pool.
    * Possibly waiting up to the specified amount of time for one to become
    * available if the pool has been depleted.
    * <p>
@@ -184,11 +149,10 @@ public interface Pool<T extends Poolable> {
    * <li>The {@link Allocator#allocate(Slot) allocation} of an object
    * happens-before any claim of that object.
    * </ul>
-   * @param timeout The value of the maximum permitted time-slice to wait for
-   * an object to become available. A value of zero or less means that the call
-   * will do no waiting.
-   * @param unit The unit of the timeout parameter. Must not be
-   * <code>null</code>.
+   * @param timeout The timeout of the maximum permitted time-slice to wait for
+   * an object to become available. A timeout with a value of zero or less
+   * means that the call will do no waiting, preferring instead to return early
+   * if no objects are available.
    * @return An object of the Poolable subtype T to which the exclusive rights
    * have been claimed, or <code>null</code> if the timeout period elapsed
    * before an object became available.
@@ -201,5 +165,5 @@ public interface Pool<T extends Poolable> {
    * @throws IllegalArgumentException if the <code>unit<code> argument is
    * <code>null</code>.
    */
-  T claim(long timeout, TimeUnit unit) throws PoolException, InterruptedException;
+  T claim(Timeout timeout) throws PoolException, InterruptedException;
 }

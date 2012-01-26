@@ -46,26 +46,12 @@ public class UnitKit {
     };
   }
 
-  public static <T extends Poolable> Callable<T> $claim(final Pool<T> pool) {
-    return new Callable<T>() {
-      public T call() {
-        try {
-          return pool.claim();
-        } catch (RuntimeException e) {
-          throw e;
-        } catch (InterruptedException e) {
-          throw new PoolException("claim interrupted", e);
-        }
-      }
-    };
-  }
-
   public static <T extends Poolable> Callable<T> $claim(
-      final Pool<T> pool, final long timeout, final TimeUnit unit) {
+      final Pool<T> pool, final Timeout timeout) {
     return new Callable<T>() {
       public T call() {
         try {
-          return pool.claim(timeout, unit);
+          return pool.claim(timeout);
         } catch (RuntimeException e) {
           throw e;
         } catch (InterruptedException e) {

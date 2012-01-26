@@ -30,6 +30,7 @@ import stormpot.LifecycledPool;
 import stormpot.PoolException;
 import stormpot.Poolable;
 import stormpot.Slot;
+import stormpot.Timeout;
 
 /**
  * The BasicPool is a minimal implementation of the Pool interface.
@@ -66,16 +67,16 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
     this.lock = new ReentrantLock();
     this.released = lock.newCondition();
   }
-
-  public T claim(long timeout, TimeUnit unit) throws InterruptedException {
-    if (unit == null) {
+  
+  public T claim(Timeout timeout) throws InterruptedException {
+    if (timeout.getUnit() == null) {
       throw new IllegalArgumentException("timeout TimeUnit cannot be null");
     }
-    return doClaim(timeout, unit);
+    return doClaim(timeout);
   }
   
   @SuppressWarnings("unchecked")
-  private T doClaim(long timeout, TimeUnit unit) throws InterruptedException {
+  private T doClaim(Timeout timeout) throws InterruptedException {
     lock.lock();
     try {
       if (shutdown) {
@@ -85,17 +86,12 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
         throw new InterruptedException();
       }
       int index = count.get();
-      boolean withTimeout = unit != null;
-      long maxWaitNanos = withTimeout? unit.toNanos(timeout) : 0;
+      long maxWaitNanos = timeout.getUnit().toNanos(timeout.getTimeout());
       while (index == pool.length) {
-        if (withTimeout) {
-          if (maxWaitNanos > 0) {
-            maxWaitNanos = released.awaitNanos(maxWaitNanos);
-          } else {
-            return null;
-          }
+        if (maxWaitNanos > 0) {
+          maxWaitNanos = released.awaitNanos(maxWaitNanos);
         } else {
-          released.await();
+          return null;
         }
         index = count.get();
       }
@@ -107,23 +103,19 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
       if (obj == null || slot.expired()) {
         try {
           slot = slot(index);
-          if (withTimeout) {
-            Object NULL = new Object();
-            AtomicReference<Object> ref = new AtomicReference<Object>(NULL);
-            Thread alloc = alloc(ref, slot);
-            alloc.join(maxWaitNanos / 1000000);
-            Object value = ref.get();
-            if (value == NULL) {
-              // timeout
-              return null;
-            }
-            if (value instanceof ExceptionHolder) {
-              throw ((ExceptionHolder) value).exception;
-            }
-            obj = (T) value;
-          } else {
-            obj = allocator.allocate(slot);
+          Object NULL = new Object();
+          AtomicReference<Object> ref = new AtomicReference<Object>(NULL);
+          Thread alloc = alloc(ref, slot);
+          alloc.join(maxWaitNanos / 1000000);
+          Object value = ref.get();
+          if (value == NULL) {
+            // timeout
+            return null;
           }
+          if (value instanceof ExceptionHolder) {
+            throw ((ExceptionHolder) value).exception;
+          }
+          obj = (T) value;
         } catch (Exception e) {
           throw new PoolException("Failed allocation", e);
         }
@@ -161,11 +153,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
     thread.start();
     return thread;
   }
-
-  public T claim() throws InterruptedException {
-    return doClaim(0, null);
-  }
-
+  
   private BasicSlot<T> slot(final int index) {
     return new BasicSlot<T>(index, this);
   }

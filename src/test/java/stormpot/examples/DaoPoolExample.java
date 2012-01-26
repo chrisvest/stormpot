@@ -2,6 +2,7 @@ package stormpot.examples;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
@@ -10,6 +11,7 @@ import stormpot.Config;
 import stormpot.LifecycledPool;
 import stormpot.Poolable;
 import stormpot.Slot;
+import stormpot.Timeout;
 import stormpot.qpool.QueuePool;
 
 public class DaoPoolExample {
@@ -74,7 +76,7 @@ public class DaoPoolExample {
     
     public <T> T doWithDao(WithMyDaoDo<T> action)
     throws InterruptedException {
-      MyDao dao = pool.claim();
+      MyDao dao = pool.claim(new Timeout(1, TimeUnit.SECONDS));
       try {
         return action.doWithDao(dao);
       } finally {

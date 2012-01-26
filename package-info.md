@@ -69,6 +69,7 @@ required for its implementation is this:
     // MyPoolable.java - minimum Poolable implementation
     import stormpot.Poolable;
     import stormpot.Slot;
+    import stormpot.Timeout;
     
     public class MyPoolable implements Poolable {
       private final Slot slot;
@@ -323,7 +324,7 @@ through the method:
     ::: java
         public <T> T doWithDao(WithMyDaoDo<T> action)
             throws InterruptedException {
-          MyDao dao = pool.claim();
+          MyDao dao = pool.claim(new Timeout(1, TimeUnit.SECONDS));
           try {
             return action.doWithDao(dao);
           } finally {

@@ -28,6 +28,7 @@ import stormpot.LifecycledPool;
 import stormpot.Pool;
 import stormpot.Poolable;
 import stormpot.Slot;
+import stormpot.Timeout;
 import stormpot.basicpool.BasicPoolFixture;
 import stormpot.qpool.QPoolFixture;
 
@@ -35,6 +36,8 @@ import com.google.caliper.Param;
 import com.google.caliper.SimpleBenchmark;
 
 public class PoolSpin extends SimpleBenchmark {
+  private static final Timeout timeout = new Timeout(100, TimeUnit.MILLISECONDS);
+  
   private final class SlowAllocator implements Allocator<GenericPoolable> {
     private final List<GenericPoolable> allocated =
       Collections.synchronizedList(new ArrayList<GenericPoolable>());
@@ -90,7 +93,7 @@ public class PoolSpin extends SimpleBenchmark {
 
   static GenericPoolable claim(Pool<GenericPoolable> pool)
   throws InterruptedException {
-    GenericPoolable obj = pool.claim();
+    GenericPoolable obj = pool.claim(timeout);
     obj.lastClaimBy = Thread.currentThread();
     return obj;
   }

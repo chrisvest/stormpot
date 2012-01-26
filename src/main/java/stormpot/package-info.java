@@ -398,7 +398,7 @@ objects <em>happens-before</em> the
 
 <ul>
 <li>{@link Pool#claim()}</li>
-<li>{@link Pool#claim(long,TimeUnit)}</li>
+<li>{@link Pool#claim(Timeout)}</li>
 <li>{@link Completion#await()}</li>
 <li>{@link Completion#await(long,TimeUnit)}</li>
 </ul>
