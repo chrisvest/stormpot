@@ -15,9 +15,8 @@
  */
 package stormpot.qpool;
 
-import java.util.concurrent.TimeUnit;
-
 import stormpot.Completion;
+import stormpot.Timeout;
 
 final class QPoolShutdownCompletion implements Completion {
   private final QAllocThread<?> allocThread;
@@ -26,15 +25,11 @@ final class QPoolShutdownCompletion implements Completion {
     this.allocThread = allocThread;
   }
   
-  public void await() throws InterruptedException {
-    allocThread.await();
-  }
-
-  public boolean await(long timeout, TimeUnit unit)
+  public boolean await(Timeout timeout)
       throws InterruptedException {
-    if (unit == null) {
-      throw new IllegalArgumentException("timeout TimeUnit cannot be null");
+    if (timeout == null) {
+      throw new IllegalArgumentException("timeout cannot be null");
     }
-    return allocThread.await(timeout, unit);
+    return allocThread.await(timeout);
   }
 }

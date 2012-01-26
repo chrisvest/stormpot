@@ -16,7 +16,6 @@
 package stormpot.basicpool;
 
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
@@ -258,16 +257,11 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
       }
     }
 
-    public void await() throws InterruptedException {
-      completionLatch.await();
-    }
-
-    public boolean await(long timeout, TimeUnit unit)
-        throws InterruptedException {
-      if (unit == null) {
-        throw new IllegalArgumentException("timeout TimeUnit cannot be null");
+    public boolean await(Timeout timeout) throws InterruptedException {
+      if (timeout == null) {
+        throw new IllegalArgumentException("timeout cannot be null");
       }
-      return completionLatch.await(timeout, unit);
+      return completionLatch.await(timeout.getTimeout(), timeout.getUnit());
     }
   }
 }

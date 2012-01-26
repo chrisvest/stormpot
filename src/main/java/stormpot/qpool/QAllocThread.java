@@ -23,6 +23,7 @@ import java.util.concurrent.locks.LockSupport;
 import stormpot.Allocator;
 import stormpot.Config;
 import stormpot.Poolable;
+import stormpot.Timeout;
 
 class QAllocThread<T extends Poolable> extends Thread {
   /**
@@ -130,12 +131,7 @@ class QAllocThread<T extends Poolable> extends Thread {
     slot.obj = null;
   }
 
-  public void await() throws InterruptedException {
-    completionLatch.await();
-  }
-
-  public boolean await(long timeout, TimeUnit unit)
-      throws InterruptedException {
-    return completionLatch.await(timeout, unit);
+  public boolean await(Timeout timeout) throws InterruptedException {
+    return completionLatch.await(timeout.getTimeout(), timeout.getUnit());
   }
 }

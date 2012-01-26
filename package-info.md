@@ -303,7 +303,7 @@ a close method to our `MyDaoPool` class, so we don't have to expose our
 
     ::: java
         public void close() throws InterruptedException {
-          pool.shutdown().await();
+          pool.shutdown().await(new Timeout(1, TimeUnit.MINUTES));
         }
 
 Next, we need a way to interact with the `MyDao` instances that are managed by

@@ -15,8 +15,6 @@
  */
 package stormpot;
 
-import java.util.concurrent.TimeUnit;
-
 /**
  * A Completion represents some task that is going to be completed at some
  * point in the future, or maybe already has completed. It is similar to
@@ -28,22 +26,6 @@ import java.util.concurrent.TimeUnit;
  * @see LifecycledPool#shutdown()
  */
 public interface Completion {
-
-  /**
-   * Causes the current thread to wait until the completion is finished,
-   * or the thread is {@link Thread#interrupt() interrupted}.
-   * <p>
-   * If the task represented by this completion has already completed,
-   * the method returns immediately.
-   * <p>
-   * If the current thread already has its interrupted status set upon entry
-   * to this method, or the thread is interrupted while waiting, then an
-   * {@link InterruptedException} is thrown and the current threads interrupted
-   * status is cleared.
-   * @throws InterruptedException if the current thread is interrupted while
-   * waiting.
-   */
-  void await() throws InterruptedException;
   
   /**
    * Causes the current thread to wait until the completion is finished,
@@ -60,10 +42,9 @@ public interface Completion {
    * <p>
    * If the specified waiting time elapses, then the method returns
    * <code>false</code>.
-   * @param timeout the maximum time to wait. No waiting will take place if
-   * the timeout value is less than one.
-   * @param unit the unit of the <code>timeout</code> argument.
-   * Never <code>null</code>.
+   * @param timeout The timeout delimiting the maximum time to wait for the
+   * task to complete. Passing a timeout with a value of zero will cause the
+   * method to return immediately.
    * @return <code>true</code> if the task represented by this completion
    * completed within the specified waiting time, or was already complete upon
    * entry to this method; or <code>false</code> if the specified waiting time
@@ -73,5 +54,5 @@ public interface Completion {
    * @throws IllegalArgumentException if the provided <code>unit</code>
    * parameter is <code>null</code>.
    */
-  boolean await(long timeout, TimeUnit unit) throws InterruptedException;
+  boolean await(Timeout timeout) throws InterruptedException;
 }

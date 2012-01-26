@@ -71,7 +71,7 @@ public class DaoPoolExample {
     }
 
     public void close() throws InterruptedException {
-      pool.shutdown().await();
+      pool.shutdown().await(new Timeout(1, TimeUnit.MINUTES));
     }
     
     public <T> T doWithDao(WithMyDaoDo<T> action)

@@ -74,6 +74,7 @@ public class PoolTest {
   private static final long timeout = 1;
   private static final TimeUnit unit = TimeUnit.SECONDS;
   private static final Timeout longTimeout = new Timeout(1, TimeUnit.SECONDS);
+  private static final Timeout mediumTimeout = new Timeout(10, TimeUnit.MILLISECONDS);
   private static final Timeout shortTimeout = new Timeout(1, TimeUnit.MILLISECONDS);
   private static final Timeout zeroTimeout = new Timeout(0, TimeUnit.MILLISECONDS);
   
@@ -358,7 +359,7 @@ public class PoolTest {
     Poolable p2 = pool.claim(longTimeout);
     p1.release();
     p2.release();
-    shutdown(pool).await();
+    shutdown(pool).await(longTimeout);
     assertThat(allocator.deallocations(), is(2));
   }
   
@@ -405,7 +406,7 @@ public class PoolTest {
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     assertNotNull("Did not deplete pool in time", pool.claim(longTimeout));
-    shutdown(pool).await(10, TimeUnit.MILLISECONDS);
+    shutdown(pool).await(mediumTimeout);
     assertThat(allocator.deallocations(), is(0));
   }
   
@@ -433,8 +434,8 @@ public class PoolTest {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     Poolable obj = pool.claim(longTimeout);
     Completion completion = shutdown(pool);
-    Thread thread = fork($await(completion));
-    waitForThreadState(thread, Thread.State.WAITING);
+    Thread thread = fork($await(completion, longTimeout));
+    waitForThreadState(thread, Thread.State.TIMED_WAITING);
     obj.release();
     join(thread);
   }
@@ -455,7 +456,7 @@ public class PoolTest {
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     Poolable obj = pool.claim(longTimeout);
-    assertFalse(shutdown(pool).await(1, TimeUnit.MILLISECONDS));
+    assertFalse(shutdown(pool).await(shortTimeout));
     obj.release();
   }
   
@@ -480,7 +481,7 @@ public class PoolTest {
     AtomicBoolean result = new AtomicBoolean(false);
     Completion completion = shutdown(pool);
     Thread thread =
-      fork($await(completion, 500, TimeUnit.MILLISECONDS, result));
+      fork($await(completion, longTimeout, result));
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     obj.release();
     join(thread);
@@ -488,7 +489,7 @@ public class PoolTest {
   }
   
   /**
-   * We have verified that the await methods works as intended, if you
+   * We have verified that the await method works as intended, if you
    * begin your awaiting while the shut down process is still undergoing.
    * However, we must also make sure that further calls to await after the
    * shut down process has completed, do not block.
@@ -503,8 +504,8 @@ public class PoolTest {
   awaitingOnAlreadyCompletedShutDownMustNotBlock(PoolFixture fixture)
   throws Exception {
     Completion completion = shutdown(fixture.initPool(config));
-    completion.await();
-    completion.await(1, TimeUnit.SECONDS);
+    completion.await(longTimeout);
+    completion.await(longTimeout);
   }
   
   /**
@@ -604,7 +605,7 @@ public class PoolTest {
     Pool<GenericPoolable> pool = fixture.initPool(
         config.setAllocator(allocator).setTTL(1, TimeUnit.MILLISECONDS));
     pool.claim(longTimeout).release();
-    shutdown(pool).await();
+    shutdown(pool).await(longTimeout);
     assertFalse(wasNull.get());
   }
   
@@ -746,7 +747,7 @@ public class PoolTest {
     Poolable obj= pool.claim(longTimeout);
     pool.claim(longTimeout).release();
     obj.release();
-    shutdown(pool).await();
+    shutdown(pool).await(longTimeout);
     assertThat(allocator.deallocations(), is(2));
   }
   
@@ -765,7 +766,7 @@ public class PoolTest {
   throws Exception {
     Completion completion = givenUnfineshedCompletion(fixture);
     Thread.currentThread().interrupt();
-    completion.await();
+    completion.await(longTimeout);
   }
 
   private Completion givenUnfineshedCompletion(PoolFixture fixture)
@@ -774,39 +775,6 @@ public class PoolTest {
     assertNotNull("Did not deplete pool in time", pool.claim(longTimeout));
     Completion completion = shutdown(pool);
     return completion;
-  }
-  
-  /**
-   * Calling await with timeout on a completion when your thread is
-   * interrupted must, just as await without timeout, throw an
-   * InterruptedException
-   * @param fixture
-   * @throws Exception
-   */
-  @Test(timeout = 300, expected = InterruptedException.class)
-  @Theory public void
-  awaitWithTimeoutOnCompletionWhenInterruptedMustThrow(PoolFixture fixture)
-  throws Exception {
-    Completion completion = givenUnfineshedCompletion(fixture);
-    Thread.currentThread().interrupt();
-    completion.await(1, TimeUnit.SECONDS);
-  }
-  
-  /**
-   * A thread that is waiting in await, for a completion to finish, must
-   * throw an InterruptedException if it is interrupted.
-   * We test this by starting another thread to interrupt us, as soon as it
-   * observes that our thread enters the WAITING state.
-   * @param fixture
-   * @throws Exception
-   */
-  @Test(timeout = 300, expected = InterruptedException.class)
-  @Theory public void
-  awaitOnCompletionMustThrowUponInterruption(PoolFixture fixture)
-  throws Exception {
-    Completion completion = givenUnfineshedCompletion(fixture);
-    fork($interruptUponState(Thread.currentThread(), Thread.State.WAITING));
-    completion.await();
   }
   
   /**
@@ -825,7 +793,7 @@ public class PoolTest {
     Completion completion = givenUnfineshedCompletion(fixture);
     fork($interruptUponState(
         Thread.currentThread(), Thread.State.TIMED_WAITING));
-    completion.await(1, TimeUnit.SECONDS);
+    completion.await(longTimeout);
   }
   
   /**
@@ -845,41 +813,15 @@ public class PoolTest {
     assertFalse(Thread.interrupted());
     
     try {
-      awaitWithTimeoutOnCompletionWhenInterruptedMustThrow(fixture);
-    } catch (InterruptedException _) {}
-    assertFalse(Thread.interrupted());
-    
-    try {
-      awaitOnCompletionMustThrowUponInterruption(fixture);
-    } catch (InterruptedException _) {}
-    assertFalse(Thread.interrupted());
-    
-    try {
       awaitWithTimeoutOnCompletionMustThrowUponInterruption(fixture);
     } catch (InterruptedException _) {}
     assertFalse(Thread.interrupted());
-  }
-  
-  /**
-   * Calling await on a completion when your thread is interrupted,
-   * must throw an InterruptedException - even if the shut down procedure
-   * has completed.
-   * We test this by first shutting the pool down cleanly. Then interrupting
-   * the thread, and then try to shut the pool down again.
-   * @param fixture
-   * @throws InterruptedException
-   */
-  @Test(timeout = 300, expected = InterruptedException.class)
-  @Theory public void
-  awaitOnFinishedCompletionWhenInterruptedMustThrow(PoolFixture fixture)
-  throws InterruptedException {
-    givenFinishedInterruptedCompletion(fixture).await();
   }
 
   private Completion givenFinishedInterruptedCompletion(PoolFixture fixture)
       throws InterruptedException {
     Pool<GenericPoolable> pool = fixture.initPool(config);
-    shutdown(pool).await();
+    shutdown(pool).await(longTimeout);
     Thread.currentThread().interrupt();
     Completion completion = shutdown(pool);
     return completion;
@@ -896,7 +838,7 @@ public class PoolTest {
   @Theory public void
   awaitWithTimeoutOnFinishedCompletionWhenInterruptedMustThrow(
       PoolFixture fixture) throws InterruptedException {
-    givenFinishedInterruptedCompletion(fixture).await(1, TimeUnit.SECONDS);
+    givenFinishedInterruptedCompletion(fixture).await(longTimeout);
   }
   
   /**
@@ -907,11 +849,6 @@ public class PoolTest {
   @Test(timeout = 300)
   @Theory public void
   awaitOnFinishedCompletionMustClearInterruption(PoolFixture fixture) {
-    try {
-      awaitOnFinishedCompletionWhenInterruptedMustThrow(fixture);
-    } catch (InterruptedException _) {}
-    assertFalse(Thread.interrupted());
-
     try {
       awaitWithTimeoutOnFinishedCompletionWhenInterruptedMustThrow(fixture);
     } catch (InterruptedException _) {}
@@ -1117,16 +1054,12 @@ public class PoolTest {
       PoolFixture fixture) throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     assertNotNull("Did not deplete pool in time", pool.claim(longTimeout));
-    Completion completion = shutdown(pool);
-    for (int i = 0; i > -100; i--) {
-      completion.await(i, unit);
-    }
+    shutdown(pool).await(zeroTimeout);
   }
   
   /**
-   * One must provide a TimeUnit argument when awaiting the completion of a
-   * shut-down procedure, with a timeout. Otherwise the timeout value does not
-   * make any sense. Passing null is thus an illegal argument.
+   * One must provide a Timeout argument when awaiting the completion of a
+   * shut-down procedure. Passing null is thus an illegal argument.
    * @param fixture
    * @throws Exception
    * @see Completion
@@ -1135,7 +1068,7 @@ public class PoolTest {
   @Theory public void
   awaitCompletionWithNullTimeUnitMustThrow(PoolFixture fixture)
   throws Exception {
-    shutdown(fixture.initPool(config)).await(timeout, null);
+    shutdown(fixture.initPool(config)).await(null);
   }
   
   /**
@@ -1157,7 +1090,7 @@ public class PoolTest {
     };
     Pool<GenericPoolable> pool = givenPoolWithFailedAllocation(fixture, allocator);
     // the shut-down procedure must complete before the test times out.
-    shutdown(pool).await();
+    shutdown(pool).await(longTimeout);
   }
 
   private <T extends Poolable> Pool<T> givenPoolWithFailedAllocation(
@@ -1193,7 +1126,7 @@ public class PoolTest {
     };
     Pool<GenericPoolable> pool = givenPoolWithFailedAllocation(fixture, allocator);
     // must complete before the test timeout:
-    shutdown(pool).await();
+    shutdown(pool).await(longTimeout);
   }
   
   /**
@@ -1216,7 +1149,7 @@ public class PoolTest {
     Thread.currentThread().interrupt();
     Completion completion = shutdown(pool);
     Thread.interrupted(); // clear interrupted flag
-    completion.await(); // must complete before test timeout
+    completion.await(longTimeout); // must complete before test timeout
   }
   
   /**

@@ -61,21 +61,24 @@ public class UnitKit {
     };
   }
   
-  public static Callable<Completion> $await(final Completion completion) {
+  public static Callable<Completion> $await(
+      final Completion completion,
+      final Timeout timeout) {
     return new Callable<Completion>() {
       public Completion call() throws Exception {
-        completion.await();
+        completion.await(timeout);
         return completion;
       }
     };
   }
   
   public static Callable<AtomicBoolean> $await(
-      final Completion completion, final long timeout,
-      final TimeUnit unit, final AtomicBoolean result) {
+      final Completion completion,
+      final Timeout timeout,
+      final AtomicBoolean result) {
     return new Callable<AtomicBoolean>() {
       public AtomicBoolean call() throws Exception {
-        result.set(completion.await(timeout, unit));
+        result.set(completion.await(timeout));
         return result;
       }
     };

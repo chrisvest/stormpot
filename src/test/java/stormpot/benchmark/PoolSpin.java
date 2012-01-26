@@ -102,7 +102,7 @@ public class PoolSpin extends SimpleBenchmark {
   protected void tearDown() throws Exception {
     if (pool instanceof LifecycledPool) {
       LifecycledPool<GenericPoolable> p = (LifecycledPool<GenericPoolable>) pool;
-      p.shutdown().await();
+      p.shutdown().await(new Timeout(10, TimeUnit.SECONDS));
     }
   }
 }

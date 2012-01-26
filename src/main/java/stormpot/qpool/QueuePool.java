@@ -89,7 +89,7 @@ public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
   public T claim(Timeout timeout) throws PoolException,
       InterruptedException {
     if (timeout == null) {
-      throw new IllegalArgumentException("timeout cannot be null.");
+      throw new IllegalArgumentException("timeout cannot be null");
     }
     QSlot<T> slot;
     long deadline = timeout.getDeadlineNanos();
