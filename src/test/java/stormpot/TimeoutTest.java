@@ -1,5 +1,7 @@
 package stormpot;
 
+import static org.junit.Assert.*;
+
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
@@ -15,5 +17,11 @@ public class TimeoutTest {
     // because it means we don't want to do any waiting at all.
     new Timeout(0, TimeUnit.DAYS);
     new Timeout(-1, TimeUnit.DAYS);
+  }
+  
+  @Test public void
+  baseTimeUnitMustNotBeNull() {
+    assertNotNull("unexpectedly got null for the base unit",
+        new Timeout(1, TimeUnit.DAYS).getBaseUnit());
   }
 }

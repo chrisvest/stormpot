@@ -35,4 +35,8 @@ public class Timeout {
 //    return System.currentTimeMillis();
     return System.nanoTime();
   }
+
+  public TimeUnit getBaseUnit() {
+    return TimeUnit.NANOSECONDS;
+  }
 }

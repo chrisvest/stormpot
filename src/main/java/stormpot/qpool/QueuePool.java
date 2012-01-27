@@ -17,7 +17,6 @@ package stormpot.qpool;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 import stormpot.Completion;
 import stormpot.Config;
@@ -95,7 +94,7 @@ public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
     long deadline = timeout.getDeadlineNanos();
     do {
       long timeoutLeft = timeout.getTimeLeftNanos(deadline);
-      slot = live.poll(timeoutLeft, TimeUnit.NANOSECONDS);
+      slot = live.poll(timeoutLeft, timeout.getBaseUnit());
       if (slot == null) {
         // we timed out while taking from the queue - just return null
         return null;

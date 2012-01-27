@@ -21,11 +21,11 @@ import static stormpot.UnitKit.*;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -670,7 +670,7 @@ public class PoolTest {
     Pool<GenericPoolable> pool = fixture.initPool(config.setAllocator(allocator));
     try {
       pool.claim(longTimeout);
-      // TODO fail
+      fail("claim should have thrown");
     } catch (PoolException _) {}
     assertThat(pool.claim(longTimeout), is(notNullValue()));
   }
@@ -955,8 +955,7 @@ public class PoolTest {
     Allocator<GenericPoolable> allocator = new CountingAllocator() {
       @Override
       public GenericPoolable allocate(Slot slot) throws Exception {
-        new CountDownLatch(1).await(); // this will never return
-        // TODO LockSupport.park
+        LockSupport.park();
         return super.allocate(slot);
       }
     };
@@ -1000,7 +999,7 @@ public class PoolTest {
       }
     };
     config.setAllocator(allocator);
-    config.setTTL(10, TimeUnit.MILLISECONDS); // TODO 5 millis?
+    config.setTTL(5, TimeUnit.MILLISECONDS);
     config.setSize(objs.length);
     Pool<GenericPoolable> pool = fixture.initPool(config);
     for (int i = 0; i < objs.length; i++) {
