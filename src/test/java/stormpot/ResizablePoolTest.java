@@ -69,29 +69,12 @@ public class ResizablePoolTest {
   
   @Test(timeout = 300)
   @Theory public void
-  decreasingSizeMustEventuallyDeallocateSurplusObjects(PoolFixture fixture) throws Exception {
+  decreasingSizeMustEventuallyDeallocateSurplusObjects(PoolFixture fixture)
+      throws Exception {
     int startingSize = 5;
     int newSize = 1;
     final Thread main = Thread.currentThread();
-    CountingAllocator allocator = new CountingAllocator() {
-      @Override
-      public GenericPoolable allocate(Slot slot) throws Exception {
-        try {
-          return super.allocate(slot);
-        } finally {
-          LockSupport.unpark(main);
-        }
-      }
-
-      @Override
-      public void deallocate(GenericPoolable poolable) throws Exception {
-        try {
-          super.deallocate(poolable);
-        } finally {
-          LockSupport.unpark(main);
-        }
-      }
-    };
+    CountingAllocator allocator = new UnparkingCountingAllocator(main);
     config.setSize(startingSize);
     config.setAllocator(allocator);
     ResizablePool<GenericPoolable> pool = resizable(fixture);
