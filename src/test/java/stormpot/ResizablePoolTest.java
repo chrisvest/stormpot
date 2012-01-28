@@ -21,6 +21,7 @@ import stormpot.qpool.QPoolFixture;
 @RunWith(Theories.class)
 public class ResizablePoolTest {
   private static final Timeout longTimeout = new Timeout(1, TimeUnit.SECONDS);
+  private static final Timeout shortTimeout = new Timeout(1, TimeUnit.MILLISECONDS);
   
   @DataPoint public static PoolFixture basicPool = new BasicPoolFixture();
   @DataPoint public static PoolFixture queuePool = new QPoolFixture();
@@ -95,5 +96,31 @@ public class ResizablePoolTest {
     }
     assertThat(
         allocator.allocations() - allocator.deallocations(), is(newSize));
+  }
+  
+  @Test(timeout = 300)
+  @Theory public void
+  mustNotReallocateWhenReleasingExpiredObjectsIntoShrunkPool(PoolFixture fixture)
+      throws Exception {
+    int startingSize = 5;
+    int newSize = 1;
+    CountingAllocator allocator = new CountingAllocator();
+    config.setTTL(1, TimeUnit.MILLISECONDS).setAllocator(allocator);
+    config.setSize(startingSize);
+    ResizablePool<GenericPoolable> pool = resizable(fixture);
+    List<GenericPoolable> objs = new ArrayList<GenericPoolable>();
+    while (allocator.allocations() < startingSize) {
+      objs.add(pool.claim(longTimeout));
+    }
+    UnitKit.spinwait(2); // wait for the objects to expire
+    pool.setTargetSize(newSize);
+    for (int i = 0; i < startingSize - newSize; i++) {
+      // release the surplus expired objects back into the pool
+      objs.remove(0).release();
+    }
+    // now the released objects should not cause reallocations, so claim
+    // returns null (it's still depleted) and allocation count stays put
+    assertThat(pool.claim(shortTimeout), nullValue());
+    assertThat(allocator.allocations(), is(startingSize));
   }
 }
