@@ -71,9 +71,7 @@ class QAllocThread<T extends Poolable> extends Thread {
         if (size > targetSize) {
           slot = slot == null? live.poll() : slot;
           dealloc(slot);
-          continue;
-        }
-        if (slot != null) {
+        } else if (slot != null) {
           dealloc(slot);
           alloc(slot); // TODO not covered
         }
