@@ -15,6 +15,9 @@
  */
 package stormpot.basicpool;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -28,6 +31,7 @@ import stormpot.Config;
 import stormpot.LifecycledPool;
 import stormpot.PoolException;
 import stormpot.Poolable;
+import stormpot.ResizablePool;
 import stormpot.Slot;
 import stormpot.Timeout;
 
@@ -41,34 +45,49 @@ import stormpot.Timeout;
  *
  * @param <T>
  */
-public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
+public class BasicPool<T extends Poolable>
+implements LifecycledPool<T>, ResizablePool<T> {
 
   private final Allocator<T> allocator;
-  private final T[] pool;
-  private final BasicSlot<T>[] slots;
   private final AtomicInteger count;
+  private final List<T> pool;
+  private final List<BasicSlot<T>> slots;
   private final Lock lock;
   private final Condition released;
   private final long ttlMillis;
   private boolean shutdown;
+  private int targetSize;
 
-  @SuppressWarnings("unchecked")
   public BasicPool(Config<T> config) {
-    synchronized (config) {
-      config.validate();
-      int size = config.getSize();
-      this.pool = (T[]) new Poolable[size];
-      this.slots = new BasicSlot[size];
-      this.ttlMillis = config.getTTLUnit().toMillis(config.getTTL());
-      this.allocator = config.getAllocator();
-    }
     this.count = new AtomicInteger();
     this.lock = new ReentrantLock();
     this.released = lock.newCondition();
+    synchronized (config) {
+      config.validate();
+      this.pool = new ArrayList<T>();
+      this.slots = new ArrayList<BasicSlot<T>>();
+      setTargetSize(config.getSize());
+      this.ttlMillis = config.getTTLUnit().toMillis(config.getTTL());
+      this.allocator = config.getAllocator();
+    }
+  }
+
+  public void setTargetSize(int size) {
+    lock.lock();
+    try {
+      if (targetSize < size) {
+        int diff = size - targetSize;
+        pool.addAll(Collections.nCopies(diff, (T) null));
+        slots.addAll(Collections.nCopies(diff, (BasicSlot<T>) null));
+      }
+      targetSize = size;
+    } finally {
+      lock.unlock();
+    }
   }
   
   public T claim(Timeout timeout) throws InterruptedException {
-    if (timeout.getUnit() == null) {
+    if (timeout == null) {
       throw new IllegalArgumentException("timeout TimeUnit cannot be null");
     }
     return doClaim(timeout);
@@ -86,7 +105,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
       }
       int index = count.get();
       long maxWaitNanos = timeout.getUnit().toNanos(timeout.getTimeout());
-      while (index == pool.length) {
+      while (index == targetSize) {
         if (maxWaitNanos > 0) {
           maxWaitNanos = released.awaitNanos(maxWaitNanos);
         } else {
@@ -97,8 +116,8 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
       if (shutdown) {
         throw new IllegalStateException("pool is shut down");
       }
-      T obj = pool[index];
-      BasicSlot<T> slot = slots[index];
+      T obj = pool.get(index);
+      BasicSlot<T> slot = slots.get(index);
       if (obj == null || slot.expired()) {
         try {
           slot = slot(index);
@@ -121,8 +140,8 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
         if (obj == null) {
           throw new PoolException("Allocator returned null");
         }
-        slots[index] = slot;
-        pool[index] = obj;
+        slots.set(index, slot);
+        pool.set(index, obj);
       }
       slot.claim();
       count.incrementAndGet();
@@ -193,13 +212,13 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
     }
 
     public boolean expired() {
-      if (System.currentTimeMillis() > expires) {
+      if (System.currentTimeMillis() > expires || index >= bpool.targetSize) {
         try {
-          bpool.allocator.deallocate(bpool.pool[index]);
+          bpool.allocator.deallocate(bpool.pool.get(index));
         } catch (Exception _) {
           // exceptions from deallocate are ignored as per specification.
         }
-        bpool.pool[index] = null;
+        bpool.pool.set(index, null);
         return true;
       }
       return false;
@@ -219,6 +238,7 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
         bpool.lock.unlock(); // TODO not covered
         return;
       }
+      expired();
       claimed = false;
       bpool.count.decrementAndGet();
       bpool.released.signalAll();
@@ -236,15 +256,15 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
     public void run() {
       lock.lock();
       try {
-        for (int index = 0; index < pool.length; index++) {
-          if (pool[index] == null) {
+        for (int index = 0; index < targetSize; index++) {
+          if (pool.get(index) == null) {
             continue;
           }
-          while(slots[index].isClaimed()) {
+          while(slots.get(index).isClaimed()) {
             released.awaitUninterruptibly();
           }
-          T poolable = (T) pool[index];
-          pool[index] = null;
+          T poolable = (T) pool.get(index);
+          pool.set(index, null);
           try {
             allocator.deallocate(poolable);
           } catch (Exception _) {
@@ -262,6 +282,15 @@ public class BasicPool<T extends Poolable> implements LifecycledPool<T> {
         throw new IllegalArgumentException("timeout cannot be null");
       }
       return completionLatch.await(timeout.getTimeout(), timeout.getUnit());
+    }
+  }
+
+  public int getTargetSize() {
+    lock.lock();
+    try {
+      return targetSize;
+    } finally {
+      lock.unlock();
     }
   }
 }

@@ -21,11 +21,12 @@ import static stormpot.UnitKit.*;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -88,6 +89,12 @@ public class PoolTest {
   setUp() {
     allocator = new CountingAllocator();
     config = new Config<GenericPoolable>().setSize(1).setAllocator(allocator);
+  }
+  
+  @Test(expected = IllegalArgumentException.class)
+  @Theory public void
+  timeoutCannotBeNull(PoolFixture fixture) throws Exception {
+    fixture.initPool(config).claim(null);
   }
   
   /**
@@ -989,13 +996,17 @@ public class PoolTest {
   @Theory public void
   claimMustStayWithinTimeoutEvenIfExpiredObjectIsReleased(PoolFixture fixture)
   throws Exception {
-    final Poolable[] objs = new Poolable[30];
+    final Poolable[] objs = new Poolable[40];
+    final Lock lock = new ReentrantLock();
     Allocator<GenericPoolable> allocator = new CountingAllocator() {
-      final Semaphore semaphore = new Semaphore(objs.length);
       @Override
       public GenericPoolable allocate(Slot slot) throws Exception {
-        semaphore.acquire();
-        return super.allocate(slot);
+        lock.lock();
+        try {
+          return super.allocate(slot);
+        } finally {
+          lock.unlock();
+        }
       }
     };
     config.setAllocator(allocator);
@@ -1006,6 +1017,7 @@ public class PoolTest {
       objs[i] = pool.claim(longTimeout);
       assertNotNull("Did not claim an object in time", objs[i]);
     }
+    lock.lock(); // prevent new allocations
     fork($delayedReleases(objs, 10, TimeUnit.MILLISECONDS));
     // must return before test times out:
     pool.claim(new Timeout(50, TimeUnit.MILLISECONDS));

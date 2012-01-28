@@ -35,8 +35,8 @@ class QAllocThread<T extends Poolable> extends Thread {
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;
   private final Allocator<T> allocator;
-  private final int targetSize;
   private final long ttlMillis;
+  private volatile int targetSize;
   private int size;
   private long deadPollTimeout = 1;
 
@@ -62,14 +62,17 @@ class QAllocThread<T extends Poolable> extends Thread {
   private void continuouslyReplenishPool() {
     try {
       for (;;) {
+        deadPollTimeout = size == targetSize? 50 : 1;
         if (size < targetSize) {
           QSlot<T> slot = new QSlot<T>(live);
           alloc(slot);
-          if (size == targetSize) {
-            deadPollTimeout = 50;
-          }
         }
         QSlot<T> slot = dead.poll(deadPollTimeout, TimeUnit.MILLISECONDS);
+        if (size > targetSize) {
+          slot = slot == null? live.poll() : slot;
+          dealloc(slot);
+          continue;
+        }
         if (slot != null) {
           dealloc(slot);
           alloc(slot); // TODO not covered
@@ -133,5 +136,14 @@ class QAllocThread<T extends Poolable> extends Thread {
 
   public boolean await(Timeout timeout) throws InterruptedException {
     return completionLatch.await(timeout.getTimeout(), timeout.getUnit());
+  }
+
+  public void setTargetSize(int size) {
+    this.targetSize = size;
+    LockSupport.unpark(this);
+  }
+
+  public int getTargetSize() {
+    return targetSize;
   }
 }

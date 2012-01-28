@@ -23,6 +23,7 @@ import stormpot.Config;
 import stormpot.LifecycledPool;
 import stormpot.PoolException;
 import stormpot.Poolable;
+import stormpot.ResizablePool;
 import stormpot.Timeout;
 
 /**
@@ -38,7 +39,8 @@ import stormpot.Timeout;
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  * @param <T> The type of {@link Poolable} managed by this pool.
  */
-public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
+public final class QueuePool<T extends Poolable>
+implements LifecycledPool<T>, ResizablePool<T> {
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;
   private final QAllocThread<T> allocThread;
@@ -108,5 +110,13 @@ public final class QueuePool<T extends Poolable> implements LifecycledPool<T> {
     shutdown = true;
     allocThread.interrupt();
     return new QPoolShutdownCompletion(allocThread);
+  }
+
+  public void setTargetSize(int size) {
+    allocThread.setTargetSize(size);
+  }
+
+  public int getTargetSize() {
+    return allocThread.getTargetSize();
   }
 }
