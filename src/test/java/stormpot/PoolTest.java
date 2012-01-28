@@ -996,7 +996,7 @@ public class PoolTest {
   @Theory public void
   claimMustStayWithinTimeoutEvenIfExpiredObjectIsReleased(PoolFixture fixture)
   throws Exception {
-    final Poolable[] objs = new Poolable[40];
+    final Poolable[] objs = new Poolable[31];
     final Lock lock = new ReentrantLock();
     Allocator<GenericPoolable> allocator = new CountingAllocator() {
       @Override
@@ -1181,8 +1181,6 @@ public class PoolTest {
     shutdown(pool);
     assertTrue(Thread.interrupted());
   }
-  // TODO test for resilience against spurious wake-ups?
-  
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the Pool javadoc - especially the part about the promises.
 }

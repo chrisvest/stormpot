@@ -113,6 +113,9 @@ implements LifecycledPool<T>, ResizablePool<T> {
   }
 
   public void setTargetSize(int size) {
+    if (size < 1) {
+      throw new IllegalArgumentException("target size must be at least 1");
+    }
     allocThread.setTargetSize(size);
   }
 

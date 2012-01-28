@@ -24,4 +24,5 @@ public class TimeoutTest {
     assertNotNull("unexpectedly got null for the base unit",
         new Timeout(1, TimeUnit.DAYS).getBaseUnit());
   }
+  // TODO equality semantics
 }

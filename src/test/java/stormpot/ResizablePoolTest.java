@@ -44,6 +44,13 @@ public class ResizablePoolTest {
     assertThat(fixture.initPool(config), instanceOf(ResizablePool.class));
   }
   
+  @Test(expected = IllegalArgumentException.class)
+  @Theory public void
+  targetSizeMustBeGreaterThanZero(PoolFixture fixture) {
+    ResizablePool<GenericPoolable> pool = resizable(fixture);
+    pool.setTargetSize(0);
+  }
+  
   @Theory public void
   targetSizeMustBeConfiguredSizeByDefault(PoolFixture fixture) {
     config.setSize(23);
@@ -58,6 +65,16 @@ public class ResizablePoolTest {
     assertThat(pool.getTargetSize(), is(3));
   }
   
+  /**
+   * When we increase the size of a depleted pool, it should be possible to
+   * make claim again and get out newly allocated objects.
+   * 
+   * We test for this by depleting a pool, upping the size and then claiming
+   * again with a timeout that is longer than the timeout of the test. The test
+   * pass if it does not timeout.
+   * @param fixture
+   * @throws Exception
+   */
   @Test(timeout = 300)
   @Theory public void
   increasingSizeMustAllowMoreAllocations(PoolFixture fixture) throws Exception {
@@ -68,6 +85,24 @@ public class ResizablePoolTest {
     pool.claim(longTimeout);
   }
   
+  /**
+   * We must somehow ensure that the pool starts deallocating more than it
+   * allocates, when the pool is shrunk. This is difficult because the pool
+   * cannot tell us when it reaches the target size, so we have to figure this
+   * out by using a special allocator.
+   * 
+   * We test for this by configuring a CountingAllocator that also unpacks a
+   * thread (namely ours, the main thread for the test) at every allocation
+   * and deallocation. We also configure the pool to have a somewhat large
+   * initial size, so we can shrink it later. Then we deplete the pool, and
+   * set a smaller target size. After setting the new target size, we release
+   * just enough objects for the pool to reach it, and then we wait for the
+   * allocator to register that same number of deallocations. This has to
+   * happen before the test times out. After that, we check that the difference
+   * between the allocations and the deallocations matches the new target size.
+   * @param fixture
+   * @throws Exception
+   */
   @Test(timeout = 300)
   @Theory public void
   decreasingSizeMustEventuallyDeallocateSurplusObjects(PoolFixture fixture)
@@ -83,7 +118,6 @@ public class ResizablePoolTest {
     
     while (allocator.allocations() != startingSize) {
       objs.add(pool.claim(longTimeout)); // force the pool to do work
-      LockSupport.parkNanos(10000000); // 10 millis
     }
     pool.setTargetSize(newSize);
     while (allocator.deallocations() != startingSize - newSize) {
@@ -98,6 +132,22 @@ public class ResizablePoolTest {
         allocator.allocations() - allocator.deallocations(), is(newSize));
   }
   
+  /**
+   * Similar to the decreasingSizeMustEventuallyDeallocateSurplusObjects test
+   * above, but this time the objects have a very short TTL and we wait with
+   * releasing them until they have expired.
+   * 
+   * Again, we deplete the pool and then spinwait for the objects to expire.
+   * Then we set the new lower target size, and release just enough for the
+   * pool to reach the new target. Then we try to claim an object from the pool
+   * with a very short timeout. This will return null because the pool is still
+   * depleted. We also check that the pool has not made any new allocations,
+   * even though we have been releasing objects. We don't check the
+   * deallocations because it's complicated and we did it in the
+   * decreasingSizeMustEventuallyDeallocateSurplusObjects test above.
+   * @param fixture
+   * @throws Exception
+   */
   @Test(timeout = 300)
   @Theory public void
   mustNotReallocateWhenReleasingExpiredObjectsIntoShrunkPool(PoolFixture fixture)
