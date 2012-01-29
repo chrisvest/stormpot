@@ -238,7 +238,7 @@ implements LifecycledPool<T>, ResizablePool<T> {
     public void release(Poolable obj) {
       bpool.lock.lock();
       if (!claimed) {
-        bpool.lock.unlock(); // TODO not covered
+        bpool.lock.unlock();
         return;
       }
       expired();

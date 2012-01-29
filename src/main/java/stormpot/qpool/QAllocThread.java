@@ -73,7 +73,10 @@ class QAllocThread<T extends Poolable> extends Thread {
           dealloc(slot);
         } else if (slot != null) {
           dealloc(slot);
-          alloc(slot); // TODO not covered
+          alloc(slot);
+          // mutation testing might note that the above alloc() call can be
+          // removed... that's okay, it's really just an optimisation that
+          // prevents us from creating new slots all the time - we reuse them.
         }
       }
     } catch (InterruptedException _) {
