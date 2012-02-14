@@ -16,8 +16,7 @@
 package stormpot;
 
 import static org.junit.Assert.*;
-
-import java.util.concurrent.TimeUnit;
+import static org.hamcrest.Matchers.*;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -37,17 +36,26 @@ public class ConfigTest {
   }
   
   @Test public void
-  ttlMustBeSettable() {
-    long ttl = 123;
-    TimeUnit unit = TimeUnit.DAYS;
-    config.setTTL(ttl, unit);
-    assertTrue(config.getTTL() == ttl && config.getTTLUnit() == unit);
-  }
-  
-  @Test public void
   allocatorMustBeSettable() {
     CountingAllocator allocator = new CountingAllocator();
     config.setAllocator(allocator);
     assertTrue(config.getAllocator() == allocator);
+  }
+  
+  @Test public void
+  mustHaveTimeBasedDeallocationRuleAsDefaul() {
+    assertThat(config.getDeallocationRule(),
+        instanceOf(TimeBasedDeallocationRule.class));
+  }
+  
+  @Test public void
+  deallocationRuleMustBeSettable() {
+    DeallocationRule rule = new DeallocationRule() {
+      public <T extends Poolable> boolean isInvalid(SlotInfo<T> info) {
+        return false;
+      }
+    };
+    config.setDeallocationRule(rule);
+    assertThat(config.getDeallocationRule(), is(rule));
   }
 }

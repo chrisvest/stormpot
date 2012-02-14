@@ -53,6 +53,8 @@ public class Config<T extends Poolable> {
   private int size = 10;
   private long ttl = 600; // 10 minutes
   private TimeUnit ttlUnit = TimeUnit.SECONDS;
+  private DeallocationRule deallocRule =
+      new TimeBasedDeallocationRule(600, TimeUnit.SECONDS);
   private Allocator<?> allocator;
   
   /**
@@ -179,17 +181,21 @@ public class Config<T extends Poolable> {
       throw new IllegalArgumentException(
           "size must be at least 1, but was " + size);
     }
-    if (ttl < 1) {
-      throw new IllegalArgumentException(
-          "TTL value must be at least 1, but was " + ttl);
-    }
-    if (ttlUnit == null) {
-      throw new IllegalArgumentException(
-          "TTL TimeUnit cannot be null");
-    }
     if (allocator == null) {
       throw new IllegalArgumentException(
           "Allocator cannot be null");
     }
+    if (deallocRule == null) {
+      throw new IllegalArgumentException("DeallocationRule cannot be null");
+    }
+  }
+
+  public synchronized DeallocationRule getDeallocationRule() {
+    return deallocRule;
+  }
+
+  public synchronized Config<T> setDeallocationRule(DeallocationRule rule) {
+    deallocRule = rule;
+    return this;
   }
 }

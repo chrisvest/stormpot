@@ -72,8 +72,6 @@ import stormpot.qpool.QPoolFixture;
  */
 @RunWith(Theories.class)
 public class PoolTest {
-  private static final long timeout = 1;
-  private static final TimeUnit unit = TimeUnit.SECONDS;
   private static final Timeout longTimeout = new Timeout(1, TimeUnit.SECONDS);
   private static final Timeout mediumTimeout = new Timeout(10, TimeUnit.MILLISECONDS);
   private static final Timeout shortTimeout = new Timeout(1, TimeUnit.MILLISECONDS);
@@ -231,26 +229,10 @@ public class PoolTest {
     fixture.initPool(config.setSize(0));
   }
   
-  /**
-   * Prevent the creation of pools with a TTL value less than one.
-   * @param fixture
-   * @see Config#setTTL(long, TimeUnit)
-   */
   @Test(timeout = 300, expected = IllegalArgumentException.class)
   @Theory public void
-  constructorMustThrowOnTtlLessThanOne(PoolFixture fixture) {
-    fixture.initPool(config.setTTL(0, unit));
-  }
-  
-  /**
-   * Prevent the creation of pools with a null TTL TimeUnit.
-   * @param fixture
-   * @see Config#setTTL(long, TimeUnit)
-   */
-  @Test(timeout = 300, expected = IllegalArgumentException.class)
-  @Theory public void
-  constructorMustThrowOnNullTtlUnit(PoolFixture fixture) {
-    fixture.initPool(config.setTTL(timeout, null));
+  constructorMustThrowOnNullDeallocationRule(PoolFixture fixture) {
+    fixture.initPool(config.setDeallocationRule(null));
   }
   
   /**
@@ -263,6 +245,10 @@ public class PoolTest {
   constructorMustThrowOnNullAllocator(PoolFixture fixture) {
     fixture.initPool(config.setAllocator(null));
   }
+  
+  // TODO must use provided deallocation rule
+  // TODO [delete the ttl & unit code in config]
+  // TODO [re-write bunch of Javadoc]
   
   /**
    * It is not possible to claim from a pool that has been shut down. Doing
