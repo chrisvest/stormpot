@@ -33,6 +33,7 @@ import stormpot.PoolException;
 import stormpot.Poolable;
 import stormpot.ResizablePool;
 import stormpot.Slot;
+import stormpot.SlotInfo;
 import stormpot.Timeout;
 
 /**
@@ -202,20 +203,20 @@ implements LifecycledPool<T>, ResizablePool<T> {
    * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
    *
    */
-  private final static class BasicSlot<T extends Poolable> implements Slot {
+  private final static class BasicSlot<T extends Poolable> implements Slot, SlotInfo<T> {
     private final int index;
-    private final long expires;
+    private final long created;
     private boolean claimed;
     private final BasicPool<T> bpool;
 
     private BasicSlot(int index, BasicPool<T> bpool) {
       this.index = index;
       this.bpool = bpool;
-      this.expires = System.currentTimeMillis() + bpool.ttlMillis;
+      this.created = System.currentTimeMillis();
     }
 
     public boolean expired() {
-      if (System.currentTimeMillis() > expires || index >= bpool.targetSize) {
+      if (getAgeMillis() > bpool.ttlMillis || index >= bpool.targetSize) {
         try {
           bpool.allocator.deallocate(bpool.pool.get(index));
         } catch (Exception _) {
@@ -246,6 +247,11 @@ implements LifecycledPool<T>, ResizablePool<T> {
       bpool.count.decrementAndGet();
       bpool.released.signalAll();
       bpool.lock.unlock();
+    }
+
+    @Override
+    public long getAgeMillis() {
+      return System.currentTimeMillis() - created;
     }
   }
 
