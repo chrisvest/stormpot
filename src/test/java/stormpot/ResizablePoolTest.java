@@ -91,7 +91,7 @@ public class ResizablePoolTest {
    * cannot tell us when it reaches the target size, so we have to figure this
    * out by using a special allocator.
    * 
-   * We test for this by configuring a CountingAllocator that also unpacks a
+   * We test for this by configuring a CountingAllocator that also unparks a
    * thread (namely ours, the main thread for the test) at every allocation
    * and deallocation. We also configure the pool to have a somewhat large
    * initial size, so we can shrink it later. Then we deplete the pool, and
