@@ -73,6 +73,10 @@ import stormpot.qpool.QPoolFixture;
  */
 @RunWith(Theories.class)
 public class PoolTest {
+  private static final DeallocationRule oneMsTTL =
+      new TimeBasedDeallocationRule(1, TimeUnit.MILLISECONDS);
+  private static final DeallocationRule fiveMsTTL =
+      new TimeBasedDeallocationRule(5, TimeUnit.MILLISECONDS);
   private static final Timeout longTimeout = new Timeout(1, TimeUnit.SECONDS);
   private static final Timeout mediumTimeout = new Timeout(10, TimeUnit.MILLISECONDS);
   private static final Timeout shortTimeout = new Timeout(1, TimeUnit.MILLISECONDS);
@@ -247,7 +251,6 @@ public class PoolTest {
     fixture.initPool(config.setAllocator(null));
   }
   
-  @Ignore
   @Test(timeout = 300)
   @Theory public void
   mustUseProvidedDeallocationRule(PoolFixture fixture) throws Exception {
@@ -257,8 +260,6 @@ public class PoolTest {
     pool.claim(longTimeout).release();
     assertThat(rule.getCount(), is(1));
   }
-  // TODO must use provided deallocation rule
-  // TODO [delete the ttl & unit code in config]
   // TODO [re-write bunch of Javadoc]
   
   /**
@@ -301,7 +302,7 @@ public class PoolTest {
   @Theory public void
   mustReplaceExpiredPoolables(PoolFixture fixture) throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(
-        config.setTTL(1, TimeUnit.MILLISECONDS));
+        config.setDeallocationRule(oneMsTTL));
     pool.claim(longTimeout).release();
     spinwait(2);
     pool.claim(longTimeout).release();
@@ -331,7 +332,7 @@ public class PoolTest {
   mustDeallocateExpiredPoolablesAndStayWithinSizeLimit(PoolFixture fixture)
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(
-        config.setTTL(1, TimeUnit.MILLISECONDS));
+        config.setDeallocationRule(oneMsTTL));
     pool.claim(longTimeout).release();
     spinwait(2);
     pool.claim(longTimeout).release();
@@ -560,7 +561,7 @@ public class PoolTest {
   mustNotDeallocateTheSameObjectMoreThanOnce(PoolFixture fixture)
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(
-        config.setTTL(1, TimeUnit.MILLISECONDS));
+        config.setDeallocationRule(oneMsTTL));
     Poolable obj = pool.claim(longTimeout);
     spinwait(2);
     obj.release();
@@ -607,7 +608,7 @@ public class PoolTest {
       }
     };
     Pool<GenericPoolable> pool = fixture.initPool(
-        config.setAllocator(allocator).setTTL(1, TimeUnit.MILLISECONDS));
+        config.setAllocator(allocator).setDeallocationRule(oneMsTTL));
     pool.claim(longTimeout).release();
     shutdown(pool).await(longTimeout);
     assertFalse(wasNull.get());
@@ -709,7 +710,7 @@ public class PoolTest {
     };
     config.setAllocator(allocator);
     Pool<GenericPoolable> pool = fixture.initPool(
-        config.setTTL(1, TimeUnit.MILLISECONDS));
+        config.setDeallocationRule(oneMsTTL));
     pool.claim(longTimeout).release();
     spinwait(2);
     pool.claim(longTimeout).release();
@@ -1007,7 +1008,7 @@ public class PoolTest {
       }
     };
     config.setAllocator(allocator);
-    config.setTTL(5, TimeUnit.MILLISECONDS);
+    config.setDeallocationRule(fiveMsTTL);
     config.setSize(objs.length);
     Pool<GenericPoolable> pool = fixture.initPool(config);
     for (int i = 0; i < objs.length; i++) {

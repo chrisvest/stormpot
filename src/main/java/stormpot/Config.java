@@ -51,8 +51,6 @@ import java.util.concurrent.TimeUnit;
 public class Config<T extends Poolable> {
 
   private int size = 10;
-  private long ttl = 600; // 10 minutes
-  private TimeUnit ttlUnit = TimeUnit.SECONDS;
   private DeallocationRule deallocRule =
       new TimeBasedDeallocationRule(600, TimeUnit.SECONDS);
   private Allocator<?> allocator;
@@ -113,29 +111,29 @@ public class Config<T extends Poolable> {
    * @param unit The unit of the 'ttl' value. Cannot be <code>null</code>.
    * @return This Config instance.
    */
-  public synchronized Config<T> setTTL(long ttl, TimeUnit unit) {
-    this.ttl = ttl;
-    this.ttlUnit = unit;
-    return this;
-  }
+//  public synchronized Config<T> setTTL(long ttl, TimeUnit unit) {
+//    this.ttl = ttl;
+//    this.ttlUnit = unit;
+//    return this;
+//  }
 
   /**
    * Get the scalar value of the time-to-live value that applies to the objects
    * in the pools we want to configure. Default TTL is 10 minutes.
    * @return The scalar time-to-live.
    */
-  public synchronized long getTTL() {
-    return ttl;
-  }
+//  public synchronized long getTTL() {
+//    return ttl;
+//  }
 
   /**
    * Get the time-scale unit of the configured time-to-live that applies to the
    * objects in the pools we want to configure. Default TTL is 10 minutes.
    * @return The time-scale unit of the configured time-to-live value.
    */
-  public synchronized TimeUnit getTTLUnit() {
-    return ttlUnit;
-  }
+//  public synchronized TimeUnit getTTLUnit() {
+//    return ttlUnit;
+//  }
 
   /**
    * Set the {@link Allocator} to use for the pools we want to configure.

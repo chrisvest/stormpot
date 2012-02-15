@@ -68,7 +68,7 @@ class QAllocThread<T extends Poolable> extends Thread {
         QSlot<T> slot = dead.poll(deadPollTimeout, TimeUnit.MILLISECONDS);
         if (size > targetSize) {
           slot = slot == null? live.poll() : slot;
-          dealloc(slot);
+          dealloc(slot); // TODO live.poll() might return null
         } else if (slot != null) {
           dealloc(slot);
           alloc(slot);

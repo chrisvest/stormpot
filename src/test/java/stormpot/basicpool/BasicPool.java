@@ -28,6 +28,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import stormpot.Allocator;
 import stormpot.Completion;
 import stormpot.Config;
+import stormpot.DeallocationRule;
 import stormpot.LifecycledPool;
 import stormpot.PoolException;
 import stormpot.Poolable;
@@ -55,7 +56,7 @@ implements LifecycledPool<T>, ResizablePool<T> {
   private final List<BasicSlot<T>> slots;
   private final Lock lock;
   private final Condition released;
-  private final long ttlMillis;
+  private final DeallocationRule deallocRule;
   private boolean shutdown;
   private int targetSize;
 
@@ -68,8 +69,8 @@ implements LifecycledPool<T>, ResizablePool<T> {
       this.pool = new ArrayList<T>();
       this.slots = new ArrayList<BasicSlot<T>>();
       setTargetSize(config.getSize());
-      this.ttlMillis = config.getTTLUnit().toMillis(config.getTTL());
       this.allocator = config.getAllocator();
+      this.deallocRule = config.getDeallocationRule();
     }
   }
 
@@ -216,7 +217,8 @@ implements LifecycledPool<T>, ResizablePool<T> {
     }
 
     public boolean expired() {
-      if (getAgeMillis() > bpool.ttlMillis || index >= bpool.targetSize) {
+//      if (getAgeMillis() > bpool.ttlMillis || index >= bpool.targetSize) {
+      if (bpool.deallocRule.isInvalid(this) || index >= bpool.targetSize) {
         try {
           bpool.allocator.deallocate(bpool.pool.get(index));
         } catch (Exception _) {
