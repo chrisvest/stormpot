@@ -29,6 +29,7 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theories;
@@ -246,6 +247,16 @@ public class PoolTest {
     fixture.initPool(config.setAllocator(null));
   }
   
+  @Ignore
+  @Test(timeout = 300)
+  @Theory public void
+  mustUseProvidedDeallocationRule(PoolFixture fixture) throws Exception {
+    CountingDeallocationRule rule = new CountingDeallocationRule(false);
+    config.setDeallocationRule(rule);
+    Pool<GenericPoolable> pool = fixture.initPool(config);
+    pool.claim(longTimeout).release();
+    assertThat(rule.getCount(), is(1));
+  }
   // TODO must use provided deallocation rule
   // TODO [delete the ttl & unit code in config]
   // TODO [re-write bunch of Javadoc]

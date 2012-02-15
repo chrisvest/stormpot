@@ -20,13 +20,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import stormpot.Poolable;
 import stormpot.Slot;
+import stormpot.SlotInfo;
 
-class QSlot<T extends Poolable> implements Slot {
+class QSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   final BlockingQueue<QSlot<T>> live;
   final AtomicBoolean claimed;
   T obj;
   Exception poison;
-  long expires;
+  long created;
   
   public QSlot(BlockingQueue<QSlot<T>> live) {
     this.live = live;
@@ -37,13 +38,14 @@ class QSlot<T extends Poolable> implements Slot {
     claimed.set(true);
   }
 
-  public boolean expired() {
-    return expires < System.currentTimeMillis();
-  }
-  
   public void release(Poolable obj) {
     if (claimed.compareAndSet(true, false)) {
       live.offer(this);
     }
+  }
+
+  @Override
+  public long getAgeMillis() {
+    return System.currentTimeMillis() - created;
   }
 }

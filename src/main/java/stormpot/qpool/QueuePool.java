@@ -44,6 +44,7 @@ implements LifecycledPool<T>, ResizablePool<T> {
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;
   private final QAllocThread<T> allocThread;
+  private final long maxAge;
   private volatile boolean shutdown = false;
   
   /**
@@ -56,6 +57,7 @@ implements LifecycledPool<T>, ResizablePool<T> {
     synchronized (config) {
       config.validate();
       allocThread = new QAllocThread<T>(live, dead, config);
+      maxAge = config.getTTLUnit().toMillis(config.getTTL());
     }
     allocThread.start();
   }
@@ -77,7 +79,7 @@ implements LifecycledPool<T>, ResizablePool<T> {
   }
 
   private boolean isInvalid(QSlot<T> slot) {
-    if (slot.expired()) {
+    if (slot.getAgeMillis() > maxAge) {
       // it's invalid - into the dead queue with it and continue looping
       dead.offer(slot);
       return true;

@@ -35,7 +35,6 @@ class QAllocThread<T extends Poolable> extends Thread {
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;
   private final Allocator<T> allocator;
-  private final long ttlMillis;
   private volatile int targetSize;
   private int size;
   private long deadPollTimeout = 1;
@@ -49,7 +48,6 @@ class QAllocThread<T extends Poolable> extends Thread {
     this.size = 0;
     this.live = live;
     this.dead = dead;
-    ttlMillis = config.getTTLUnit().toMillis(config.getTTL());
   }
 
   @Override
@@ -117,7 +115,7 @@ class QAllocThread<T extends Poolable> extends Thread {
       slot.poison = e;
     }
     size++;
-    slot.expires = System.currentTimeMillis() + ttlMillis;
+    slot.created = System.currentTimeMillis();
     slot.claim();
     slot.release(slot.obj);
   }
