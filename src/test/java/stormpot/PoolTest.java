@@ -259,6 +259,9 @@ public class PoolTest {
     pool.claim(longTimeout).release();
     assertThat(rule.getCount(), is(1));
   }
+  // TODO what if the DeallocationRule throws an exception?
+  // TODO SlotInfo should have claim-count
+  // TODO SlotInfo should have the poolable
   // TODO [re-write bunch of Javadoc]
   
   /**
