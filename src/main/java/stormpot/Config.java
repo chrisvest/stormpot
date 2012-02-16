@@ -51,7 +51,7 @@ import java.util.concurrent.TimeUnit;
 public class Config<T extends Poolable> {
 
   private int size = 10;
-  private DeallocationRule deallocRule =
+  private DeallocationRule<? super T> deallocRule =
       new TimeBasedDeallocationRule(600, TimeUnit.SECONDS);
   private Allocator<?> allocator;
   
@@ -188,11 +188,11 @@ public class Config<T extends Poolable> {
     }
   }
 
-  public synchronized DeallocationRule getDeallocationRule() {
+  public synchronized DeallocationRule<? super T> getDeallocationRule() {
     return deallocRule;
   }
 
-  public synchronized Config<T> setDeallocationRule(DeallocationRule rule) {
+  public synchronized Config<T> setDeallocationRule(DeallocationRule<? super T> rule) {
     deallocRule = rule;
     return this;
   }

@@ -2,7 +2,7 @@ package stormpot;
 
 import java.util.concurrent.TimeUnit;
 
-public class TimeBasedDeallocationRule implements DeallocationRule {
+public class TimeBasedDeallocationRule implements DeallocationRule<Poolable> {
 
   private final long maxPermittedAgeMillis;
 
@@ -17,7 +17,7 @@ public class TimeBasedDeallocationRule implements DeallocationRule {
     maxPermittedAgeMillis = unit.toMillis(maxPermittedAge);
   }
 
-  public <T extends Poolable> boolean isInvalid(SlotInfo<T> info) {
+  public boolean isInvalid(SlotInfo<Poolable> info) {
     return info.getAgeMillis() > maxPermittedAgeMillis;
   }
 }

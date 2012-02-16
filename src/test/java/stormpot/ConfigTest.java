@@ -22,7 +22,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class ConfigTest {
-  Config<?> config;
+  Config<Poolable> config;
   
   @Before public void
   setUp() {
@@ -37,7 +37,7 @@ public class ConfigTest {
   
   @Test public void
   allocatorMustBeSettable() {
-    CountingAllocator allocator = new CountingAllocator();
+    Allocator<?> allocator = new CountingAllocator();
     config.setAllocator(allocator);
     assertTrue(config.getAllocator() == allocator);
   }
@@ -50,12 +50,15 @@ public class ConfigTest {
   
   @Test public void
   deallocationRuleMustBeSettable() {
-    DeallocationRule rule = new DeallocationRule() {
-      public <T extends Poolable> boolean isInvalid(SlotInfo<T> info) {
+    DeallocationRule<Poolable> expectedRule = new DeallocationRule<Poolable>() {
+      public boolean isInvalid(SlotInfo<Poolable> info) {
         return false;
       }
     };
-    config.setDeallocationRule(rule);
-    assertThat(config.getDeallocationRule(), is(rule));
+    config.setDeallocationRule(expectedRule);
+    @SuppressWarnings("unchecked")
+    DeallocationRule<Poolable> actualRule =
+        (DeallocationRule<Poolable>) config.getDeallocationRule();
+    assertThat(actualRule, is(expectedRule));
   }
 }

@@ -2,7 +2,7 @@ package stormpot;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class CountingDeallocationRule implements DeallocationRule {
+public class CountingDeallocationRule implements DeallocationRule<Poolable> {
   private final boolean[] replies;
   private final AtomicInteger counter;
 
@@ -12,7 +12,7 @@ public class CountingDeallocationRule implements DeallocationRule {
   }
 
   @Override
-  public <T extends Poolable> boolean isInvalid(SlotInfo<T> info) {
+  public boolean isInvalid(SlotInfo<Poolable> info) {
     int count = counter.getAndIncrement();
     int index = Math.max(count, replies.length - 1);
     return replies[index];
