@@ -77,7 +77,7 @@ public class PoolSpin extends SimpleBenchmark {
     Config<GenericPoolable> config = new Config<GenericPoolable>();
     config.setAllocator(new SlowAllocator(work));
     config.setSize(size);
-    DeallocationRule rule =
+    DeallocationRule<Poolable> rule =
         new TimeBasedDeallocationRule(ttl, TimeUnit.MILLISECONDS);
     config.setDeallocationRule(rule);
     pool = (poolType == 0? new BasicPoolFixture() : new QPoolFixture()).initPool(config);

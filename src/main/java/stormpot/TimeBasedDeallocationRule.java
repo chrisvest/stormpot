@@ -17,7 +17,7 @@ public class TimeBasedDeallocationRule implements DeallocationRule<Poolable> {
     maxPermittedAgeMillis = unit.toMillis(maxPermittedAge);
   }
 
-  public boolean isInvalid(SlotInfo<Poolable> info) {
+  public boolean isInvalid(SlotInfo<? extends Poolable> info) {
     return info.getAgeMillis() > maxPermittedAgeMillis;
   }
 }

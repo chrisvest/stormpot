@@ -56,7 +56,7 @@ implements LifecycledPool<T>, ResizablePool<T> {
   private final List<BasicSlot<T>> slots;
   private final Lock lock;
   private final Condition released;
-  private final DeallocationRule deallocRule;
+  private final DeallocationRule<? super T> deallocRule;
   private boolean shutdown;
   private int targetSize;
 

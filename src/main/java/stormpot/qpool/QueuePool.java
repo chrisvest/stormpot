@@ -45,7 +45,7 @@ implements LifecycledPool<T>, ResizablePool<T> {
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;
   private final QAllocThread<T> allocThread;
-  private final DeallocationRule deallocRule;
+  private final DeallocationRule<? super T> deallocRule;
   private volatile boolean shutdown = false;
   
   /**

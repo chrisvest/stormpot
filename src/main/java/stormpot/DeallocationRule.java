@@ -14,5 +14,5 @@ public interface DeallocationRule<T extends Poolable> {
    * @return <code>true</code> if the slot and poolable in question should be
    * deallocated, <code>false</code> if it is valid and elegible for claiming.
    */
-  boolean isInvalid(SlotInfo<T> info);
+  boolean isInvalid(SlotInfo<? extends T> info);
 }

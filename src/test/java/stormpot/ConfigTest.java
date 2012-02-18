@@ -51,7 +51,7 @@ public class ConfigTest {
   @Test public void
   deallocationRuleMustBeSettable() {
     DeallocationRule<Poolable> expectedRule = new DeallocationRule<Poolable>() {
-      public boolean isInvalid(SlotInfo<Poolable> info) {
+      public boolean isInvalid(SlotInfo<? extends Poolable> info) {
         return false;
       }
     };

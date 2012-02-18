@@ -12,7 +12,7 @@ public class CountingDeallocationRule implements DeallocationRule<Poolable> {
   }
 
   @Override
-  public boolean isInvalid(SlotInfo<Poolable> info) {
+  public boolean isInvalid(SlotInfo<? extends Poolable> info) {
     int count = counter.getAndIncrement();
     int index = Math.max(count, replies.length - 1);
     return replies[index];

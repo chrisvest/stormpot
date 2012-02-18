@@ -72,9 +72,9 @@ import stormpot.qpool.QPoolFixture;
  */
 @RunWith(Theories.class)
 public class PoolTest {
-  private static final DeallocationRule oneMsTTL =
+  private static final DeallocationRule<Poolable> oneMsTTL =
       new TimeBasedDeallocationRule(1, TimeUnit.MILLISECONDS);
-  private static final DeallocationRule fiveMsTTL =
+  private static final DeallocationRule<Poolable> fiveMsTTL =
       new TimeBasedDeallocationRule(5, TimeUnit.MILLISECONDS);
   private static final Timeout longTimeout = new Timeout(1, TimeUnit.SECONDS);
   private static final Timeout mediumTimeout = new Timeout(10, TimeUnit.MILLISECONDS);

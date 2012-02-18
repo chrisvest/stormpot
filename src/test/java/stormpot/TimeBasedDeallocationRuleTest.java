@@ -8,7 +8,7 @@ import org.junit.Test;
 
 public class TimeBasedDeallocationRuleTest {
 
-  private DeallocationRule createRule(int ttl) {
+  private DeallocationRule<Poolable> createRule(int ttl) {
     return new TimeBasedDeallocationRule(ttl, TimeUnit.MILLISECONDS);
   }
   
@@ -27,21 +27,21 @@ public class TimeBasedDeallocationRuleTest {
   
   @Test public void
   youngSlotsAreNotInvalid() {
-    DeallocationRule rule = createRule(2);
+    DeallocationRule<Poolable> rule = createRule(2);
     SlotInfo<?> info = infoWithAge(1);
     assertFalse(rule.isInvalid(info));
   }
 
   @Test public void
   slotsAtTheMaximumPermittedAgeAreNotInvalid() {
-    DeallocationRule rule = createRule(2);
+    DeallocationRule<Poolable> rule = createRule(2);
     SlotInfo<?> info = infoWithAge(2);
     assertFalse(rule.isInvalid(info));
   }
   
   @Test public void
   slotsOlderThanTheMaximumPermittedAgeAreInvalid() {
-    DeallocationRule rule = createRule(2);
+    DeallocationRule<Poolable> rule = createRule(2);
     SlotInfo<?> info = infoWithAge(3);
     assertTrue(rule.isInvalid(info));
   }
