@@ -250,6 +250,15 @@ public class PoolTest {
     fixture.initPool(config.setAllocator(null));
   }
   
+  /**
+   * Pools must use the provided deallocation rule to determine whether slots
+   * are invalid or not, instead of using their own ad-hoc mechanisms.
+   * We test this by using a deallocation rule that counts the number of times
+   * it is invoked. Then we claim an object and assert that the deallocation
+   * rule was invoked at least once, presumably for that object.
+   * @param fixture
+   * @throws Exception
+   */
   @Test(timeout = 300)
   @Theory public void
   mustUseProvidedDeallocationRule(PoolFixture fixture) throws Exception {
@@ -259,6 +268,10 @@ public class PoolTest {
     pool.claim(longTimeout).release();
     assertThat(rule.getCount(), is(1));
   }
+  
+  // TODO exceptions from deallocation rules must bubble out
+  // TODO slots that make deallocation rule throw are invalid
+  
   // TODO what if the DeallocationRule throws an exception?
   // TODO SlotInfo should have claim-count
   // TODO SlotInfo should have the poolable
