@@ -23,7 +23,6 @@ public class Timeout {
   }
 
   public long getDeadlineNanos() {
-//    return now() + unit.toMillis(timeout);
     return now() + unit.toNanos(timeout);
   }
 
@@ -32,11 +31,27 @@ public class Timeout {
   }
 
   private long now() {
-//    return System.currentTimeMillis();
     return System.nanoTime();
   }
 
   public TimeUnit getBaseUnit() {
     return TimeUnit.NANOSECONDS;
+  }
+
+  @Override
+  public int hashCode() {
+    long nanos = unit.toNanos(timeout);
+    return 31 * 1 + (int) (nanos ^ (nanos >>> 32));
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (!(obj instanceof Timeout)) {
+      return false;
+    }
+    Timeout that = (Timeout) obj;
+    long thisNanos = unit.toNanos(timeout);
+    long thatNanos = that.unit.toNanos(that.timeout);
+    return thisNanos == thatNanos;
   }
 }
