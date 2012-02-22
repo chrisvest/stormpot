@@ -289,6 +289,7 @@ public class PoolTest {
     // make a couple of calls because pools might optimise for freshly
     // created objects
     pool.claim(longTimeout).release();
+    pool.claim(longTimeout).release();
   }
   
   @Test(timeout = 300)
@@ -307,6 +308,7 @@ public class PoolTest {
     // must have deallocated that object
     assertThat(allocator.deallocations(), is(1));
   }
+  
   
   // TODO SlotInfo should have claim-count
   // TODO SlotInfo should have the poolable
