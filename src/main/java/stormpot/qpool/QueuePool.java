@@ -80,14 +80,19 @@ implements LifecycledPool<T>, ResizablePool<T> {
   }
 
   private boolean isInvalid(QSlot<T> slot) {
-    if (deallocRule.isInvalid(slot)) {
-      // it's invalid - into the dead queue with it and continue looping
-      dead.offer(slot);
-      return true;
+    boolean invalid = true;
+    try {
+      invalid = deallocRule.isInvalid(slot);
+    } finally {
+      if (invalid) {
+        // it's invalid - into the dead queue with it and continue looping
+        dead.offer(slot);
+      } else {
+        // it's valid - claim it and stop looping
+        slot.claim();
+      }
     }
-    // it's valid - claim it and stop looping
-    slot.claim();
-    return false;
+    return invalid;
   }
 
   public T claim(Timeout timeout) throws PoolException,

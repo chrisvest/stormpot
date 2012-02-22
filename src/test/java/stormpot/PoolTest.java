@@ -269,10 +269,45 @@ public class PoolTest {
     assertThat(rule.getCount(), is(1));
   }
   
-  // TODO exceptions from deallocation rules must bubble out
-  // TODO slots that make deallocation rule throw are invalid
+  /**
+   * In the hopefully unlikely event that a DeallocationRule throws an
+   * exception, that exception should bubble out of the pool unspoiled.
+   * 
+   * We test for this by configuring a DeallocationRule that always throws.
+   * No guarantees are being made about when, exactly, it is that the pool will
+   * invoke the DeallocationRule. Therefore we claim and release an object a
+   * couple of times. That ought to do it.
+   * @param fixture
+   * @throws Exception
+   */
+  @Test(timeout = 300, expected = SomeRandomRuntimeException.class)
+  @Theory public void
+  exceptionsFromDeallocationRulesMustBubbleOut(PoolFixture fixture)
+      throws Exception {
+    config.setDeallocationRule(new ThrowyDeallocationRule());
+    Pool<GenericPoolable> pool = fixture.initPool(config);
+    // make a couple of calls because pools might optimise for freshly
+    // created objects
+    pool.claim(longTimeout).release();
+  }
   
-  // TODO what if the DeallocationRule throws an exception?
+  @Test(timeout = 300)
+  @Theory public void
+  slotsThatMakeTheDeallocationRuleThrowAreInvalid(PoolFixture fixture)
+      throws Exception {
+    config.setDeallocationRule(new ThrowyDeallocationRule());
+    Pool<GenericPoolable> pool = fixture.initPool(config);
+    try {
+      pool.claim(longTimeout).release();
+    } catch (SomeRandomRuntimeException _) {};
+    // second call to claim to ensure that the deallocation has taken place
+    try {
+      pool.claim(longTimeout);
+    } catch (SomeRandomRuntimeException _) {};
+    // must have deallocated that object
+    assertThat(allocator.deallocations(), is(1));
+  }
+  
   // TODO SlotInfo should have claim-count
   // TODO SlotInfo should have the poolable
   // TODO [re-write bunch of Javadoc]

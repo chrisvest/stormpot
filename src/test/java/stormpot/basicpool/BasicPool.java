@@ -217,17 +217,23 @@ implements LifecycledPool<T>, ResizablePool<T> {
     }
 
     public boolean expired() {
-//      if (getAgeMillis() > bpool.ttlMillis || index >= bpool.targetSize) {
-      if (bpool.deallocRule.isInvalid(this) || index >= bpool.targetSize) {
-        try {
-          bpool.allocator.deallocate(bpool.pool.get(index));
-        } catch (Exception _) {
-          // exceptions from deallocate are ignored as per specification.
+      boolean invalid = false;
+      try {
+        invalid = bpool.deallocRule.isInvalid(this);
+      } catch (RuntimeException e) {
+        invalid = true;
+        throw e;
+      } finally {
+        if (invalid || index >= bpool.targetSize) {
+          try {
+            bpool.allocator.deallocate(bpool.pool.get(index));
+          } catch (Exception _) {
+            // exceptions from deallocate are ignored as per specification.
+          }
+          bpool.pool.set(index, null);
         }
-        bpool.pool.set(index, null);
-        return true;
       }
-      return false;
+      return invalid;
     }
 
     private void claim() {
@@ -244,11 +250,14 @@ implements LifecycledPool<T>, ResizablePool<T> {
         bpool.lock.unlock();
         return;
       }
-      expired();
-      claimed = false;
-      bpool.count.decrementAndGet();
-      bpool.released.signalAll();
-      bpool.lock.unlock();
+      try {
+        expired();
+      } finally {
+        claimed = false;
+        bpool.count.decrementAndGet();
+        bpool.released.signalAll();
+        bpool.lock.unlock();
+      }
     }
 
     @Override
