@@ -208,6 +208,7 @@ implements LifecycledPool<T>, ResizablePool<T> {
     private final int index;
     private final long created;
     private boolean claimed;
+    private long claims;
     private final BasicPool<T> bpool;
 
     private BasicSlot(int index, BasicPool<T> bpool) {
@@ -238,6 +239,7 @@ implements LifecycledPool<T>, ResizablePool<T> {
 
     private void claim() {
       claimed = true;
+      claims++;
     }
     
     private boolean isClaimed() {
@@ -263,6 +265,16 @@ implements LifecycledPool<T>, ResizablePool<T> {
     @Override
     public long getAgeMillis() {
       return System.currentTimeMillis() - created;
+    }
+
+    @Override
+    public long getClaimCount() {
+      return claims;
+    }
+
+    @Override
+    public T getPoolable() {
+      return bpool.pool.get(index);
     }
   }
 

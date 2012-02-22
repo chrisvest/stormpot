@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
@@ -309,9 +310,46 @@ public class PoolTest {
     assertThat(allocator.deallocations(), is(1));
   }
   
+  @Test(timeout = 300)
+  @Theory public void
+  slotInfoClaimCountMustIncreaseWithClaims(PoolFixture fixture) throws Exception {
+    final AtomicLong lastClaimCount = new AtomicLong();
+    DeallocationRule<Poolable> rule = new DeallocationRule<Poolable>() {
+      public boolean isInvalid(SlotInfo<? extends Poolable> info) {
+        lastClaimCount.set(info.getClaimCount());
+        return false;
+      }
+    };
+    config.setDeallocationRule(rule);
+    Pool<GenericPoolable> pool = fixture.initPool(config);
+    pool.claim(longTimeout).release();
+    pool.claim(longTimeout).release();
+    pool.claim(longTimeout).release();
+    // we have made claims, and the rule ought to have noted this
+    assertThat(lastClaimCount.get(), greaterThan(1L));
+  }
   
-  // TODO SlotInfo should have claim-count
-  // TODO SlotInfo should have the poolable
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 300)
+  @Theory public void
+  slotInfoMustHaveReferenceToItsPoolable(PoolFixture fixture) throws Exception {
+    final AtomicReference<? super Poolable> lastPoolable =
+        new AtomicReference<Poolable>();
+    DeallocationRule<Poolable> rule = new DeallocationRule<Poolable>() {
+      public boolean isInvalid(SlotInfo<? extends Poolable> info) {
+        lastPoolable.set(info.getPoolable());
+        return false;
+      }
+    };
+    config.setDeallocationRule(rule);
+    Pool<GenericPoolable> pool = fixture.initPool(config);
+    GenericPoolable a = pool.claim(longTimeout);
+    a.release();
+    GenericPoolable b = pool.claim(longTimeout);
+    b.release();
+    GenericPoolable poolable = (GenericPoolable) lastPoolable.get();
+    assertThat(poolable, anyOf(is(a), is(b)));
+  }
   // TODO [re-write bunch of Javadoc]
   
   /**

@@ -118,7 +118,7 @@ class QAllocThread<T extends Poolable> extends Thread {
     }
     size++;
     slot.created = System.currentTimeMillis();
-    slot.claim();
+    slot.claimed.set(true);
     slot.release(slot.obj);
   }
 

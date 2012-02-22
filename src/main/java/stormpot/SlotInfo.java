@@ -10,4 +10,8 @@ public interface SlotInfo<T extends Poolable> {
 
   long getAgeMillis();
 
+  long getClaimCount();
+
+  T getPoolable();
+
 }

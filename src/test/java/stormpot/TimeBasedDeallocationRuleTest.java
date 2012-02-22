@@ -17,6 +17,16 @@ public class TimeBasedDeallocationRuleTest {
       public long getAgeMillis() {
         return ageMillis;
       }
+
+      @Override
+      public long getClaimCount() {
+        return 0;
+      }
+
+      @Override
+      public Poolable getPoolable() {
+        return null;
+      }
     };
   }
   

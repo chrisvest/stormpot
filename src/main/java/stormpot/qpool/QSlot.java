@@ -28,14 +28,16 @@ class QSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   T obj;
   Exception poison;
   long created;
+  long claims;
   
   public QSlot(BlockingQueue<QSlot<T>> live) {
     this.live = live;
-    this.claimed = new AtomicBoolean();
+    this.claimed = new AtomicBoolean(true);
   }
   
   public void claim() {
     claimed.set(true);
+    claims++;
   }
 
   public void release(Poolable obj) {
@@ -47,5 +49,15 @@ class QSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   @Override
   public long getAgeMillis() {
     return System.currentTimeMillis() - created;
+  }
+
+  @Override
+  public long getClaimCount() {
+    return claims;
+  }
+
+  @Override
+  public T getPoolable() {
+    return obj;
   }
 }
