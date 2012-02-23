@@ -101,9 +101,9 @@ implements LifecycledPool<T>, ResizablePool<T> {
       throw new IllegalArgumentException("timeout cannot be null");
     }
     QSlot<T> slot;
-    long deadline = timeout.getDeadlineNanos();
+    long deadline = timeout.getDeadline();
     do {
-      long timeoutLeft = timeout.getTimeLeftNanos(deadline);
+      long timeoutLeft = timeout.getTimeLeft(deadline);
       slot = live.poll(timeoutLeft, timeout.getBaseUnit());
       if (slot == null) {
         // we timed out while taking from the queue - just return null
