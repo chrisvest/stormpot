@@ -91,33 +91,6 @@ public class Config<T extends Poolable> {
   }
 
   /**
-   * Set the time-to-live for the objects in the pools we want to configure.
-   * Objects older than this value will be reclaimed and their slot
-   * re-allocated.
-   * <p>
-   * Note that no guarantee is given for how much older than the TTL an object
-   * may be, before it is deallocated. Further, the liveness checking is
-   * inherently racy, so objects that are close to the edge of their TTL might
-   * actually have expired by the time they are returned from a claim method.
-   * Pools are permitted to try and account for this by pro-actively
-   * re-allocating objects before their TTL expires, but this behaviour is not
-   * part of the Pool contract and as such should generally not be relied upon. 
-   * <p>
-   * The <code>ttl</code> value must be at least 1 for standard pool
-   * configurations. Further, the <code>unit</code> must be non-null.
-   * A Pool will throw an {@link IllegalArgumentException} from their
-   * constructor if this is not the case.
-   * @param ttl The scalar value of the time-to-live value. Must be at least 1.
-   * @param unit The unit of the 'ttl' value. Cannot be <code>null</code>.
-   * @return This Config instance.
-   */
-//  public synchronized Config<T> setTTL(long ttl, TimeUnit unit) {
-//    this.ttl = ttl;
-//    this.ttlUnit = unit;
-//    return this;
-//  }
-
-  /**
    * Set the {@link Allocator} to use for the pools we want to configure.
    * This will change the type-parameter of the Config object to match that
    * of the new Allocator.
@@ -156,14 +129,19 @@ public class Config<T extends Poolable> {
    * <p>
    * The default Expiration is a {@link TimeExpiration} that
    * invalidates the objects after they have been active for 10 minutes.
-   * @param expiration
-   * @return
+   * @param expiration The expiration we want our pools to use. Not null.
+   * @return This Config instance.
    */
   public synchronized Config<T> setExpiration(Expiration<? super T> expiration) {
     this.expiration = expiration;
     return this;
   }
 
+  /**
+   * Get the configured {@link Expiration} instance. The default is a
+   * {@link TimeExpiration} that expires objects after 10 minutes.
+   * @return The configured Expiration.
+   */
   public synchronized Expiration<? super T> getExpiration() {
     return expiration;
   }
