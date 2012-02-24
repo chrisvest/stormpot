@@ -385,7 +385,35 @@ public class PoolTest {
     assertThat(poolable, anyOf(is(a), is(b)));
   }
   
-  // TODO slot info claim count must reset if slots are reused
+  /**
+   * Pool implementations might reuse their SlotInfo instances. We need to
+   * make sure that if an object is reallocated, then the claim count for that
+   * slot is reset to zero.
+   * We test for this by configuring a deallocation rule that invalidates
+   * objects that have been claimed more than once, and records the maximum
+   * claim count it observes in an atomic. Then we make more claims than this
+   * limit, and observe that precisely one more than the max have been observed.
+   * @param fixture
+   * @throws Exception
+   */
+  @Test(timeout = 300)
+  @Theory public void
+  slotInfoClaimCountMustResetIfSlotsAreReused(PoolFixture fixture) throws Exception {
+    final AtomicLong maxClaimCount = new AtomicLong();
+    DeallocationRule<Poolable> rule = new DeallocationRule<Poolable>() {
+      public boolean isInvalid(SlotInfo<? extends Poolable> info) {
+        maxClaimCount.set(Math.max(maxClaimCount.get(), info.getClaimCount()));
+        return info.getClaimCount() > 1;
+      }
+    };
+    config.setDeallocationRule(rule);
+    Pool<GenericPoolable> pool = fixture.initPool(config);
+    pool.claim(longTimeout).release();
+    pool.claim(longTimeout).release();
+    pool.claim(longTimeout).release();
+    // we've made 3 claims, while all objects w/ claimCount > 1 are invalid
+    assertThat(maxClaimCount.get(), is(2L));
+  }
   // TODO [re-write bunch of Javadoc]
   
   /**
