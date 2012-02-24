@@ -23,13 +23,13 @@ import java.util.concurrent.locks.LockSupport;
 
 import stormpot.Allocator;
 import stormpot.Config;
-import stormpot.DeallocationRule;
+import stormpot.Expiration;
 import stormpot.GenericPoolable;
 import stormpot.LifecycledPool;
 import stormpot.Pool;
 import stormpot.Poolable;
 import stormpot.Slot;
-import stormpot.TimeBasedDeallocationRule;
+import stormpot.TimeExpiration;
 import stormpot.Timeout;
 import stormpot.basicpool.BasicPoolFixture;
 import stormpot.qpool.QPoolFixture;
@@ -77,9 +77,9 @@ public class PoolSpin extends SimpleBenchmark {
     Config<GenericPoolable> config = new Config<GenericPoolable>();
     config.setAllocator(new SlowAllocator(work));
     config.setSize(size);
-    DeallocationRule<Poolable> rule =
-        new TimeBasedDeallocationRule(ttl, TimeUnit.MILLISECONDS);
-    config.setDeallocationRule(rule);
+    Expiration<Poolable> expiration =
+        new TimeExpiration(ttl, TimeUnit.MILLISECONDS);
+    config.setExpiration(expiration);
     pool = (poolType == 0? new BasicPoolFixture() : new QPoolFixture()).initPool(config);
     // Give the pool 500 ms to boot up any threads it might need
     LockSupport.parkNanos(500000000);

@@ -2,11 +2,11 @@ package stormpot;
 
 import java.util.concurrent.TimeUnit;
 
-public class TimeBasedDeallocationRule implements DeallocationRule<Poolable> {
+public class TimeExpiration implements Expiration<Poolable> {
 
   private final long maxPermittedAgeMillis;
 
-  public TimeBasedDeallocationRule(long maxPermittedAge, TimeUnit unit) {
+  public TimeExpiration(long maxPermittedAge, TimeUnit unit) {
     if (maxPermittedAge < 1) {
       throw new IllegalArgumentException(
           "max permitted age cannot be less than 1");
@@ -17,7 +17,7 @@ public class TimeBasedDeallocationRule implements DeallocationRule<Poolable> {
     maxPermittedAgeMillis = unit.toMillis(maxPermittedAge);
   }
 
-  public boolean isInvalid(SlotInfo<? extends Poolable> info) {
+  public boolean hasExpired(SlotInfo<? extends Poolable> info) {
     return info.getAgeMillis() > maxPermittedAgeMillis;
   }
 }

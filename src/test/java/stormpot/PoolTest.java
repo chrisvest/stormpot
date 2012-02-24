@@ -73,10 +73,10 @@ import stormpot.qpool.QPoolFixture;
  */
 @RunWith(Theories.class)
 public class PoolTest {
-  private static final DeallocationRule<Poolable> oneMsTTL =
-      new TimeBasedDeallocationRule(1, TimeUnit.MILLISECONDS);
-  private static final DeallocationRule<Poolable> fiveMsTTL =
-      new TimeBasedDeallocationRule(5, TimeUnit.MILLISECONDS);
+  private static final Expiration<Poolable> oneMsTTL =
+      new TimeExpiration(1, TimeUnit.MILLISECONDS);
+  private static final Expiration<Poolable> fiveMsTTL =
+      new TimeExpiration(5, TimeUnit.MILLISECONDS);
   private static final Timeout longTimeout = new Timeout(1, TimeUnit.SECONDS);
   private static final Timeout mediumTimeout = new Timeout(10, TimeUnit.MILLISECONDS);
   private static final Timeout shortTimeout = new Timeout(1, TimeUnit.MILLISECONDS);
@@ -236,8 +236,8 @@ public class PoolTest {
   
   @Test(timeout = 300, expected = IllegalArgumentException.class)
   @Theory public void
-  constructorMustThrowOnNullDeallocationRule(PoolFixture fixture) {
-    fixture.initPool(config.setDeallocationRule(null));
+  constructorMustThrowOnNullExpiration(PoolFixture fixture) {
+    fixture.initPool(config.setExpiration(null));
   }
   
   /**
@@ -252,40 +252,40 @@ public class PoolTest {
   }
   
   /**
-   * Pools must use the provided deallocation rule to determine whether slots
+   * Pools must use the provided expiration to determine whether slots
    * are invalid or not, instead of using their own ad-hoc mechanisms.
-   * We test this by using a deallocation rule that counts the number of times
-   * it is invoked. Then we claim an object and assert that the deallocation
-   * rule was invoked at least once, presumably for that object.
+   * We test this by using an expiration that counts the number of times
+   * it is invoked. Then we claim an object and assert that the expiration
+   * was invoked at least once, presumably for that object.
    * @param fixture
    * @throws Exception
    */
   @Test(timeout = 300)
   @Theory public void
-  mustUseProvidedDeallocationRule(PoolFixture fixture) throws Exception {
-    CountingDeallocationRule rule = new CountingDeallocationRule(false);
-    config.setDeallocationRule(rule);
+  mustUseProvidedExpiration(PoolFixture fixture) throws Exception {
+    CountingExpiration expiration = new CountingExpiration(false);
+    config.setExpiration(expiration);
     Pool<GenericPoolable> pool = fixture.initPool(config);
     pool.claim(longTimeout).release();
-    assertThat(rule.getCount(), is(1));
+    assertThat(expiration.getCount(), is(1));
   }
   
   /**
-   * In the hopefully unlikely event that a DeallocationRule throws an
+   * In the hopefully unlikely event that an Expiration throws an
    * exception, that exception should bubble out of the pool unspoiled.
    * 
-   * We test for this by configuring a DeallocationRule that always throws.
+   * We test for this by configuring an Expiration that always throws.
    * No guarantees are being made about when, exactly, it is that the pool will
-   * invoke the DeallocationRule. Therefore we claim and release an object a
+   * invoke the Expiration. Therefore we claim and release an object a
    * couple of times. That ought to do it.
    * @param fixture
    * @throws Exception
    */
   @Test(timeout = 300, expected = SomeRandomRuntimeException.class)
   @Theory public void
-  exceptionsFromDeallocationRulesMustBubbleOut(PoolFixture fixture)
+  exceptionsFromExpirationMustBubbleOut(PoolFixture fixture)
       throws Exception {
-    config.setDeallocationRule(new ThrowyDeallocationRule());
+    config.setExpiration(new ThrowyExpiration());
     Pool<GenericPoolable> pool = fixture.initPool(config);
     // make a couple of calls because pools might optimise for freshly
     // created objects
@@ -294,11 +294,11 @@ public class PoolTest {
   }
   
   /**
-   * If the DeallocationRule throws an exception (it's only allowed to throw
+   * If the Expiration throws an exception (it's only allowed to throw
    * RuntimeException) when evaluating a slot, then that slot should be
    * considered invalid.
    * 
-   * We test for this by configuring a deallocation rule that always throws,
+   * We test for this by configuring an expiration that always throws,
    * and then we make a claim and a release to make sure that it got invoked.
    * Then, since the pool size is one, we make another claim to make sure that
    * the invalid slot got reallocated. We don't care if that second claim
@@ -309,9 +309,9 @@ public class PoolTest {
    */
   @Test(timeout = 300)
   @Theory public void
-  slotsThatMakeTheDeallocationRuleThrowAreInvalid(PoolFixture fixture)
+  slotsThatMakeTheExpirationThrowAreInvalid(PoolFixture fixture)
       throws Exception {
-    config.setDeallocationRule(new ThrowyDeallocationRule());
+    config.setExpiration(new ThrowyExpiration());
     Pool<GenericPoolable> pool = fixture.initPool(config);
     try {
       pool.claim(longTimeout).release();
@@ -328,7 +328,7 @@ public class PoolTest {
    * SlotInfo objects offer a count of how many times the Poolable it
    * represents, has been claimed. Naturally, this count must increase every
    * time that object is claimed.
-   * We test for this by creating a DeallocationRule that writes the count to
+   * We test for this by creating an Expiration that writes the count to
    * an atomic every time it is called. Then we make a couple of claims and
    * releases, and assert that the recorded count has gone up.
    * @param fixture
@@ -338,26 +338,26 @@ public class PoolTest {
   @Theory public void
   slotInfoClaimCountMustIncreaseWithClaims(PoolFixture fixture) throws Exception {
     final AtomicLong lastClaimCount = new AtomicLong();
-    DeallocationRule<Poolable> rule = new DeallocationRule<Poolable>() {
-      public boolean isInvalid(SlotInfo<? extends Poolable> info) {
+    Expiration<Poolable> expiration = new Expiration<Poolable>() {
+      public boolean hasExpired(SlotInfo<? extends Poolable> info) {
         lastClaimCount.set(info.getClaimCount());
         return false;
       }
     };
-    config.setDeallocationRule(rule);
+    config.setExpiration(expiration);
     Pool<GenericPoolable> pool = fixture.initPool(config);
     pool.claim(longTimeout).release();
     pool.claim(longTimeout).release();
     pool.claim(longTimeout).release();
-    // we have made claims, and the rule ought to have noted this
+    // we have made claims, and the expiration ought to have noted this
     assertThat(lastClaimCount.get(), greaterThan(1L));
   }
   
   /**
-   * DeallocationRules might require access to the actual object in question
+   * Expirations might require access to the actual object in question
    * being pooled, in order to implement advanced and/or domain specific
    * logic.
-   * As with the claim count test above, we configure a deallocation rule
+   * As with the claim count test above, we configure an expiration
    * that puts the value into an atomic. Then we assert that the value of the
    * atomic is one of the claimed objects.
    * @param fixture
@@ -369,13 +369,13 @@ public class PoolTest {
   slotInfoMustHaveReferenceToItsPoolable(PoolFixture fixture) throws Exception {
     final AtomicReference<? super Poolable> lastPoolable =
         new AtomicReference<Poolable>();
-    DeallocationRule<Poolable> rule = new DeallocationRule<Poolable>() {
-      public boolean isInvalid(SlotInfo<? extends Poolable> info) {
+    Expiration<Poolable> expiration = new Expiration<Poolable>() {
+      public boolean hasExpired(SlotInfo<? extends Poolable> info) {
         lastPoolable.set(info.getPoolable());
         return false;
       }
     };
-    config.setDeallocationRule(rule);
+    config.setExpiration(expiration);
     Pool<GenericPoolable> pool = fixture.initPool(config);
     GenericPoolable a = pool.claim(longTimeout);
     a.release();
@@ -389,7 +389,7 @@ public class PoolTest {
    * Pool implementations might reuse their SlotInfo instances. We need to
    * make sure that if an object is reallocated, then the claim count for that
    * slot is reset to zero.
-   * We test for this by configuring a deallocation rule that invalidates
+   * We test for this by configuring an expiration that invalidates
    * objects that have been claimed more than once, and records the maximum
    * claim count it observes in an atomic. Then we make more claims than this
    * limit, and observe that precisely one more than the max have been observed.
@@ -400,13 +400,13 @@ public class PoolTest {
   @Theory public void
   slotInfoClaimCountMustResetIfSlotsAreReused(PoolFixture fixture) throws Exception {
     final AtomicLong maxClaimCount = new AtomicLong();
-    DeallocationRule<Poolable> rule = new DeallocationRule<Poolable>() {
-      public boolean isInvalid(SlotInfo<? extends Poolable> info) {
+    Expiration<Poolable> expiration = new Expiration<Poolable>() {
+      public boolean hasExpired(SlotInfo<? extends Poolable> info) {
         maxClaimCount.set(Math.max(maxClaimCount.get(), info.getClaimCount()));
         return info.getClaimCount() > 1;
       }
     };
-    config.setDeallocationRule(rule);
+    config.setExpiration(expiration);
     Pool<GenericPoolable> pool = fixture.initPool(config);
     pool.claim(longTimeout).release();
     pool.claim(longTimeout).release();
@@ -456,7 +456,7 @@ public class PoolTest {
   @Theory public void
   mustReplaceExpiredPoolables(PoolFixture fixture) throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(
-        config.setDeallocationRule(oneMsTTL));
+        config.setExpiration(oneMsTTL));
     pool.claim(longTimeout).release();
     spinwait(2);
     pool.claim(longTimeout).release();
@@ -486,7 +486,7 @@ public class PoolTest {
   mustDeallocateExpiredPoolablesAndStayWithinSizeLimit(PoolFixture fixture)
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(
-        config.setDeallocationRule(oneMsTTL));
+        config.setExpiration(oneMsTTL));
     pool.claim(longTimeout).release();
     spinwait(2);
     pool.claim(longTimeout).release();
@@ -715,7 +715,7 @@ public class PoolTest {
   mustNotDeallocateTheSameObjectMoreThanOnce(PoolFixture fixture)
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(
-        config.setDeallocationRule(oneMsTTL));
+        config.setExpiration(oneMsTTL));
     Poolable obj = pool.claim(longTimeout);
     spinwait(2);
     obj.release();
@@ -762,7 +762,7 @@ public class PoolTest {
       }
     };
     Pool<GenericPoolable> pool = fixture.initPool(
-        config.setAllocator(allocator).setDeallocationRule(oneMsTTL));
+        config.setAllocator(allocator).setExpiration(oneMsTTL));
     pool.claim(longTimeout).release();
     shutdown(pool).await(longTimeout);
     assertFalse(wasNull.get());
@@ -864,7 +864,7 @@ public class PoolTest {
     };
     config.setAllocator(allocator);
     Pool<GenericPoolable> pool = fixture.initPool(
-        config.setDeallocationRule(oneMsTTL));
+        config.setExpiration(oneMsTTL));
     pool.claim(longTimeout).release();
     spinwait(2);
     pool.claim(longTimeout).release();
@@ -1162,7 +1162,7 @@ public class PoolTest {
       }
     };
     config.setAllocator(allocator);
-    config.setDeallocationRule(fiveMsTTL);
+    config.setExpiration(fiveMsTTL);
     config.setSize(objs.length);
     Pool<GenericPoolable> pool = fixture.initPool(config);
     for (int i = 0; i < objs.length; i++) {

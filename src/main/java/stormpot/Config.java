@@ -51,8 +51,8 @@ import java.util.concurrent.TimeUnit;
 public class Config<T extends Poolable> {
 
   private int size = 10;
-  private DeallocationRule<? super T> deallocRule =
-      new TimeBasedDeallocationRule(600, TimeUnit.SECONDS);
+  private Expiration<? super T> expiration =
+      new TimeExpiration(600, TimeUnit.SECONDS); // 10 minutes
   private Allocator<?> allocator;
   
   /**
@@ -118,24 +118,6 @@ public class Config<T extends Poolable> {
 //  }
 
   /**
-   * Get the scalar value of the time-to-live value that applies to the objects
-   * in the pools we want to configure. Default TTL is 10 minutes.
-   * @return The scalar time-to-live.
-   */
-//  public synchronized long getTTL() {
-//    return ttl;
-//  }
-
-  /**
-   * Get the time-scale unit of the configured time-to-live that applies to the
-   * objects in the pools we want to configure. Default TTL is 10 minutes.
-   * @return The time-scale unit of the configured time-to-live value.
-   */
-//  public synchronized TimeUnit getTTLUnit() {
-//    return ttlUnit;
-//  }
-
-  /**
    * Set the {@link Allocator} to use for the pools we want to configure.
    * This will change the type-parameter of the Config object to match that
    * of the new Allocator.
@@ -168,6 +150,25 @@ public class Config<T extends Poolable> {
   }
 
   /**
+   * Set the {@link Expiration} to use for the pools we want to
+   * configure. The Expiration determines when a pooled object is valid
+   * for claiming, or when the objects are invalid and should be deallocated.
+   * <p>
+   * The default Expiration is a {@link TimeExpiration} that
+   * invalidates the objects after they have been active for 10 minutes.
+   * @param expiration
+   * @return
+   */
+  public synchronized Config<T> setExpiration(Expiration<? super T> expiration) {
+    this.expiration = expiration;
+    return this;
+  }
+
+  public synchronized Expiration<? super T> getExpiration() {
+    return expiration;
+  }
+
+  /**
    * Check that the configuration is valid. This method is useful in the
    * Pool implementation constructors.
    * @throws IllegalArgumentException If the size is less than one, if the TTL
@@ -183,17 +184,8 @@ public class Config<T extends Poolable> {
       throw new IllegalArgumentException(
           "Allocator cannot be null");
     }
-    if (deallocRule == null) {
-      throw new IllegalArgumentException("DeallocationRule cannot be null");
+    if (expiration == null) {
+      throw new IllegalArgumentException("Expiration cannot be null");
     }
-  }
-
-  public synchronized DeallocationRule<? super T> getDeallocationRule() {
-    return deallocRule;
-  }
-
-  public synchronized Config<T> setDeallocationRule(DeallocationRule<? super T> rule) {
-    deallocRule = rule;
-    return this;
   }
 }

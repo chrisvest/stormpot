@@ -1,7 +1,7 @@
 package stormpot;
 
 /**
- * An informative little interface, used by {@link DeallocationRule}s to
+ * An informative little interface, used by {@link Expiration}s to
  * determine if a slot has expired or is invalid.
  * @author cvh
  * @param <T>

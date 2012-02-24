@@ -155,9 +155,9 @@ public class ResizablePoolTest {
     int startingSize = 5;
     int newSize = 1;
     CountingAllocator allocator = new CountingAllocator();
-    DeallocationRule<Poolable> rule =
-        new TimeBasedDeallocationRule(1, TimeUnit.MILLISECONDS);
-    config.setDeallocationRule(rule).setAllocator(allocator);
+    Expiration<Poolable> expiration =
+        new TimeExpiration(1, TimeUnit.MILLISECONDS);
+    config.setExpiration(expiration).setAllocator(allocator);
     config.setSize(startingSize);
     ResizablePool<GenericPoolable> pool = resizable(fixture);
     List<GenericPoolable> objs = new ArrayList<GenericPoolable>();

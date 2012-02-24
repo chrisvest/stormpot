@@ -44,21 +44,21 @@ public class ConfigTest {
   
   @Test public void
   mustHaveTimeBasedDeallocationRuleAsDefaul() {
-    assertThat(config.getDeallocationRule(),
-        instanceOf(TimeBasedDeallocationRule.class));
+    assertThat(config.getExpiration(),
+        instanceOf(TimeExpiration.class));
   }
   
   @Test public void
   deallocationRuleMustBeSettable() {
-    DeallocationRule<Poolable> expectedRule = new DeallocationRule<Poolable>() {
-      public boolean isInvalid(SlotInfo<? extends Poolable> info) {
+    Expiration<Poolable> expectedRule = new Expiration<Poolable>() {
+      public boolean hasExpired(SlotInfo<? extends Poolable> info) {
         return false;
       }
     };
-    config.setDeallocationRule(expectedRule);
+    config.setExpiration(expectedRule);
     @SuppressWarnings("unchecked")
-    DeallocationRule<Poolable> actualRule =
-        (DeallocationRule<Poolable>) config.getDeallocationRule();
+    Expiration<Poolable> actualRule =
+        (Expiration<Poolable>) config.getExpiration();
     assertThat(actualRule, is(expectedRule));
   }
 }

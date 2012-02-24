@@ -136,16 +136,16 @@ class QAllocThread<T extends Poolable> extends Thread {
     slot.obj = null;
   }
 
-  public boolean await(Timeout timeout) throws InterruptedException {
+  boolean await(Timeout timeout) throws InterruptedException {
     return completionLatch.await(timeout.getTimeout(), timeout.getUnit());
   }
 
-  public void setTargetSize(int size) {
+  void setTargetSize(int size) {
     this.targetSize = size;
     LockSupport.unpark(this);
   }
 
-  public int getTargetSize() {
+  int getTargetSize() {
     return targetSize;
   }
 }

@@ -20,7 +20,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import stormpot.Completion;
 import stormpot.Config;
-import stormpot.DeallocationRule;
+import stormpot.Expiration;
 import stormpot.LifecycledPool;
 import stormpot.PoolException;
 import stormpot.Poolable;
@@ -45,7 +45,7 @@ implements LifecycledPool<T>, ResizablePool<T> {
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;
   private final QAllocThread<T> allocThread;
-  private final DeallocationRule<? super T> deallocRule;
+  private final Expiration<? super T> deallocRule;
   private volatile boolean shutdown = false;
   
   /**
@@ -58,7 +58,7 @@ implements LifecycledPool<T>, ResizablePool<T> {
     synchronized (config) {
       config.validate();
       allocThread = new QAllocThread<T>(live, dead, config);
-      deallocRule = config.getDeallocationRule();
+      deallocRule = config.getExpiration();
     }
     allocThread.start();
   }
@@ -82,7 +82,7 @@ implements LifecycledPool<T>, ResizablePool<T> {
   private boolean isInvalid(QSlot<T> slot) {
     boolean invalid = true;
     try {
-      invalid = deallocRule.isInvalid(slot);
+      invalid = deallocRule.hasExpired(slot);
     } finally {
       if (invalid) {
         // it's invalid - into the dead queue with it and continue looping

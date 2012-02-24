@@ -6,10 +6,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-public class TimeBasedDeallocationRuleTest {
+public class TimeExpirationTest {
 
-  private DeallocationRule<Poolable> createRule(int ttl) {
-    return new TimeBasedDeallocationRule(ttl, TimeUnit.MILLISECONDS);
+  private Expiration<Poolable> createExpiration(int ttl) {
+    return new TimeExpiration(ttl, TimeUnit.MILLISECONDS);
   }
   
   private SlotInfo<?> infoWithAge(final long ageMillis) {
@@ -32,32 +32,32 @@ public class TimeBasedDeallocationRuleTest {
   
   @Test(expected = IllegalArgumentException.class) public void
   timeUnitCannotBeNull() {
-    new TimeBasedDeallocationRule(10, null);
+    new TimeExpiration(10, null);
   }
   
   @Test public void
   youngSlotsAreNotInvalid() {
-    DeallocationRule<Poolable> rule = createRule(2);
+    Expiration<Poolable> expiration = createExpiration(2);
     SlotInfo<?> info = infoWithAge(1);
-    assertFalse(rule.isInvalid(info));
+    assertFalse(expiration.hasExpired(info));
   }
 
   @Test public void
   slotsAtTheMaximumPermittedAgeAreNotInvalid() {
-    DeallocationRule<Poolable> rule = createRule(2);
+    Expiration<Poolable> expiration = createExpiration(2);
     SlotInfo<?> info = infoWithAge(2);
-    assertFalse(rule.isInvalid(info));
+    assertFalse(expiration.hasExpired(info));
   }
   
   @Test public void
   slotsOlderThanTheMaximumPermittedAgeAreInvalid() {
-    DeallocationRule<Poolable> rule = createRule(2);
+    Expiration<Poolable> expiration = createExpiration(2);
     SlotInfo<?> info = infoWithAge(3);
-    assertTrue(rule.isInvalid(info));
+    assertTrue(expiration.hasExpired(info));
   }
   
   @Test(expected = IllegalArgumentException.class) public void
   maxPermittedAgeCannotBeLessThanOne() {
-    createRule(0);
+    createExpiration(0);
   }
 }
