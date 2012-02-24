@@ -13,7 +13,7 @@ into and get stuff out of. The storm part refers to the proverbial storm in a
 glass of water or teacup (or temptest in a teapot, depending on where you are
 from) and is a reference to the size of the library and what it does. A storm
 is also a wind that moves really fast, and that is a reference to the goal of
-having a fast and scalable implementation.
+having a fast and scalable implementation. That, and "Windy Kettle" is two words and sound silly.
 
 **Contents:**
 

@@ -293,6 +293,20 @@ public class PoolTest {
     pool.claim(longTimeout).release();
   }
   
+  /**
+   * If the DeallocationRule throws an exception (it's only allowed to throw
+   * RuntimeException) when evaluating a slot, then that slot should be
+   * considered invalid.
+   * 
+   * We test for this by configuring a deallocation rule that always throws,
+   * and then we make a claim and a release to make sure that it got invoked.
+   * Then, since the pool size is one, we make another claim to make sure that
+   * the invalid slot got reallocated. We don't care if that second claim
+   * throws or not. All we're interested in, is whether the deallocation took
+   * place.
+   * @param fixture
+   * @throws Exception
+   */
   @Test(timeout = 300)
   @Theory public void
   slotsThatMakeTheDeallocationRuleThrowAreInvalid(PoolFixture fixture)
@@ -310,6 +324,16 @@ public class PoolTest {
     assertThat(allocator.deallocations(), is(1));
   }
   
+  /**
+   * SlotInfo objects offer a count of how many times the Poolable it
+   * represents, has been claimed. Naturally, this count must increase every
+   * time that object is claimed.
+   * We test for this by creating a DeallocationRule that writes the count to
+   * an atomic every time it is called. Then we make a couple of claims and
+   * releases, and assert that the recorded count has gone up.
+   * @param fixture
+   * @throws Exception
+   */
   @Test(timeout = 300)
   @Theory public void
   slotInfoClaimCountMustIncreaseWithClaims(PoolFixture fixture) throws Exception {
@@ -329,6 +353,16 @@ public class PoolTest {
     assertThat(lastClaimCount.get(), greaterThan(1L));
   }
   
+  /**
+   * DeallocationRules might require access to the actual object in question
+   * being pooled, in order to implement advanced and/or domain specific
+   * logic.
+   * As with the claim count test above, we configure a deallocation rule
+   * that puts the value into an atomic. Then we assert that the value of the
+   * atomic is one of the claimed objects.
+   * @param fixture
+   * @throws Exception
+   */
   @SuppressWarnings("unchecked")
   @Test(timeout = 300)
   @Theory public void
@@ -350,6 +384,8 @@ public class PoolTest {
     GenericPoolable poolable = (GenericPoolable) lastPoolable.get();
     assertThat(poolable, anyOf(is(a), is(b)));
   }
+  
+  // TODO slot info claim count must reset if slots are reused
   // TODO [re-write bunch of Javadoc]
   
   /**
