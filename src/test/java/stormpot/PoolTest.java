@@ -112,7 +112,7 @@ public class PoolTest {
    */
   @Test(timeout = 300)
   @Theory public void
-  claimWithTimeoutMustReturnIfWithinTimeout(PoolFixture fixture)
+  claimMustReturnIfWithinTimeout(PoolFixture fixture)
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     Poolable obj = pool.claim(longTimeout);
@@ -120,7 +120,7 @@ public class PoolTest {
   }
   
   /**
-   * A call to claim-with-timeout that fails to get an object before the
+   * A call to claim that fails to get an object before the
    * timeout elapses, must return null.
    * We test this by depleting a pool, and then make a call to claim with
    * a shot timeout. If that call returns <code>null</code>, then we're good.
@@ -129,7 +129,7 @@ public class PoolTest {
    */
   @Test(timeout = 300)
   @Theory public void
-  claimWithTimeoutMustReturnNullIfTimeoutElapses(PoolFixture fixture)
+  claimMustReturnNullIfTimeoutElapses(PoolFixture fixture)
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     pool.claim(longTimeout); // pool is now depleted
@@ -428,9 +428,10 @@ public class PoolTest {
    */
   @Test(timeout = 300, expected = IllegalStateException.class)
   @Theory public void
-  preventClaimWithTimeoutFromPoolThatIsShutDown(PoolFixture fixture)
+  preventClaimFromPoolThatIsShutDown(PoolFixture fixture)
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
+    pool.claim(longTimeout).release();
     shutdown(pool);
     pool.claim(longTimeout);
   }
@@ -1026,7 +1027,7 @@ public class PoolTest {
    */
   @Test(timeout = 300, expected = PoolException.class)
   @Theory public void
-  claimWithTimeoutMustThrowIfAllocationReturnsNull(PoolFixture fixture)
+  claimMustThrowIfAllocationReturnsNull(PoolFixture fixture)
   throws Exception {
     Allocator<GenericPoolable> allocator = new CountingAllocator() {
       @Override
@@ -1048,7 +1049,7 @@ public class PoolTest {
    */
   @Test(timeout = 300, expected = InterruptedException.class)
   @Theory public void
-  claimWithTimeoutWhenInterruptedMustThrow(PoolFixture fixture)
+  claimWhenInterruptedMustThrow(PoolFixture fixture)
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     Thread.currentThread().interrupt();
