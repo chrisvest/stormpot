@@ -3,7 +3,7 @@ package stormpot;
 /**
  * The expiration is used to determine if a given slot has expired, or
  * otherwise become invalid.
- * @author cvh
+ * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  */
 public interface Expiration<T extends Poolable> {
   /**

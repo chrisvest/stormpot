@@ -28,7 +28,9 @@ package stormpot;
  * be provided one has expect that concurrent access might occur. The easiest
  * way to achieve this is to just make the
  * {@link Allocator#allocate(Slot) allocate}
- * and {@link Allocator#deallocate(Poolable) deallocate} methods synchronised.
+ * and {@link Allocator#deallocate(Poolable) deallocate} methods synchronised,
+ * or just not have any shared mutable state in the allocator.
+ * 
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  *
  * @param <T> any type that implements Poolable.
@@ -39,8 +41,8 @@ public interface Allocator<T extends Poolable> {
    * Create a fresh new instance of T for the given slot.
    * <p>
    * The returned {@link Poolable} must obey the contract that, when
-   * {@link Poolable#release() release} is called on it, it must delegate
-   * the call onto the {@link Slot#release(Poolable) release} method of the here
+   * {@link Poolable#release()} is called on it, it must delegate
+   * the call onto the {@link Slot#release(Poolable)} method of the here
    * given slot object.
    * <p>
    * RuntimeExceptions thrown by this method may propagate out through the

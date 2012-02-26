@@ -13,7 +13,7 @@ package stormpot;
  * No guarantees can be made about when the pool will actually reach the target
  * size, because it might depend on how long it takes for a certain number of
  * objects to be released back into the pool.
- * @author cvh
+ * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  *
  * @param <T>
  */

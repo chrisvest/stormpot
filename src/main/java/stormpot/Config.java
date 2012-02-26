@@ -21,8 +21,8 @@ import java.util.concurrent.TimeUnit;
  * The basic configuration "bean" class.
  * <p>
  * Instances of this class is passed to the constructors of {@link Pool pools}
- * so that they know how big they should be, how to allocate objects and for
- * how long the objects should live.
+ * so that they know how big they should be, how to allocate objects and when
+ * to deallocate objects.
  * <p>
  * This class is made thread-safe by having the fields be protected by a lock.
  * The details of this locking mechanism should not be relied upon by client

@@ -1,8 +1,8 @@
 package stormpot;
 
 /**
- * thrown by tests to assert that exceptions bubble out when they should
- * @author cvh
+ * Thrown by tests to assert that exceptions bubble out when they should.
+ * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  *
  */
 public class SomeRandomRuntimeException extends RuntimeException {

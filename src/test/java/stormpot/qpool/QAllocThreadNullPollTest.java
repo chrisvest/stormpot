@@ -20,7 +20,7 @@ import stormpot.Poolable;
  * kill the allocation thread, halting all meaningful function of the pool.
  * 
  * Writing a test for this, as you can probably guess, was not easy.
- * @author cvh
+ * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  */
 public class QAllocThreadNullPollTest {
   interface Callable<T> {

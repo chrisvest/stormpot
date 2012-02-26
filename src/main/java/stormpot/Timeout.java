@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * A Timeout represents the maximum amount of time a caller is willing to wait
  * for a blocking operation to complete.
- * @author cvh
+ * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  */
 public class Timeout {
   private final long timeout;
