@@ -1148,6 +1148,9 @@ public class PoolTest {
   @Theory public void
   claimMustStayWithinTimeoutEvenIfExpiredObjectIsReleased(PoolFixture fixture)
   throws Exception {
+    // NOTE: This test is a little slow and may hit the 300 ms timeout even
+    // if it was actually supposed to pass. Try running it again if there are
+    // any problems. I may have to revisit this one in the future.
     final Poolable[] objs = new Poolable[31];
     final Lock lock = new ReentrantLock();
     Allocator<GenericPoolable> allocator = new CountingAllocator() {

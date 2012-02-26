@@ -189,5 +189,5 @@ public class ResizablePoolTest {
     // returns null (it's still depleted) and allocation count stays put
     assertThat(pool.claim(shortTimeout), nullValue());
     assertThat(allocator.allocations(), is(startingSize));
-  }
+  } // TODO racy?? I don't know... :(
 }

@@ -28,9 +28,9 @@ import stormpot.ResizablePool;
 import stormpot.Timeout;
 
 /**
- * QueuePool is a fairly simple {@link LifecycledPool} implementation that
- * basically consists of a queue of Poolable instances, and a Thread to
- * allocate them.
+ * QueuePool is a fairly simple {@link LifecycledPool} and
+ * {@link ResizablePool} implementation that basically consists of a queue of
+ * Poolable instances, and a Thread to allocate them.
  * <p>
  * This means that the object allocation always happens in a dedicated thread.
  * This means that no thread that calls any of the claim methods, will incur

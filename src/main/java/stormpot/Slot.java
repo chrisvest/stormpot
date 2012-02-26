@@ -32,7 +32,8 @@ public interface Slot {
    * <p>
    * It is a user error to release a slot that is not currently claimed. It is
    * likewise a user error to release a Slot while inside the Allocators
-   * {@link Allocator#allocate(Slot) allocate} method.
+   * {@link Allocator#allocate(Slot) allocate} method, or the Expirations
+   * {@link Expiration#hasExpired(SlotInfo) hasExpired} method.
    * <p>
    * Pools are free to throw a PoolException if they detect any of these
    * wrong uses, but it is not guaranteed and the exact behaviour is not

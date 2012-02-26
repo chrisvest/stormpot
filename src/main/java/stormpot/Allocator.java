@@ -87,6 +87,10 @@ public interface Allocator<T extends Poolable> {
    * any exception that might be thrown. The shut down procedure will still
    * complete, and release will still maintain the internal data structures of
    * the pool to make the slot available for new allocations.
+   * <p>
+   * If you need to somehow specially deal with the exceptions thrown by the
+   * deallocation of objects, then you should do this in the allocator itself,
+   * or in a wrapper around your allocator.
    * @param poolable a non-null Poolable instance to be deallocated.
    * @throws Exception if the deallocation encounters an error.
    */

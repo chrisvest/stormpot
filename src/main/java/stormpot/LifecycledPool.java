@@ -27,7 +27,6 @@ package stormpot;
  * @param <T> The type of {@link Poolable} contained in this pool.
  */
 public interface LifecycledPool<T extends Poolable> extends Pool<T> {
-
   /**
    * Initiate the shut down process on this pool, and return a
    * {@link Completion} instance representing the shut down procedure.
@@ -45,7 +44,10 @@ public interface LifecycledPool<T extends Poolable> extends Pool<T> {
    * Once the shut down process has been initiated, that is, as soon as this
    * method is called, the pool can no longer be used and all calls to
    * {@link #claim(Timeout)} will throw an {@link IllegalStateException}.
-   * However, all objects that are already claimed when this method is called,
+   * Threads that are already waiting of objects in the claim method, will
+   * also wake up and receive an {@link IllegalStateException}.
+   * <p>
+   * All objects that are already claimed when this method is called,
    * will continue to function until they are
    * {@link Poolable#release() released}.
    * <p>

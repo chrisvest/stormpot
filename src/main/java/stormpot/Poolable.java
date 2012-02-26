@@ -24,10 +24,10 @@ package stormpot;
  * represents a location in the pool, that can fit an object and make it
  * available for others to claim.
  * <p>
- * The contract of the Poolable interface is, that when {@link #release()
- * release} is called on the Poolable, it must in turn call
- * {@link Slot#release(Poolable) release} on the specific Slot object that it
- * was allocated with, giving itself as the Poolable parameter.
+ * The contract of the Poolable interface is, that when {@link #release()} is
+ * called on the Poolable, it must in turn call {@link Slot#release(Poolable)}
+ * on the specific Slot object that it was allocated with, giving itself as the
+ * Poolable parameter.
  * <p>
  * The simplest possible correct implementation of the Poolable interface looks
  * like this:
@@ -56,7 +56,7 @@ public interface Poolable {
    * expired.
    * <p>
    * A call to this method MUST delegate to a call to
-   * {@link Slot#release(Poolable) release} on the Slot object for which this
+   * {@link Slot#release(Poolable)} on the Slot object for which this
    * Poolable was allocated, giving itself as the Poolable parameter.
    */
   void release();

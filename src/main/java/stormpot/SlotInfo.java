@@ -16,10 +16,10 @@
 package stormpot;
 
 /**
- * An informative little interface, used by {@link Expiration}s to
- * determine if a slot has expired or is invalid.
+ * An informative little interface, used by {@link Expiration} instances to
+ * determine if a slot has expired or is still invalid for claiming.
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
- * @param <T>
+ * @param <T> The type of Poolables that this Expiration is able to examine.
  */
 public interface SlotInfo<T extends Poolable> {
 
@@ -45,7 +45,7 @@ public interface SlotInfo<T extends Poolable> {
    * error, and the behaviour of the pool in such a situation is unspecified
    * and implementation specific. This means that dead-locks and infinite
    * loops are possible outcomes as well.
-   * @return The Poolable being examined for validity. Never null.
+   * @return The Poolable being examined for validity. Never <code>null</code>.
    */
   T getPoolable();
 }

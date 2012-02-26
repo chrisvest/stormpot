@@ -46,7 +46,7 @@ public interface ResizablePool<T extends Poolable> extends Pool<T> {
    * size. In fact, it may never happen as the target size can be changed as
    * often as one sees fit.
    * <p>
-   * Pools that do not sizes less than 1 (which would deviate from the
+   * Pools that do not support a size less than 1 (which would deviate from the
    * standard configuration space) will throw an
    * {@link IllegalArgumentException} if passed 0 or less.
    * @param size The new target size of the pool
