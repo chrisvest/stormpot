@@ -4,8 +4,8 @@
 /**
 <p>Stormpot is a generic and thread-safe object pooling library.</p>
 
-<p>The object pools themselves implement the {@link stormpot.Pool} or the
-{@link stormpot.LifecycledPool} interfaces. The things you actually want to
+<p>The object pools themselves implement the {@link stormpot.Pool} interface, or one or both of the {@link stormpot.LifecycledPool} or
+{@link stormpot.ResizablePool} interfaces. The things you actually want to
 pool must all implement the {@link stormpot.Poolable} interface, and you must
 also provide an implementation of the {@link stormpot.Allocator} interface as
 a factory to create your pooled objects.</p>
@@ -17,7 +17,7 @@ into and get stuff out of. The storm part refers to the proverbial storm in a
 glass of water or teacup (or temptest in a teapot, depending on where you are
 from) and is a reference to the size of the library and what it does. A storm
 is also a wind that moves really fast, and that is a reference to the goal of
-having a fast and scalable implementation.</p>
+having a fast and scalable implementation. That, and "Windy Kettle" is two words and sound silly.</p>
 
 <p><strong>Contents:</strong></p>
 
@@ -42,17 +42,15 @@ these:</p>
 
 <ul>
 <li>Stormpot has a slightly more invasive API.</li>
-<li>Stormpot depends on Java5 or newer, whereas Commons-Pool needs at least
-Java 1.3</li>
+<li>Stormpot depends on Java6 or newer, whereas Commons-Pool can work with
+Java 1.3 and up.</li>
 <li>Stormpot has a simpler API with fewer methods, whereas Commons-Pool has
 a much larger API surface.</li>
 <li>Stormpot pools are guaranteed to be thread-safe, whereas thread-safety
 in Commons-Pool is up to the individual implementations.</li>
 <li>Stormpot pools prefer to allocate objects in a "back-ground" thread,
 whereas Commons-Pool prefer that objects are explicitly added to the
-pools</li>
-<li>Commons-Pool supports custom object invalidation mechanisms, whereas
-Stormpot invalidates objects based on their age.</li>
+pools.</li>
 <li>Commons-Pool has support for keyed pools, akin to caches, whereas
 Stormpot does not.</li>
 <li>The Stormpot API is slanted towards high through-put. The Commons-Pool
@@ -153,7 +151,7 @@ a {@link javax.sql.DataSource}. So let us start off by importing those:</p>
 <p>We are also going to need most of the Stormpot API. We are going to need
 {@link stormpot.Config} for our pool configuration;
 {@link stormpot.LifecycledPool} is the pool interface we will code against,
-because we want our code to have a clean shut-down path;
+because we want our code to have a clean shut-down path; some methods take a {@link stormpot.Timeout} object as a parameter so we'll that as well;
 {@link stormpot.Allocator} and {@link stormpot.Poolable} are interfaces we
 are going to have to implement in our own code, and we will be needing the
 {@link stormpot.Slot} interface to do that; and finally we are going to
@@ -165,6 +163,7 @@ need a concrete pool implementation from the library: the
 <span class="cckn">import</span> <span class="ccnn">stormpot.LifecycledPool</span><span class="cco">;</span>
 <span class="cckn">import</span> <span class="ccnn">stormpot.Poolable</span><span class="cco">;</span>
 <span class="cckn">import</span> <span class="ccnn">stormpot.Slot</span><span class="cco">;</span>
+<span class="cckn">import</span> <span class="ccnn">stormpot.Timeout</span><span class="cco">;</span>
 <span class="cckn">import</span> <span class="ccnn">stormpot.qpool.QueuePool</span><span class="cco">;</span>
 </code></pre></div>
 
@@ -316,7 +315,7 @@ a close method to our <code>MyDaoPool</code> class, so we don't have to expose o
 <code>LifecycledPool</code> field for this purpose:</p>
 
 <div class="codehilite"><pre><code>    <span class="cckd">public</span> <span class="cckt">void</span> <span class="ccnf">close</span><span class="cco">()</span> <span class="cckd">throws</span> <span class="ccn">InterruptedException</span> <span class="cco">{</span>
-      <span class="ccn">pool</span><span class="cco">.</span><span class="ccna">shutdown</span><span class="cco">().</span><span class="ccna">await</span><span class="cco">();</span>
+      <span class="ccn">pool</span><span class="cco">.</span><span class="ccna">shutdown</span><span class="cco">().</span><span class="ccna">await</span><span class="cco">(</span><span class="cck">new</span> <span class="ccn">Timeout</span><span class="cco">(</span><span class="ccmi">1</span><span class="cco">,</span> <span class="ccn">TimeUnit</span><span class="cco">.</span><span class="ccna">MINUTES</span><span class="cco">));</span>
     <span class="cco">}</span>
 </code></pre></div>
 
@@ -337,7 +336,7 @@ through the method:</p>
 
 <div class="codehilite"><pre><code>    <span class="cckd">public</span> <span class="cco">&lt;</span><span class="ccn">T</span><span class="cco">&gt;</span> <span class="ccn">T</span> <span class="ccn">doWithDao</span><span class="cco">(</span><span class="ccn">WithMyDaoDo</span><span class="cco">&lt;</span><span class="ccn">T</span><span class="cco">&gt;</span> <span class="ccn">action</span><span class="cco">)</span>
         <span class="cckd">throws</span> <span class="ccn">InterruptedException</span> <span class="cco">{</span>
-      <span class="ccn">MyDao</span> <span class="ccn">dao</span> <span class="cco">=</span> <span class="ccn">pool</span><span class="cco">.</span><span class="ccna">claim</span><span class="cco">();</span>
+      <span class="ccn">MyDao</span> <span class="ccn">dao</span> <span class="cco">=</span> <span class="ccn">pool</span><span class="cco">.</span><span class="ccna">claim</span><span class="cco">(</span><span class="cck">new</span> <span class="ccn">Timeout</span><span class="cco">(</span><span class="ccmi">1</span><span class="cco">,</span> <span class="ccn">TimeUnit</span><span class="cco">.</span><span class="ccna">SECONDS</span><span class="cco">));</span>
       <span class="cck">try</span> <span class="cco">{</span>
         <span class="cck">return</span> <span class="ccn">action</span><span class="cco">.</span><span class="ccna">doWithDao</span><span class="cco">(</span><span class="ccn">dao</span><span class="cco">);</span>
       <span class="cco">}</span> <span class="cck">finally</span> <span class="cco">{</span>
@@ -355,7 +354,7 @@ through the method:</p>
 behind a nice API. Now it is just a small matter of using the code:</p>
 
 <div class="codehilite"><pre><code>  <span class="cckd">public</span> <span class="cckd">static</span> <span class="cckt">void</span> <span class="ccnf">main</span><span class="cco">(</span><span class="ccn">String</span><span class="cco">[]</span> <span class="ccn">args</span><span class="cco">)</span> <span class="cckd">throws</span> <span class="ccn">InterruptedException</span> <span class="cco">{</span>
-    <span class="ccn">DataSource</span> <span class="ccn">dataSource</span> <span class="cco">=</span> <span class="ccn">configureDataSource</span><span class="cco">();</span> <span class="ccc1">// TODO implement</span>
+    <span class="ccn">DataSource</span> <span class="ccn">dataSource</span> <span class="cco">=</span> <span class="ccn">configureDataSource</span><span class="cco">();</span> <span class="ccc1">// NOTE implement this</span>
     <span class="ccn">MyDaoPool</span> <span class="ccn">pool</span> <span class="cco">=</span> <span class="cck">new</span> <span class="ccn">MyDaoPool</span><span class="cco">(</span><span class="ccn">dataSource</span><span class="cco">);</span>
     <span class="ccn">String</span> <span class="ccn">person</span> <span class="cco">=</span> <span class="ccn">pool</span><span class="cco">.</span><span class="ccna">doWithDao</span><span class="cco">(</span><span class="cck">new</span> <span class="ccn">WithMyDaoDo</span><span class="cco">&lt;</span><span class="ccn">String</span><span class="cco">&gt;()</span> <span class="cco">{</span>
       <span class="cckd">public</span> <span class="ccn">String</span> <span class="ccnf">doWithDao</span><span class="cco">(</span><span class="ccn">MyDao</span> <span class="ccn">dao</span><span class="cco">)</span> <span class="cco">{</span>
@@ -373,40 +372,31 @@ exercise for the reader.</p>
 
 <h1 id="memory-effects-and-threading">Memory Effects and Threading</h1>
 
-<p>When configured within the bounds of the {@link stormpot.Config standard configuration},
-the Stormpot poolig library will exhibit and guarantee a number of memory
-effects, that can be relied upon in concurrent and multi-threaded programs.</p>
+<p>When configured within the bounds of the {@link stormpot.Config standard
+configuration}, the Stormpot poolig library will exhibit and guarantee a number
+of memory effects, that can be relied upon in concurrent and multi-threaded
+programs.</p>
 
 <h3 id="happens-before-edges"><em>Happens-Before</em> Edges</h3>
 
 <ol>
 <li>The {@link stormpot.Allocator#allocate(Slot) allocation} of an object
-<em>happens-before</em> any {@link Pool#claim() claim} of that object.</li>
+<em>happens-before</em> any {@link stormpot.Pool#claim(Timeout) claim} of that object.</li>
 <li>The claim of an object <em>happens-before</em> any subsequent release of the object.</li>
-<li>The {@link Poolable#release() release} of an object <em>happens-before</em>
+<li>The {@link stormpot.Poolable#release() release} of an object <em>happens-before</em>
 any subsequent claim of that object.</li>
 <li>The release of an object <em>happens-before</em> the
-{@link Allocator#deallocate(Poolable) deallocation} of that object.</li>
-<li>For {@link LifecycledPool life-cycled pools}, the deallocation of all
-objects <em>happens-before</em> the
-{@link Completion#await() await of a shutdown completion} returns.</li>
+{@link stormpot.Allocator#deallocate(Poolable) deallocation} of that object.</li>
+<li>For {@link stormpot.LifecycledPool life-cycled pools}, the deallocation of
+all objects <em>happens-before</em> the
+{@link stormpot.Completion#await(Timeout) await of a shutdown completion} returns.</li>
 </ol>
 
 <h3 id="interruption">Interruption</h3>
 
-<p>All blocking methods behave correctly with respect to interruption:</p>
-
-<ul>
-<li>{@link Pool#claim()}</li>
-<li>{@link Pool#claim(Timeout)}</li>
-<li>{@link Completion#await()}</li>
-<li>{@link Completion#await(long,TimeUnit)}</li>
-</ul>
-
-<p>If a thread is interrupted when it calls one of these methods, or the thread is
-interrupted while waiting in one these methods, then an
-{@link InterruptedException} will be thrown, and the threads interruption flag
-will be cleared.</p>
+<p>The (only two) blocking methods, {@link stormpot.Pool#claim(Timeout)} and {@link stormpot.Completion#await(Timeout)}, behave correctly with respect to interruption: If a thread is interrupted when it calls one of these methods, or the thread is interrupted while waiting in one these methods, then an
+{@link java.lang.InterruptedException} will be thrown, and the threads
+interruption flag will be cleared.</p>
 
 */
 package stormpot;

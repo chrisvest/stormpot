@@ -1,7 +1,7 @@
 Stormpot is a generic and thread-safe object pooling library.
 
-The object pools themselves implement the {@link stormpot.Pool} or the
-{@link stormpot.LifecycledPool} interfaces. The things you actually want to
+The object pools themselves implement the {@link stormpot.Pool} interface, or one or both of the {@link stormpot.LifecycledPool} or
+{@link stormpot.ResizablePool} interfaces. The things you actually want to
 pool must all implement the {@link stormpot.Poolable} interface, and you must
 also provide an implementation of the {@link stormpot.Allocator} interface as
 a factory to create your pooled objects.
@@ -28,17 +28,15 @@ much the same problem as [Apache Commons-Pool][1]. The main differences are
 these:
 
 * Stormpot has a slightly more invasive API.
-* Stormpot depends on Java5 or newer, whereas Commons-Pool needs at least
-  Java 1.3
+* Stormpot depends on Java6 or newer, whereas Commons-Pool can work with
+  Java 1.3 and up.
 * Stormpot has a simpler API with fewer methods, whereas Commons-Pool has
   a much larger API surface.
 * Stormpot pools are guaranteed to be thread-safe, whereas thread-safety
   in Commons-Pool is up to the individual implementations.
 * Stormpot pools prefer to allocate objects in a "back-ground" thread,
   whereas Commons-Pool prefer that objects are explicitly added to the
-  pools
-* Commons-Pool supports custom object invalidation mechanisms, whereas
-  Stormpot invalidates objects based on their age.
+  pools.
 * Commons-Pool has support for keyed pools, akin to caches, whereas
   Stormpot does not.
 * The Stormpot API is slanted towards high through-put. The Commons-Pool
@@ -69,7 +67,6 @@ required for its implementation is this:
     // MyPoolable.java - minimum Poolable implementation
     import stormpot.Poolable;
     import stormpot.Slot;
-    import stormpot.Timeout;
     
     public class MyPoolable implements Poolable {
       private final Slot slot;
@@ -139,7 +136,7 @@ a {@link javax.sql.DataSource}. So let us start off by importing those:
 We are also going to need most of the Stormpot API. We are going to need
 {@link stormpot.Config} for our pool configuration;
 {@link stormpot.LifecycledPool} is the pool interface we will code against,
-because we want our code to have a clean shut-down path;
+because we want our code to have a clean shut-down path; some methods take a {@link stormpot.Timeout} object as a parameter so we'll that as well;
 {@link stormpot.Allocator} and {@link stormpot.Poolable} are interfaces we
 are going to have to implement in our own code, and we will be needing the
 {@link stormpot.Slot} interface to do that; and finally we are going to
@@ -152,6 +149,7 @@ need a concrete pool implementation from the library: the
     import stormpot.LifecycledPool;
     import stormpot.Poolable;
     import stormpot.Slot;
+    import stormpot.Timeout;
     import stormpot.qpool.QueuePool;
 
 The next thing we want to do, is to implement our pooled object - in this
@@ -342,7 +340,7 @@ behind a nice API. Now it is just a small matter of using the code:
 
     ::: java
       public static void main(String[] args) throws InterruptedException {
-        DataSource dataSource = configureDataSource(); // TODO implement
+        DataSource dataSource = configureDataSource(); // NOTE implement this
         MyDaoPool pool = new MyDaoPool(dataSource);
         String person = pool.doWithDao(new WithMyDaoDo<String>() {
           public String doWithDao(MyDao dao) {
@@ -369,7 +367,7 @@ programs.
 ### *Happens-Before* Edges
 
 1. The {@link stormpot.Allocator#allocate(Slot) allocation} of an object
-   *happens-before* any {@link stormpot.Pool#claim() claim} of that object.
+   *happens-before* any {@link stormpot.Pool#claim(Timeout) claim} of that object.
 2. The claim of an object *happens-before* any subsequent release of the object.
 3. The {@link stormpot.Poolable#release() release} of an object *happens-before*
    any subsequent claim of that object.
@@ -377,19 +375,11 @@ programs.
    {@link stormpot.Allocator#deallocate(Poolable) deallocation} of that object.
 5. For {@link stormpot.LifecycledPool life-cycled pools}, the deallocation of
    all objects *happens-before* the
-   {@link stormpot.Completion#await() await of a shutdown completion} returns.
+   {@link stormpot.Completion#await(Timeout) await of a shutdown completion} returns.
 
 ### Interruption
 
-All blocking methods behave correctly with respect to interruption:
-
-* {@link stormpot.Pool#claim()}
-* {@link stormpot.Pool#claim(long,TimeUnit)}
-* {@link stormpot.Completion#await()}
-* {@link stormpot.Completion#await(long,TimeUnit)}
-
-If a thread is interrupted when it calls one of these methods, or the thread is
-interrupted while waiting in one these methods, then an
+The (only two) blocking methods, {@link stormpot.Pool#claim(Timeout)} and {@link stormpot.Completion#await(Timeout)}, behave correctly with respect to interruption: If a thread is interrupted when it calls one of these methods, or the thread is interrupted while waiting in one these methods, then an
 {@link java.lang.InterruptedException} will be thrown, and the threads
 interruption flag will be cleared.
 
