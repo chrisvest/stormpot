@@ -165,24 +165,6 @@
     </plugins>
   </build>
   
-  <profiles>
-    <profile>
-      <id>caliper</id>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-      </activation>
-      <dependencies>
-        <dependency>
-          <groupId>com.google.code.caliper</groupId>
-          <artifactId>caliper</artifactId>
-          <version>1.0-SNAPSHOT</version>
-          <scope>test</scope>
-          <!-- Install from http://code.google.com/p/caliper/ -->
-        </dependency>
-      </dependencies>
-    </profile>
-  </profiles>
-  
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
