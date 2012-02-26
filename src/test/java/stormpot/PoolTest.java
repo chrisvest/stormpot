@@ -414,7 +414,6 @@ public class PoolTest {
     // we've made 3 claims, while all objects w/ claimCount > 1 are invalid
     assertThat(maxClaimCount.get(), is(2L));
   }
-  // TODO [re-write bunch of Javadoc]
   
   /**
    * It is not possible to claim from a pool that has been shut down. Doing
