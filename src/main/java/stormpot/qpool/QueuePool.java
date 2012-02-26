@@ -81,16 +81,21 @@ implements LifecycledPool<T>, ResizablePool<T> {
 
   private boolean isInvalid(QSlot<T> slot) {
     boolean invalid = true;
+    RuntimeException exception = null;
     try {
       invalid = deallocRule.hasExpired(slot);
-    } finally {
-      if (invalid) {
-        // it's invalid - into the dead queue with it and continue looping
-        dead.offer(slot);
-      } else {
-        // it's valid - claim it and stop looping
-        slot.claim();
+    } catch (RuntimeException ex) {
+      exception = ex;
+    }
+    if (invalid) {
+      // it's invalid - into the dead queue with it and continue looping
+      dead.offer(slot);
+      if (exception != null) {
+        throw exception;
       }
+    } else {
+      // it's valid - claim it and stop looping
+      slot.claim();
     }
     return invalid;
   }
