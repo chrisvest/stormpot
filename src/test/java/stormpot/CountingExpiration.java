@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * An Expiration that counts its calls and returns pre-programmed responses.
- * @author cvh
+ * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  */
 public class CountingExpiration implements Expiration<Poolable> {
   private final boolean[] replies;
