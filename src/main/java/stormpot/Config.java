@@ -24,9 +24,10 @@ import java.util.concurrent.TimeUnit;
  * so that they know how big they should be, how to allocate objects and when
  * to deallocate objects.
  * <p>
- * This class is made thread-safe by having the fields be protected by a lock.
- * The details of this locking mechanism should not be relied upon by client
- * code.
+ * This class is made thread-safe by having the fields be protected by the
+ * intrinsic object lock on the Config object itself. This way, pools can
+ * <code>synchronize</code> on the config object to read the values out
+ * atomically.
  * <p>
  * The various set* methods are made to return the Config instance itself, so
  * that the method calls may be chained if so desired.
@@ -147,11 +148,12 @@ public class Config<T extends Poolable> {
   }
 
   /**
-   * Check that the configuration is valid. This method is useful in the
+   * Check that the configuration is valid in terms of the <em>standard
+   * configuration</em>. This method is useful in the
    * Pool implementation constructors.
-   * @throws IllegalArgumentException If the size is less than one, if the TTL
-   * value is less than one, if the TTL {@link TimeUnit} is <code>null</code>,
-   * or if the {@link Allocator} is <code>null</code>.
+   * @throws IllegalArgumentException If the size is less than one, if the
+   * {@link Expiration} is <code>null</code>, or if the {@link Allocator} is
+   * <code>null</code>.
    */
   public synchronized void validate() throws IllegalArgumentException {
     if (size < 1) {
