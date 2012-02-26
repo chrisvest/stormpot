@@ -17,10 +17,28 @@ package stormpot;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * This is the standard time based {@link Expiration}. It will invalidate
+ * objects based on how long ago they were allocated.
+ * 
+ * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
+ */
 public class TimeExpiration implements Expiration<Poolable> {
 
   private final long maxPermittedAgeMillis;
 
+  /**
+   * Construct a new Expiration that will invalidate objects that are older
+   * than the provided span of time in the given unit.
+   * <p>
+   * If the <code>maxPermittedAge</code> is less than one, or the
+   * <code>unit</code> is <code>null</code>, then an
+   * {@link IllegalArgumentException} will be thrown.
+   * 
+   * @param maxPermittedAge Poolables older than this, in the given unit, will
+   * be considered expired. This value must be at least 1.
+   * @param unit The {@link TimeUnit} of the maximum permitted age. Never null.
+   */
   public TimeExpiration(long maxPermittedAge, TimeUnit unit) {
     if (maxPermittedAge < 1) {
       throw new IllegalArgumentException(
@@ -32,6 +50,11 @@ public class TimeExpiration implements Expiration<Poolable> {
     maxPermittedAgeMillis = unit.toMillis(maxPermittedAge);
   }
 
+  /**
+   * Returns <code>true</code> if the {@link Poolable} represented by the given
+   * {@link SlotInfo} is older than the maximum age permitted by this
+   * TimeExpiration.
+   */
   public boolean hasExpired(SlotInfo<? extends Poolable> info) {
     return info.getAgeMillis() > maxPermittedAgeMillis;
   }
