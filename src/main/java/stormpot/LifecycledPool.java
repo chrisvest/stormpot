@@ -17,14 +17,11 @@ package stormpot;
 
 /**
  * A LifecycledPool is a {@link Pool} that can be shut down to release any
- * internal resources it might be holding on to. Most pools are life-cycled.
+ * internal resources it might be holding on to.
  * <p>
  * Note that LifecycledPools are not guaranteed to have overwritten the
  * {@link Object#finalize()} method. LifecycledPools are expected to rely on
  * explicit clean-up for releasing their resources.
- * <p>
- * See the {@link Pool} interface for the general contract of pools, including
- * the additional promises made by LifecycledPools.
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  * @see Pool
  * @param <T> The type of {@link Poolable} contained in this pool.
@@ -47,14 +44,15 @@ public interface LifecycledPool<T extends Poolable> extends Pool<T> {
    * <p>
    * Once the shut down process has been initiated, that is, as soon as this
    * method is called, the pool can no longer be used and all calls to
-   * {@link #claim()} will throw an {@link IllegalStateException}. However,
-   * all objects that are already claimed when this method is called, will
-   * continue to function until they are {@link Poolable#release() released}.
+   * {@link #claim(Timeout)} will throw an {@link IllegalStateException}.
+   * However, all objects that are already claimed when this method is called,
+   * will continue to function until they are
+   * {@link Poolable#release() released}.
    * <p>
    * The shut down process is guaranteed to never deallocate objects that are
    * currently claimed. Their deallocation will wait until they are released.
    * @return A {@link Completion} instance that represents the shut down
-   * procedure.
+   * process.
    */
   Completion shutdown();
 }
