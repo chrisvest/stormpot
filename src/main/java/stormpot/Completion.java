@@ -43,15 +43,15 @@ public interface Completion {
    * If the specified waiting time elapses, then the method returns
    * <code>false</code>.
    * @param timeout The timeout delimiting the maximum time to wait for the
-   * task to complete. Passing a timeout with a value of zero will cause the
+   * task to complete. Timeouts with zero or negative values will cause the
    * method to return immediately.
    * @return <code>true</code> if the task represented by this completion
    * completed within the specified waiting time, or was already complete upon
-   * entry to this method; or <code>false</code> if the specified waiting time
-   * elapsed before the task finished.
+   * entry to this method; or <code>false</code> if the specified Timeout
+   * elapsed before the task could finished.
    * @throws InterruptedException if the current thread is interrupted while
    * waiting.
-   * @throws IllegalArgumentException if the provided <code>unit</code>
+   * @throws IllegalArgumentException if the provided <code>timeout</code>
    * parameter is <code>null</code>.
    */
   boolean await(Timeout timeout) throws InterruptedException;
