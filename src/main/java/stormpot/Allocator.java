@@ -46,8 +46,8 @@ public interface Allocator<T extends Poolable> {
    * given slot object.
    * <p>
    * RuntimeExceptions thrown by this method may propagate out through the
-   * {@link Pool#claim() claim} method of a pool, in the form of being wrapped
-   * inside a {@link PoolException}. Pools must be able to handle these
+   * {@link Pool#claim(Timeout) claim} method of a pool, in the form of being
+   * wrapped inside a {@link PoolException}. Pools must be able to handle these
    * exceptions in a sane manner, and are guaranteed to return to a working
    * state if an Allocator stops throwing exceptions from its allocate method.
    * @param slot The slot the pool wish to allocate an object for.
