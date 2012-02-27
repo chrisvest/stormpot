@@ -382,7 +382,7 @@ public class PoolTest {
     GenericPoolable b = pool.claim(longTimeout);
     b.release();
     GenericPoolable poolable = (GenericPoolable) lastPoolable.get();
-    assertThat(poolable, anyOf(is(a), is(b)));
+    assertThat(poolable, is(a));
   }
   
   /**
