@@ -44,13 +44,10 @@ these:</p>
 <li>Stormpot has a slightly more invasive API.</li>
 <li>Stormpot depends on Java6 or newer, whereas Commons-Pool can work with
 Java 1.3 and up.</li>
-<li>Stormpot has a simpler API with fewer methods, whereas Commons-Pool has
-a much larger API surface.</li>
-<li>Stormpot pools are guaranteed to be thread-safe, whereas thread-safety
-in Commons-Pool is up to the individual implementations.</li>
 <li>Stormpot pools prefer to allocate objects in a "back-ground" thread,
 whereas Commons-Pool prefer that objects are explicitly added to the
 pools.</li>
+<li>Stormpot only has one type of pool, with extension interfaces, whereas Commons-Pool has two types, where the implementations may expose additional implementation specific APIs.</li>
 <li>Commons-Pool has support for keyed pools, akin to caches, whereas
 Stormpot does not.</li>
 <li>The Stormpot API is slanted towards high through-put. The Commons-Pool
@@ -62,6 +59,7 @@ API is slanted towards a rich feature set.</li>
 <ul>
 <li>Both have high test coverage.</li>
 <li>Both have small code-bases.</li>
+<li>Both are thread-safe.</li>
 <li>Both have no dependencies on anything other than Java itself.</li>
 <li>Both are licensed under the Apache 2.0 license.</li>
 <li>Both have thorough API documentation.</li>
