@@ -32,9 +32,11 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
-import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
+
+import de.fzi.cjunit.ConcurrentTest;
+import de.fzi.cjunit.runners.ConcurrentRunner;
 
 import stormpot.basicpool.BasicPoolFixture;
 import stormpot.qpool.QPoolFixture;
@@ -71,7 +73,7 @@ import stormpot.qpool.QPoolFixture;
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  * @see Pool
  */
-@RunWith(Theories.class)
+@RunWith(ConcurrentRunner.class)
 public class PoolTest {
   private static final Expiration<Poolable> oneMsTTL =
       new TimeExpiration(1, TimeUnit.MILLISECONDS);
@@ -85,8 +87,8 @@ public class PoolTest {
   private CountingAllocator allocator;
   private Config<GenericPoolable> config;
 
-  @DataPoint public static PoolFixture basicPool = new BasicPoolFixture();
-  @DataPoint public static PoolFixture queuePool = new QPoolFixture();
+//  @DataPoint public static PoolFixture basicPool = new BasicPoolFixture();
+  @DataPoint public static PoolFixture fixture = new QPoolFixture();
   
   @Before public void
   setUp() {
@@ -94,9 +96,8 @@ public class PoolTest {
     config = new Config<GenericPoolable>().setSize(1).setAllocator(allocator);
   }
   
-  @Test(expected = IllegalArgumentException.class)
-  @Theory public void
-  timeoutCannotBeNull(PoolFixture fixture) throws Exception {
+  @Test(expected = IllegalArgumentException.class) public void
+  timeoutCannotBeNull() throws Exception {
     fixture.initPool(config).claim(null);
   }
   
@@ -110,9 +111,8 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  claimMustReturnIfWithinTimeout(PoolFixture fixture)
+  @ConcurrentTest public void
+  claimMustReturnIfWithinTimeout()
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     Poolable obj = pool.claim(longTimeout);
@@ -127,9 +127,8 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  claimMustReturnNullIfTimeoutElapses(PoolFixture fixture)
+  @ConcurrentTest public void
+  claimMustReturnNullIfTimeoutElapses()
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     pool.claim(longTimeout); // pool is now depleted
@@ -150,9 +149,8 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  mustGetPooledObjectsFromAllocator(PoolFixture fixture) throws Exception {
+  @ConcurrentTest public void
+  mustGetPooledObjectsFromAllocator() throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     pool.claim(longTimeout);
     assertThat(allocator.allocations(), is(greaterThan(0)));
@@ -167,9 +165,8 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  blockingClaimWithTimeoutMustWaitIfPoolIsEmpty(PoolFixture fixture)
+  @ConcurrentTest public void
+  blockingClaimWithTimeoutMustWaitIfPoolIsEmpty()
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     assertNotNull("Did not deplete pool in time", pool.claim(longTimeout));
@@ -186,10 +183,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
+  @ConcurrentTest public void
   blockingOnClaimWithTimeoutMustResumeWhenPoolablesAreReleased(
-      PoolFixture fixture) throws Exception {
+      ) throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     Poolable obj = pool.claim(longTimeout);
     assertNotNull("Did not deplete pool in time", obj);
@@ -211,9 +207,8 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  mustReuseAllocatedObjects(PoolFixture fixture)
+  @ConcurrentTest public void
+  mustReuseAllocatedObjects()
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     pool.claim(longTimeout).release();
@@ -229,14 +224,14 @@ public class PoolTest {
    * @see Config#setSize(int)
    */
   @Test(timeout = 300, expected = IllegalArgumentException.class)
-  @Theory public void
-  constructorMustThrowOnPoolSizeLessThanOne(PoolFixture fixture) {
+  public void
+  constructorMustThrowOnPoolSizeLessThanOne() {
     fixture.initPool(config.setSize(0));
   }
   
   @Test(timeout = 300, expected = IllegalArgumentException.class)
-  @Theory public void
-  constructorMustThrowOnNullExpiration(PoolFixture fixture) {
+  public void
+  constructorMustThrowOnNullExpiration() {
     fixture.initPool(config.setExpiration(null));
   }
   
@@ -246,8 +241,8 @@ public class PoolTest {
    * @see Config#setAllocator(Allocator)
    */
   @Test(timeout = 300, expected = IllegalArgumentException.class)
-  @Theory public void
-  constructorMustThrowOnNullAllocator(PoolFixture fixture) {
+  public void
+  constructorMustThrowOnNullAllocator() {
     fixture.initPool(config.setAllocator(null));
   }
   
@@ -260,9 +255,8 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  mustUseProvidedExpiration(PoolFixture fixture) throws Exception {
+  @ConcurrentTest public void
+  mustUseProvidedExpiration() throws Exception {
     CountingExpiration expiration = new CountingExpiration(false);
     config.setExpiration(expiration);
     Pool<GenericPoolable> pool = fixture.initPool(config);
@@ -281,9 +275,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300, expected = SomeRandomRuntimeException.class)
-  @Theory public void
-  exceptionsFromExpirationMustBubbleOut(PoolFixture fixture)
+  @ConcurrentTest(expected = SomeRandomRuntimeException.class)
+  public void
+  exceptionsFromExpirationMustBubbleOut()
       throws Exception {
     config.setExpiration(new ThrowyExpiration());
     Pool<GenericPoolable> pool = fixture.initPool(config);
@@ -307,9 +301,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  slotsThatMakeTheExpirationThrowAreInvalid(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  slotsThatMakeTheExpirationThrowAreInvalid()
       throws Exception {
     config.setExpiration(new ThrowyExpiration());
     Pool<GenericPoolable> pool = fixture.initPool(config);
@@ -334,9 +328,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  slotInfoClaimCountMustIncreaseWithClaims(PoolFixture fixture) throws Exception {
+  @ConcurrentTest
+  public void
+  slotInfoClaimCountMustIncreaseWithClaims() throws Exception {
     final AtomicLong lastClaimCount = new AtomicLong();
     Expiration<Poolable> expiration = new Expiration<Poolable>() {
       public boolean hasExpired(SlotInfo<? extends Poolable> info) {
@@ -363,10 +357,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @SuppressWarnings("unchecked")
-  @Test(timeout = 300)
-  @Theory public void
-  slotInfoMustHaveReferenceToItsPoolable(PoolFixture fixture) throws Exception {
+  @ConcurrentTest
+  public void
+  slotInfoMustHaveReferenceToItsPoolable() throws Exception {
     final AtomicReference<? super Poolable> lastPoolable =
         new AtomicReference<Poolable>();
     Expiration<Poolable> expiration = new Expiration<Poolable>() {
@@ -396,9 +389,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  slotInfoClaimCountMustResetIfSlotsAreReused(PoolFixture fixture) throws Exception {
+  @ConcurrentTest
+  public void
+  slotInfoClaimCountMustResetIfSlotsAreReused() throws Exception {
     final AtomicLong maxClaimCount = new AtomicLong();
     Expiration<Poolable> expiration = new Expiration<Poolable>() {
       public boolean hasExpired(SlotInfo<? extends Poolable> info) {
@@ -426,9 +419,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300, expected = IllegalStateException.class)
-  @Theory public void
-  preventClaimFromPoolThatIsShutDown(PoolFixture fixture)
+  @ConcurrentTest(expected = IllegalStateException.class)
+  public void
+  preventClaimFromPoolThatIsShutDown()
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     pool.claim(longTimeout).release();
@@ -452,9 +445,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  mustReplaceExpiredPoolables(PoolFixture fixture) throws Exception {
+  @ConcurrentTest
+  public void
+  mustReplaceExpiredPoolables() throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(
         config.setExpiration(oneMsTTL));
     pool.claim(longTimeout).release();
@@ -481,9 +474,9 @@ public class PoolTest {
    * @throws Exception
    * @see Config#setSize(int)
    */
-  @Test(timeout = 300)
-  @Theory public void
-  mustDeallocateExpiredPoolablesAndStayWithinSizeLimit(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  mustDeallocateExpiredPoolablesAndStayWithinSizeLimit()
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(
         config.setExpiration(oneMsTTL));
@@ -509,9 +502,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  mustDeallocateAllPoolablesBeforeShutdownTaskReturns(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  mustDeallocateAllPoolablesBeforeShutdownTaskReturns()
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config.setSize(2));
     Poolable p1 = pool.claim(longTimeout);
@@ -535,9 +528,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  shutdownCallMustReturnFastIfPoolablesAreStillClaimed(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  shutdownCallMustReturnFastIfPoolablesAreStillClaimed()
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     assertNotNull("Did not deplete pool in time", pool.claim(longTimeout));
@@ -559,9 +552,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  shutdownMustNotDeallocateClaimedPoolables(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  shutdownMustNotDeallocateClaimedPoolables()
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     assertNotNull("Did not deplete pool in time", pool.claim(longTimeout));
@@ -586,9 +579,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  awaitOnShutdownMustReturnWhenClaimedObjectsAreReleased(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  awaitOnShutdownMustReturnWhenClaimedObjectsAreReleased()
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     Poolable obj = pool.claim(longTimeout);
@@ -609,9 +602,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  awaitWithTimeoutMustReturnFalseIfTimeoutElapses(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  awaitWithTimeoutMustReturnFalseIfTimeoutElapses()
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     Poolable obj = pool.claim(longTimeout);
@@ -631,9 +624,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  awaitWithTimeoutMustReturnTrueIfCompletesWithinTimeout(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  awaitWithTimeoutMustReturnTrueIfCompletesWithinTimeout()
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     Poolable obj = pool.claim(longTimeout);
@@ -658,9 +651,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  awaitingOnAlreadyCompletedShutDownMustNotBlock(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  awaitingOnAlreadyCompletedShutDownMustNotBlock()
   throws Exception {
     Completion completion = shutdown(fixture.initPool(config));
     completion.await(longTimeout);
@@ -682,9 +675,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  blockedClaimMustThrowWhenPoolIsShutDown(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  blockedClaimMustThrowWhenPoolIsShutDown()
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     AtomicReference<Exception> caught = new AtomicReference<Exception>();
@@ -710,9 +703,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  mustNotDeallocateTheSameObjectMoreThanOnce(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  mustNotDeallocateTheSameObjectMoreThanOnce()
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(
         config.setExpiration(oneMsTTL));
@@ -749,9 +742,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  shutdownMustNotDeallocateEmptySlots(PoolFixture fixture) throws Exception {
+  @ConcurrentTest
+  public void
+  shutdownMustNotDeallocateEmptySlots() throws Exception {
     final AtomicBoolean wasNull = new AtomicBoolean();
     Allocator<GenericPoolable> allocator = new CountingAllocator() {
       @Override
@@ -778,9 +771,9 @@ public class PoolTest {
    * @throws Exception
    * @see PoolException
    */
-  @Test(timeout = 300)
-  @Theory public void
-  mustPropagateExceptionsFromAllocateThroughClaim(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  mustPropagateExceptionsFromAllocateThroughClaim()
   throws Exception {
     final RuntimeException expectedEception = new RuntimeException("boo");
     Allocator<GenericPoolable> allocator = new CountingAllocator() {
@@ -812,9 +805,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  mustStillBeUsableAfterExceptionInAllocate(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  mustStillBeUsableAfterExceptionInAllocate()
   throws Exception {
     Allocator<GenericPoolable> allocator = new CountingAllocator() {
       final AtomicBoolean doThrow = new AtomicBoolean(true);
@@ -852,9 +845,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  mustSwallowExceptionsFromDeallocateThroughRelease(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  mustSwallowExceptionsFromDeallocateThroughRelease()
   throws Exception {
     Allocator<GenericPoolable> allocator = new CountingAllocator() {
       @Override
@@ -891,9 +884,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  mustSwallowExceptionsFromDeallocateThroughShutdown(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  mustSwallowExceptionsFromDeallocateThroughShutdown()
   throws Exception {
     CountingAllocator allocator = new CountingAllocator() {
       @Override
@@ -919,9 +912,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300, expected = InterruptedException.class)
-  @Theory public void
-  awaitOnCompletionWhenInterruptedMustThrow(PoolFixture fixture)
+  @ConcurrentTest(expected = InterruptedException.class)
+  public void
+  awaitOnCompletionWhenInterruptedMustThrow()
   throws Exception {
     Completion completion = givenUnfineshedCompletion(fixture);
     Thread.currentThread().interrupt();
@@ -945,9 +938,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300, expected = InterruptedException.class)
-  @Theory public void
-  awaitWithTimeoutOnCompletionMustThrowUponInterruption(PoolFixture fixture)
+  @ConcurrentTest(expected = InterruptedException.class)
+  public void
+  awaitWithTimeoutOnCompletionMustThrowUponInterruption()
   throws Exception {
     Completion completion = givenUnfineshedCompletion(fixture);
     fork($interruptUponState(
@@ -962,17 +955,17 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  awaitOnCompletionWhenInterruptedMustClearInterruption(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  awaitOnCompletionWhenInterruptedMustClearInterruption()
   throws Exception {
     try {
-      awaitOnCompletionWhenInterruptedMustThrow(fixture);
+      awaitOnCompletionWhenInterruptedMustThrow();
     } catch (InterruptedException _) {}
     assertFalse(Thread.interrupted());
     
     try {
-      awaitWithTimeoutOnCompletionMustThrowUponInterruption(fixture);
+      awaitWithTimeoutOnCompletionMustThrowUponInterruption();
     } catch (InterruptedException _) {}
     assertFalse(Thread.interrupted());
   }
@@ -993,10 +986,10 @@ public class PoolTest {
    * @param fixture
    * @throws InterruptedException
    */
-  @Test(timeout = 300, expected = InterruptedException.class)
-  @Theory public void
+  @ConcurrentTest(expected = InterruptedException.class)
+  public void
   awaitWithTimeoutOnFinishedCompletionWhenInterruptedMustThrow(
-      PoolFixture fixture) throws InterruptedException {
+      ) throws InterruptedException {
     givenFinishedInterruptedCompletion(fixture).await(longTimeout);
   }
   
@@ -1005,11 +998,11 @@ public class PoolTest {
    * also clear the threads interrupted status.
    * @param fixture
    */
-  @Test(timeout = 300)
-  @Theory public void
-  awaitOnFinishedCompletionMustClearInterruption(PoolFixture fixture) {
+  @ConcurrentTest
+  public void
+  awaitOnFinishedCompletionMustClearInterruption() {
     try {
-      awaitWithTimeoutOnFinishedCompletionWhenInterruptedMustThrow(fixture);
+      awaitWithTimeoutOnFinishedCompletionWhenInterruptedMustThrow();
     } catch (InterruptedException _) {}
     assertFalse(Thread.interrupted());
   }
@@ -1025,9 +1018,9 @@ public class PoolTest {
    * @see Allocator#allocate(Slot)
    * @see PoolException
    */
-  @Test(timeout = 300, expected = PoolException.class)
-  @Theory public void
-  claimMustThrowIfAllocationReturnsNull(PoolFixture fixture)
+  @ConcurrentTest(expected = PoolException.class)
+  public void
+  claimMustThrowIfAllocationReturnsNull()
   throws Exception {
     Allocator<GenericPoolable> allocator = new CountingAllocator() {
       @Override
@@ -1047,9 +1040,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300, expected = InterruptedException.class)
-  @Theory public void
-  claimWhenInterruptedMustThrow(PoolFixture fixture)
+  @ConcurrentTest(expected = InterruptedException.class)
+  public void
+  claimWhenInterruptedMustThrow()
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     Thread.currentThread().interrupt();
@@ -1067,9 +1060,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300, expected = InterruptedException.class)
-  @Theory public void
-  blockedClaimWithTimeoutMustThrowUponInterruption(PoolFixture fixture)
+  @ConcurrentTest(expected = InterruptedException.class)
+  public void
+  blockedClaimWithTimeoutMustThrowUponInterruption()
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     assertNotNull("Did not deplete pool in time", pool.claim(longTimeout));
@@ -1085,12 +1078,12 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
+  @ConcurrentTest
+  public void
   throwingInterruptedExceptionFromClaimMustClearInterruptedFlag(
-      PoolFixture fixture) throws Exception {
+      ) throws Exception {
     try {
-      blockedClaimWithTimeoutMustThrowUponInterruption(fixture);
+      blockedClaimWithTimeoutMustThrowUponInterruption();
       fail("expected InterruptedException from claim");
     } catch (InterruptedException _) {}
     assertFalse(Thread.interrupted());
@@ -1107,9 +1100,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  claimMustStayWithinDeadlineEvenIfAllocatorBlocks(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  claimMustStayWithinDeadlineEvenIfAllocatorBlocks()
   throws Exception {
     Allocator<GenericPoolable> allocator = new CountingAllocator() {
       @Override
@@ -1144,9 +1137,9 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  claimMustStayWithinTimeoutEvenIfExpiredObjectIsReleased(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  claimMustStayWithinTimeoutEvenIfExpiredObjectIsReleased()
   throws Exception {
     // NOTE: This test is a little slow and may hit the 300 ms timeout even
     // if it was actually supposed to pass. Try running it again if there are
@@ -1190,9 +1183,9 @@ public class PoolTest {
    * @throws Exception
    * @see Pool#claim(Timeout)
    */
-  @Test(timeout = 300)
-  @Theory public void
-  claimWithTimeoutValueLessThanOneMustReturnImmediately(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  claimWithTimeoutValueLessThanOneMustReturnImmediately()
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     assertNotNull("Did not deplete pool in time", pool.claim(longTimeout));
@@ -1214,10 +1207,10 @@ public class PoolTest {
    * @throws Exception
    * @see Completion
    */
-  @Test(timeout = 300)
-  @Theory public void
+  @ConcurrentTest
+  public void
   awaitCompletionWithTimeoutLessThanOneMustReturnImmediately(
-      PoolFixture fixture) throws Exception {
+      ) throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     assertNotNull("Did not deplete pool in time", pool.claim(longTimeout));
     shutdown(pool).await(zeroTimeout);
@@ -1230,9 +1223,9 @@ public class PoolTest {
    * @throws Exception
    * @see Completion
    */
-  @Test(timeout = 300, expected = IllegalArgumentException.class)
-  @Theory public void
-  awaitCompletionWithNullTimeUnitMustThrow(PoolFixture fixture)
+  @ConcurrentTest(expected = IllegalArgumentException.class)
+  public void
+  awaitCompletionWithNullTimeUnitMustThrow()
   throws Exception {
     shutdown(fixture.initPool(config)).await(null);
   }
@@ -1244,9 +1237,9 @@ public class PoolTest {
    * @param fixture
    * @throws InterruptedException
    */
-  @Test(timeout = 300)
-  @Theory public void
-  mustCompleteShutDownEvenIfAllSlotsHaveNullErrors(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  mustCompleteShutDownEvenIfAllSlotsHaveNullErrors()
   throws InterruptedException {
     Allocator<GenericPoolable> allocator = new CountingAllocator() {
       @Override
@@ -1280,9 +1273,9 @@ public class PoolTest {
    * @param fixture
    * @throws InterruptedException
    */
-  @Test(timeout = 300)
-  @Theory public void
-  mustCompleteShutDownEvenIfAllSlotsHaveAllocationErrors(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  mustCompleteShutDownEvenIfAllSlotsHaveAllocationErrors()
   throws InterruptedException {
     Allocator<GenericPoolable> allocator = new CountingAllocator() {
       @Override
@@ -1307,9 +1300,9 @@ public class PoolTest {
    * @throws InterruptedException
    * @see Pool
    */
-  @Test(timeout = 300)
-  @Theory public void
-  mustBeAbleToShutDownEvenIfInterrupted(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  mustBeAbleToShutDownEvenIfInterrupted()
   throws InterruptedException {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     Thread.currentThread().interrupt();
@@ -1327,9 +1320,9 @@ public class PoolTest {
    * @throws InterruptedException
    * @see Pool
    */
-  @Test(timeout = 300)
-  @Theory public void
-  callingShutdownMustNotAffectInterruptionStatus(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  callingShutdownMustNotAffectInterruptionStatus()
   throws InterruptedException {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     Thread.currentThread().interrupt();
