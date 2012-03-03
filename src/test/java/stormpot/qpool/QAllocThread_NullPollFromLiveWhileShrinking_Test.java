@@ -18,8 +18,6 @@ package stormpot.qpool;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
@@ -37,7 +35,7 @@ import stormpot.Poolable;
  * Writing a test for this, as you can probably guess, was not easy.
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  */
-public class QAllocThreadNullPollTest {
+public class QAllocThread_NullPollFromLiveWhileShrinking_Test {
   interface Callable<T> {
     T call();
   }
@@ -45,25 +43,9 @@ public class QAllocThreadNullPollTest {
   @SuppressWarnings("serial")
   static class Stop extends RuntimeException {}
 
-  @SuppressWarnings("serial")
   private BlockingQueue<QSlot<Poolable>> callQueue(
       final Queue<Callable<QSlot<Poolable>>> calls) {
-    return new LinkedBlockingQueue<QSlot<Poolable>>() {
-      QSlot<Poolable> lastValue;
-      
-      public QSlot<Poolable> poll(long timeout, TimeUnit unit)
-          throws InterruptedException {
-        Callable<QSlot<Poolable>> callable = calls.poll();
-        if (callable != null) {
-          lastValue = callable.call();
-        }
-        return lastValue;
-      }
-
-      public boolean offer(QSlot<Poolable> e) {
-        return false;
-      }
-    };
+    return new PrimedBlockingQueue(calls);
   }
 
   private Callable<QSlot<Poolable>> ret(final QSlot<Poolable> slot) {
