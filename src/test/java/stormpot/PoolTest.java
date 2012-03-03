@@ -32,13 +32,11 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
-import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
 
 import de.fzi.cjunit.ConcurrentTest;
 import de.fzi.cjunit.runners.ConcurrentRunner;
 
-import stormpot.basicpool.BasicPoolFixture;
 import stormpot.qpool.QPoolFixture;
 
 /**
@@ -87,7 +85,6 @@ public class PoolTest {
   private CountingAllocator allocator;
   private Config<GenericPoolable> config;
 
-//  @DataPoint public static PoolFixture basicPool = new BasicPoolFixture();
   @DataPoint public static PoolFixture fixture = new QPoolFixture();
   
   @Before public void
