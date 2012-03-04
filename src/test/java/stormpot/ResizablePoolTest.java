@@ -30,16 +30,19 @@ import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
 
+import de.fzi.cjunit.ConcurrentTest;
+import de.fzi.cjunit.runners.ConcurrentRunner;
+
 import stormpot.basicpool.BasicPoolFixture;
 import stormpot.qpool.QPoolFixture;
 
-@RunWith(Theories.class)
+@RunWith(ConcurrentRunner.class)
 public class ResizablePoolTest {
   private static final Timeout longTimeout = new Timeout(1, TimeUnit.SECONDS);
   private static final Timeout shortTimeout = new Timeout(1, TimeUnit.MILLISECONDS);
   
-  @DataPoint public static PoolFixture basicPool = new BasicPoolFixture();
-  @DataPoint public static PoolFixture queuePool = new QPoolFixture();
+//  @DataPoint public static PoolFixture basicPool = new BasicPoolFixture();
+  @DataPoint public static PoolFixture fixture = new QPoolFixture();
 
   private CountingAllocator allocator;
   private Config<GenericPoolable> config;
@@ -54,27 +57,27 @@ public class ResizablePoolTest {
     return (ResizablePool<GenericPoolable>) fixture.initPool(config);
   }
   
-  @Theory public void
-  mustImplementResizablPool(PoolFixture fixture) {
+  @Test public void
+  mustImplementResizablPool() {
     assertThat(fixture.initPool(config), instanceOf(ResizablePool.class));
   }
   
   @Test(expected = IllegalArgumentException.class)
-  @Theory public void
+  public void
   targetSizeMustBeGreaterThanZero(PoolFixture fixture) {
     ResizablePool<GenericPoolable> pool = resizable(fixture);
     pool.setTargetSize(0);
   }
   
-  @Theory public void
-  targetSizeMustBeConfiguredSizeByDefault(PoolFixture fixture) {
+  @Test public void
+  targetSizeMustBeConfiguredSizeByDefault() {
     config.setSize(23);
     ResizablePool<GenericPoolable> pool = resizable(fixture);
     assertThat(pool.getTargetSize(), is(23));
   }
   
-  @Theory public void
-  getTargetSizeMustReturnLastSetTargetSize(PoolFixture fixture) {
+  @Test public void
+  getTargetSizeMustReturnLastSetTargetSize() {
     ResizablePool<GenericPoolable> pool = resizable(fixture);
     pool.setTargetSize(3);
     assertThat(pool.getTargetSize(), is(3));
@@ -90,9 +93,9 @@ public class ResizablePoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  increasingSizeMustAllowMoreAllocations(PoolFixture fixture) throws Exception {
+  @ConcurrentTest
+  public void
+  increasingSizeMustAllowMoreAllocations() throws Exception {
     ResizablePool<GenericPoolable> pool = resizable(fixture);
     pool.claim(longTimeout); // depleted
     pool.setTargetSize(2);
@@ -118,9 +121,9 @@ public class ResizablePoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  decreasingSizeMustEventuallyDeallocateSurplusObjects(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  decreasingSizeMustEventuallyDeallocateSurplusObjects()
       throws Exception {
     int startingSize = 5;
     int newSize = 1;
@@ -163,9 +166,9 @@ public class ResizablePoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300)
-  @Theory public void
-  mustNotReallocateWhenReleasingExpiredObjectsIntoShrunkPool(PoolFixture fixture)
+  @ConcurrentTest
+  public void
+  mustNotReallocateWhenReleasingExpiredObjectsIntoShrunkPool()
       throws Exception {
     int startingSize = 5;
     int newSize = 1;

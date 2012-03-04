@@ -30,7 +30,6 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.runner.RunWith;
@@ -125,7 +124,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest public void
   claimMustReturnNullIfTimeoutElapses()
   throws Exception {
@@ -148,7 +146,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest public void
   mustGetPooledObjectsFromAllocator() throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
@@ -165,7 +162,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest public void
   blockingClaimWithTimeoutMustWaitIfPoolIsEmpty()
   throws Exception {
@@ -184,7 +180,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest public void
   blockingOnClaimWithTimeoutMustResumeWhenPoolablesAreReleased(
       ) throws Exception {
@@ -209,7 +204,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest public void
   mustReuseAllocatedObjects()
   throws Exception {
@@ -258,7 +252,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest public void
   mustUseProvidedExpiration() throws Exception {
     CountingExpiration expiration = new CountingExpiration(false);
@@ -279,7 +272,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest(expected = SomeRandomRuntimeException.class)
   public void
   exceptionsFromExpirationMustBubbleOut()
@@ -306,7 +298,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   slotsThatMakeTheExpirationThrowAreInvalid()
@@ -334,7 +325,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   slotInfoClaimCountMustIncreaseWithClaims() throws Exception {
@@ -364,7 +354,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   slotInfoMustHaveReferenceToItsPoolable() throws Exception {
@@ -397,7 +386,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   slotInfoClaimCountMustResetIfSlotsAreReused() throws Exception {
@@ -428,7 +416,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest(expected = IllegalStateException.class)
   public void
   preventClaimFromPoolThatIsShutDown()
@@ -455,7 +442,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   mustReplaceExpiredPoolables() throws Exception {
@@ -485,7 +471,6 @@ public class PoolTest {
    * @throws Exception
    * @see Config#setSize(int)
    */
-  @Ignore
   @ConcurrentTest
   public void
   mustDeallocateExpiredPoolablesAndStayWithinSizeLimit()
@@ -514,7 +499,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   mustDeallocateAllPoolablesBeforeShutdownTaskReturns()
@@ -541,7 +525,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   shutdownCallMustReturnFastIfPoolablesAreStillClaimed()
@@ -566,7 +549,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   shutdownMustNotDeallocateClaimedPoolables()
@@ -594,7 +576,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   awaitOnShutdownMustReturnWhenClaimedObjectsAreReleased()
@@ -618,7 +599,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   awaitWithTimeoutMustReturnFalseIfTimeoutElapses()
@@ -641,7 +621,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   awaitWithTimeoutMustReturnTrueIfCompletesWithinTimeout()
@@ -669,7 +648,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   awaitingOnAlreadyCompletedShutDownMustNotBlock()
@@ -694,7 +672,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   blockedClaimMustThrowWhenPoolIsShutDown()
@@ -723,7 +700,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   mustNotDeallocateTheSameObjectMoreThanOnce()
@@ -763,7 +739,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   shutdownMustNotDeallocateEmptySlots() throws Exception {
@@ -793,7 +768,6 @@ public class PoolTest {
    * @throws Exception
    * @see PoolException
    */
-  @Ignore
   @ConcurrentTest
   public void
   mustPropagateExceptionsFromAllocateThroughClaim()
@@ -828,7 +802,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   mustStillBeUsableAfterExceptionInAllocate()
@@ -869,7 +842,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   mustSwallowExceptionsFromDeallocateThroughRelease()
@@ -909,7 +881,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   mustSwallowExceptionsFromDeallocateThroughShutdown()
@@ -938,7 +909,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest(expected = InterruptedException.class)
   public void
   awaitOnCompletionWhenInterruptedMustThrow()
@@ -965,7 +935,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest(expected = InterruptedException.class)
   public void
   awaitWithTimeoutOnCompletionMustThrowUponInterruption()
@@ -983,7 +952,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   awaitOnCompletionWhenInterruptedMustClearInterruption()
@@ -1015,7 +983,6 @@ public class PoolTest {
    * @param fixture
    * @throws InterruptedException
    */
-  @Ignore
   @ConcurrentTest(expected = InterruptedException.class)
   public void
   awaitWithTimeoutOnFinishedCompletionWhenInterruptedMustThrow(
@@ -1028,7 +995,6 @@ public class PoolTest {
    * also clear the threads interrupted status.
    * @param fixture
    */
-  @Ignore
   @ConcurrentTest
   public void
   awaitOnFinishedCompletionMustClearInterruption() {
@@ -1049,7 +1015,6 @@ public class PoolTest {
    * @see Allocator#allocate(Slot)
    * @see PoolException
    */
-  @Ignore
   @ConcurrentTest(expected = PoolException.class)
   public void
   claimMustThrowIfAllocationReturnsNull()
@@ -1072,7 +1037,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest(expected = InterruptedException.class)
   public void
   claimWhenInterruptedMustThrow()
@@ -1093,7 +1057,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest(expected = InterruptedException.class)
   public void
   blockedClaimWithTimeoutMustThrowUponInterruption()
@@ -1112,7 +1075,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   throwingInterruptedExceptionFromClaimMustClearInterruptedFlag(
@@ -1135,7 +1097,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   claimMustStayWithinDeadlineEvenIfAllocatorBlocks()
@@ -1173,7 +1134,6 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Ignore
   @ConcurrentTest
   public void
   claimMustStayWithinTimeoutEvenIfExpiredObjectIsReleased()
@@ -1220,7 +1180,6 @@ public class PoolTest {
    * @throws Exception
    * @see Pool#claim(Timeout)
    */
-  @Ignore
   @ConcurrentTest
   public void
   claimWithTimeoutValueLessThanOneMustReturnImmediately()
@@ -1245,7 +1204,6 @@ public class PoolTest {
    * @throws Exception
    * @see Completion
    */
-  @Ignore
   @ConcurrentTest
   public void
   awaitCompletionWithTimeoutLessThanOneMustReturnImmediately(
@@ -1262,7 +1220,6 @@ public class PoolTest {
    * @throws Exception
    * @see Completion
    */
-  @Ignore
   @ConcurrentTest(expected = IllegalArgumentException.class)
   public void
   awaitCompletionWithNullTimeUnitMustThrow()
@@ -1277,7 +1234,6 @@ public class PoolTest {
    * @param fixture
    * @throws InterruptedException
    */
-  @Ignore
   @ConcurrentTest
   public void
   mustCompleteShutDownEvenIfAllSlotsHaveNullErrors()
@@ -1314,7 +1270,6 @@ public class PoolTest {
    * @param fixture
    * @throws InterruptedException
    */
-  @Ignore
   @ConcurrentTest
   public void
   mustCompleteShutDownEvenIfAllSlotsHaveAllocationErrors()
@@ -1342,7 +1297,6 @@ public class PoolTest {
    * @throws InterruptedException
    * @see Pool
    */
-  @Ignore
   @ConcurrentTest
   public void
   mustBeAbleToShutDownEvenIfInterrupted()
@@ -1363,7 +1317,6 @@ public class PoolTest {
    * @throws InterruptedException
    * @see Pool
    */
-  @Ignore
   @ConcurrentTest
   public void
   callingShutdownMustNotAffectInterruptionStatus()
