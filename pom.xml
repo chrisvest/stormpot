@@ -67,10 +67,8 @@
         <version>2.4.2</version>
         <configuration>
           <systemProperties>
-            <property>
-              <name>forkMode</name>
-              <value>none</value>
-            </property>
+            <forkMode>once</forkMode>
+            <argLine>-Xmx8G</argLine>
           </systemProperties>
         </configuration>
       </plugin>
@@ -167,8 +165,8 @@
   
   <dependencies>
     <dependency>
-      <groupId>cjunit</groupId>
-      <artifactId>cjunit</artifactId>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
       <version>4.5</version>
       <scope>system</scope>
       <systemPath>${basedir}/lib/cjunit-all.jar</systemPath>
