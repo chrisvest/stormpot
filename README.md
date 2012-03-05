@@ -12,13 +12,13 @@ Why choose Stormpot?
 the Apache 2.0 license, both have thorough documentation, both have high test
 coverage (Stormpot have 100%) and both depend on nothing but Java itself.
 
-There are differences, though. Stormpot has an invasive but small API, whereas
+There are differences, though. Stormpot has a small invasive API, whereas
 Commons-Pool has a richer and less intrusive API. The different slants in their
 API design comes from differing focus. Stormpot is designed for performance
 and a unified API for different implementations. This means that those who use
 Stormpot can switch between implementations without worrying about
 compatibility. Commons-Pool, on the other hand, have different APIs for
-different kinds of pools, so changing pool implementation might mean also
+two different kinds of pools, so changing pool implementation might mean also
 having to change the code that uses the pool. On the other hand, the various
 pool implementations can make special features available that would otherwise
 be inconvenient to expose through a generic API.
