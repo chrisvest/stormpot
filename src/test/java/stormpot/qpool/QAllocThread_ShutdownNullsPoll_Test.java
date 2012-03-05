@@ -52,7 +52,6 @@ public class QAllocThread_ShutdownNullsPoll_Test {
     };
     BlockingQueue<QSlot<Poolable>> dead = new LinkedBlockingQueue<QSlot<Poolable>>();
     dead.add(new QSlot<Poolable>(live));
-//    dead.add(new QSlot<Poolable>(live));
     QAllocThread<Poolable> thread =
         new QAllocThread<Poolable>(live, dead, config);
     thread.run();

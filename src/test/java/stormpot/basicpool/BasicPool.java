@@ -150,7 +150,7 @@ implements LifecycledPool<T>, ResizablePool<T> {
       }
       slot.claim();
       count.incrementAndGet();
-      return (T) obj;
+      return obj;
     } finally {
       lock.unlock();
     }
@@ -295,7 +295,7 @@ implements LifecycledPool<T>, ResizablePool<T> {
           while(slots.get(index).isClaimed()) {
             released.awaitUninterruptibly();
           }
-          T poolable = (T) pool.get(index);
+          T poolable = pool.get(index);
           pool.set(index, null);
           try {
             allocator.deallocate(poolable);
