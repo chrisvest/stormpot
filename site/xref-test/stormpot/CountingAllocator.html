@@ -30,7 +30,7 @@
 <a name="20" href="#20">20</a>  <strong class="jxr_keyword">import</strong> java.util.List;
 <a name="21" href="#21">21</a>  <strong class="jxr_keyword">import</strong> java.util.concurrent.atomic.AtomicInteger;
 <a name="22" href="#22">22</a>  
-<a name="23" href="#23">23</a>  <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">class</strong> <a href="../stormpot/CountingAllocator.html">CountingAllocator</a> implements Allocator {
+<a name="23" href="#23">23</a>  <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">class</strong> <a href="../stormpot/CountingAllocator.html">CountingAllocator</a> implements Allocator&lt;GenericPoolable&gt; {
 <a name="24" href="#24">24</a>    <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> AtomicInteger allocations = <strong class="jxr_keyword">new</strong> AtomicInteger();
 <a name="25" href="#25">25</a>    <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> AtomicInteger deallocations = <strong class="jxr_keyword">new</strong> AtomicInteger();
 <a name="26" href="#26">26</a>    <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> List&lt;Poolable&gt; allocated =
@@ -38,14 +38,14 @@
 <a name="28" href="#28">28</a>    <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> List&lt;Poolable&gt; deallocated =
 <a name="29" href="#29">29</a>      Collections.synchronizedList(<strong class="jxr_keyword">new</strong> ArrayList&lt;Poolable&gt;());
 <a name="30" href="#30">30</a>  
-<a name="31" href="#31">31</a>    <strong class="jxr_keyword">public</strong> Poolable allocate(Slot slot) <strong class="jxr_keyword">throws</strong> Exception {
+<a name="31" href="#31">31</a>    <strong class="jxr_keyword">public</strong> <a href="../stormpot/GenericPoolable.html">GenericPoolable</a> allocate(Slot slot) <strong class="jxr_keyword">throws</strong> Exception {
 <a name="32" href="#32">32</a>      allocations.incrementAndGet();
 <a name="33" href="#33">33</a>      <a href="../stormpot/GenericPoolable.html">GenericPoolable</a> obj = <strong class="jxr_keyword">new</strong> <a href="../stormpot/GenericPoolable.html">GenericPoolable</a>(slot);
 <a name="34" href="#34">34</a>      allocated.add(obj);
 <a name="35" href="#35">35</a>      <strong class="jxr_keyword">return</strong> obj;
 <a name="36" href="#36">36</a>    }
 <a name="37" href="#37">37</a>  
-<a name="38" href="#38">38</a>    <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">void</strong> deallocate(Poolable poolable) <strong class="jxr_keyword">throws</strong> Exception {
+<a name="38" href="#38">38</a>    <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">void</strong> deallocate(<a href="../stormpot/GenericPoolable.html">GenericPoolable</a> poolable) <strong class="jxr_keyword">throws</strong> Exception {
 <a name="39" href="#39">39</a>      deallocations.incrementAndGet();
 <a name="40" href="#40">40</a>      deallocated.add(poolable);
 <a name="41" href="#41">41</a>    }
