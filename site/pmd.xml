@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<pmd version="4.2.2" timestamp="2012-03-06T20:04:22.680">
+<pmd version="4.2.2" timestamp="2012-03-06T20:07:15.152">
 <suppressedviolation filename="/Users/cvh/code/stormpot/src/main/java/stormpot/qpool/QAllocThread.java" suppressiontype="nopmd" msg="Avoid empty catch blocks" usermsg="
 "/>
 </pmd>

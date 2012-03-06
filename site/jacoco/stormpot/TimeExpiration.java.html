@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>TimeExpiration.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.html" class="el_package">stormpot</a> &gt; <span class="el_source">TimeExpiration.java</span></div><h1>TimeExpiration.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2012 Chris Vest
+ * 
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package stormpot;
+
+import java.util.concurrent.TimeUnit;
+
+/**
+ * This is the standard time based {@link Expiration}. It will invalidate
+ * objects based on how long ago they were allocated.
+ * 
+ * @author Chris Vest &amp;lt;mr.chrisvest@gmail.com&amp;gt;
+ */
+public class TimeExpiration implements Expiration&lt;Poolable&gt; {
+
+  private final long maxPermittedAgeMillis;
+
+  /**
+   * Construct a new Expiration that will invalidate objects that are older
+   * than the provided span of time in the given unit.
+   * &lt;p&gt;
+   * If the &lt;code&gt;maxPermittedAge&lt;/code&gt; is less than one, or the
+   * &lt;code&gt;unit&lt;/code&gt; is &lt;code&gt;null&lt;/code&gt;, then an
+   * {@link IllegalArgumentException} will be thrown.
+   * 
+   * @param maxPermittedAge Poolables older than this, in the given unit, will
+   * be considered expired. This value must be at least 1.
+   * @param unit The {@link TimeUnit} of the maximum permitted age. Never null.
+   */
+<span class="fc" id="L42">  public TimeExpiration(long maxPermittedAge, TimeUnit unit) {</span>
+<span class="fc bfc" id="L43" title="All 2 branches covered.">    if (maxPermittedAge &lt; 1) {</span>
+<span class="fc" id="L44">      throw new IllegalArgumentException(</span>
+          &quot;max permitted age cannot be less than 1&quot;);
+    }
+<span class="fc bfc" id="L47" title="All 2 branches covered.">    if (unit == null) {</span>
+<span class="fc" id="L48">      throw new IllegalArgumentException(&quot;unit cannot be null&quot;);</span>
+    }
+<span class="fc" id="L50">    maxPermittedAgeMillis = unit.toMillis(maxPermittedAge);</span>
+<span class="fc" id="L51">  }</span>
+
+  /**
+   * Returns &lt;code&gt;true&lt;/code&gt; if the {@link Poolable} represented by the given
+   * {@link SlotInfo} is older than the maximum age permitted by this
+   * TimeExpiration.
+   */
+  public boolean hasExpired(SlotInfo&lt;? extends Poolable&gt; info) {
+<span class="fc bfc" id="L59" title="All 2 branches covered.">    return info.getAgeMillis() &gt; maxPermittedAgeMillis;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.5.6.201201232323</span></div></body></html>

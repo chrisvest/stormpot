@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>QueuePool.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.html" class="el_package">stormpot.qpool</a> &gt; <span class="el_source">QueuePool.java</span></div><h1>QueuePool.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2011 Chris Vest
+ * 
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package stormpot.qpool;
+
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
+import stormpot.Completion;
+import stormpot.Config;
+import stormpot.Expiration;
+import stormpot.LifecycledPool;
+import stormpot.PoolException;
+import stormpot.Poolable;
+import stormpot.ResizablePool;
+import stormpot.Timeout;
+
+/**
+ * QueuePool is a fairly simple {@link LifecycledPool} and
+ * {@link ResizablePool} implementation that basically consists of a queue of
+ * Poolable instances, and a Thread to allocate them.
+ * &lt;p&gt;
+ * This means that the object allocation always happens in a dedicated thread.
+ * This means that no thread that calls any of the claim methods, will incur
+ * the overhead of allocating Poolables. This should lead to reduced deviation
+ * in the times it takes claim method to complete, provided the pool is not
+ * depleted.
+ * @author Chris Vest &amp;lt;mr.chrisvest@gmail.com&amp;gt;
+ * @param &lt;T&gt; The type of {@link Poolable} managed by this pool.
+ */
+public final class QueuePool&lt;T extends Poolable&gt;
+implements LifecycledPool&lt;T&gt;, ResizablePool&lt;T&gt; {
+  private final BlockingQueue&lt;QSlot&lt;T&gt;&gt; live;
+  private final BlockingQueue&lt;QSlot&lt;T&gt;&gt; dead;
+  private final QAllocThread&lt;T&gt; allocThread;
+  private final Expiration&lt;? super T&gt; deallocRule;
+<span class="fc" id="L49">  private volatile boolean shutdown = false;</span>
+  
+  /**
+   * Construct a new QueuePool instance based on the given {@link Config}.
+   * @param config The pool configuration to use.
+   */
+<span class="fc" id="L55">  public QueuePool(Config&lt;T&gt; config) {</span>
+<span class="fc" id="L56">    live = new LinkedBlockingQueue&lt;QSlot&lt;T&gt;&gt;();</span>
+<span class="fc" id="L57">    dead = new LinkedBlockingQueue&lt;QSlot&lt;T&gt;&gt;();</span>
+<span class="fc" id="L58">    synchronized (config) {</span>
+<span class="fc" id="L59">      config.validate();</span>
+<span class="fc" id="L60">      allocThread = new QAllocThread&lt;T&gt;(live, dead, config);</span>
+<span class="fc" id="L61">      deallocRule = config.getExpiration();</span>
+<span class="fc" id="L62">    }</span>
+<span class="fc" id="L63">    allocThread.start();</span>
+<span class="fc" id="L64">  }</span>
+
+  private void checkForPoison(QSlot&lt;T&gt; slot) {
+<span class="fc bfc" id="L67" title="All 2 branches covered.">    if (slot == allocThread.POISON_PILL) {</span>
+<span class="fc" id="L68">      live.offer(allocThread.POISON_PILL);</span>
+<span class="fc" id="L69">      throw new IllegalStateException(&quot;pool is shut down&quot;);</span>
+    }
+<span class="fc bfc" id="L71" title="All 2 branches covered.">    if (slot.poison != null) {</span>
+<span class="fc" id="L72">      Exception poison = slot.poison;</span>
+<span class="fc" id="L73">      dead.offer(slot);</span>
+<span class="fc" id="L74">      throw new PoolException(&quot;allocation failed&quot;, poison);</span>
+    }
+<span class="pc bpc" id="L76" title="1 of 2 branches missed.">    if (shutdown) {</span>
+<span class="nc" id="L77">      dead.offer(slot);</span>
+<span class="nc" id="L78">      throw new IllegalStateException(&quot;pool is shut down&quot;);</span>
+    }
+<span class="fc" id="L80">  }</span>
+
+  private boolean isInvalid(QSlot&lt;T&gt; slot) {
+<span class="fc" id="L83">    boolean invalid = true;</span>
+<span class="fc" id="L84">    RuntimeException exception = null;</span>
+    try {
+<span class="fc" id="L86">      invalid = deallocRule.hasExpired(slot);</span>
+<span class="fc" id="L87">    } catch (RuntimeException ex) {</span>
+<span class="fc" id="L88">      exception = ex;</span>
+<span class="fc" id="L89">    }</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">    if (invalid) {</span>
+      // it's invalid - into the dead queue with it and continue looping
+<span class="fc" id="L92">      dead.offer(slot);</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">      if (exception != null) {</span>
+<span class="fc" id="L94">        throw exception;</span>
+      }
+    } else {
+      // it's valid - claim it and stop looping
+<span class="fc" id="L98">      slot.claim();</span>
+    }
+<span class="fc" id="L100">    return invalid;</span>
+  }
+
+  public T claim(Timeout timeout) throws PoolException,
+      InterruptedException {
+<span class="fc bfc" id="L105" title="All 2 branches covered.">    if (timeout == null) {</span>
+<span class="fc" id="L106">      throw new IllegalArgumentException(&quot;timeout cannot be null&quot;);</span>
+    }
+    QSlot&lt;T&gt; slot;
+<span class="fc" id="L109">    long deadline = timeout.getDeadline();</span>
+    do {
+<span class="fc" id="L111">      long timeoutLeft = timeout.getTimeLeft(deadline);</span>
+<span class="fc" id="L112">      slot = live.poll(timeoutLeft, timeout.getBaseUnit());</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">      if (slot == null) {</span>
+        // we timed out while taking from the queue - just return null
+<span class="fc" id="L115">        return null;</span>
+      }
+<span class="fc" id="L117">      checkForPoison(slot);</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">    } while (isInvalid(slot));</span>
+<span class="fc" id="L119">    return slot.obj;</span>
+  }
+
+  public Completion shutdown() {
+<span class="fc" id="L123">    shutdown = true;</span>
+<span class="fc" id="L124">    allocThread.interrupt();</span>
+<span class="fc" id="L125">    return new QPoolShutdownCompletion(allocThread);</span>
+  }
+
+  public void setTargetSize(int size) {
+<span class="fc bfc" id="L129" title="All 2 branches covered.">    if (size &lt; 1) {</span>
+<span class="fc" id="L130">      throw new IllegalArgumentException(&quot;target size must be at least 1&quot;);</span>
+    }
+<span class="fc" id="L132">    allocThread.setTargetSize(size);</span>
+<span class="fc" id="L133">  }</span>
+
+  public int getTargetSize() {
+<span class="fc" id="L136">    return allocThread.getTargetSize();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.5.6.201201232323</span></div></body></html>

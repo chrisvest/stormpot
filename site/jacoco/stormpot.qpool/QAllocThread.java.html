@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>QAllocThread.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.html" class="el_package">stormpot.qpool</a> &gt; <span class="el_source">QAllocThread.java</span></div><h1>QAllocThread.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2011 Chris Vest
+ * 
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package stormpot.qpool;
+
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
+
+import stormpot.Allocator;
+import stormpot.Config;
+import stormpot.Poolable;
+import stormpot.Timeout;
+
+class QAllocThread&lt;T extends Poolable&gt; extends Thread {
+  /**
+   * Special slot used to signal that the pool has been shut down.
+   */
+<span class="fc" id="L32">  final QSlot&lt;T&gt; POISON_PILL = new QSlot&lt;T&gt;(null);</span>
+  
+  private final CountDownLatch completionLatch;
+  private final BlockingQueue&lt;QSlot&lt;T&gt;&gt; live;
+  private final BlockingQueue&lt;QSlot&lt;T&gt;&gt; dead;
+  private final Allocator&lt;T&gt; allocator;
+  private volatile int targetSize;
+  private int size;
+<span class="fc" id="L40">  private long deadPollTimeout = 1;</span>
+
+  public QAllocThread(
+      BlockingQueue&lt;QSlot&lt;T&gt;&gt; live, BlockingQueue&lt;QSlot&lt;T&gt;&gt; dead,
+<span class="fc" id="L44">      Config&lt;T&gt; config) {</span>
+<span class="fc" id="L45">    this.targetSize = config.getSize();</span>
+<span class="fc" id="L46">    completionLatch = new CountDownLatch(1);</span>
+<span class="fc" id="L47">    this.allocator = config.getAllocator();</span>
+<span class="fc" id="L48">    this.size = 0;</span>
+<span class="fc" id="L49">    this.live = live;</span>
+<span class="fc" id="L50">    this.dead = dead;</span>
+<span class="fc" id="L51">  }</span>
+
+  @Override
+  public void run() {
+<span class="fc" id="L55">    continuouslyReplenishPool();</span>
+<span class="fc" id="L56">    shutPoolDown();</span>
+<span class="fc" id="L57">    completionLatch.countDown();</span>
+<span class="fc" id="L58">  }</span>
+
+  private void continuouslyReplenishPool() {
+    try {
+      for (;;) {
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        deadPollTimeout = size == targetSize? 50 : 1;</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        if (size &lt; targetSize) {</span>
+<span class="fc" id="L65">          QSlot&lt;T&gt; slot = new QSlot&lt;T&gt;(live);</span>
+<span class="fc" id="L66">          alloc(slot);</span>
+        }
+<span class="fc" id="L68">        QSlot&lt;T&gt; slot = dead.poll(deadPollTimeout, TimeUnit.MILLISECONDS);</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        if (size &gt; targetSize) {</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">          slot = slot == null? live.poll() : slot;</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">          if (slot != null) {</span>
+<span class="fc" id="L72">            dealloc(slot);</span>
+          }
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        } else if (slot != null) {</span>
+<span class="fc" id="L75">          dealloc(slot);</span>
+<span class="fc" id="L76">          alloc(slot);</span>
+          // mutation testing might note that the above alloc() call can be
+          // removed... that's okay, it's really just an optimisation that
+          // prevents us from creating new slots all the time - we reuse them.
+        }
+<span class="fc" id="L81">      }</span>
+<span class="fc" id="L82">    } catch (InterruptedException _) {</span>
+      // this means we've been shut down.
+      // let the poison-pill enter the system
+<span class="fc" id="L85">      live.offer(POISON_PILL);</span>
+    }
+<span class="fc" id="L87">  }</span>
+
+  private void shutPoolDown() {
+<span class="fc bfc" id="L90" title="All 2 branches covered.">    while (size &gt; 0) {</span>
+<span class="fc" id="L91">      QSlot&lt;T&gt; slot = dead.poll();</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">      if (slot == null) {</span>
+<span class="fc" id="L93">        slot = live.poll();</span>
+      }
+<span class="fc bfc" id="L95" title="All 2 branches covered.">      if (slot == POISON_PILL) {</span>
+        // FindBugs complains that we ignore a possible exceptional return
+        // value from offer(). However, since the queues are unbounded, an
+        // offer will never fail.
+<span class="fc" id="L99">        live.offer(POISON_PILL);</span>
+<span class="fc" id="L100">        slot = null;</span>
+      }
+<span class="fc bfc" id="L102" title="All 2 branches covered.">      if (slot == null) {</span>
+<span class="fc" id="L103">        LockSupport.parkNanos(10000000); // 10 millis</span>
+      } else {
+<span class="fc" id="L105">        dealloc(slot);</span>
+      }
+<span class="fc" id="L107">    }</span>
+<span class="fc" id="L108">  }</span>
+
+  private void alloc(QSlot&lt;T&gt; slot) {
+    try {
+<span class="fc" id="L112">      slot.obj = allocator.allocate(slot);</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">      if (slot.obj == null) {</span>
+<span class="fc" id="L114">        slot.poison = new NullPointerException(&quot;allocation returned null&quot;);</span>
+      }
+<span class="fc" id="L116">    } catch (Exception e) {</span>
+<span class="fc" id="L117">      slot.poison = e;</span>
+<span class="fc" id="L118">    }</span>
+<span class="fc" id="L119">    size++;</span>
+<span class="fc" id="L120">    slot.created = System.currentTimeMillis();</span>
+<span class="fc" id="L121">    slot.claims = 0;</span>
+<span class="fc" id="L122">    slot.claimed.set(true);</span>
+<span class="fc" id="L123">    slot.release(slot.obj);</span>
+<span class="fc" id="L124">  }</span>
+
+  private void dealloc(QSlot&lt;T&gt; slot) {
+<span class="fc" id="L127">    size--;</span>
+    try {
+<span class="fc bfc" id="L129" title="All 2 branches covered.">      if (slot.poison == null) {</span>
+<span class="fc" id="L130">        allocator.deallocate(slot.obj);</span>
+      }
+<span class="fc" id="L132">    } catch (Exception _) { // NOPMD</span>
+      // ignored as per specification
+<span class="fc" id="L134">    }</span>
+<span class="fc" id="L135">    slot.poison = null;</span>
+<span class="fc" id="L136">    slot.obj = null;</span>
+<span class="fc" id="L137">  }</span>
+
+  boolean await(Timeout timeout) throws InterruptedException {
+<span class="fc" id="L140">    return completionLatch.await(timeout.getTimeout(), timeout.getUnit());</span>
+  }
+
+  void setTargetSize(int size) {
+<span class="fc" id="L144">    this.targetSize = size;</span>
+<span class="fc" id="L145">    LockSupport.unpark(this);</span>
+<span class="fc" id="L146">  }</span>
+
+  int getTargetSize() {
+<span class="fc" id="L149">    return targetSize;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.5.6.201201232323</span></div></body></html>

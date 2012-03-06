@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>PoolException.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.html" class="el_package">stormpot</a> &gt; <span class="el_source">PoolException.java</span></div><h1>PoolException.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2011 Chris Vest
+ * 
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package stormpot;
+
+/**
+ * The PoolException may be thrown by a pool implementation in a number of
+ * circumstances:
+ * &lt;ul&gt;
+ * &lt;li&gt;If claim is called and the pool needs to
+ * {@link Allocator#allocate(Slot) allocate} a new object, but the allocation
+ * fails by returning &lt;code&gt;null&lt;/code&gt; or throwing an exception.
+ * &lt;li&gt;If the {@link Slot#release(Poolable)} method is misused, and the pool is
+ * able to detect this.
+ * &lt;/ul&gt;
+ * @author Chris Vest &amp;lt;mr.chrisvest@gmail.com&amp;gt;
+ *
+ */
+public class PoolException extends RuntimeException {
+  private static final long serialVersionUID = -1908093409167496640L;
+
+  /**
+   * Construct a new PoolException with the given message.
+   * @param message A description of the exception to be returned from
+   * {@link #getMessage()}.
+   * @see RuntimeException#RuntimeException(String)
+   */
+  public PoolException(String message) {
+<span class="fc" id="L41">    super(message);</span>
+<span class="fc" id="L42">  }</span>
+
+  /**
+   * Construct a new PoolException with the given message and cause.
+   * @param message A description for the exception to be returned form
+   * {@link #getMessage()}.
+   * @param cause The underlying cause of this exception, as to be shown in the
+   * stack trace, and available through {@link #getCause()}.
+   * @see RuntimeException#RuntimeException(String, Throwable)
+   */
+  public PoolException(String message, Throwable cause) {
+<span class="fc" id="L53">    super(message, cause);</span>
+<span class="fc" id="L54">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.5.6.201201232323</span></div></body></html>

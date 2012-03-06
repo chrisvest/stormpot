@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>Config.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.html" class="el_package">stormpot</a> &gt; <span class="el_source">Config.java</span></div><h1>Config.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2011 Chris Vest
+ * 
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package stormpot;
+
+import java.util.concurrent.TimeUnit;
+
+/**
+ * The basic configuration &quot;bean&quot; class.
+ * &lt;p&gt;
+ * Instances of this class is passed to the constructors of {@link Pool pools}
+ * so that they know how big they should be, how to allocate objects and when
+ * to deallocate objects.
+ * &lt;p&gt;
+ * This class is made thread-safe by having the fields be protected by the
+ * intrinsic object lock on the Config object itself. This way, pools can
+ * &lt;code&gt;synchronize&lt;/code&gt; on the config object to read the values out
+ * atomically.
+ * &lt;p&gt;
+ * The various set* methods are made to return the Config instance itself, so
+ * that the method calls may be chained if so desired.
+ * 
+ * &lt;h3&gt;Standardised configuration&lt;/h3&gt;
+ * The contract of the Config class, and how Pools will interpret it, is within
+ * the context of a so-called standardised configuration. All pool and Config
+ * implementations must behave similarly in a standardised configuration.
+ * &lt;p&gt;
+ * It is conceivable that some pool implementations will come with their own
+ * sub-classes of Config, that allow greater control over the pools behaviour.
+ * It is even permissible that these pool implementations may
+ * deviate from the contract of the Pool interface. However, they are only
+ * allowed to do so in a non-standard configuration. That is, any deviation
+ * from the specified contracts must be explicitly enabled.
+ * 
+ * @author Chris Vest &amp;lt;mr.chrisvest@gmail.com&amp;gt;
+ * @param &lt;T&gt; The type of {@link Poolable} objects that a {@link Pool} based
+ * on this Config will produce.
+ */
+@SuppressWarnings(&quot;unchecked&quot;)
+public class Config&lt;T extends Poolable&gt; {
+
+<span class="fc" id="L54">  private int size = 10;</span>
+<span class="fc" id="L55">  private Expiration&lt;? super T&gt; expiration =</span>
+      new TimeExpiration(600, TimeUnit.SECONDS); // 10 minutes
+  private Allocator&lt;?&gt; allocator;
+  
+  /**
+   * Build a new empty Config object. Most settings have reasonable default
+   * values. However, no {@link Allocator} is configured by default, and one
+   * must make sure to set one.
+   */
+<span class="fc" id="L64">  public Config() {</span>
+<span class="fc" id="L65">  }</span>
+
+  /**
+   * Set the size of the pools we want to configure them with. Pools are
+   * required to control the allocations and deallocations, such that no more
+   * than this number of objects are allocated at any time.
+   * &lt;p&gt;
+   * This means that a pool of size 1, whose single object have expired, will
+   * deallocate that one object before allocating a replacement.
+   * &lt;p&gt;
+   * The size must be at least one for standard pool configurations. A Pool
+   * will throw an {@link IllegalArgumentException} from their constructor if
+   * this is not the case.
+   * @param size The target pool size. Must be at least 1.
+   * @return This Config instance.
+   */
+  public synchronized Config&lt;T&gt; setSize(int size) {
+<span class="fc" id="L82">    this.size = size;</span>
+<span class="fc" id="L83">    return this;</span>
+  }
+
+  /**
+   * Get the currently configured size. Default is 10.
+   * @return The configured pool size.
+   */
+  public synchronized int getSize() {
+<span class="fc" id="L91">    return size;</span>
+  }
+
+  /**
+   * Set the {@link Allocator} to use for the pools we want to configure.
+   * This will change the type-parameter of the Config object to match that
+   * of the new Allocator.
+   * &lt;p&gt;
+   * The allocator is initially &lt;code&gt;null&lt;/code&gt; in a new Config object, and
+   * can be set to &lt;code&gt;null&lt;/code&gt; any time. However, in a standard
+   * configuration, it must be non-null when the Config is passed to a Pool
+   * constructor. Otherwise the constructor will throw an
+   * {@link IllegalArgumentException}.
+   * @param &lt;X&gt; The type of {@link Poolable} that is created by the allocator,
+   * and the type of objects that the configured pools will contain.
+   * @param allocator The allocator we want our pools to use.
+   * @return This Config instance, but with a generic type parameter that
+   * matches that of the allocator.
+   */
+  public synchronized &lt;X extends Poolable&gt; Config&lt;X&gt; setAllocator(
+      Allocator&lt;X&gt; allocator) {
+<span class="fc" id="L112">    this.allocator = allocator;</span>
+<span class="fc" id="L113">    return (Config&lt;X&gt;) this;</span>
+  }
+
+  /**
+   * Get the configured {@link Allocator} instance. There is no configured
+   * allocator by default, so this must be {@link #setAllocator(Allocator) set}
+   * before instantiating any Pool implementations from this Config.
+   * @return The configured Allocator instance, if any.
+   */
+  public synchronized Allocator&lt;T&gt; getAllocator() {
+<span class="fc" id="L123">    return (Allocator&lt;T&gt;) allocator;</span>
+  }
+
+  /**
+   * Set the {@link Expiration} to use for the pools we want to
+   * configure. The Expiration determines when a pooled object is valid
+   * for claiming, or when the objects are invalid and should be deallocated.
+   * &lt;p&gt;
+   * The default Expiration is a {@link TimeExpiration} that
+   * invalidates the objects after they have been active for 10 minutes.
+   * @param expiration The expiration we want our pools to use. Not null.
+   * @return This Config instance.
+   */
+  public synchronized Config&lt;T&gt; setExpiration(Expiration&lt;? super T&gt; expiration) {
+<span class="fc" id="L137">    this.expiration = expiration;</span>
+<span class="fc" id="L138">    return this;</span>
+  }
+
+  /**
+   * Get the configured {@link Expiration} instance. The default is a
+   * {@link TimeExpiration} that expires objects after 10 minutes.
+   * @return The configured Expiration.
+   */
+  public synchronized Expiration&lt;? super T&gt; getExpiration() {
+<span class="fc" id="L147">    return expiration;</span>
+  }
+
+  /**
+   * Check that the configuration is valid in terms of the &lt;em&gt;standard
+   * configuration&lt;/em&gt;. This method is useful in the
+   * Pool implementation constructors.
+   * @throws IllegalArgumentException If the size is less than one, if the
+   * {@link Expiration} is &lt;code&gt;null&lt;/code&gt;, or if the {@link Allocator} is
+   * &lt;code&gt;null&lt;/code&gt;.
+   */
+  public synchronized void validate() throws IllegalArgumentException {
+<span class="fc bfc" id="L159" title="All 2 branches covered.">    if (size &lt; 1) {</span>
+<span class="fc" id="L160">      throw new IllegalArgumentException(</span>
+          &quot;size must be at least 1, but was &quot; + size);
+    }
+<span class="fc bfc" id="L163" title="All 2 branches covered.">    if (allocator == null) {</span>
+<span class="fc" id="L164">      throw new IllegalArgumentException(</span>
+          &quot;Allocator cannot be null&quot;);
+    }
+<span class="fc bfc" id="L167" title="All 2 branches covered.">    if (expiration == null) {</span>
+<span class="fc" id="L168">      throw new IllegalArgumentException(&quot;Expiration cannot be null&quot;);</span>
+    }
+<span class="fc" id="L170">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.5.6.201201232323</span></div></body></html>
