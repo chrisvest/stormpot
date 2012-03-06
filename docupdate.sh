@@ -1,5 +1,5 @@
 
-mvn clean site
+mvn clean install site
 git co gh-pages
 rm -fr site
 cp -fr target/site .
