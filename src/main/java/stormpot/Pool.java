@@ -86,7 +86,7 @@ public interface Pool<T extends Poolable> {
    * @throws InterruptedException if the current thread is
    * {@link Thread#interrupt() interrupted} upon entry, or becomes interrupted
    * while waiting.
-   * @throws IllegalArgumentException if the <code>unit<code> argument is
+   * @throws IllegalArgumentException if the <code>timeout</code> argument is
    * <code>null</code>.
    */
   T claim(Timeout timeout) throws PoolException, InterruptedException;
