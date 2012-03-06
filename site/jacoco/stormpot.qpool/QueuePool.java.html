@@ -73,9 +73,9 @@ implements LifecycledPool&lt;T&gt;, ResizablePool&lt;T&gt; {
 <span class="fc" id="L73">      dead.offer(slot);</span>
 <span class="fc" id="L74">      throw new PoolException(&quot;allocation failed&quot;, poison);</span>
     }
-<span class="pc bpc" id="L76" title="1 of 2 branches missed.">    if (shutdown) {</span>
-<span class="nc" id="L77">      dead.offer(slot);</span>
-<span class="nc" id="L78">      throw new IllegalStateException(&quot;pool is shut down&quot;);</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">    if (shutdown) {</span>
+<span class="fc" id="L77">      dead.offer(slot);</span>
+<span class="fc" id="L78">      throw new IllegalStateException(&quot;pool is shut down&quot;);</span>
     }
 <span class="fc" id="L80">  }</span>
 

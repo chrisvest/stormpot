@@ -1,6 +1,6 @@
 GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
 stormpot,stormpot.qpool,QSlot,0,46,0,2,0,13,0,7,0,6
-stormpot,stormpot.qpool,QueuePool,10,178,1,17,2,50,1,15,0,7
+stormpot,stormpot.qpool,QueuePool,0,188,0,18,0,52,0,16,0,7
 stormpot,stormpot.qpool,QAllocThread,0,230,0,24,0,67,0,21,0,9
 stormpot,stormpot.qpool,QPoolShutdownCompletion,0,18,0,2,0,6,0,3,0,2
 stormpot,stormpot,TimeExpiration,0,34,0,6,0,8,0,5,0,2
