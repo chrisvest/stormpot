@@ -2,12 +2,15 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.github.chrisvest</groupId>
-  <artifactId>stormpot</artifactId>
+  <artifactId>stormpot-parent</artifactId>
   <version>2.1-SNAPSHOT</version>
-  <packaging>jar</packaging>
-  <name>stormpot</name>
-  <description>A fast object pool library.</description>
+  <packaging>pom</packaging>
+  <description>Modules POM for Stormpot.</description>
   <url>http://chrisvest.github.com/stormpot</url>
+  
+  <modules>
+    <module>stormpot</module>
+  </modules>
   
   <parent>
     <groupId>org.sonatype.oss</groupId>
@@ -102,7 +105,7 @@
               <artifactId>maven-javadoc-plugin</artifactId>
               <version>2.8</version>
               <configuration>
-                <stylesheetfile>javadocstyle.css</stylesheetfile>
+                <stylesheetfile>../javadocstyle.css</stylesheetfile>
               </configuration>
             </plugin>
             <plugin>
@@ -184,7 +187,7 @@
   <properties>
     <outputEncoding>UTF-8</outputEncoding>
     <java.version>1.6</java.version>
-    <jacoco.version>0.5.6.201201232323</jacoco.version>
+    <jacoco.version>0.5.7.201204190339</jacoco.version>
   </properties>
 </project>
 
