@@ -10,6 +10,7 @@
   
   <modules>
     <module>stormpot</module>
+    <module>stormpot-benchmark</module>
   </modules>
   
   <parent>
