@@ -37,12 +37,12 @@ public abstract class Bench {
     double timeMean = ((double) timeSum) / trials;
     
     String str = "Benchmark: %s\t" +
-    		"%s trials\t" +
+    		"%s trials in % 3d ms.\t" +
     		"%.1f claim+release/sec\t" +
     		"latency(max, mean, min) = " +
     		"(% 3d, %.6f, %s) in millis.\n";
     System.out.printf(
-        str, name, trials, cyclesPerSec, timeMax, timeMean, timeMin);
+        str, name, trials, period, cyclesPerSec, timeMax, timeMean, timeMin);
   }
   
   public final String getName() {
