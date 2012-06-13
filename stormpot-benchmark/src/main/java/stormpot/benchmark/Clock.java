@@ -5,8 +5,12 @@ import java.util.concurrent.locks.LockSupport;
 /**
  * The Clock improves upon {@link System#currentTimeMillis()} in that it can be
  * stopped and manually ticked forward. This is useful for testability.
+ * 
+ * It also turns out that a simple volatile read is significantly faster than
+ * calling {@link System#currentTimeMillis()}, but the improvement in reading
+ * performance comes at a cost of accuracy. Of what I've observed, the clock
+ * can sometimes be off by some 10-odd milliseconds - sometimes more. It varies.
  * @author cvh
- *
  */
 public final class Clock {
 
