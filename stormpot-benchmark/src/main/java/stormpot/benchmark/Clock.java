@@ -46,15 +46,15 @@ public final class Clock {
    */
   public static long currentTimeMillis() {
     return now;
-//    return System.currentTimeMillis();
   }
   
   /**
    * Start automatic ticking. This will tick the clock, and update its current
-   * time value, about every 10 milliseconds. Note that this does not guarantee
-   * that the clock will get a distinctively new time value every 10
-   * milliseconds. The clock can be stopped again at any time with the
-   * {@link #stop()} method. Starting an already started clock has no effect.
+   * time value, about every millisecond. Note that this does not guarantee
+   * that the clock will get a distinctively new time value every
+   * millisecond because the underlying time source may not be that accurate.
+   * The clock can be stopped again at any time with the {@link #stop()}
+   * method. Starting an already started clock has no effect.
    */
   public static void start() {
     tick();
@@ -89,7 +89,7 @@ public final class Clock {
           LockSupport.park();
         }
         tick();
-//        LockSupport.parkNanos(1000); // 1 millis
+//        LockSupport.parkNanos(1000);
         try {
           Thread.sleep(1);
         } catch (InterruptedException e) {}
