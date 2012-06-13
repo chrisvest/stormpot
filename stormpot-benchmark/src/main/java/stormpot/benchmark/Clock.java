@@ -42,6 +42,7 @@ public final class Clock {
    */
   public static long currentTimeMillis() {
     return now;
+//    return System.currentTimeMillis();
   }
   
   /**
@@ -87,8 +88,7 @@ public final class Clock {
 //        LockSupport.parkNanos(1000); // 1 millis
         try {
           Thread.sleep(1);
-        } catch (InterruptedException e) {
-        }
+        } catch (InterruptedException e) {}
       }
     }
   }
