@@ -9,13 +9,21 @@ public class Main {
      * Remember to add pass-through properties to the pom.xml file,
      * when adding properties here!
      */
+    Benchmark benchmark = null;
     if (prop("help")) {
       explain("throughput-single", "Single-threaded throughput");
-    } else if (prop("throughput-single")) {
-      Throughput.main(args);
+      return;
+    }
+    if (prop("throughput-single")) {
+      benchmark = new SingleThreadedThroughput();
+    }
+    
+    if (benchmark != null) {
+      benchmark.run();
     } else {
       System.out.println("Run `mvn -Dhelp` for options.");
     }
+    System.exit(0);
   }
 
   private static boolean prop(String prop) {

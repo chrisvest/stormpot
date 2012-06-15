@@ -7,20 +7,18 @@ import java.util.Random;
  * in a given timeframe?
  * @author cvh
  */
-public class Throughput {
+public class SingleThreadedThroughput extends Benchmark {
   private static final Random rnd = new Random();
   private static final int SIZE = 10;
   private static final long TRIAL_TIME_MILLIS = 500L;
 
-  public static void main(String[] args) {
+  public void run() {
     Clock.start();
     System.out.println("Stormpot Single-Threaded Throughput Benchmark");
     try {
       runBenchmark();
     } catch (Exception e) {
       e.printStackTrace();
-    } finally {
-      System.exit(0);
     }
   }
 
