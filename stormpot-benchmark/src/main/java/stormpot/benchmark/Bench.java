@@ -1,10 +1,15 @@
 package stormpot.benchmark;
 
+import java.util.Arrays;
+
 public abstract class Bench {
   public abstract void primeWithSize(int size) throws Exception;
   public abstract Object claim() throws Exception;
   public abstract void release(Object object) throws Exception;
-  public abstract void claimAndRelease() throws Exception;
+  
+  public void claimAndRelease() throws Exception {
+    release(claim());
+  }
   
   private int trials;
   private long timeSum;
@@ -32,20 +37,30 @@ public abstract class Bench {
   }
   
   public final void report() {
-    String name = getName();
+    String name = computeFixedLengthName(20);
     double cyclesPerSec = (1000.0 / period) * trials;
     double timeMean = ((double) timeSum) / trials;
     
-    String str = "Benchmark: %s\t" +
-    		"%s trials in %3d ms.\t" +
-    		"%.0f claim+release/sec\t" +
+    String str = "Benchmark: %s " +
+    		"%7d trials in %3d ms. " +
+    		"%7.0f claim+release/sec. " +
     		"latency(max, mean, min) = " +
     		"(%2d, %.6f, %s) in millis.\n";
     System.out.printf(
         str, name, trials, period, cyclesPerSec, timeMax, timeMean, timeMin);
   }
   
-  public final String getName() {
+  private String computeFixedLengthName(int length) {
+    char[] nameCs = getName().toCharArray();
+    char[] nameField = new char[length];
+    Arrays.fill(nameField, ' ');
+    for (int i = 0; i < nameField.length && i < nameCs.length; i++) {
+      nameField[i] = nameCs[i];
+    }
+    return String.copyValueOf(nameField);
+  }
+  
+  public String getName() {
     return getClass().getSimpleName();
   }
 }

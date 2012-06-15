@@ -15,11 +15,15 @@ import java.util.concurrent.locks.LockSupport;
 public final class Clock {
 
   private static volatile long now;
-  
   private static final Ticker ticker = new Ticker();
+  private static final boolean precise = usePreciseTime();
   
   private Clock() { /* static utility class */ }
   
+  private static boolean usePreciseTime() {
+    return Boolean.valueOf(System.getProperty("clock.precise", "false"));
+  }
+
   /**
    * Advance the clock to the current time.
    * @return The new current time, in milliseconds since the epoch.
@@ -45,6 +49,9 @@ public final class Clock {
    * @return The "current" time recorded by the last tick.
    */
   public static long currentTimeMillis() {
+    if (precise) {
+      return System.currentTimeMillis();
+    }
     return now;
   }
   

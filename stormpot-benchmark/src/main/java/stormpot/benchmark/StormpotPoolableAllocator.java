@@ -7,7 +7,7 @@ import stormpot.Slot;
 public class StormpotPoolableAllocator implements Allocator<Poolable> {
   @Override
   public Poolable allocate(Slot slot) throws Exception {
-    return new StormpotPoolable(slot);
+    return new MyPoolable(slot);
   }
 
   @Override

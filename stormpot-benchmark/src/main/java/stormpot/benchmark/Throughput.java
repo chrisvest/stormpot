@@ -1,51 +1,90 @@
 package stormpot.benchmark;
 
+import java.util.Random;
+
 /**
  * After warm-up, how many times can we claim and release non-expiring objects
  * in a given timeframe?
  * @author cvh
  */
 public class Throughput {
+  private static final Random rnd = new Random();
   private static final int SIZE = 10;
   private static final long TRIAL_TIME_MILLIS = 500L;
 
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) {
     Clock.start();
     System.out.println("Stormpot Single-Threaded Throughput Benchmark");
     try {
       runBenchmark();
+    } catch (Exception e) {
+      e.printStackTrace();
     } finally {
       System.exit(0);
     }
   }
 
   private static void runBenchmark() throws Exception {
-    Bench queuePool = new QueuePoolBench();
-    queuePool.primeWithSize(SIZE);
+    Bench[] pools = new Bench[] {
+        new QueuePoolBench(),
+        new CmnsStackPoolBench(),
+        new CmnsGenericObjPoolBench()};
     
-    warmup(queuePool);
-    trial(queuePool);
-    trial(queuePool);
-    trial(queuePool);
-    trial(queuePool);
-    trial(queuePool);
-    trial(queuePool);
-    trial(queuePool);
-    trial(queuePool);
-    trial(queuePool);
-    trial(queuePool);
+    prime(pools);
+    warmup(pools);
+    trial(pools);
   }
 
-  private static void warmup(Bench bench) throws Exception {
-    System.out.println("Warming up " + bench.getName());
-    int steps = 20;
+  private static void prime(Bench[] pools) throws Exception {
+    for (Bench pool : pools) {
+      pool.primeWithSize(SIZE);
+    }
+  }
+
+  private static void warmup(Bench[] pools) throws Exception {
+    System.out.println("Warming up pools...");
+    for (Bench pool : pools) {
+      warmup(pool, 1);
+    }
+    shuffle(pools);
+    for (Bench pool : pools) {
+      warmup(pool, 1);
+    }
+    shuffle(pools);
+    for (Bench pool : pools) {
+      warmup(pool, 11);
+    }
+    System.out.println("Warmup done.");
+  }
+
+  private static void shuffle(Bench[] pools) {
+    for (int i = 0; i < pools.length; i++) {
+      int index = i + rnd.nextInt(pools.length - i);
+      Bench tmp = pools[index];
+      pools[index] = pools[i];
+      pools[i] = tmp;
+    }
+  }
+
+  private static void warmup(Bench bench, int steps) throws Exception {
+    System.out.println(
+        "Warming up " + bench.getName() + " with " + steps + "K steps.");
     for (int i = 0; i < steps; i++) {
       for (int j = 0; j < 1000; j++) {
         benchmark(bench, 1);
       }
-      System.out.printf("%02d/%s.", i, steps);
+      System.out.printf("%02d/%s.", i + 1, steps);
     }
-    System.out.println("\nWarmup done.");
+    System.out.println("\ndone.");
+  }
+
+  private static void trial(Bench[] pools) throws Exception {
+    for (int i = 0; i < 10; i++) {
+      shuffle(pools);
+      for (Bench pool : pools) {
+        trial(pool);
+      }
+    }
   }
 
   private static void trial(Bench bench) throws Exception {

@@ -10,14 +10,14 @@ public class QueuePoolBench extends Bench {
   private static final Timeout timeout =
       new Timeout(1000, TimeUnit.MILLISECONDS);
   
-  private QueuePool<StormpotPoolable> pool;
+  private QueuePool<MyPoolable> pool;
 
   @Override
   public void primeWithSize(int size) {
-    Config<StormpotPoolable> config = new Config<StormpotPoolable>();
+    Config<MyPoolable> config = new Config<MyPoolable>();
     config.setAllocator(new StormpotPoolableAllocator());
     config.setSize(size);
-    pool = new QueuePool<StormpotPoolable>(config);
+    pool = new QueuePool<MyPoolable>(config);
   }
 
   @Override
@@ -27,11 +27,11 @@ public class QueuePoolBench extends Bench {
 
   @Override
   public void release(Object object) throws Exception {
-    ((StormpotPoolable) object).release();
+    ((MyPoolable) object).release();
   }
 
   @Override
-  public void claimAndRelease() throws Exception {
-    release(claim());
+  public String getName() {
+    return pool.getClass().getSimpleName();
   }
 }
