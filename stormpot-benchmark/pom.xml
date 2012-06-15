@@ -50,6 +50,9 @@
 <!--                 <argument>-XX:+PrintOptoAssembly</argument> -->
                 <argument>-XX:+PrintInlining</argument>
                 <argument>-server</argument>
+                <argument>-Dclock.precise=${clock.precise}</argument>
+                <argument>-Dhelp=${help}</argument>
+                <argument>-Dthroughput-single=${throughput-single}</argument>
                 <argument>-classpath</argument>
                 <classpath/>
                 <argument>stormpot.benchmark.Main</argument>
