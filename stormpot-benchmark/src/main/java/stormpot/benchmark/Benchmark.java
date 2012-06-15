@@ -12,7 +12,8 @@ public abstract class Benchmark {
     return new Bench[] {
         new QueuePoolBench(),
         new CmnsStackPoolBench(),
-        new CmnsGenericObjPoolBench()};
+        new CmnsGenericObjPoolBench(),
+        new FixedQueuePoolBench()};
   }
 
   protected static void prime(Bench[] pools, int size, long objTtlMillis)
