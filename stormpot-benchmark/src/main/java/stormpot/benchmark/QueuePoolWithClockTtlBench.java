@@ -40,6 +40,6 @@ public class QueuePoolWithClockTtlBench extends Bench {
 
   @Override
   public String getName() {
-    return pool.getClass().getSimpleName() + "-with-clock";
+    return pool.getClass().getSimpleName() + "-FastExpire";
   }
 }
