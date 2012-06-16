@@ -11,7 +11,12 @@ public class Main {
      */
     Benchmark benchmark = null;
     if (prop("help")) {
+      System.out.println("How to use the benchmark tool:");
       explain("throughput-single", "Single-threaded throughput");
+      System.out.println("Additionally, the following options may be given " +
+      		"to any benchmark:");
+      explainAuxiliary("clock.precise",
+          "Measure latency more precisely, at the cost of reducing througput.");
       return;
     }
     if (prop("throughput-single")) {
@@ -32,6 +37,10 @@ public class Main {
   }
 
   private static void explain(String name, String desc) {
-    System.out.printf("Run `mvn -D%s` for a %s benchmark.\n", name, desc);
+    System.out.printf("  Run `mvn -D%s` for a %s benchmark.\n", name, desc);
+  }
+
+  private static void explainAuxiliary(String name, String desc) {
+    System.out.printf("  -D%s\n\t%s", name, desc);
   }
 }

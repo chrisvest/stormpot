@@ -11,6 +11,7 @@ public class SingleThreadedThroughput extends Benchmark {
   private static final Random rnd = new Random();
   private static final int SIZE = 10;
   private static final long TRIAL_TIME_MILLIS = 500L;
+  private static final long OBJ_TTL_MILLIS = 5 * 60 * 100;
 
   public void run() {
     Clock.start();
@@ -25,6 +26,7 @@ public class SingleThreadedThroughput extends Benchmark {
   private static void runBenchmark() throws Exception {
     Bench[] pools = new Bench[] {
         new QueuePoolBench(),
+        new QueuePoolWithClockTtlBench(),
         new CmnsStackPoolBench(),
         new CmnsGenericObjPoolBench()};
     
@@ -35,7 +37,7 @@ public class SingleThreadedThroughput extends Benchmark {
 
   private static void prime(Bench[] pools) throws Exception {
     for (Bench pool : pools) {
-      pool.primeWithSize(SIZE);
+      pool.primeWithSize(SIZE, OBJ_TTL_MILLIS);
     }
   }
 
@@ -46,11 +48,15 @@ public class SingleThreadedThroughput extends Benchmark {
     }
     shuffle(pools);
     for (Bench pool : pools) {
+      warmup(pool, 11);
+    }
+    shuffle(pools);
+    for (Bench pool : pools) {
       warmup(pool, 1);
     }
     shuffle(pools);
     for (Bench pool : pools) {
-      warmup(pool, 11);
+      warmup(pool, 1);
     }
     System.out.println("Warmup done.");
   }

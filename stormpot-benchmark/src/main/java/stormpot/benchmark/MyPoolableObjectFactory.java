@@ -3,13 +3,18 @@ package stormpot.benchmark;
 import org.apache.commons.pool.PoolableObjectFactory;
 
 public class MyPoolableObjectFactory implements PoolableObjectFactory<MyPoolable> {
-
-  @Override
-  public void activateObject(MyPoolable arg0) throws Exception {
+  private final long maxTtlMillis;
+  
+  public MyPoolableObjectFactory(long maxTtlMillis) {
+    this.maxTtlMillis = maxTtlMillis;
   }
 
   @Override
-  public void destroyObject(MyPoolable arg0) throws Exception {
+  public void activateObject(MyPoolable obj) throws Exception {
+  }
+
+  @Override
+  public void destroyObject(MyPoolable obj) throws Exception {
   }
 
   @Override
@@ -18,11 +23,11 @@ public class MyPoolableObjectFactory implements PoolableObjectFactory<MyPoolable
   }
 
   @Override
-  public void passivateObject(MyPoolable arg0) throws Exception {
+  public void passivateObject(MyPoolable obj) throws Exception {
   }
 
   @Override
-  public boolean validateObject(MyPoolable arg0) {
-    return true;
+  public boolean validateObject(MyPoolable obj) {
+    return !obj.olderThan(maxTtlMillis);
   }
 }

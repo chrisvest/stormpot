@@ -8,9 +8,9 @@ public abstract class CmnsPoolBench extends Bench {
   private ObjectPool<MyPoolable> pool;
 
   @Override
-  public void primeWithSize(int size) throws Exception {
+  public void primeWithSize(int size, long objTtlMillis) throws Exception {
     PoolableObjectFactory<MyPoolable> factory =
-        new MyPoolableObjectFactory();
+        new MyPoolableObjectFactory(objTtlMillis);
     pool = buildPool(size, factory);
   }
   

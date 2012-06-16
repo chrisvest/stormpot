@@ -3,7 +3,7 @@ package stormpot.benchmark;
 import java.util.Arrays;
 
 public abstract class Bench {
-  public abstract void primeWithSize(int size) throws Exception;
+  public abstract void primeWithSize(int size, long objTtlMillis) throws Exception;
   public abstract Object claim() throws Exception;
   public abstract void release(Object object) throws Exception;
   
