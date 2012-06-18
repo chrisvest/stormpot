@@ -1,21 +1,19 @@
 package stormpot.benchmark;
 
-import java.util.Random;
 
 /**
  * After warm-up, how many times can we claim and release non-expiring objects
  * in a given timeframe?
  * @author cvh
  */
-public class SingleThreadedThroughput extends Benchmark {
-  private static final Random rnd = new Random();
+public class SingleThreadedThroughputBenchmark extends Benchmark {
   private static final int SIZE = 10;
   private static final long TRIAL_TIME_MILLIS = 500L;
   private static final long OBJ_TTL_MILLIS = 5 * 60 * 100;
 
   public void run() {
     Clock.start();
-    System.out.println("Stormpot Single-Threaded Throughput Benchmark");
+    System.out.println(getBenchmarkName());
     try {
       runBenchmark();
     } catch (Exception e) {
@@ -23,22 +21,16 @@ public class SingleThreadedThroughput extends Benchmark {
     }
   }
 
-  private static void runBenchmark() throws Exception {
-    Bench[] pools = new Bench[] {
-        new QueuePoolBench(),
-        new QueuePoolWithClockTtlBench(),
-        new CmnsStackPoolBench(),
-        new CmnsGenericObjPoolBench()};
-    
-    prime(pools);
-    warmup(pools);
-    trial(pools);
+  protected String getBenchmarkName() {
+    return "Stormpot Single-Threaded Throughput Benchmark";
   }
 
-  private static void prime(Bench[] pools) throws Exception {
-    for (Bench pool : pools) {
-      pool.primeWithSize(SIZE, OBJ_TTL_MILLIS);
-    }
+  private static void runBenchmark() throws Exception {
+    Bench[] pools = buildPoolList();
+    
+    prime(pools, SIZE, OBJ_TTL_MILLIS);
+    warmup(pools);
+    trial(pools);
   }
 
   private static void warmup(Bench[] pools) throws Exception {
@@ -59,15 +51,6 @@ public class SingleThreadedThroughput extends Benchmark {
       warmup(pool, 1);
     }
     System.out.println("Warmup done.");
-  }
-
-  private static void shuffle(Bench[] pools) {
-    for (int i = 0; i < pools.length; i++) {
-      int index = i + rnd.nextInt(pools.length - i);
-      Bench tmp = pools[index];
-      pools[index] = pools[i];
-      pools[i] = tmp;
-    }
   }
 
   private static void warmup(Bench bench, int steps) throws Exception {

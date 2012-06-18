@@ -1,7 +1,5 @@
 package stormpot.benchmark;
 
-import java.util.Properties;
-
 public class Main {
   public static void main(String[] args) throws Exception {
     /*
@@ -24,7 +22,9 @@ public class Main {
       return;
     }
     if (prop("throughput-single")) {
-      benchmark = new SingleThreadedThroughput();
+      benchmark = new SingleThreadedThroughputBenchmark();
+    } else if (prop("throughput-multi")) {
+      benchmark = new MultiThreadedThroughputBenchmark();
     }
     
     if (benchmark != null) {
@@ -39,8 +39,7 @@ public class Main {
   }
 
   private static boolean prop(String prop) {
-    Properties props = System.getProperties();
-    return Boolean.parseBoolean(props.getProperty(prop, "false"));
+    return Boolean.getBoolean(prop);
   }
 
   private static void explain(String name, String desc) {

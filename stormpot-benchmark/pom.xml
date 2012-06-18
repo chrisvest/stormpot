@@ -80,12 +80,17 @@
                   <goal>exec</goal>
                 </goals>
                 <configuration>
+                <!-- 
+                See https://gist.github.com/2932907
+                for help on what the output of PrintCompilation means.
+                -->
                   <executable>java</executable>
                   <arguments>
                     <argument>-XX:+PrintCompilation</argument>
                     <argument>-XX:+UnlockDiagnosticVMOptions</argument>
                     <!-- <argument>-XX:+PrintOptoAssembly</argument> -->
                     <argument>-XX:+PrintInlining</argument>
+<!--                     <argument>-XX:+LogCompilation</argument> -->
                     <argument>-server</argument>
                     <argument>-Dclock.precise=${clock.precise}</argument>
                     <argument>-Dhelp=${help}</argument>
