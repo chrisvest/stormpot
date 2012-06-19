@@ -32,6 +32,18 @@ public abstract class Benchmark {
     }
   }
 
+  public static long runCycles(Bench bench, int cycles) throws Exception {
+    long start;
+    long end = 0;
+    for (int i = 0; i < cycles; i++) {
+      start = Clock.currentTimeMillis();
+      bench.claimAndRelease();
+      end = Clock.currentTimeMillis();
+      bench.recordTime(end - start);
+    }
+    return end;
+  }
+
   protected abstract String getBenchmarkName();
 
   protected abstract void benchmark(Bench bench, long trialTimeMillis) throws Exception;
@@ -56,10 +68,12 @@ public abstract class Benchmark {
 
   private void warmup(Bench[] pools) throws Exception {
     System.out.println("Warming up pools...");
-    for (Bench pool : pools) {
-      warmup(pool, 1);
+    for (int steps : warmupSteps()) {
+      shuffle(pools);
+      for (Bench pool : pools) {
+        warmup(pool, steps);
+      }
     }
-    shuffle(pools);
     for (Bench pool : pools) {
       warmup(pool, 11);
     }
@@ -74,7 +88,11 @@ public abstract class Benchmark {
     System.out.println("Warmup done.");
   }
 
-  private void warmup(Bench bench, int steps) throws Exception {
+  protected int[] warmupSteps() {
+    return new int[] {1, 11, 1, 1};
+  }
+
+  protected void warmup(Bench bench, int steps) throws Exception {
     System.out.println(
         "Warming up " + bench.getName() + " with " + steps + "K steps.");
     for (int i = 0; i < steps; i++) {
@@ -86,7 +104,7 @@ public abstract class Benchmark {
     System.out.println("\ndone.");
   }
 
-  private void trial(Bench[] pools) throws Exception {
+  protected void trial(Bench[] pools) throws Exception {
     for (int i = 0; i < 10; i++) {
       shuffle(pools);
       for (Bench pool : pools) {
@@ -101,9 +119,13 @@ public abstract class Benchmark {
     bench.report();
   }
 
-  private void prepareAndRunBenchmark(Bench bench, long trialTimeMillis)
+  protected void prepareAndRunBenchmark(Bench bench, long trialTimeMillis)
       throws Exception {
-    bench.reset();
+    beforeBenchmark(bench, trialTimeMillis);
     benchmark(bench, trialTimeMillis);
+  }
+
+  protected void beforeBenchmark(Bench bench, long trialTimeMillis) {
+    bench.reset();
   }
 }

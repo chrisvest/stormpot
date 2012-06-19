@@ -22,16 +22,4 @@ public class SingleThreadedThroughputBenchmark extends Benchmark {
     } while (end < deadline);
     bench.recordPeriod(end - start);
   }
-
-  private static long runCycles(Bench bench, int cycles) throws Exception {
-    long start;
-    long end = 0;
-    for (int i = 0; i < cycles; i++) {
-      start = Clock.currentTimeMillis();
-      bench.claimAndRelease();
-      end = Clock.currentTimeMillis();
-      bench.recordTime(end - start);
-    }
-    return end;
-  }
 }

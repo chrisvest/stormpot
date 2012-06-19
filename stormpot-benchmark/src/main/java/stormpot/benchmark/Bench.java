@@ -18,6 +18,7 @@ public abstract class Bench {
   private long period;
   
   public final void recordTime(long time) {
+    // TODO thread-safety
     trials++;
     timeSum += time;
     timeMin = Math.min(timeMin, time);
@@ -45,7 +46,7 @@ public abstract class Bench {
     		"%7d trials in %3d ms. " +
     		"%7.0f claim+release/sec. " +
     		"latency(max, mean, min) = " +
-    		"(%2d, %.6f, %s) in millis.\n";
+    		"(%3d, %.6f, %s) in millis.\n";
     System.out.printf(
         str, name, trials, period, cyclesPerSec, timeMax, timeMean, timeMin);
   }

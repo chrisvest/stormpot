@@ -13,6 +13,7 @@ public class Main {
           "#######################################\n" +
           "# How to use the benchmark tool:\n");
       explain("throughput-single", "Single-threaded throughput");
+      explain("throughput-multi", "Multi-threaded throughput (configure -Dthread.count=10)");
       System.out.print("# Additionally, the following options may be given " +
       		"to any benchmark:\n");
       explainAuxiliary("clock.precise",
