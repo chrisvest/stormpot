@@ -5,9 +5,14 @@ public class MultiThreadedThroughputBenchmark extends Benchmark {
         Runtime.getRuntime().availableProcessors());
 
   @Override
-  public void run() {
-    // TODO Auto-generated method stub
+  protected String getBenchmarkName() {
+    return "Stormpot Multi-Threaded Throughput Benchmark";
+  }
 
+  @Override
+  protected void benchmark(Bench bench, long trialTimeMillis) throws Exception {
+    // TODO Auto-generated method stub
+    
   }
 
 }
