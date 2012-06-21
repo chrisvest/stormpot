@@ -68,12 +68,10 @@ public abstract class Benchmark {
 
   private void warmup(Bench[] pools) throws Exception {
     System.out.println("Warming up pools...");
-    for (int steps : warmupSteps()) {
-      shuffle(pools);
-      for (Bench pool : pools) {
-        warmup(pool, steps);
-      }
+    for (Bench pool : pools) {
+      warmup(pool, 1);
     }
+    shuffle(pools);
     for (Bench pool : pools) {
       warmup(pool, 11);
     }

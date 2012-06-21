@@ -13,11 +13,15 @@ public class Main {
           "#######################################\n" +
           "# How to use the benchmark tool:\n");
       explain("throughput-single", "Single-threaded throughput");
-      explain("throughput-multi", "Multi-threaded throughput (configure -Dthread.count=10)");
+      explain("throughput-multi", "Multi-threaded throughput");
       System.out.print("# Additionally, the following options may be given " +
       		"to any benchmark:\n");
       explainAuxiliary("clock.precise",
           "Measure latency more precisely, at the cost of reducing througput.");
+      explainAuxiliary("thread.count",
+          "The number of worker threads used in multi-threaded benchmarks.");
+      explainAuxiliary("report.msg",
+          "The benchmark reporting string format.");
       System.out.print(
           "#######################################\n");
       return;
