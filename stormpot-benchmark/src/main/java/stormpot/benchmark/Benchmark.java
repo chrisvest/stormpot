@@ -73,21 +73,25 @@ public abstract class Benchmark {
     }
     shuffle(pools);
     for (Bench pool : pools) {
-      warmup(pool, 11);
+      warmup(pool, 13);
     }
     shuffle(pools);
     for (Bench pool : pools) {
       warmup(pool, 1);
+    }
+    shuffle(pools);
+    for (Bench pool : pools) {
+      warmup(pool, 1);
+    }
+    shuffle(pools);
+    for (Bench pool : pools) {
+      warmup(pool, 4);
     }
     shuffle(pools);
     for (Bench pool : pools) {
       warmup(pool, 1);
     }
     System.out.println("Warmup done.");
-  }
-
-  protected int[] warmupSteps() {
-    return new int[] {1, 11, 1, 1};
   }
 
   protected void warmup(Bench bench, int steps) throws Exception {
