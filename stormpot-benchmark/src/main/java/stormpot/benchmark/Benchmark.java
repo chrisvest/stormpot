@@ -85,7 +85,7 @@ public abstract class Benchmark {
     }
     shuffle(pools);
     for (Bench pool : pools) {
-      warmup(pool, 4);
+      warmup(pool, 8);
     }
     shuffle(pools);
     for (Bench pool : pools) {
