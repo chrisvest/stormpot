@@ -68,31 +68,15 @@ public abstract class Benchmark {
 
   private void warmup(Bench[] pools) throws Exception {
     System.out.println("Warming up pools...");
-    for (Bench pool : pools) {
-      warmup(pool, 1);
-    }
-    shuffle(pools);
-    for (Bench pool : pools) {
-      warmup(pool, 13);
-    }
-    shuffle(pools);
-    for (Bench pool : pools) {
-      warmup(pool, 1);
-    }
-    shuffle(pools);
-    for (Bench pool : pools) {
-      warmup(pool, 1);
-    }
-    shuffle(pools);
-    for (Bench pool : pools) {
-      warmup(pool, 8);
-    }
-    shuffle(pools);
-    for (Bench pool : pools) {
-      warmup(pool, 1);
+    for (int cycles : warmupCycles()) {
+      for (Bench pool : pools) {
+        warmup(pool, cycles);
+      }
     }
     System.out.println("Warmup done.");
   }
+  
+  protected abstract int[] warmupCycles();
 
   protected void warmup(Bench bench, int steps) throws Exception {
     System.out.println(
@@ -101,7 +85,7 @@ public abstract class Benchmark {
       for (int j = 0; j < 1000; j++) {
         prepareAndRunBenchmark(bench, 1);
       }
-      System.out.printf("%02d/%s.", i + 1, steps);
+      System.out.printf("%02d/%02d.", i + 1, steps);
     }
     System.out.println("\ndone.");
   }

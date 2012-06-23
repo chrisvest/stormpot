@@ -20,8 +20,6 @@ public class Main {
           "Measure latency more precisely, at the cost of reducing througput.");
       explainAuxiliary("thread.count",
           "The number of worker threads used in multi-threaded benchmarks.");
-      explainAuxiliary("report.msg",
-          "The benchmark reporting string format.");
       System.out.print(
           "#######################################\n");
       return;

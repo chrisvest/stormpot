@@ -17,6 +17,11 @@ public class MultiThreadedThroughputBenchmark extends Benchmark {
   }
 
   @Override
+  protected int[] warmupCycles() {
+    return new int[] {1, 13, 1, 8, 1, 1};
+  }
+
+  @Override
   protected void warmup(Bench bench, int steps) throws Exception {
     System.out.println(
         "Warming up " + bench.getName() + " with " + steps + " steps.");

@@ -6,13 +6,9 @@ import jsr166e.LongAdder;
 import jsr166e.LongMaxUpdater;
 
 public abstract class Bench {
-  private static final String DEFAULT_REPORT_MSG = "Benchmark: %s " +
-  		"%7d trials in %3d ms. " +
-  		"%7.0f claim+release/sec. " +
-  		"latency(max, mean, min) = " +
-  		"(%3d, %.6f, %s) in millis.\n";
-  private static final String REPORT_MSG = System.getProperty(
-      "report.msg", DEFAULT_REPORT_MSG);
+  private static final String REPORT_MSG = "{:pool \"%s\", " +
+  		":trials %7d, :period-ms %3d, :ops-sec %7.0f, " +
+  		":lat-max %3d, :lat-mean %.6f, :lat-min %s, :lat-stddev %.6f}\n";
 
   public abstract void primeWithSize(int size, long objTtlMillis) throws Exception;
   public abstract Object claim() throws Exception;
@@ -22,8 +18,9 @@ public abstract class Bench {
     release(claim());
   }
   
-  private final LongAdder trials = new LongAdder();
-  private final LongAdder timeSum = new LongAdder();
+  private final LongAdder trials = new LongAdder(); // aka. powerSum0
+  private final LongAdder timeSum = new LongAdder(); // aka. powerSum1
+  private final LongAdder powerSum2 = new LongAdder();
   private final LongMaxUpdater timeMin = new LongMaxUpdater();
   private final LongMaxUpdater timeMax = new LongMaxUpdater();
   private volatile long period;
@@ -31,6 +28,7 @@ public abstract class Bench {
   public final void recordTime(long time) {
     trials.increment();
     timeSum.add(time);
+    powerSum2.add(time * time);
     timeMin.update(Long.MAX_VALUE - time);
     timeMax.update(time);
   }
@@ -50,16 +48,22 @@ public abstract class Bench {
   public final void report() {
     String name = computeFixedLengthName(20);
     long trials = this.trials.sum();
+    long timeSum = this.timeSum.sum();
+    long powerSum2 = this.powerSum2.sum();
+    double stdDev = stdDev(trials, timeSum, powerSum2);
     long timeMax = this.timeMax.max();
     long timeMin = Long.MAX_VALUE - this.timeMin.max();
-    double timeSum = this.timeSum.sum();
     double cyclesPerSec = (1000.0 / period) * trials;
-    double timeMean = timeSum / trials;
+    double timeMean = ((double) timeSum) / trials;
     
     System.out.printf(REPORT_MSG,
-        name, trials, period, cyclesPerSec, timeMax, timeMean, timeMin);
+        name, trials, period, cyclesPerSec, timeMax, timeMean, timeMin, stdDev);
   }
   
+  private double stdDev(double s0, double s1, double s2) {
+    // http://en.wikipedia.org/wiki/Standard_deviation#Rapid_calculation_methods
+    return Math.sqrt(s0 * s2 - s1 * s1) / s0;
+  }
   private String computeFixedLengthName(int length) {
     char[] nameCs = getName().toCharArray();
     char[] nameField = new char[length];

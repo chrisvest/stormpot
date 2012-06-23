@@ -22,4 +22,9 @@ public class SingleThreadedThroughputBenchmark extends Benchmark {
     } while (end < deadline);
     bench.recordPeriod(end - start);
   }
+
+  @Override
+  protected int[] warmupCycles() {
+    return new int[] {1, 11, 1, 1};
+  }
 }
