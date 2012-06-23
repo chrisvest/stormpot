@@ -14,7 +14,7 @@ public class SingleThreadedThroughputBenchmark extends Benchmark {
 
   @Override
   protected void benchmark(Bench bench, long trialTimeMillis) throws Exception {
-    long start = Clock.currentTimeMillis();
+    long start = System.currentTimeMillis();
     long deadline = start + trialTimeMillis;
     long end = 0L;
     do {

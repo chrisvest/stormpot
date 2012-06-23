@@ -55,11 +55,11 @@ public class MultiThreadedThroughputBenchmark extends Benchmark {
 
   @Override
   protected void benchmark(Bench bench, long trialTimeMillis) throws Exception {
-    long start = Clock.currentTimeMillis();
+    long start = System.currentTimeMillis();
     long deadline = start + trialTimeMillis;
     start(threads, deadline);
     doneLatch.await();
-    long end = Clock.currentTimeMillis();
+    long end = System.currentTimeMillis();
     bench.recordPeriod(end - start);
   }
   
@@ -104,15 +104,13 @@ public class MultiThreadedThroughputBenchmark extends Benchmark {
     }
 
     protected void doBenchmarkWork() throws Exception {
-//      System.out.println("#### " + getName() + " starting!");
       CountDownLatch doneLatch = this.doneLatch;
       Bench bench = this.bench;
       long deadline = this.deadline;
       do {
         runCycles(bench, 100);
-      } while (Clock.currentTimeMillis() < deadline);
+      } while (System.currentTimeMillis() < deadline);
       doneLatch.countDown();
-//      System.out.println("#### " + getName() + " done!");
     }
   }
 }

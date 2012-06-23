@@ -92,7 +92,6 @@
 <!--                     <argument>-XX:+PrintInlining</argument> -->
 <!--                     <argument>-XX:+LogCompilation</argument> -->
                     <argument>-server</argument>
-                    <argument>-Dclock.precise=${clock.precise}</argument>
                     <argument>-Dthread.count=${thread.count}</argument>
                     <argument>-Dhelp=${help}</argument>
                     <argument>-Dthroughput-single=${throughput-single}</argument>

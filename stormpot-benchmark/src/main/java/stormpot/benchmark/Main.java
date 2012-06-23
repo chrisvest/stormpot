@@ -16,8 +16,6 @@ public class Main {
       explain("throughput-multi", "Multi-threaded throughput");
       System.out.print("# Additionally, the following options may be given " +
       		"to any benchmark:\n");
-      explainAuxiliary("clock.precise",
-          "Measure latency more precisely, at the cost of reducing througput.");
       explainAuxiliary("thread.count",
           "The number of worker threads used in multi-threaded benchmarks.");
       System.out.print(

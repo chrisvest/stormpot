@@ -11,7 +11,6 @@ public abstract class Benchmark {
   protected static Bench[] buildPoolList() {
     return new Bench[] {
         new QueuePoolBench(),
-        new QueuePoolWithClockTtlBench(),
         new CmnsStackPoolBench(),
         new CmnsGenericObjPoolBench()};
   }
@@ -36,9 +35,9 @@ public abstract class Benchmark {
     long start;
     long end = 0;
     for (int i = 0; i < cycles; i++) {
-      start = Clock.currentTimeMillis();
+      start = System.currentTimeMillis();
       bench.claimAndRelease();
-      end = Clock.currentTimeMillis();
+      end = System.currentTimeMillis();
       bench.recordTime(end - start);
     }
     return end;
@@ -49,7 +48,6 @@ public abstract class Benchmark {
   protected abstract void benchmark(Bench bench, long trialTimeMillis) throws Exception;
 
   public void run() {
-    Clock.start();
     System.out.println(getBenchmarkName());
     try {
       runBenchmark();

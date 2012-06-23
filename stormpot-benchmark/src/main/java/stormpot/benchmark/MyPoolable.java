@@ -9,7 +9,7 @@ public class MyPoolable implements Poolable {
   
   public MyPoolable(Slot slot) {
     this.slot = slot;
-    this.allocated = Clock.currentTimeMillis();
+    this.allocated = System.currentTimeMillis();
   }
 
   @Override
@@ -18,6 +18,6 @@ public class MyPoolable implements Poolable {
   }
   
   public boolean olderThan(long timeMillis) {
-    return allocated + timeMillis < Clock.currentTimeMillis();
+    return allocated + timeMillis < System.currentTimeMillis();
   }
 }
