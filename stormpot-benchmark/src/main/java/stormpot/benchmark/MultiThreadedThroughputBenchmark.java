@@ -18,7 +18,7 @@ public class MultiThreadedThroughputBenchmark extends Benchmark {
 
   @Override
   protected int[] warmupCycles() {
-    return new int[] {1, 13, 1, 8, 1, 1};
+    return new int[] {1, 13, 1, 1, 13, 1, 1};
   }
 
   @Override
@@ -27,7 +27,7 @@ public class MultiThreadedThroughputBenchmark extends Benchmark {
         "Warming up " + bench.getName() + " with " + steps + " steps.");
     for (int i = 0; i < steps; i++) {
       prepareAndRunBenchmark(bench, 1000);
-      System.out.printf("%02d/%s.", i + 1, steps);
+      System.out.printf("%02d/%02d.", i + 1, steps);
     }
     System.out.println("\ndone.");
   }
