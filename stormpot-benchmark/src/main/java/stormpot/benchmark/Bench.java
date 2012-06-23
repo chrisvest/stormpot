@@ -56,8 +56,8 @@ public abstract class Bench {
     double cyclesPerSec = (1000.0 / period) * trials;
     double timeMean = ((double) timeSum) / trials;
     
-    System.out.printf(REPORT_MSG,
-        name, trials, period, cyclesPerSec, timeMax, timeMean, timeMin, stdDev);
+    System.out.print(String.format(REPORT_MSG,
+        name, trials, period, cyclesPerSec, timeMax, timeMean, timeMin, stdDev));
   }
   
   private double stdDev(double s0, double s1, double s2) {
