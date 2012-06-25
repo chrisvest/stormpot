@@ -5,4 +5,5 @@ bin
 .settings
 release.properties
 hs_err_*.log
+.DS_Store
 
