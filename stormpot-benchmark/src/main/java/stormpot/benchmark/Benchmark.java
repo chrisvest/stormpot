@@ -1,18 +1,29 @@
 package stormpot.benchmark;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
 public abstract class Benchmark {
   private static final Random rnd = new Random();
-  private static final int SIZE = 10;
-  private static final long TRIAL_TIME_MILLIS = 500L;
-  private static final long OBJ_TTL_MILLIS = 5 * 60 * 100;
+  private static final int SIZE = Integer.getInteger("pool.size");
+  private static final long TRIAL_TIME_MILLIS = Long.getLong("trial.time");
+  private static final long OBJ_TTL_MILLIS = Long.getLong("obj.ttl");
 
   protected static Bench[] buildPoolList() {
-    return new Bench[] {
-        new QueuePoolBench(),
-        new CmnsStackPoolBench(),
-        new CmnsGenericObjPoolBench()};
+    List<String> pools = Arrays.asList(System.getProperty("pools").split(","));
+    List<Bench> benches = new ArrayList<Bench>();
+    if (pools.contains("queue")) {
+      benches.add(new QueuePoolBench());
+    }
+    if (pools.contains("stack")) {
+      benches.add(new CmnsStackPoolBench());
+    }
+    if (pools.contains("generic")) {
+      benches.add(new CmnsGenericObjPoolBench());
+    }
+    return benches.toArray(new Bench[benches.size()]);
   }
 
   protected static void prime(Bench[] pools, int size, long objTtlMillis)
