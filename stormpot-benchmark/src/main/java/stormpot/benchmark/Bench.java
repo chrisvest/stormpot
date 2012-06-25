@@ -6,9 +6,7 @@ import jsr166e.LongAdder;
 import jsr166e.LongMaxUpdater;
 
 public abstract class Bench {
-  private static final String REPORT_MSG = "{:pool \"%s\", " +
-  		":trials %7d, :period-ms %3d, :ops-sec %7.0f, " +
-  		":lat-max %3d, :lat-mean %.6f, :lat-min %s, :lat-stddev %.6f}\n";
+  private static final String REPORT_MSG = System.getProperty("report.msg");
 
   public abstract void primeWithSize(int size, long objTtlMillis) throws Exception;
   public abstract Object claim() throws Exception;
