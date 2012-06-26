@@ -32,9 +32,11 @@ echo START `date`
 mark-single "queue"
 mark-single "stack"
 mark-single "generic"
+mark-single "furious"
 
 mark-multi "queue"
 mark-multi "stack"
 mark-multi "generic"
+mark-multi "furious"
 
 echo STOP `date`
