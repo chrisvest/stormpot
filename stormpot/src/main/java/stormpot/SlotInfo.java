@@ -45,6 +45,15 @@ public interface SlotInfo<T extends Poolable> {
    * error, and the behaviour of the pool in such a situation is unspecified
    * and implementation specific. This means that dead-locks and infinite
    * loops are possible outcomes as well.
+   * <p>
+   * <strong>Warning:</strong> Also note that accessing the Poolable through
+   * this method, from your {@link Expiration} implementation, is a
+   * potentially concurrent access. This means that you need to take
+   * thread-safety issues into consideration - especially if you intend on
+   * manipulating the Poolable. In particular, you might be racing with other
+   * threads that are checking if this Poolable is expired or not, and they
+   * might even have claimed the Poolable and put it to use, by the time it
+   * is returned from this method.
    * @return The Poolable being examined for validity. Never <code>null</code>.
    */
   T getPoolable();
