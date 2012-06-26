@@ -13,7 +13,9 @@ public abstract class Bench {
   public abstract void release(Object object) throws Exception;
   
   public void claimAndRelease() throws Exception {
-    release(claim());
+    Object obj = claim();
+    assert obj != null: "The pool gave me a sad null.";
+    release(obj);
   }
   
   private final LongAdder trials = new LongAdder(); // aka. powerSum0

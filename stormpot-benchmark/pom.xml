@@ -27,7 +27,21 @@
       <artifactId>commons-pool</artifactId>
       <version>1.6</version>
     </dependency>
+    <dependency>
+      <groupId>nf.fr.eraasoft</groupId>
+      <artifactId>objectpool</artifactId>
+      <version>1.1.1-SNAPSHOT</version>
+    </dependency>
   </dependencies>
+
+  <repositories>
+    <repository>
+      <!-- For the nf.fr.eraasoft:objectpool -->
+      <id>oss.sonatype</id>
+      <name>Sonatype repository</name>
+      <url>http://oss.sonatype.org/content/groups/public</url>
+    </repository>
+  </repositories>
 
   <profiles>
     <profile>

@@ -23,6 +23,9 @@ public abstract class Benchmark {
     if (pools.contains("generic")) {
       benches.add(new CmnsGenericObjPoolBench());
     }
+    if (pools.contains("furious")) {
+      benches.add(new FuriousBench());
+    }
     return benches.toArray(new Bench[benches.size()]);
   }
 
