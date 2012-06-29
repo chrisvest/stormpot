@@ -15,7 +15,7 @@ function mark-single {
 }
 
 function mark-multi {
-  export MSG='-Dreport.msg=## %s,$n,%7d,%3d,%7.0f,%3d,%.6f,%s,%.6f%n'
+  export MSG="-Dreport.msg=## %s,$n,%7d,%3d,%7.0f,%3d,%.6f,%s,%.6f%n"
   echo '' > "data/$1.csv"
   for n in 1 2 3 4 5 6 8 10 12 14 16
   do
