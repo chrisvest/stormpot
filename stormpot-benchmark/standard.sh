@@ -15,10 +15,10 @@ function mark-single {
 }
 
 function mark-multi {
-  export MSG="-Dreport.msg=## %s,$n,%7d,%3d,%7.0f,%3d,%.6f,%s,%.6f%n"
   echo '' > "data/$1.csv"
   for n in 1 2 3 4 5 6 8 10 12 14 16
   do
+    export MSG="-Dreport.msg=## %s,$n,%7d,%3d,%7.0f,%3d,%.6f,%s,%.6f%n"
     echo "Benchmarking $1 with $n threads..."
     echo '1/3... '
     mvn -Dthroughput-multi "-Dthread.count=$n" "-Dpools=$1" "$MSG" | grep '##' | tee -a "data/$1.csv"
