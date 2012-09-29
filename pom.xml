@@ -2,16 +2,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.github.chrisvest</groupId>
-  <artifactId>stormpot-parent</artifactId>
+  <artifactId>stormpot</artifactId>
   <version>2.1-SNAPSHOT</version>
-  <packaging>pom</packaging>
-  <description>Modules POM for Stormpot.</description>
+  <packaging>jar</packaging>
+  <name>stormpot</name>
+  <description>A fast object pool library.</description>
   <url>http://chrisvest.github.com/stormpot</url>
-  
-  <modules>
-    <module>stormpot</module>
-    <module>stormpot-benchmark</module>
-  </modules>
   
   <parent>
     <groupId>org.sonatype.oss</groupId>
@@ -155,6 +151,7 @@
           <targetClasses>
             <param>stormpot.Config</param>
             <param>stormpot.PoolException</param>
+            <param>stormpot.bpool.*</param>
             <param>stormpot.qpool.*</param>
             <param>stormpot.basicpool.*</param>
           </targetClasses>
