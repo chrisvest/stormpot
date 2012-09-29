@@ -37,8 +37,8 @@ import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
 
 import stormpot.basicpool.BasicPoolFixture;
-import stormpot.bpool.BPoolFixture;
-import stormpot.qpool.QPoolFixture;
+import stormpot.bpool.BlazePoolFixture;
+import stormpot.qpool.QueuePoolFixture;
 
 /**
  * This is the generic test for Pool implementations. The test ensures that
@@ -87,8 +87,8 @@ public class PoolTest {
   private Config<GenericPoolable> config;
 
   @DataPoint public static PoolFixture basicPool = new BasicPoolFixture();
-  @DataPoint public static PoolFixture queuePool = new QPoolFixture();
-  @DataPoint public static PoolFixture blazePool = new BPoolFixture();
+  @DataPoint public static PoolFixture queuePool = new QueuePoolFixture();
+  @DataPoint public static PoolFixture blazePool = new BlazePoolFixture();
   
   @Before public void
   setUp() {

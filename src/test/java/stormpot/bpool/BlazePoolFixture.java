@@ -5,7 +5,7 @@ import stormpot.Pool;
 import stormpot.PoolFixture;
 import stormpot.Poolable;
 
-public class BPoolFixture implements PoolFixture {
+public class BlazePoolFixture implements PoolFixture {
 
   @Override
   public <T extends Poolable> Pool<T> initPool(Config<T> config) {
