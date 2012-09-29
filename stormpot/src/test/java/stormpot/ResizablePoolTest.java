@@ -31,6 +31,7 @@ import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
 
 import stormpot.basicpool.BasicPoolFixture;
+import stormpot.bpool.BPoolFixture;
 import stormpot.qpool.QPoolFixture;
 
 @RunWith(Theories.class)
@@ -40,6 +41,7 @@ public class ResizablePoolTest {
   
   @DataPoint public static PoolFixture basicPool = new BasicPoolFixture();
   @DataPoint public static PoolFixture queuePool = new QPoolFixture();
+  @DataPoint public static PoolFixture blazePool = new BPoolFixture();
 
   private CountingAllocator allocator;
   private Config<GenericPoolable> config;

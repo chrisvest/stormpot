@@ -1,5 +1,5 @@
 /**
- * {@link stormpot.Pool} and {@link stormpot.LifecycledPool} implementations
- * based on queuing structures.
+ * {@link stormpot.Pool}, {@link stormpot.LifecycledPool} and
+ * {@link stormpot.ResizablePool} implementation based on queuing structures.
  */
 package stormpot.qpool;
