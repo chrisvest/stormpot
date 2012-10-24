@@ -18,6 +18,15 @@ package stormpot;
 /**
  * The expiration is used to determine if a given slot has expired, or
  * otherwise become invalid.
+ * <p>
+ * Note that Expiration instances must be thread-safe, as they may be
+ * accessed concurrenty by multiple threads – even for the same
+ * {@link SlotInfo} and {@link Poolable} instances. The easiest way to ensure
+ * this, is to make sure that they never mutate any state. If they do, however,
+ * then they must do so in a thread-safe manner. Be aware that making the
+ * {@link #hasExpired(SlotInfo) hasExpired} method {@code synchronised} will
+ * most likely severely reduce the performance and scalability of the pool.
+ * 
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  */
 public interface Expiration<T extends Poolable> {
