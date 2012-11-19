@@ -185,11 +185,11 @@ public class ResizablePoolTest {
     pool.setTargetSize(newSize);
     for (int i = 0; i < startingSize - newSize; i++) {
       // release the surplus expired objects back into the pool
-      objs.remove(0).release();
+      objs.remove(0).release(); // TODO racy: 'objs' might be empty
     }
     // now the released objects should not cause reallocations, so claim
     // returns null (it's still depleted) and allocation count stays put
     assertThat(pool.claim(shortTimeout), nullValue());
     assertThat(allocator.allocations(), is(startingSize));
-  } // TODO racy?? I don't know... :(
+  }
 }
