@@ -23,6 +23,31 @@ import java.util.concurrent.TimeUnit;
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  */
 public class Timeout {
+  private static interface Clock {
+    long now();
+  }
+  
+  private static final Clock clock;
+  private static final TimeUnit clockUnit;
+  
+  static {
+    if (System.getProperty("stormpot.timeout.clock", "").equals("fast")) {
+      clockUnit = TimeUnit.MILLISECONDS;
+      clock = new Clock() {
+        public long now() {
+          return System.currentTimeMillis();
+        }
+      };
+    } else {
+      clockUnit = TimeUnit.NANOSECONDS;
+      clock = new Clock() {
+        public long now() {
+          return System.nanoTime();
+        }
+      };
+    }
+  }
+  
   private final long timeout;
   private final TimeUnit unit;
   
@@ -71,7 +96,7 @@ public class Timeout {
    * this timeout has passed.
    */
   public long getDeadline() {
-    return now() + unit.toNanos(timeout);
+    return now() + getBaseUnit().convert(timeout, unit);
   }
 
   /**
@@ -88,11 +113,11 @@ public class Timeout {
   }
 
   private long now() {
-    return System.nanoTime();
+    return clock.now();
   }
 
   public TimeUnit getBaseUnit() {
-    return TimeUnit.NANOSECONDS;
+    return clockUnit;
   }
 
   @Override
