@@ -15,10 +15,8 @@
  */
 package stormpot.bpool;
 
-import static stormpot.bpool.BSlotState.*;
-
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import stormpot.PoolException;
 import stormpot.Poolable;
@@ -26,8 +24,13 @@ import stormpot.Slot;
 import stormpot.SlotInfo;
 
 class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
+  static final int LIVING = 1;
+  static final int CLAIMED = 2;
+  static final int TLR_CLAIMED = 3;
+  static final int DEAD = 4;
+  
   final BlockingQueue<BSlot<T>> live;
-  private final AtomicReference<BSlotState> state;
+  private final AtomicInteger state;
   T obj;
   Exception poison;
   long created;
@@ -36,65 +39,65 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   
   public BSlot(BlockingQueue<BSlot<T>> live) {
     this.live = live;
-    this.state = new AtomicReference<BSlotState>(dead);
+    this.state = new AtomicInteger(DEAD);
   }
   
   public void release(Poolable obj) {
-    BSlotState qSlotState = null;
+    int slotState = 0;
     do {
-      qSlotState = state.get();
+      slotState = state.get();
       Thread claimer = owner;
       Thread releaser = Thread.currentThread();
       if (claimer != releaser) {
         throw new PoolException(
             "Expected release from claimer " + claimer + " but was " + releaser);
       }
-      if (qSlotState != tlrClaimed && qSlotState != claimed) {
-        throw new PoolException("Slot release from bad state: " + qSlotState);
+      if (slotState != TLR_CLAIMED && slotState != CLAIMED) {
+        throw new PoolException("Slot release from bad state: " + slotState);
       }
-    } while (!(qSlotState == claimed? claim2live() : claimTlr2live()));
-    if (qSlotState == claimed) {
+    } while (!(slotState == CLAIMED? claim2live() : claimTlr2live()));
+    if (slotState == CLAIMED) {
       live.offer(this);
     }
   }
   
   public boolean claim2live() {
-    return cas(claimed, living);
+    return cas(CLAIMED, LIVING);
   }
   
   public boolean claimTlr2live() {
-    return cas(tlrClaimed, living);
+    return cas(TLR_CLAIMED, LIVING);
   }
   
   public boolean live2claim() {
-    boolean cas = cas(living, claimed);
+    boolean cas = cas(LIVING, CLAIMED);
     if (cas) owner = Thread.currentThread();
     return cas;
   }
   
   public boolean live2claimTlr() {
-    boolean cas = cas(living, tlrClaimed);
+    boolean cas = cas(LIVING, TLR_CLAIMED);
     if (cas) owner = Thread.currentThread();
     return cas;
   }
   
   public boolean claimTlr2claim() {
-    return cas(tlrClaimed, claimed);
+    return cas(TLR_CLAIMED, CLAIMED);
   }
   
   public boolean claim2dead() {
-    return cas(claimed, dead);
+    return cas(CLAIMED, DEAD);
   }
   
   public boolean dead2live() {
-    return cas(dead, living);
+    return cas(DEAD, LIVING);
   }
   
   public boolean live2dead() {
-    return cas(living, dead);
+    return cas(LIVING, DEAD);
   }
 
-  private boolean cas(BSlotState expected, BSlotState update) {
+  private boolean cas(int expected, int update) {
     return state.compareAndSet(expected, update);
   }
   
@@ -114,10 +117,10 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   }
 
   public boolean isDead() {
-    return state.get() == dead;
+    return state.get() == DEAD;
   }
   
-  public BSlotState getState() {
+  public int getState() {
     return state.get();
   }
 

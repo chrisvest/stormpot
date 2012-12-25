@@ -189,7 +189,7 @@ implements LifecycledPool<T>, ResizablePool<T> {
     }
   }
 
-  protected void kill(BSlot<T> slot) {
+  private void kill(BSlot<T> slot) {
     // The use of claim2dead() here ensures that we don't put slots into the
     // dead-queue more than once. Many threads might have this as their
     // TLR-slot and try to tlr-claim it, but only when a slot has been normally
@@ -197,12 +197,12 @@ implements LifecycledPool<T>, ResizablePool<T> {
     // dead-queue. This helps ensure that a slot will only ever be in at most
     // one queue.
     for (;;) {
-      BSlotState state = slot.getState();
-      if (state == BSlotState.claimed && slot.claim2dead()) {
+      int state = slot.getState();
+      if (state == BSlot.CLAIMED && slot.claim2dead()) {
         dead.offer(slot);
         return;
       }
-      if (state == BSlotState.tlrClaimed && slot.claimTlr2live()) {
+      if (state == BSlot.TLR_CLAIMED && slot.claimTlr2live()) {
         return;
       }
     }
