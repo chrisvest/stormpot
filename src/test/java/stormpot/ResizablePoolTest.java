@@ -173,19 +173,20 @@ public class ResizablePoolTest {
     int newSize = 1;
     CountingAllocator allocator = new CountingAllocator();
     Expiration<Poolable> expiration =
-        new TimeExpiration(1, TimeUnit.MILLISECONDS);
+        new TimeExpiration(5, TimeUnit.MILLISECONDS);
     config.setExpiration(expiration).setAllocator(allocator);
     config.setSize(startingSize);
     ResizablePool<GenericPoolable> pool = resizable(fixture);
     List<GenericPoolable> objs = new ArrayList<GenericPoolable>();
-    while (allocator.allocations() < startingSize) {
+    for (int i = 0; i < startingSize; i++) {
       objs.add(pool.claim(longTimeout));
     }
-    UnitKit.spinwait(2); // wait for the objects to expire
+    assertThat(objs.size(), is(startingSize));
+    UnitKit.spinwait(10); // wait for the objects to expire
     pool.setTargetSize(newSize);
     for (int i = 0; i < startingSize - newSize; i++) {
       // release the surplus expired objects back into the pool
-      objs.remove(0).release(); // TODO racy: 'objs' might be empty
+      objs.remove(0).release();
     }
     // now the released objects should not cause reallocations, so claim
     // returns null (it's still depleted) and allocation count stays put

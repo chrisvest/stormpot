@@ -124,9 +124,4 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   public void incrementClaims() {
     claims++;
   }
-
-  @Override
-  public String toString() {
-    return "[" + super.toString() + " " + state.get() + "]";
-  }
 }

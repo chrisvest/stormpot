@@ -48,7 +48,8 @@ class BAllocThread<T extends Poolable> extends Thread {
   private long deadPollTimeout = 1;
 
   public BAllocThread(
-      BlockingQueue<BSlot<T>> live, BlockingQueue<BSlot<T>> dead,
+      BlockingQueue<BSlot<T>> live,
+      BlockingQueue<BSlot<T>> dead,
       Config<T> config) {
     this.targetSize = config.getSize();
     completionLatch = new CountDownLatch(1);

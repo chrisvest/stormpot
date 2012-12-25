@@ -31,21 +31,12 @@ public class Timeout {
   private static final TimeUnit clockUnit;
   
   static {
-    if (System.getProperty("stormpot.timeout.clock", "").equals("fast")) {
-      clockUnit = TimeUnit.MILLISECONDS;
-      clock = new Clock() {
-        public long now() {
-          return System.currentTimeMillis();
-        }
-      };
-    } else {
-      clockUnit = TimeUnit.NANOSECONDS;
-      clock = new Clock() {
-        public long now() {
-          return System.nanoTime();
-        }
-      };
-    }
+    clockUnit = TimeUnit.NANOSECONDS;
+    clock = new Clock() {
+      public long now() {
+        return System.nanoTime();
+      }
+    };
   }
   
   private final long timeout;
