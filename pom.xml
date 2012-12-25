@@ -185,7 +185,7 @@
   <properties>
     <outputEncoding>UTF-8</outputEncoding>
     <java.version>1.6</java.version>
-    <jacoco.version>0.5.7.201204190339</jacoco.version>
+    <jacoco.version>0.5.10.201208310627</jacoco.version>
   </properties>
 </project>
 
