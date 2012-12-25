@@ -1338,6 +1338,42 @@ public class PoolTest {
     shutdown(pool);
     assertTrue(Thread.interrupted());
   }
+  
+  @Test(timeout = 300)
+  @Theory public void
+  mustDebiasObjectsNoLongerClaimed(PoolFixture fixture) throws Exception {
+    Pool<GenericPoolable> pool = fixture.initPool(config);
+    Poolable obj = pool.claim(longTimeout);
+    obj.release(); // item now biased to our thread
+    // claiming in a different thread should give us the same object.
+    AtomicReference<GenericPoolable> ref =
+        new AtomicReference<GenericPoolable>();
+    join(fork(capture($claim(pool, longTimeout), ref)));
+    assertThat(ref.get(), is(obj));
+  }
+  
+  @Test(timeout = 300)
+  @Theory public void
+  biasedClaimMustUpgradeToOrdinaryClaimIfTheObjectIsPulledFromTheQueue(PoolFixture fixture) throws Exception {
+    Pool<GenericPoolable> pool = fixture.initPool(config);
+    pool.claim(longTimeout).release(); // bias the object to our thread
+    pool.claim(longTimeout); // this is now our biased claim
+    AtomicReference<GenericPoolable> ref = new AtomicReference<GenericPoolable>();
+    // the biased claim will be upgraded to an ordinary claim:
+    join(fork(capture($claim(pool, zeroTimeout), ref)));
+    assertThat(ref.get(), nullValue());
+  }
+  
+  @Test(timeout = 300, expected = IllegalStateException.class)
+  @Theory public void
+  depletedPoolThatHasBeenShutDownMustThrowUopnClaim(PoolFixture fixture) throws Exception {
+    Pool<GenericPoolable> pool = fixture.initPool(config);
+    pool.claim(longTimeout); // depleted
+    shutdown(pool);
+    pool.claim(longTimeout);
+  }
+  // XXX deplete pool, shut down, then claim to hit poison-pill
+  
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the Pool javadoc - especially the part about the promises.
 }

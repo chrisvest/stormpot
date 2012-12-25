@@ -61,6 +61,19 @@ public class UnitKit {
     };
   }
   
+  public static <T> Callable<T> capture(
+      final Callable<T> callable,
+      final AtomicReference<T> ref) {
+    return new Callable<T>() {
+      @Override
+      public T call() throws Exception {
+        T obj = callable.call();
+        ref.set(obj);
+        return obj;
+      }
+    };
+  }
+  
   public static Callable<Completion> $await(
       final Completion completion,
       final Timeout timeout) {
