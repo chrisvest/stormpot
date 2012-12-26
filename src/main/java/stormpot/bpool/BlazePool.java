@@ -183,7 +183,7 @@ implements LifecycledPool<T>, ResizablePool<T> {
       kill(slot);
       throw new PoolException("allocation failed", poison);
     }
-    if (shutdown) { // TODO racy coverage
+    if (shutdown) {
       kill(slot);
       throw new IllegalStateException("pool is shut down");
     }
@@ -200,10 +200,10 @@ implements LifecycledPool<T>, ResizablePool<T> {
       int state = slot.getState();
       if (state == BSlot.CLAIMED && slot.claim2dead()) {
         dead.offer(slot);
-        return;
+        break;
       }
       if (state == BSlot.TLR_CLAIMED && slot.claimTlr2live()) {
-        return;
+        break;
       }
     }
   }

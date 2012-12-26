@@ -73,7 +73,7 @@ implements LifecycledPool<T>, ResizablePool<T> {
       dead.offer(slot);
       throw new PoolException("allocation failed", poison);
     }
-    if (shutdown) { // TODO racy coverage
+    if (shutdown) {
       dead.offer(slot);
       throw new IllegalStateException("pool is shut down");
     }
