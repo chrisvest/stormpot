@@ -28,13 +28,13 @@ import stormpot.ResizablePool;
 import stormpot.Timeout;
 
 /**
- * QueuePool is a fairly simple {@link LifecycledPool} and
- * {@link ResizablePool} implementation that basically consists of a queue of
- * Poolable instances, and a Thread to allocate them.
+ * BlazePool is a highly optimised {@link LifecycledPool} and
+ * {@link ResizablePool} implementation that consists of a queues of
+ * Poolable instances, the access to which is made faster with clever use of
+ * ThreadLocals.
  * <p>
- * This means that the object allocation always happens in a dedicated thread.
- * This means that no thread that calls any of the claim methods, will incur
- * the overhead of allocating Poolables. This should lead to reduced deviation
+ * Object allocation always happens in a dedicated threads, off-loading the 
+ * cost of allocating the pooled objects. This should lead to reduced deviation
  * in the times it takes claim method to complete, provided the pool is not
  * depleted.
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
@@ -52,7 +52,7 @@ implements LifecycledPool<T>, ResizablePool<T> {
   private volatile boolean shutdown = false;
   
   /**
-   * Construct a new QueuePool instance based on the given {@link Config}.
+   * Construct a new BlazePool instance based on the given {@link Config}.
    * @param config The pool configuration to use.
    */
   public BlazePool(Config<T> config) {
