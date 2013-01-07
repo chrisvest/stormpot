@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot.qpool;
+package stormpot.bpool;
 
 import java.util.concurrent.BlockingQueue;
 
@@ -21,24 +21,24 @@ import stormpot.AllocThread_NullPollFromLiveWhileShrinking_TestTemplate;
 import stormpot.Config;
 import stormpot.Poolable;
 
-public class QAllocThread_NullPollFromLiveWhileShrinking_Test
-extends AllocThread_NullPollFromLiveWhileShrinking_TestTemplate<QSlot<Poolable>, QAllocThread<Poolable>> {
+public class BAllocThread_NullPollFromLiveWhileShrinking_Test
+extends AllocThread_NullPollFromLiveWhileShrinking_TestTemplate<BSlot<Poolable>, BAllocThread<Poolable>> {
 
-  protected QAllocThread<Poolable> createAllocThread(
-      BlockingQueue<QSlot<Poolable>> live, BlockingQueue<QSlot<Poolable>> dead,
+  protected BAllocThread<Poolable> createAllocThread(
+      BlockingQueue<BSlot<Poolable>> live, BlockingQueue<BSlot<Poolable>> dead,
       Config<Poolable> config) {
-    QAllocThread<Poolable> th = new QAllocThread<Poolable>(live, dead, config);
+    BAllocThread<Poolable> th = new BAllocThread<Poolable>(live, dead, config);
     return th;
   }
 
   protected void setTargetSize(
-      final QAllocThread<Poolable> thread,
+      final BAllocThread<Poolable> thread,
       final int size) {
     thread.setTargetSize(size);
   }
 
   @Override
-  protected QSlot<Poolable> createSlot(BlockingQueue<QSlot<Poolable>> live) {
-    return new QSlot<Poolable>(live);
+  protected BSlot<Poolable> createSlot(BlockingQueue<BSlot<Poolable>> live) {
+    return new BSlot<Poolable>(live);
   }
 }

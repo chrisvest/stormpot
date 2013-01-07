@@ -1376,11 +1376,16 @@ public class PoolTest {
   @Test(timeout = 300, expected = IllegalStateException.class)
   @Theory public void
   poolThatHasBeenShutDownMustThrowUponClaimEvenIfItHasAvailableNonbiasedObjects(PoolFixture fixture) throws Exception {
-    Pool<GenericPoolable> pool = fixture.initPool(config.setSize(2));
-//    Poolable obj = pool.claim(longTimeout);
-//    pool.claim(longTimeout);
-//    obj.release();
+    Pool<GenericPoolable> pool = fixture.initPool(config.setSize(4));
+    GenericPoolable a = pool.claim(longTimeout);
+    GenericPoolable b = pool.claim(longTimeout);
+    GenericPoolable c = pool.claim(longTimeout);
+    GenericPoolable d = pool.claim(longTimeout);
+    a.release(); // placed ahead of any poison pills
     shutdown(pool);
+    b.release();
+    c.release();
+    d.release();
     pool.claim(longTimeout);
   }
   
