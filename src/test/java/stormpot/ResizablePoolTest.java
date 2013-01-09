@@ -155,17 +155,23 @@ public class ResizablePoolTest {
   
   /**
    * Similar to the decreasingSizeMustEventuallyDeallocateSurplusObjects test
-   * above, but this time the objects have a very short TTL and we wait with
-   * releasing them until they have expired.
+   * above, but this time the objects are all expired after the pool has been
+   * shrunk.
    * 
-   * Again, we deplete the pool and then spinwait for the objects to expire.
+   * Again, we deplete the pool. Once depleted, our expiration has been
+   * configured such, that all subsequent items one tries to claim, will be
+   * expired.
+   * 
    * Then we set the new lower target size, and release just enough for the
-   * pool to reach the new target. Then we try to claim an object from the pool
-   * with a very short timeout. This will return null because the pool is still
-   * depleted. We also check that the pool has not made any new allocations,
-   * even though we have been releasing objects. We don't check the
-   * deallocations because it's complicated and we did it in the
+   * pool to reach the new target.
+   * 
+   * Then we try to claim an object from the pool with a very short timeout.
+   * This will return null because the pool is still depleted. We also check
+   * that the pool has not made any new allocations, even though we have been
+   * releasing objects. We don't check the deallocations because it's
+   * complicated and we did it in the
    * decreasingSizeMustEventuallyDeallocateSurplusObjects test above.
+   * 
    * @param fixture
    * @throws Exception
    */
@@ -176,8 +182,12 @@ public class ResizablePoolTest {
     int startingSize = 5;
     int newSize = 1;
     CountingAllocator allocator = new CountingAllocator();
-    Expiration<Poolable> expiration =
-        new TimeExpiration(5, TimeUnit.MILLISECONDS);
+    Expiration<Poolable> expiration = new CountingExpiration(
+        // our 5 items are not expired when we deplete the pool
+        false, false, false, false, false,
+        // but all items we try to claim after that *are* expired.
+        true
+        );
     config.setExpiration(expiration).setAllocator(allocator);
     config.setSize(startingSize);
     ResizablePool<GenericPoolable> pool = resizable(fixture);
@@ -186,7 +196,6 @@ public class ResizablePoolTest {
       objs.add(pool.claim(longTimeout));
     }
     assertThat(objs.size(), is(startingSize));
-    UnitKit.spinwait(10); // wait for the objects to expire
     pool.setTargetSize(newSize);
     for (int i = 0; i < startingSize - newSize; i++) {
       // release the surplus expired objects back into the pool
