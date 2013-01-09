@@ -33,7 +33,10 @@ public class CountingExpiration implements Expiration<Poolable> {
   @Override
   public boolean hasExpired(SlotInfo<? extends Poolable> info) {
     int count = counter.getAndIncrement();
-    int index = Math.max(count, replies.length - 1);
+    if (count == Integer.MAX_VALUE) {
+      counter.set(0);
+    }
+    int index = Math.min(count, replies.length - 1);
     return replies[index];
   }
 

@@ -30,10 +30,12 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 
 import stormpot.basicpool.BasicPoolFixture;
@@ -74,6 +76,8 @@ import stormpot.qpool.QueuePoolFixture;
  */
 @RunWith(Theories.class)
 public class PoolTest {
+  @Rule public final TestRule failurePrinter = new FailurePrinterTestRule();
+  
   private static final Expiration<Poolable> oneMsTTL =
       new TimeExpiration(1, TimeUnit.MILLISECONDS);
   private static final Expiration<Poolable> fiveMsTTL =
@@ -269,7 +273,7 @@ public class PoolTest {
     config.setExpiration(expiration);
     Pool<GenericPoolable> pool = fixture.initPool(config);
     pool.claim(longTimeout).release();
-    assertThat(expiration.getCount(), is(1));
+    assertThat(expiration.getCount(), greaterThanOrEqualTo(1));
   }
   
   /**
@@ -316,14 +320,15 @@ public class PoolTest {
     config.setExpiration(new ThrowyExpiration());
     Pool<GenericPoolable> pool = fixture.initPool(config);
     try {
-      pool.claim(longTimeout).release();
+      pool.claim(longTimeout);
+      fail("should throw");
     } catch (SomeRandomRuntimeException _) {};
     // second call to claim to ensure that the deallocation has taken place
     try {
       pool.claim(longTimeout);
     } catch (SomeRandomRuntimeException _) {};
     // must have deallocated that object
-    assertThat(allocator.deallocations(), is(1));
+    assertThat(allocator.deallocations(), greaterThanOrEqualTo(1));
   }
   
   /**

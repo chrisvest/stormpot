@@ -123,7 +123,7 @@ implements LifecycledPool<T>, ResizablePool<T> {
       }
       T obj = pool.get(index);
       BasicSlot<T> slot = slots.get(index);
-      if (obj == null || slot.expired()) {
+      while (obj == null || slot.expired()) {
         try {
           slot = slot(index);
           Object NULL = new Object();

@@ -24,10 +24,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 
 import stormpot.basicpool.BasicPoolFixture;
@@ -36,6 +38,8 @@ import stormpot.qpool.QueuePoolFixture;
 
 @RunWith(Theories.class)
 public class ResizablePoolTest {
+  @Rule public final TestRule failurePrinter = new FailurePrinterTestRule();
+  
   private static final Timeout longTimeout = new Timeout(1, TimeUnit.SECONDS);
   private static final Timeout shortTimeout = new Timeout(1, TimeUnit.MILLISECONDS);
   

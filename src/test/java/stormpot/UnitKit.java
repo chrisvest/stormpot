@@ -27,7 +27,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
 public class UnitKit {
-
   public static Thread fork(Callable<?> procedure) {
     Thread thread = new Thread(asRunnable(procedure));
     thread.start();
