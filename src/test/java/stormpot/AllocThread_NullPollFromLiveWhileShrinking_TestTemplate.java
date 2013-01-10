@@ -24,14 +24,14 @@ public abstract class AllocThread_NullPollFromLiveWhileShrinking_TestTemplate<
   @Rule public final TestRule failurePrinter = new FailurePrinterTestRule();
   
   @SuppressWarnings("serial")
-  static class Stop extends RuntimeException {}
+  protected static class Stop extends RuntimeException {}
 
-  private BlockingQueue<SLOT> callQueue(
+  protected BlockingQueue<SLOT> callQueue(
       final Queue<Callable<SLOT>> calls) {
     return new PrimedBlockingQueue<SLOT>(calls);
   }
 
-  private Callable<SLOT> ret(final SLOT slot) {
+  protected Callable<SLOT> ret(final SLOT slot) {
     return new Callable<SLOT>() {
       public SLOT call() {
         return slot;
@@ -39,7 +39,7 @@ public abstract class AllocThread_NullPollFromLiveWhileShrinking_TestTemplate<
     };
   }
 
-  private Callable<SLOT> setSizeReturn(
+  protected Callable<SLOT> setSizeReturn(
       final ALLOC_THREAD th,
       final int size,
       final SLOT slot) {
@@ -51,24 +51,27 @@ public abstract class AllocThread_NullPollFromLiveWhileShrinking_TestTemplate<
     };
   }
 
-  private Callable<SLOT> throwStop() {
+  protected Callable<SLOT> throwStop() {
     return new Callable<SLOT>() {
       public SLOT call() {
         throw new Stop();
       }
     };
   }
-  
-  @Test(timeout = 300) public void
-  mustNotDeallocateNullWhenSizeIsReducedAndPoolIsDepleted() {
-    Queue<Callable<SLOT>> calls =
-        new LinkedList<Callable<SLOT>>();
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    BlockingQueue<SLOT> live = callQueue(new LinkedList());
-    BlockingQueue<SLOT> dead = callQueue(calls);
+
+  protected Config<Poolable> createConfig() {
     Config<Poolable> config = new Config<Poolable>();
     config.setAllocator(new CountingAllocator());
     config.setSize(2);
+    return config;
+  }
+  
+  @Test(timeout = 300) public void
+  mustNotDeallocateNullWhenSizeIsReducedAndPoolIsDepleted() {
+    Queue<Callable<SLOT>> calls = new LinkedList<Callable<SLOT>>();
+    BlockingQueue<SLOT> live = callQueue(new LinkedList<Callable<SLOT>>());
+    BlockingQueue<SLOT> dead = callQueue(calls);
+    Config<Poolable> config = createConfig();
     ALLOC_THREAD th = createAllocThread(live, dead, config);
     
     calls.offer(ret(createSlot(live)));

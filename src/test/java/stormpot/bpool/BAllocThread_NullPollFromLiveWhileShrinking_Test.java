@@ -15,9 +15,14 @@
  */
 package stormpot.bpool;
 
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 
+import org.junit.Test;
+
 import stormpot.AllocThread_NullPollFromLiveWhileShrinking_TestTemplate;
+import stormpot.Callable;
 import stormpot.Config;
 import stormpot.Poolable;
 
@@ -40,5 +45,30 @@ extends AllocThread_NullPollFromLiveWhileShrinking_TestTemplate<BSlot<Poolable>,
   @Override
   protected BSlot<Poolable> createSlot(BlockingQueue<BSlot<Poolable>> live) {
     return new BSlot<Poolable>(live);
+  }
+  
+  @Test(timeout = 30) public void
+  pollingClaimedSlotsMustBeSentBackToTheLiveQueue() {
+    Queue<Callable<BSlot<Poolable>>> liveCalls = new LinkedList<Callable<BSlot<Poolable>>>();
+    Queue<Callable<BSlot<Poolable>>> deadCalls = new LinkedList<Callable<BSlot<Poolable>>>();
+    BlockingQueue<BSlot<Poolable>> live = callQueue(liveCalls);
+    BlockingQueue<BSlot<Poolable>> dead = callQueue(deadCalls);
+    Config<Poolable> config = createConfig();
+    BAllocThread<Poolable> th = createAllocThread(live, dead, config);
+
+    deadCalls.offer(ret(null));
+    deadCalls.offer(ret(null));
+    deadCalls.offer(setSizeReturn(th, 1, null));
+    BSlot<Poolable> slot = createSlot(live);
+    slot.dead2live();
+    slot.live2claim();
+    liveCalls.offer(ret(slot));
+    liveCalls.offer(throwStop());
+    
+    try {
+      th.run();
+    } catch (Stop _) {
+      // we're happy now
+    }
   }
 }

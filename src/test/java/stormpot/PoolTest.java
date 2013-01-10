@@ -468,7 +468,7 @@ public class PoolTest {
     spinwait(2);
     pool.claim(longTimeout).release();
     assertThat(allocator.allocations(), greaterThanOrEqualTo(2));
-  }
+  } // TODO BasicPool tends to fail this one :(
   
   /**
    * The size limit on a pool is strict, unless specially (as in a

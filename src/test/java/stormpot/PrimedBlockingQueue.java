@@ -16,6 +16,10 @@ final class PrimedBlockingQueue<T> extends LinkedBlockingQueue<T> {
 
   public T poll(long timeout, TimeUnit unit)
       throws InterruptedException {
+    return poll();
+  }
+  
+  public T poll() {
     Callable<T> callable = calls.poll();
     if (callable != null) {
       lastValue = callable.call();

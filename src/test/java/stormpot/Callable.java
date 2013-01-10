@@ -1,5 +1,5 @@
 package stormpot;
 
-interface Callable<T> {
+public interface Callable<T> {
   T call();
 }
