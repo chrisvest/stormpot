@@ -4,7 +4,9 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 
 /**
  * This is a rather esoteric case. It turned out that when a queue-based Pool
@@ -19,6 +21,7 @@ import org.junit.Test;
 public abstract class AllocThread_NullPollFromLiveWhileShrinking_TestTemplate<
   SLOT,
   ALLOC_THREAD extends Thread> {
+  @Rule public final TestRule failurePrinter = new FailurePrinterTestRule();
   
   @SuppressWarnings("serial")
   static class Stop extends RuntimeException {}

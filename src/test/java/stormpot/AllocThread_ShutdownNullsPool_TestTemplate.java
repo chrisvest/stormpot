@@ -4,7 +4,9 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 
 /**
  * In this test, we make sure that the shut down process takes precautions
@@ -14,6 +16,7 @@ import org.junit.Test;
 public abstract class AllocThread_ShutdownNullsPool_TestTemplate<
   SLOT,
   ALLOC_THREAD extends Thread> {
+  @Rule public final TestRule failurePrinter = new FailurePrinterTestRule();
   
   protected Config<Poolable> config;
 
@@ -29,34 +32,32 @@ public abstract class AllocThread_ShutdownNullsPool_TestTemplate<
   
   protected abstract SLOT createSlot(BlockingQueue<SLOT> live);
 
-  @SuppressWarnings("serial")
   @Test(timeout = 300) public void
   mustHandleDeadNullsInShutdown() throws InterruptedException {
-    BlockingQueue<SLOT> live = new LinkedBlockingQueue<SLOT>() {
-      public boolean offer(SLOT e) {
-        Thread.currentThread().interrupt();
-        return super.offer(e);
-      }
-    };
+    BlockingQueue<SLOT> live = createInterruptingBlockingQueue();
     BlockingQueue<SLOT> dead = new LinkedBlockingQueue<SLOT>();
     Thread thread = createAllocThread(live, dead);
     thread.run();
     // must complete before test times out, and not throw NPE
   }
 
-  @SuppressWarnings("serial")
   @Test(timeout = 300) public void
   mustHandleLiveNullsInShutdown() throws InterruptedException {
-    BlockingQueue<SLOT> live = new LinkedBlockingQueue<SLOT>() {
-      public boolean offer(SLOT e) {
-        Thread.currentThread().interrupt();
-        return true;
-      }
-    };
+    BlockingQueue<SLOT> live = createInterruptingBlockingQueue();
     BlockingQueue<SLOT> dead = new LinkedBlockingQueue<SLOT>();
     dead.add(createSlot(live));
     Thread thread = createAllocThread(live, dead);
     thread.run();
     // must complete before test times out, and not throw NPE
+  }
+
+  @SuppressWarnings("serial")
+  protected LinkedBlockingQueue<SLOT> createInterruptingBlockingQueue() {
+    return new LinkedBlockingQueue<SLOT>() {
+      public boolean offer(SLOT e) {
+        Thread.currentThread().interrupt();
+        return super.offer(e);
+      }
+    };
   }
 }

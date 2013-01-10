@@ -1,6 +1,12 @@
 package stormpot.bpool;
 
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
+
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
+import org.junit.Test;
 
 import stormpot.AllocThread_ShutdownNullsPool_TestTemplate;
 import stormpot.Poolable;
@@ -17,5 +23,33 @@ extends AllocThread_ShutdownNullsPool_TestTemplate<BSlot<Poolable>, BAllocThread
   @Override
   protected BSlot<Poolable> createSlot(BlockingQueue<BSlot<Poolable>> live) {
     return new BSlot<Poolable>(live);
+  }
+
+  @Test(timeout = 300) public void
+  claimedSlotsInDeadQueueMustMoveToLiveQueueInShutdown() throws InterruptedException {
+    BlockingQueue<BSlot<Poolable>> live = createInterruptingBlockingQueue();
+    BlockingQueue<BSlot<Poolable>> dead = new LinkedBlockingQueue<BSlot<Poolable>>();
+    BSlot<Poolable> slot = createSlot(live);
+    slot.dead2live();
+    slot.live2claim();
+    dead.add(slot);
+    Thread thread = createAllocThread(live, dead);
+    thread.run();
+    assertThat(live, hasItem(slot));
+    // must complete before test times out, and not throw NPE
+  }
+
+  @Test(timeout = 300, expected = AssertionError.class) public void
+  mustThrowAssertionErrorIfAttemptingToDeallocateNonDeadSlot() throws InterruptedException {
+    config.setSize(0);
+    BlockingQueue<BSlot<Poolable>> live = createInterruptingBlockingQueue();
+    BlockingQueue<BSlot<Poolable>> dead = new LinkedBlockingQueue<BSlot<Poolable>>();
+    BSlot<Poolable> slot = createSlot(live);
+    slot.dead2live();
+    slot.live2claim();
+    dead.add(slot);
+    Thread thread = createAllocThread(live, dead);
+    thread.run();
+    // must complete before test times out
   }
 }
