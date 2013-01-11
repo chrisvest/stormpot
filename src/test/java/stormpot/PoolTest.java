@@ -498,7 +498,7 @@ public class PoolTest {
     spinwait(2);
     pool.claim(longTimeout).release();
     assertThat(allocator.deallocations(), greaterThanOrEqualTo(1));
-  }
+  } // TODO BasicPool occasionally fails this test
   
   /**
    * When we call shutdown() on a pool, the shutdown process is initiated and
