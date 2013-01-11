@@ -100,6 +100,7 @@ implements LifecycledPool<T>, ResizablePool<T> {
   
   @SuppressWarnings("unchecked")
   private T doClaim(Timeout timeout) throws InterruptedException {
+    long deadline = timeout.getDeadline();
     lock.lock();
     try {
       if (shutdown) {
@@ -124,12 +125,17 @@ implements LifecycledPool<T>, ResizablePool<T> {
       T obj = pool.get(index);
       BasicSlot<T> slot = slots.get(index);
       while (obj == null || slot.expired()) {
+        long timeLeft = timeout.getTimeLeft(deadline);
+        long timeLeftMillis = timeout.getBaseUnit().toMillis(timeLeft);
+        if (timeLeftMillis < 1) {
+          return null;
+        }
         try {
           slot = slot(index);
           Object NULL = new Object();
           AtomicReference<Object> ref = new AtomicReference<Object>(NULL);
           Thread alloc = alloc(ref, slot);
-          alloc.join(maxWaitNanos / 1000000);
+          alloc.join(timeLeftMillis);
           Object value = ref.get();
           if (value == NULL) {
             // timeout
