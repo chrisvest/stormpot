@@ -200,10 +200,10 @@ implements LifecycledPool<T>, ResizablePool<T> {
       int state = slot.getState();
       if (state == BSlot.CLAIMED && slot.claim2dead()) {
         dead.offer(slot);
-        break;
+        return;
       }
       if (state == BSlot.TLR_CLAIMED && slot.claimTlr2live()) {
-        break;
+        return;
       }
     }
   }
