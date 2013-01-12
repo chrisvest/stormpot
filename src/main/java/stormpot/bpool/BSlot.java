@@ -52,13 +52,21 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
         throw new PoolException(
             "Expected release from claimer " + claimer + " but was " + releaser);
       }
-      if (slotState != TLR_CLAIMED && slotState != CLAIMED) {
-        throw new PoolException("Slot release from bad state: " + slotState);
-      }
-    } while (!(slotState == CLAIMED? claim2live() : claimTlr2live()));
+      // We loop here because TLR_CLAIMED slots can be concurrently changed
+      // into normal CLAIMED slots.
+    } while (!releaseState(slotState));
     if (slotState == CLAIMED) {
       live.offer(this);
     }
+  }
+  
+  private boolean releaseState(int slotState) {
+    if (slotState == TLR_CLAIMED) {
+      return claimTlr2live();
+    } else if (slotState == CLAIMED) {
+      return claim2live();
+    }
+    throw new PoolException("Slot release from bad state: " + slotState);
   }
   
   public boolean claim2live() {
