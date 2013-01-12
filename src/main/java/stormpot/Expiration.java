@@ -20,7 +20,7 @@ package stormpot;
  * otherwise become invalid.
  * <p>
  * Note that Expiration instances must be thread-safe, as they may be
- * accessed concurrenty by multiple threads – even for the same
+ * accessed concurrently by multiple threads – even for the same
  * {@link SlotInfo} and {@link Poolable} instances. The easiest way to ensure
  * this, is to make sure that they never mutate any state. If they do, however,
  * then they must do so in a thread-safe manner. Be aware that making the
