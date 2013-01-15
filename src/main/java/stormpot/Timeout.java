@@ -20,6 +20,10 @@ import java.util.concurrent.TimeUnit;
 /**
  * A Timeout represents the maximum amount of time a caller is willing to wait
  * for a blocking operation to complete.
+ * <p>
+ * Timeouts are independent of their units, so two timeouts of equivalent
+ * duration but constructed in different units, will be equal to each other and
+ * work exactly the same.
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  */
 public class Timeout {
@@ -41,6 +45,7 @@ public class Timeout {
   
   private final long timeout;
   private final TimeUnit unit;
+  private final long timeoutBase;
   
   /**
    * Construct a new timeout with the given value and unit. The unit cannot be
@@ -57,6 +62,7 @@ public class Timeout {
     }
     this.timeout = timeout;
     this.unit = unit;
+    this.timeoutBase = clockUnit.convert(timeout, unit);
   }
 
   /**
@@ -87,7 +93,7 @@ public class Timeout {
    * this timeout has passed.
    */
   public long getDeadline() {
-    return now() + getBaseUnit().convert(timeout, unit);
+    return now() + timeoutBase;
   }
 
   /**
@@ -107,24 +113,32 @@ public class Timeout {
     return clock.now();
   }
 
+  /**
+   * Get the unit of precision for the underlying clock, that is used by
+   * {@link #getDeadline()} and {@link #getTimeLeft(long)}.
+   * @return TimeUnit The unit of precision used by the clock in this Timeout.
+   */
   public TimeUnit getBaseUnit() {
     return clockUnit;
   }
 
   @Override
   public int hashCode() {
-    long nanos = unit.toNanos(timeout);
-    return 31 * 1 + (int) (nanos ^ (nanos >>> 32));
+    return 31 * 1 + (int) (timeoutBase ^ (timeoutBase >>> 32));
   }
 
+  /**
+   * Timeouts of equivalent duration are equal, even if they were constructed
+   * with different units.
+   * @return <code>true</code> if this Timeout value is equal to the given
+   * Timeout value, <code>false</code> otherwise.
+   */
   @Override
   public boolean equals(Object obj) {
     if (!(obj instanceof Timeout)) {
       return false;
     }
     Timeout that = (Timeout) obj;
-    long thisNanos = unit.toNanos(timeout);
-    long thatNanos = that.unit.toNanos(that.timeout);
-    return thisNanos == thatNanos;
+    return this.timeoutBase == that.timeoutBase;
   }
 }
