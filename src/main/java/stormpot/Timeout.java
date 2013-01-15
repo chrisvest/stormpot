@@ -27,22 +27,6 @@ import java.util.concurrent.TimeUnit;
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  */
 public class Timeout {
-  private static interface Clock {
-    long now();
-  }
-  
-  private static final Clock clock;
-  private static final TimeUnit clockUnit;
-  
-  static {
-    clockUnit = TimeUnit.NANOSECONDS;
-    clock = new Clock() {
-      public long now() {
-        return System.nanoTime();
-      }
-    };
-  }
-  
   private final long timeout;
   private final TimeUnit unit;
   private final long timeoutBase;
@@ -62,7 +46,7 @@ public class Timeout {
     }
     this.timeout = timeout;
     this.unit = unit;
-    this.timeoutBase = clockUnit.convert(timeout, unit);
+    this.timeoutBase = getBaseUnit().convert(timeout, unit);
   }
 
   /**
@@ -109,17 +93,17 @@ public class Timeout {
     return deadline - now();
   }
 
-  private long now() {
-    return clock.now();
-  }
-
   /**
    * Get the unit of precision for the underlying clock, that is used by
    * {@link #getDeadline()} and {@link #getTimeLeft(long)}.
    * @return TimeUnit The unit of precision used by the clock in this Timeout.
    */
   public TimeUnit getBaseUnit() {
-    return clockUnit;
+    return TimeUnit.NANOSECONDS;
+  }
+
+  private long now() {
+    return System.nanoTime();
   }
 
   @Override
