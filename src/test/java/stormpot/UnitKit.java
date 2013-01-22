@@ -21,16 +21,26 @@ import static org.junit.Assume.*;
 
 import java.lang.Thread.State;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
 public class UnitKit {
+  private static final ExecutorService executor = Executors.newCachedThreadPool();
+  
   public static Thread fork(Callable<?> procedure) {
     Thread thread = new Thread(asRunnable(procedure));
     thread.start();
     return thread;
+  }
+  
+  public static <T> Future<T> forkFuture(Callable<T> proceduce) {
+    return executor.submit(proceduce);
   }
 
   public static Runnable asRunnable(final Callable<?> procedure) {
@@ -150,6 +160,17 @@ public class UnitKit {
       thread.join();
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
+    }
+  }
+  
+  public static void join(Future<?> future) {
+    try {
+      future.get();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    } catch (ExecutionException e) {
+      // AssertionError doesn't have the (String, Throwable) constructor :(
+      throw new Error("Unexpected exception", e);
     }
   }
 

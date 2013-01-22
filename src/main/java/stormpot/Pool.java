@@ -51,6 +51,11 @@ public interface Pool<T extends Poolable> {
    * methods blocks forever, for some reason. If the given timeout has a zero
    * or negative value, then the method will not wait.
    * <p>
+   * If the current thread has already one or more objects currently claimed,
+   * then a distinct object will be returned, if one is or becomes available.
+   * This means that it is possible for a single thread to deplete the pool, if
+   * it so desires.
+   * <p>
    * This method may throw a PoolException if the pool have trouble allocating
    * objects. That is, if its assigned Allocator throws exceptions from its
    * allocate method, or returns <code>null</code>.

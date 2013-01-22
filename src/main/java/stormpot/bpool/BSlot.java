@@ -35,7 +35,6 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   Exception poison;
   long created;
   long claims;
-  Thread owner;
   
   public BSlot(BlockingQueue<BSlot<T>> live) {
     this.live = live;
@@ -46,12 +45,6 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
     int slotState = 0;
     do {
       slotState = state.get();
-      Thread claimer = owner;
-      Thread releaser = Thread.currentThread();
-      if (claimer != releaser) {
-        throw new PoolException(
-            "Expected release from claimer " + claimer + " but was " + releaser);
-      }
       // We loop here because TLR_CLAIMED slots can be concurrently changed
       // into normal CLAIMED slots.
     } while (!releaseState(slotState));
@@ -83,15 +76,11 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   }
   
   public boolean live2claim() {
-    boolean cas = cas(LIVING, CLAIMED);
-    if (cas) owner = Thread.currentThread();
-    return cas;
+    return cas(LIVING, CLAIMED);
   }
   
   public boolean live2claimTlr() {
-    boolean cas = cas(LIVING, TLR_CLAIMED);
-    if (cas) owner = Thread.currentThread();
-    return cas;
+    return cas(LIVING, TLR_CLAIMED);
   }
   
   public boolean claimTlr2claim() {

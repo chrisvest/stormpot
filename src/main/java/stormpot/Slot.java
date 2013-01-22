@@ -34,6 +34,9 @@ public interface Slot {
    * likewise a user error to release a Slot while inside the Allocators
    * {@link Allocator#allocate(Slot) allocate} method, or the Expirations
    * {@link Expiration#hasExpired(SlotInfo) hasExpired} method.
+   * <p<
+   * On the other hand, it is <em>not</em> an error to release a Poolable
+   * from a thread other than the one that claimed it.
    * <p>
    * Pools are free to throw a PoolException if they detect any of these
    * wrong uses, but it is not guaranteed and the exact behaviour is not

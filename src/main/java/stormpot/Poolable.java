@@ -58,6 +58,16 @@ public interface Poolable {
    * A call to this method MUST delegate to a call to
    * {@link Slot#release(Poolable)} on the Slot object for which this
    * Poolable was allocated, giving itself as the Poolable parameter.
+   * <p>
+   * A Poolable can be released by a thread other than the one that claimed it.
+   * It can not, however, be released more than once per claim. The feature of
+   * permitting releases from threads other than the claiming thread might be
+   * useful in message-passing architectures and the like, but it is not
+   * generally recommendable because it makes it more complicated to keep track
+   * of object lifecycles.
+   * <p>
+   * Great care must be taken, to ensure that Poolables are not used after they
+   * are released!
    */
   void release();
 }

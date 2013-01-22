@@ -957,7 +957,7 @@ public class PoolTest {
   awaitWithTimeoutOnCompletionMustThrowUponInterruption(PoolFixture fixture)
   throws Exception {
     Completion completion = givenUnfineshedCompletion(fixture);
-    fork($interruptUponState(
+    forkFuture($interruptUponState(
         Thread.currentThread(), Thread.State.TIMED_WAITING));
     completion.await(longTimeout);
   }
@@ -1080,7 +1080,7 @@ public class PoolTest {
   throws Exception {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     assertNotNull("Did not deplete pool in time", pool.claim(longTimeout));
-    fork($interruptUponState(
+    forkFuture($interruptUponState(
         Thread.currentThread(), Thread.State.TIMED_WAITING));
     pool.claim(longTimeout);
   }
@@ -1180,7 +1180,7 @@ public class PoolTest {
       assertNotNull("Did not claim an object in time", objs[i]);
     }
     lock.lock(); // prevent new allocations
-    fork($delayedReleases(objs, 10, TimeUnit.MILLISECONDS));
+    forkFuture($delayedReleases(objs, 10, TimeUnit.MILLISECONDS));
     // must return before test times out:
     pool.claim(new Timeout(50, TimeUnit.MILLISECONDS));
   }
@@ -1353,7 +1353,7 @@ public class PoolTest {
     // claiming in a different thread should give us the same object.
     AtomicReference<GenericPoolable> ref =
         new AtomicReference<GenericPoolable>();
-    join(fork(capture($claim(pool, longTimeout), ref)));
+    join(forkFuture(capture($claim(pool, longTimeout), ref)));
     assertThat(ref.get(), is(obj));
   }
   
@@ -1365,7 +1365,7 @@ public class PoolTest {
     pool.claim(longTimeout); // this is now our biased claim
     AtomicReference<GenericPoolable> ref = new AtomicReference<GenericPoolable>();
     // the biased claim will be upgraded to an ordinary claim:
-    join(fork(capture($claim(pool, zeroTimeout), ref)));
+    join(forkFuture(capture($claim(pool, zeroTimeout), ref)));
     assertThat(ref.get(), nullValue());
   }
   
@@ -1392,6 +1392,14 @@ public class PoolTest {
     c.release();
     d.release();
     pool.claim(longTimeout);
+  }
+  
+  @Test(timeout = 300)
+  @Theory public void
+  mustNotThrowWhenReleasingObjectClaimedByAnotherThread(PoolFixture fixture) throws Exception {
+    Pool<GenericPoolable> pool = fixture.initPool(config);
+    GenericPoolable obj = forkFuture($claim(pool, longTimeout)).get();
+    obj.release();
   }
   
   // NOTE: When adding, removing or modifying tests, also remember to update
