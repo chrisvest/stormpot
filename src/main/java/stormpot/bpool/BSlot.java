@@ -70,7 +70,12 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   }
   
   public boolean claim2live() {
+    // why would this ever fail?
     return cas(CLAIMED, LIVING);
+    
+    // TODO maybe we can do this instead?
+//    state.lazySet(LIVING);
+//    return true;
   }
   
   public boolean claimTlr2live() {
@@ -107,6 +112,12 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
 
   private boolean cas(int expected, int update) {
     return state.compareAndSet(expected, update);
+    
+    // TODO see if this is a performance boon or not:
+//    if (state.get() == expected) {
+//      return state.compareAndSet(expected, update);
+//    }
+//    return false;
   }
   
   @Override
