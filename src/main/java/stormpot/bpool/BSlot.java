@@ -30,6 +30,7 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   static final int DEAD = 4;
   
   final BlockingQueue<BSlot<T>> live;
+  // TODO make BSlot extend AtomicInt instead, to avoid the indirection.
   private final AtomicInteger state;
   T obj;
   Exception poison;
