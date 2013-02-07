@@ -108,6 +108,9 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
 //      return state.compareAndSet(expected, update);
 //    }
 //    return false;
+    
+    // TODO or perhaps this:
+//    return state.get() == expected && state.compareAndSet(expected, update);
   }
   
   @Override
