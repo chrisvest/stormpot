@@ -21,17 +21,15 @@ import java.util.concurrent.LinkedBlockingQueue;
 import stormpot.Completion;
 import stormpot.Config;
 import stormpot.Expiration;
-import stormpot.LifecycledPool;
+import stormpot.LifecycledResizablePool;
 import stormpot.PoolException;
 import stormpot.Poolable;
-import stormpot.ResizablePool;
 import stormpot.Timeout;
 
 /**
- * BlazePool is a highly optimised {@link LifecycledPool} and
- * {@link ResizablePool} implementation that consists of a queues of
- * Poolable instances, the access to which is made faster with clever use of
- * ThreadLocals.
+ * BlazePool is a highly optimised {@link LifecycledResizablePool}
+ * implementation that consists of a queues of Poolable instances, the access
+ * to which is made faster with clever use of ThreadLocals.
  * <p>
  * Object allocation always happens in a dedicated threads, off-loading the 
  * cost of allocating the pooled objects. This should lead to reduced deviation
@@ -41,7 +39,7 @@ import stormpot.Timeout;
  * @param <T> The type of {@link Poolable} managed by this pool.
  */
 public final class BlazePool<T extends Poolable>
-implements LifecycledPool<T>, ResizablePool<T> {
+implements LifecycledResizablePool<T> {
   private final BlockingQueue<BSlot<T>> live;
   private final BlockingQueue<BSlot<T>> dead;
   private final BAllocThread<T> allocThread;

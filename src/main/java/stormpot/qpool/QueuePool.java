@@ -21,16 +21,15 @@ import java.util.concurrent.LinkedBlockingQueue;
 import stormpot.Completion;
 import stormpot.Config;
 import stormpot.Expiration;
-import stormpot.LifecycledPool;
+import stormpot.LifecycledResizablePool;
 import stormpot.PoolException;
 import stormpot.Poolable;
-import stormpot.ResizablePool;
 import stormpot.Timeout;
 
 /**
- * QueuePool is a fairly simple {@link LifecycledPool} and
- * {@link ResizablePool} implementation that basically consists of a queue of
- * Poolable instances, and a Thread to allocate them.
+ * QueuePool is a fairly simple {@link LifecycledResizablePool} implementation
+ * that basically consists of a queue of Poolable instances, and a Thread to
+ * allocate them.
  * <p>
  * This means that the object allocation always happens in a dedicated thread.
  * This means that no thread that calls any of the claim methods, will incur
@@ -41,7 +40,7 @@ import stormpot.Timeout;
  * @param <T> The type of {@link Poolable} managed by this pool.
  */
 public final class QueuePool<T extends Poolable>
-implements LifecycledPool<T>, ResizablePool<T> {
+implements LifecycledResizablePool<T> {
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;
   private final QAllocThread<T> allocThread;
