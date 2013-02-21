@@ -41,7 +41,7 @@ public interface Expiration<T extends Poolable> {
    * reason, it is generally advised that Expirations do not throw
    * exceptions.
    * @param info An informative representative of the slot being tested.
-   * Never null.
+   * Never <code>null</code>.
    * @return <code>true</code> if the slot and poolable in question should be
    * deallocated, <code>false</code> if it is valid and elegible for claiming.
    */

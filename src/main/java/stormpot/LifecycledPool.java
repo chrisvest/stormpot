@@ -32,7 +32,7 @@ public interface LifecycledPool<T extends Poolable> extends Pool<T> {
    * {@link Completion} instance representing the shut down procedure.
    * <p>
    * The shut down process is asynchronous, and the shutdown method is
-   * guaranteed not to wait for any claimed {@link Poolable Poolables} to
+   * guaranteed to not wait for any claimed {@link Poolable Poolables} to
    * be released.
    * <p>
    * The shut down process cannot complete before all Poolables are released
@@ -44,7 +44,7 @@ public interface LifecycledPool<T extends Poolable> extends Pool<T> {
    * Once the shut down process has been initiated, that is, as soon as this
    * method is called, the pool can no longer be used and all calls to
    * {@link #claim(Timeout)} will throw an {@link IllegalStateException}.
-   * Threads that are already waiting of objects in the claim method, will
+   * Threads that are already waiting for objects in the claim method, will
    * also wake up and receive an {@link IllegalStateException}.
    * <p>
    * All objects that are already claimed when this method is called,

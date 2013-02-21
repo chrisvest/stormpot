@@ -32,7 +32,7 @@ public interface Completion {
    * or the thread is {@link Thread#interrupt() interrupted}, or the specified
    * waiting time elapses.
    * <p>
-   * If the task represented by this completion has already competed,
+   * If the task represented by this completion has already completed,
    * the method immediately returns <code>true</code>.
    * <p>
    * If the current thread already has its interrupted status set upon entry

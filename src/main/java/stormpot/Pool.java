@@ -48,8 +48,8 @@ public interface Pool<T extends Poolable> {
    * pool has been depleted. If the timeout elapses before an object can be
    * claimed, then <code>null</code> is returned instead. The timeout will be
    * honoured even if the Allocators {@link Allocator#allocate(Slot) allocate}
-   * methods blocks forever, for some reason. If the given timeout has a zero
-   * or negative value, then the method will not wait.
+   * methods blocks forever. If the given timeout has a zero or negative value,
+   * then the method will not wait.
    * <p>
    * If the current thread has already one or more objects currently claimed,
    * then a distinct object will be returned, if one is or becomes available.

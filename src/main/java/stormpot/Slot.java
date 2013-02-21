@@ -27,14 +27,14 @@ package stormpot;
  */
 public interface Slot {
   /**
-   * Signal to the pool that the currently claim object at this slot, has been
+   * Signal to the pool that the currently claimed object at this slot, has been
    * released.
    * <p>
    * It is a user error to release a slot that is not currently claimed. It is
    * likewise a user error to release a Slot while inside the Allocators
    * {@link Allocator#allocate(Slot) allocate} method, or the Expirations
    * {@link Expiration#hasExpired(SlotInfo) hasExpired} method.
-   * <p<
+   * <p>
    * On the other hand, it is <em>not</em> an error to release a Poolable
    * from a thread other than the one that claimed it.
    * <p>

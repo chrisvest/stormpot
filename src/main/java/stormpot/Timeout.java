@@ -33,12 +33,12 @@ public class Timeout {
   
   /**
    * Construct a new timeout with the given value and unit. The unit cannot be
-   * null, but the timeout value is unrestricted. The meaning of a negative
-   * timeout value is specific to the implementation of the use site, but
-   * typically means that no amount of blocking or waiting is tolerated.
+   * <code>null</code>, but the timeout value is unrestricted. The meaning of a
+   * negative timeout value is specific to the implementation of the use site,
+   * but typically means that no amount of blocking or waiting is tolerated.
    * @param timeout A numerical value for the timeout. Can be zero or negative,
    * though the meaning is implementation specific.
-   * @param unit The unit of the timeout value. Never null.
+   * @param unit The unit of the timeout value. Never <code>null</code>.
    */
   public Timeout(long timeout, TimeUnit unit) {
     if (unit == null) {
@@ -59,7 +59,7 @@ public class Timeout {
 
   /**
    * Get the unit for the {@link #getTimeout() timeout value}.
-   * @return The {@link TimeUnit} of the timeout value. Never null.
+   * @return The {@link TimeUnit} of the timeout value. Never <code>null</code>.
    */
   public TimeUnit getUnit() {
     return unit;
@@ -69,7 +69,7 @@ public class Timeout {
    * Calculate a deadline, as an instant in the future, in terms of the
    * {@link #getBaseUnit() base unit}. Once you have a deadline, you can ask
    * how much time is left until it transpires, with the
-   * {@link #getTimeLeft(long)}, giving the deadline as an argument.
+   * {@link #getTimeLeft(long)} method, giving the deadline as an argument.
    * <p>
    * If the {@link #getTimeout() timeout value} is really small, zero or
    * negative, then the deadline might be an instant in the past.
@@ -81,13 +81,13 @@ public class Timeout {
   }
 
   /**
-   * Calculate the amount of time that is left within the deadline, in terms
+   * Calculate the amount of time that is left until the deadline, in terms
    * of the {@link #getBaseUnit() base unit}. The argument is a deadline value
    * that has been calculated with the {@link #getDeadline()} method.
    * @param deadline The reference deadline from {@link #getDeadline()}.
    * @return The amount of time, in terms of the
-   * {@link #getBaseUnit() base unit}, that is left within the deadline. If
-   * this value is negative, then you have overrun the deadline.
+   * {@link #getBaseUnit() base unit}, that is left until the deadline. If
+   * this value is negative, then the deadline has transpired.
    */
   public long getTimeLeft(long deadline) {
     return deadline - now();

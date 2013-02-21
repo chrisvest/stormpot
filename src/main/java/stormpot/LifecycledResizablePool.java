@@ -1,8 +1,8 @@
 package stormpot;
 
 /**
- * A {@link Pool} that is both {@link LifecycledPool life-cycled} and
- * {@link ResizablePool resizable}.
+ * An interface for {@link Pool}s that are both
+ * {@link LifecycledPool life-cycled} and {@link ResizablePool resizable}.
  * 
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  * @param <T> The type of {@link Poolable} contained in this pool.

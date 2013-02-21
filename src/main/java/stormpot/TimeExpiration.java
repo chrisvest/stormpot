@@ -37,7 +37,8 @@ public class TimeExpiration implements Expiration<Poolable> {
    * 
    * @param maxPermittedAge Poolables older than this, in the given unit, will
    * be considered expired. This value must be at least 1.
-   * @param unit The {@link TimeUnit} of the maximum permitted age. Never null.
+   * @param unit The {@link TimeUnit} of the maximum permitted age. Never
+   * <code>null</code>.
    */
   public TimeExpiration(long maxPermittedAge, TimeUnit unit) {
     if (maxPermittedAge < 1) {
