@@ -23,13 +23,18 @@ package stormpot;
  * library needs to provide their own Allocator implementations.
  * <p>
  * Implementations of this interface must be thread-safe, because there is no
- * knowing whether pools will try to access it concurrently or not. Generally
- * they will probably not access it concurrently, but since no guarantee can
- * be provided one has expect that concurrent access might occur. The easiest
+ * knowing whether pools will try to access it concurrently or not. The easiest
  * way to achieve this is to just make the
  * {@link Allocator#allocate(Slot) allocate}
  * and {@link Allocator#deallocate(Poolable) deallocate} methods synchronised,
- * or just not have any shared mutable state in the allocator.
+ * but this might cause problems for the pools ability to allocate objects fast
+ * enough, if they are very slow to construct. Pools might want to deal with
+ * very slow allocations by allocating in more than one thread, but
+ * synchronizing the {@link #allocate(Slot)} method will render that strategy
+ * ineffective.
+ * <p>
+ * A better approach to thread-safety is to not have any shared mutable state
+ * in the allocator, if at all possible.
  * 
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  *

@@ -14,9 +14,14 @@
  * limitations under the License.
  */
 /**
- * A {@link stormpot.Pool}, {@link stormpot.LifecycledPool} and
- * {@link stormpot.ResizablePool} implementation designed to be fast and
- * scalable in the face of concurrent and multi-threaded use, and high
- * contention.
+ * A general purpose {@link stormpot.LifecycledResizablePool} implementation
+ * designed to be fast and scalable in the common multi-threaded server-side
+ * case.
+ * <p>
+ * BlazePool optimises for the case where the same threads need to claim and
+ * release objects over and over again. On the other hand, if the releasing
+ * thread tends to differ from the claiming thread, then the major optimisation
+ * in BlazePool is defeated, and performance regresses to a slow-path that is
+ * a tad slower than {@link stormpot.qpool.QueuePool}.
  */
 package stormpot.bpool;

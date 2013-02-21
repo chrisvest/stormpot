@@ -1,10 +1,12 @@
-Stormpot is a generic and thread-safe object pooling library.
+Stormpot is a generic, thread-safe and fast object pooling library.
 
-The object pools themselves implement the {@link stormpot.Pool} interface, or one or both of the {@link stormpot.LifecycledPool} or
-{@link stormpot.ResizablePool} interfaces. The things you actually want to
-pool must all implement the {@link stormpot.Poolable} interface, and you must
-also provide an implementation of the {@link stormpot.Allocator} interface as
-a factory to create your pooled objects.
+The object pools themselves implement the {@link stormpot.Pool} interface,
+or one or both of the {@link stormpot.LifecycledPool} or
+{@link stormpot.ResizablePool} interfaces, or even the
+{@link stormpot.LifecycledResizablePool} interface. The things you actually
+want to pool must all implement the {@link stormpot.Poolable} interface, and
+you must also provide an implementation of the {@link stormpot.Allocator}
+interface as a factory to create your pooled objects.
 
 *Why is it called "Stormpot"?*
 
@@ -13,7 +15,8 @@ into and get stuff out of. The storm part refers to the proverbial storm in a
 glass of water or teacup (or temptest in a teapot, depending on where you are
 from) and is a reference to the size of the library and what it does. A storm
 is also a wind that moves really fast, and that is a reference to the goal of
-having a fast and scalable implementation. That, and "Windy Kettle" is two words and sound silly.
+having a fast and scalable implementation. That, and "Windy Kettle" is two
+words and sound silly.
 
 **Contents:**
 
@@ -33,7 +36,9 @@ these:
 * Stormpot pools prefer to allocate objects in a "back-ground" thread,
   whereas Commons-Pool prefer that objects are explicitly added to the
   pools.
-* Stormpot only has one type of pool, with extension interfaces, whereas Commons-Pool has two types, where the implementations may expose additional implementation specific APIs.
+* Stormpot only has one type of pool, with extension interfaces, whereas
+  Commons-Pool has two types, where the implementations may expose additional
+  implementation specific APIs.
 * Commons-Pool has support for keyed pools, akin to caches, whereas
   Stormpot does not.
 * The Stormpot API is slanted towards high through-put. The Commons-Pool
@@ -80,8 +85,9 @@ required for its implementation is this:
 The object in essence just needs to keep its `Slot` instance around, and give
 itself as a parameter to the {@link stormpot.Slot#release(Poolable)} method.
 
-Apart from a class for the objects that we intend to pool, is the
-{@link stormpot.Allocator} implementation that is going to create these objects:
+Now that we have a class of objects to pool, we need some way to tell Stormpot
+how to create them. We do this by implementing the {@link stormpot.Allocator}
+interface:
 
     ::: java
     // MyAllocator.java - minimum Allocator implementation
@@ -106,10 +112,33 @@ Stormpot. All that is left is a little bit of configuration:
     ::: java
     MyAllocator allocator = new MyAllocator();
     Config<MyPoolable> config = new Config<MyPoolable>().setAllocator(allocator);
-    Pool<MyPoolable> pool = new QueuePool<MyPoolable>(config);
+    Pool<MyPoolable> pool = new BlazePool<MyPoolable>(config);
+    Timeout timeout = new Timeout(1, TimeUnit.SECONDS);
+    
+    MyPoolable object = pool.claim(timeout);
+    try {
+      // do stuff with 'object'
+    } finally {
+      if (object != null) {
+        object.release();
+      }
+    }
 
 Create a `Config` object and set the allocator, then create a pool with
 the configuration and off we go!
+
+The blocking methods {@link stormpot.Pool#claim(Timeout)} and
+{@link stormpot.Completion#await(Timeout)} both take {@code stormpot.Timeout}
+objects as arguments. These are thread-safe, and can easily be put in
+`static final` constants. Note that `claim` returns `null` if the timeout
+elapses before an object can be claimed. Also, using `try-finally` is a great
+way to make sure that you don't forget to release the objects back into the
+pool. Stormpot does no leak detection, so if you loose the reference to an
+object that hasn't been released back into the pool, it will not come back on
+its own. Leaked objects can also cause problems with shutting the pool down,
+because the shut down procedure does not complete until all allocated objects
+are deallocated. So if you have leaked objects, shutting the pool down will
+never complete normally. You can still just halt the JVM, though.
 
 Tutorial
 ========
@@ -134,12 +163,13 @@ a {@link javax.sql.DataSource}. So let us start off by importing those:
 We are also going to need most of the Stormpot API. We are going to need
 {@link stormpot.Config} for our pool configuration;
 {@link stormpot.LifecycledPool} is the pool interface we will code against,
-because we want our code to have a clean shut-down path; some methods take a {@link stormpot.Timeout} object as a parameter so we'll that as well;
+because we want our code to have a clean shut-down path; some methods take a
+{@link stormpot.Timeout} object as a parameter so we'll that as well;
 {@link stormpot.Allocator} and {@link stormpot.Poolable} are interfaces we
 are going to have to implement in our own code, and we will be needing the
 {@link stormpot.Slot} interface to do that; and finally we are going to
 need a concrete pool implementation from the library: the
-{@link stormpot.qpool.QueuePool QueuePool}.
+{@link stormpot.bpool.BlazePool BlazePool}.
 
     ::: java
     import stormpot.Allocator;
@@ -148,7 +178,7 @@ need a concrete pool implementation from the library: the
     import stormpot.Poolable;
     import stormpot.Slot;
     import stormpot.Timeout;
-    import stormpot.qpool.QueuePool;
+    import stormpot.bpool.BlazePool;
 
 The next thing we want to do, is to implement our pooled object - in this
 case our DAO class called `MyDao`. To keep everything in one file, we
@@ -262,7 +292,7 @@ method. This one is easy to implement. We just call the `close()` method on our
 And that concludes our `Allocator` implementation. We now have the parts
 needed to pool our `MyDaos` with Stormpot.
 
-We could now just create a `Config`, set the allocator, create a `QueuePool`
+We could now just create a `Config`, set the allocator, create a `BlazePool`
 with it and use that directly. However, it is generally a good idea to not
 be too dependent on external APIs, because it introduces coupling. So, to
 reduce this coupling, we are going to introduce an indirection. We are going
@@ -281,11 +311,11 @@ But let us build that pool before we get to that:
         public MyDaoPool(DataSource dataSource) {
           MyDaoAllocator allocator = new MyDaoAllocator(dataSource);
           Config<MyDao> config = new Config<MyDao>().setAllocator(allocator);
-          pool = new QueuePool<MyDao>(config);
+          pool = new BlazePool<MyDao>(config);
         }
 
 The set-up is simple: The `DataSource` goes into our `Allocator`, the `Allocator`
-into a `Config`, and the `Config` into a `Pool` implementation - `QueuePool` in
+into a `Config`, and the `Config` into a `Pool` implementation - `BlazePool` in
 this case. The `pool` field is `final` because we don't need to change it once
 set, and because it has nice memory visibility semantics so we can safely share
 `MyDaoPool` instances among many threads.
@@ -377,7 +407,10 @@ programs.
 
 ### Interruption
 
-The (only two) blocking methods, {@link stormpot.Pool#claim(Timeout)} and {@link stormpot.Completion#await(Timeout)}, behave correctly with respect to interruption: If a thread is interrupted when it calls one of these methods, or the thread is interrupted while waiting in one these methods, then an
+The (only two) blocking methods, {@link stormpot.Pool#claim(Timeout)} and
+{@link stormpot.Completion#await(Timeout)}, behave correctly with respect to
+interruption: If a thread is interrupted when it calls one of these methods, or
+the thread is interrupted while waiting in one these methods, then an
 {@link java.lang.InterruptedException} will be thrown, and the threads
 interruption flag will be cleared.
 

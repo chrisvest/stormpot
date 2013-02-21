@@ -31,7 +31,7 @@ import stormpot.Timeout;
  * implementation that consists of a queues of Poolable instances, the access
  * to which is made faster with clever use of ThreadLocals.
  * <p>
- * Object allocation always happens in a dedicated threads, off-loading the 
+ * Object allocation always happens in a dedicated thread, off-loading the 
  * cost of allocating the pooled objects. This should lead to reduced deviation
  * in the times it takes claim method to complete, provided the pool is not
  * depleted.
