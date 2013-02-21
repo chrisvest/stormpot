@@ -47,7 +47,7 @@ extends AllocThread_NullPollFromLiveWhileShrinking_TestTemplate<BSlot<Poolable>,
     return new BSlot<Poolable>(live);
   }
   
-  @Test(timeout = 30) public void
+  @Test(timeout = 300) public void
   pollingClaimedSlotsMustBeSentBackToTheLiveQueue() {
     Queue<Callable<BSlot<Poolable>>> liveCalls = new LinkedList<Callable<BSlot<Poolable>>>();
     Queue<Callable<BSlot<Poolable>>> deadCalls = new LinkedList<Callable<BSlot<Poolable>>>();
