@@ -160,7 +160,17 @@
     </p>
     <pre>MyAllocator allocator = <span>new</span> MyAllocator();
 Config&lt;MyPoolable&gt; config = <span>new</span> Config&lt;MyPoolable&gt;().setAllocator(allocator);
-Pool&lt;MyPoolable&gt; pool = <span>new</span> BlazePool&lt;MyPoolable&gt;(config);</pre>
+Pool&lt;MyPoolable&gt; pool = <span>new</span> BlazePool&lt;MyPoolable&gt;(config);
+Timeout timeout = <span>new</span> Timeout(1, TimeUnit.SECONDS);
+
+MyPoolable object = pool.claim(timeout);
+<span>try {</span>
+  <span class="comment">// do stuff with 'object'</span>
+<span>} finally {
+  if</span> (object != <span>null</span>) <span>{</span>
+    object.release();
+  <span>}
+}</span></pre>
   </div>
 
   <div class="ribbon">
