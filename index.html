@@ -79,7 +79,7 @@
           <pre><span>&lt;dependency&gt;
   &lt;groupId&gt;</span>com.github.chrisvest<span>&lt;/groupId&gt;
   &lt;artifactId&gt;</span>stormpot<span>&lt;/artifactId&gt;
-  &lt;version&gt;</span>2.0<span>&lt;/version&gt;
+  &lt;version&gt;</span>2.1<span>&lt;/version&gt;
 &lt;/dependency&gt;</span></pre>
         </td>
       </tr>
@@ -92,7 +92,7 @@
       &hellip; over, say, <a href="http://commons.apache.org/pool/">Commons-Pool</a>?
       Good question! Both libraries are released under the Apache 2.0 license,
       both have thorough documentation, both have high test coverage (Stormpot have
-      <a href="site/jacoco/index.html">100%</a>) and both depend on nothing
+      (almost) <a href="site/jacoco/index.html">100%</a>) and both depend on nothing
       but Java itself.
     </p>
     <p>
@@ -160,7 +160,7 @@
     </p>
     <pre>MyAllocator allocator = <span>new</span> MyAllocator();
 Config&lt;MyPoolable&gt; config = <span>new</span> Config&lt;MyPoolable&gt;().setAllocator(allocator);
-Pool&lt;MyPoolable&gt; pool = <span>new</span> QueuePool&lt;MyPoolable&gt;(config);</pre>
+Pool&lt;MyPoolable&gt; pool = <span>new</span> BlazePool&lt;MyPoolable&gt;(config);</pre>
   </div>
 
   <div class="ribbon">
