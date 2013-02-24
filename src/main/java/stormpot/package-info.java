@@ -144,7 +144,7 @@ Stormpot. All that is left is a little bit of configuration:</p>
 the configuration and off we go!</p>
 
 <p>The blocking methods {@link stormpot.Pool#claim(Timeout)} and
-{@link stormpot.Completion#await(Timeout)} both take {@code stormpot.Timeout}
+{@link stormpot.Completion#await(Timeout)} both take {@link stormpot.Timeout}
 objects as arguments. These are thread-safe, and can easily be put in
 <code>static final</code> constants. Note that <code>claim</code> returns <code>null</code> if the timeout
 elapses before an object can be claimed. Also, using <code>try-finally</code> is a great

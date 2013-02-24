@@ -128,7 +128,7 @@ Create a `Config` object and set the allocator, then create a pool with
 the configuration and off we go!
 
 The blocking methods {@link stormpot.Pool#claim(Timeout)} and
-{@link stormpot.Completion#await(Timeout)} both take {@code stormpot.Timeout}
+{@link stormpot.Completion#await(Timeout)} both take {@link stormpot.Timeout}
 objects as arguments. These are thread-safe, and can easily be put in
 `static final` constants. Note that `claim` returns `null` if the timeout
 elapses before an object can be claimed. Also, using `try-finally` is a great
