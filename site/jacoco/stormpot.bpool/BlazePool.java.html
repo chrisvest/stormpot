@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>BlazePool.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.html" class="el_package">stormpot.bpool</a> &gt; <span class="el_source">BlazePool.java</span></div><h1>BlazePool.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2012 Chris Vest
+ * 
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package stormpot.bpool;
+
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
+import stormpot.Completion;
+import stormpot.Config;
+import stormpot.Expiration;
+import stormpot.LifecycledResizablePool;
+import stormpot.PoolException;
+import stormpot.Poolable;
+import stormpot.Timeout;
+
+/**
+ * BlazePool is a highly optimised {@link LifecycledResizablePool}
+ * implementation that consists of a queues of Poolable instances, the access
+ * to which is made faster with clever use of ThreadLocals.
+ * &lt;p&gt;
+ * Object allocation always happens in a dedicated thread, off-loading the 
+ * cost of allocating the pooled objects. This should lead to reduced deviation
+ * in the times it takes claim method to complete, provided the pool is not
+ * depleted.
+ * @author Chris Vest &amp;lt;mr.chrisvest@gmail.com&amp;gt;
+ * @param &lt;T&gt; The type of {@link Poolable} managed by this pool.
+ */
+public final class BlazePool&lt;T extends Poolable&gt;
+implements LifecycledResizablePool&lt;T&gt; {
+  private final BlockingQueue&lt;BSlot&lt;T&gt;&gt; live;
+  private final BlockingQueue&lt;BSlot&lt;T&gt;&gt; dead;
+  private final BAllocThread&lt;T&gt; allocThread;
+  private final Expiration&lt;? super T&gt; deallocRule;
+  // TODO consider making it a ThreadLocal of Ref&lt;QSlot&gt;, hoping that maybe
+  // writes to it will be faster in not requiring a ThreadLocal look-up.
+  private final ThreadLocal&lt;BSlot&lt;T&gt;&gt; tlr;
+<span class="fc" id="L50">  private volatile boolean shutdown = false;</span>
+  
+  /**
+   * Construct a new BlazePool instance based on the given {@link Config}.
+   * @param config The pool configuration to use.
+   */
+<span class="fc" id="L56">  public BlazePool(Config&lt;T&gt; config) {</span>
+<span class="fc" id="L57">    live = new LinkedBlockingQueue&lt;BSlot&lt;T&gt;&gt;();</span>
+<span class="fc" id="L58">    dead = new LinkedBlockingQueue&lt;BSlot&lt;T&gt;&gt;();</span>
+<span class="fc" id="L59">    tlr = new ThreadLocal&lt;BSlot&lt;T&gt;&gt;();</span>
+<span class="fc" id="L60">    synchronized (config) {</span>
+<span class="fc" id="L61">      config.validate();</span>
+<span class="fc" id="L62">      allocThread = new BAllocThread&lt;T&gt;(live, dead, config);</span>
+<span class="fc" id="L63">      deallocRule = config.getExpiration();</span>
+<span class="fc" id="L64">    }</span>
+<span class="fc" id="L65">    allocThread.start();</span>
+<span class="fc" id="L66">  }</span>
+
+  public T claim(Timeout timeout) throws PoolException,
+      InterruptedException {
+<span class="fc bfc" id="L70" title="All 2 branches covered.">    if (timeout == null) {</span>
+<span class="fc" id="L71">      throw new IllegalArgumentException(&quot;timeout cannot be null&quot;);</span>
+    }
+<span class="fc" id="L73">    BSlot&lt;T&gt; slot = tlr.get();</span>
+    // Note that the TLR slot at this point might have been tried by another
+    // thread, found to be expired, put on the dead-queue and deallocated.
+    // We handle this because slots always transition to the dead state before
+    // they are put on the dead-queue, and if they are dead, then the
+    // slot.live2claimTlr() call will fail.
+    // Then we will eventually find another slot from the live-queue that we
+    // can claim and make our new TLR slot.
+<span class="fc bfc" id="L81" title="All 4 branches covered.">    if (slot != null &amp;&amp; slot.live2claimTlr()) {</span>
+      // Attempt the claim before checking the validity, because we might
+      // already have claimed it.
+      // If we checked validity before claiming, then we might find that it
+      // had expired, and throw it in the dead queue, causing a claimed
+      // Poolable to be deallocated before it is released.
+<span class="fc bfc" id="L87" title="All 2 branches covered.">      if (!isInvalid(slot)) {</span>
+<span class="fc" id="L88">        slot.incrementClaims();</span>
+<span class="fc" id="L89">        return slot.obj;</span>
+      }
+      // We managed to tlr-claim the slot, but it turned out to be no good.
+      // That means we now have to transition it from tlr-claimed to dead.
+      // However, since we didn't pull it off of the live-queue, it might still
+      // be in the live-queue. And since it might be in the live-queue, it
+      // can't be put on the dead-queue. And since it can't be put on the
+      // dead-queue, it also cannot transition to the dead state.
+      // This effectively means that we have to transition it back to the live
+      // state, and then let some pull it off of the live-queue, check it
+      // again, and only then put it on the dead-queue.
+      // It's cumbersome, but we have to do it this way, in order to prevent
+      // duplicate entries in the queues. Otherwise we'd have a nasty memory
+      // leak on our hands.
+    }
+<span class="fc" id="L104">    long deadline = timeout.getDeadline();</span>
+<span class="fc" id="L105">    boolean notClaimed = true;</span>
+    do {
+<span class="fc" id="L107">      long timeoutLeft = timeout.getTimeLeft(deadline);</span>
+<span class="fc" id="L108">      slot = live.poll(timeoutLeft, timeout.getBaseUnit());</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">      if (slot == null) {</span>
+        // we timed out while taking from the queue - just return null
+<span class="fc" id="L111">        return null;</span>
+      }
+      // Again, attempt to claim before checking validity. We mustn't kill
+      // objects that are already claimed by someone else.
+      do {
+        // We pulled a slot off the queue. If we can transition it to the
+        // claimed state, then it means it wasn't tlr-claimed and we got it.
+        // Note that the slot at this point be in any queue.
+<span class="fc bfc" id="L119" title="All 2 branches covered.">        notClaimed = !slot.live2claim();</span>
+        // If we fail to claim it, then it means that it is tlr-claimed by
+        // someone else. We know this because slots in the live-queue can only
+        // be either live or tlr-claimed. There is no transition to claimed
+        // or dead without first pulling the slot off the live-queue.
+        // Note that the slot at this point is not in any queue, and we can't
+        // put it back into the live-queue, because that could lead to
+        // busy-looping on tlr-claimed slots which would waste CPU cycles when
+        // the pool is depleted. We must instead make sure that tlr-claimer
+        // transition to a proper claimer, such that he will make sure to
+        // release the slot back into the live-queue once he is done with it.
+        // However, as we are contemplating this, he might have already
+        // released it again, which means that it is live and we can't make our
+        // transition because it is now too late for him to put it back into
+        // the live-queue. On the other hand, if the slot is now live, it means
+        // that we can claim it for our selves. So we loop on this.
+<span class="pc bpc" id="L135" title="1 of 4 branches missed.">      } while (notClaimed &amp;&amp; !slot.claimTlr2claim());</span>
+      // If we could not live-&gt;claimed but tlr-claimed-&gt;claimed, then
+      // we mustn't check isInvalid, because that might send it to the
+      // dead-queue *while somebody else thinks they've TLR-claimed it!*
+      // We handle this in the outer loop: if we couldn't claim, then we retry
+      // the loop.
+<span class="fc bfc" id="L141" title="All 4 branches covered.">    } while (notClaimed || isInvalid(slot));</span>
+<span class="fc" id="L142">    slot.incrementClaims();</span>
+<span class="fc" id="L143">    tlr.set(slot);</span>
+<span class="fc" id="L144">    return slot.obj;</span>
+  }
+
+  private boolean isInvalid(BSlot&lt;T&gt; slot) {
+<span class="fc" id="L148">    checkForPoison(slot);</span>
+<span class="fc" id="L149">    boolean invalid = true;</span>
+<span class="fc" id="L150">    RuntimeException exception = null;</span>
+    try {
+<span class="fc" id="L152">      invalid = deallocRule.hasExpired(slot);</span>
+<span class="fc" id="L153">    } catch (RuntimeException ex) {</span>
+<span class="fc" id="L154">      exception = ex;</span>
+<span class="fc" id="L155">    }</span>
+<span class="fc bfc" id="L156" title="All 2 branches covered.">    if (invalid) {</span>
+      // it's invalid - into the dead queue with it and continue looping
+<span class="fc" id="L158">      kill(slot);</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">      if (exception != null) {</span>
+<span class="fc" id="L160">        throw exception;</span>
+      }
+    }
+<span class="fc" id="L163">    return invalid;</span>
+  }
+
+  private void checkForPoison(BSlot&lt;T&gt; slot) {
+<span class="fc bfc" id="L167" title="All 2 branches covered.">    if (slot == allocThread.POISON_PILL) {</span>
+      // The poison pill means the pool has been shut down. The pill was
+      // transitioned from live to claimed just prior to this check, so we
+      // must transition it back to live and put it back into the live-queue
+      // before throwing our exception.
+      // Because we always throw when we see it, it will never become a
+      // tlr-slot, and so we don't need to worry about transitioning from
+      // tlr-claimed to live.
+<span class="fc" id="L175">      slot.claim2live();</span>
+<span class="fc" id="L176">      live.offer(allocThread.POISON_PILL);</span>
+<span class="fc" id="L177">      throw new IllegalStateException(&quot;pool is shut down&quot;);</span>
+    }
+<span class="fc bfc" id="L179" title="All 2 branches covered.">    if (slot.poison != null) {</span>
+<span class="fc" id="L180">      Exception poison = slot.poison;</span>
+<span class="fc" id="L181">      kill(slot);</span>
+<span class="fc" id="L182">      throw new PoolException(&quot;allocation failed&quot;, poison);</span>
+    }
+<span class="fc bfc" id="L184" title="All 2 branches covered.">    if (shutdown) {</span>
+<span class="fc" id="L185">      kill(slot);</span>
+<span class="fc" id="L186">      throw new IllegalStateException(&quot;pool is shut down&quot;);</span>
+    }
+<span class="fc" id="L188">  }</span>
+
+  private void kill(BSlot&lt;T&gt; slot) {
+    // The use of claim2dead() here ensures that we don't put slots into the
+    // dead-queue more than once. Many threads might have this as their
+    // TLR-slot and try to tlr-claim it, but only when a slot has been normally
+    // claimed, that is, pulled off the live-queue, can it be put into the
+    // dead-queue. This helps ensure that a slot will only ever be in at most
+    // one queue.
+    for (;;) {
+<span class="fc" id="L198">      int state = slot.getState();</span>
+<span class="pc bpc" id="L199" title="1 of 4 branches missed.">      if (state == BSlot.CLAIMED &amp;&amp; slot.claim2dead()) {</span>
+<span class="fc" id="L200">        dead.offer(slot);</span>
+<span class="fc" id="L201">        return;</span>
+      }
+<span class="pc bpc" id="L203" title="2 of 4 branches missed.">      if (state == BSlot.TLR_CLAIMED &amp;&amp; slot.claimTlr2live()) {</span>
+<span class="fc" id="L204">        return;</span>
+      }
+<span class="nc" id="L206">    }</span>
+  }
+
+  public Completion shutdown() {
+<span class="fc" id="L210">    shutdown = true;</span>
+<span class="fc" id="L211">    allocThread.interrupt();</span>
+<span class="fc" id="L212">    return new BPoolShutdownCompletion(allocThread);</span>
+  }
+
+  public void setTargetSize(int size) {
+<span class="fc bfc" id="L216" title="All 2 branches covered.">    if (size &lt; 1) {</span>
+<span class="fc" id="L217">      throw new IllegalArgumentException(&quot;target size must be at least 1&quot;);</span>
+    }
+<span class="fc" id="L219">    allocThread.setTargetSize(size);</span>
+<span class="fc" id="L220">  }</span>
+
+  public int getTargetSize() {
+<span class="fc" id="L223">    return allocThread.getTargetSize();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.5.10.201208310627</span></div></body></html>

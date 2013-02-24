@@ -3,7 +3,11 @@ stormpot,stormpot.qpool,QSlot,0,46,0,2,0,13,0,7,0,6
 stormpot,stormpot.qpool,QueuePool,0,188,0,18,0,52,0,16,0,7
 stormpot,stormpot.qpool,QAllocThread,0,230,0,24,0,67,0,21,0,9
 stormpot,stormpot.qpool,QPoolShutdownCompletion,0,18,0,2,0,6,0,3,0,2
+stormpot,stormpot.bpool,BSlot,0,132,1,9,0,31,1,22,0,18
+stormpot,stormpot.bpool,BlazePool,1,251,4,36,1,69,4,24,0,8
+stormpot,stormpot.bpool,BPoolShutdownCompletion,0,18,0,2,0,6,0,3,0,2
+stormpot,stormpot.bpool,BAllocThread,0,278,0,34,0,75,0,27,0,10
 stormpot,stormpot,TimeExpiration,0,34,0,6,0,8,0,5,0,2
 stormpot,stormpot,Config,0,71,0,6,0,20,0,11,0,8
 stormpot,stormpot,PoolException,0,9,0,0,0,4,0,2,0,2
-stormpot,stormpot,Timeout,0,83,0,6,0,20,0,12,0,9
+stormpot,stormpot,Timeout,0,73,0,6,0,18,0,12,0,9
