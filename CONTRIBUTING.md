@@ -28,6 +28,8 @@ If you want to work on the code, then there are a couple of things to note:
    it will be necessary.
  * Follow the style conventions of the existing code. Indentation is two spaces.
    Line breaks are Unix style. Character encoding is UTF-8.
+ * Stormpot uses Semantic Versioning, so be careful not to break backwards
+   compatibility.
 
 If you need inspiration on what to work on, then check out the issues that are
 labelled with [help-wanted][1] or [easy][2], or maybe try to learn more about
