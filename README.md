@@ -5,6 +5,8 @@ Stormpot is an object pooling library for Java. Use it to recycle objects that
 are expensive to create. The library will take care of creating and destroying
 your objects in the background.
 
+[![Build Status](https://travis-ci.org/chrisvest/stormpot.png)](https://travis-ci.org/chrisvest/stormpot)
+
 Why choose Stormpot?
 --------------------
 
