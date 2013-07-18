@@ -34,8 +34,8 @@ import stormpot.qpool.QueuePool;
 
 public class DaoPoolExample {
   static class MyDao implements Poolable {
-    private final Slot slot;
-    private final Connection connection;
+    final Slot slot;
+    final Connection connection;
     
     private MyDao(Slot slot, Connection connection) {
       this.slot = slot;
@@ -82,7 +82,8 @@ public class DaoPoolExample {
   static class TestQueryExpiration implements Expiration<MyDao> {
     @Override
     public boolean hasExpired(SlotInfo<? extends MyDao> info) {
-      Connection con = info.getPoolable().connection;
+      MyDao dao = info.getPoolable();
+      Connection con = dao.connection;
       Statement stmt = null;
       synchronized (con) {
         try {
