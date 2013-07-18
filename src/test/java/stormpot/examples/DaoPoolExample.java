@@ -17,15 +17,18 @@ package stormpot.examples;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
 import stormpot.Allocator;
 import stormpot.Config;
+import stormpot.Expiration;
 import stormpot.LifecycledPool;
 import stormpot.Poolable;
 import stormpot.Slot;
+import stormpot.SlotInfo;
 import stormpot.Timeout;
 import stormpot.qpool.QueuePool;
 
@@ -76,12 +79,36 @@ public class DaoPoolExample {
     }
   }
   
+  static class TestQueryExpiration implements Expiration<MyDao> {
+    @Override
+    public boolean hasExpired(SlotInfo<? extends MyDao> info) {
+      Connection con = info.getPoolable().connection;
+      Statement stmt = null;
+      synchronized (con) {
+        try {
+          try {
+            stmt = con.createStatement();
+            stmt.execute("select 1 from dual;");
+          } finally {
+            if (stmt != null) {
+              stmt.close();
+            }
+          }
+        } catch (SQLException e) {
+          return true;
+        }
+        return false;
+      }
+    }
+  }
+  
   static class MyDaoPool {
     private final LifecycledPool<MyDao> pool;
     
     public MyDaoPool(DataSource dataSource) {
       MyDaoAllocator allocator = new MyDaoAllocator(dataSource);
       Config<MyDao> config = new Config<MyDao>().setAllocator(allocator);
+      config.setExpiration(new TestQueryExpiration());
       pool = new QueuePool<MyDao>(config);
     }
 
@@ -90,7 +117,7 @@ public class DaoPoolExample {
     }
     
     public <T> T doWithDao(WithMyDaoDo<T> action)
-    throws InterruptedException {
+        throws InterruptedException {
       MyDao dao = pool.claim(new Timeout(1, TimeUnit.SECONDS));
       try {
         return action.doWithDao(dao);
