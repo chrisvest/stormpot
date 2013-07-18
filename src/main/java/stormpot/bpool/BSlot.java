@@ -85,7 +85,7 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   }
   
   public boolean claimTlr2claim() {
-    return cas(TLR_CLAIMED, CLAIMED);
+    return cas(TLR_CLAIMED, CLAIMED); // TODO Not killed by mutation testing.
   }
   
   public boolean claim2dead() {
@@ -93,7 +93,7 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   }
   
   public boolean dead2live() {
-    return cas(DEAD, LIVING);
+    return cas(DEAD, LIVING); // TODO Not killed by mutation testing.
   }
   
   public boolean live2dead() {

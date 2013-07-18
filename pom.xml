@@ -143,7 +143,7 @@
         -->
         <groupId>org.pitest</groupId>
         <artifactId>pitest-maven</artifactId>
-        <version>0.27</version>
+        <version>0.30</version>
         <configuration>
           <targetTests>
             <param>stormpot.*</param>

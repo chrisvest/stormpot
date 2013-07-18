@@ -88,13 +88,13 @@ class BAllocThread<T extends Poolable> extends Thread {
         } else if (slot != null) {
           dealloc(slot);
           alloc(slot);
-          // mutation testing might note that the above alloc() call can be
+          // Mutation testing might note that the above alloc() call can be
           // removed... that's okay, it's really just an optimisation that
           // prevents us from creating new slots all the time - we reuse them.
         }
       }
     } catch (InterruptedException _) {
-      // this means we've been shut down.
+      // This means we've been shut down.
       // let the poison-pill enter the system
       POISON_PILL.dead2live();
       live.offer(POISON_PILL);
@@ -152,7 +152,7 @@ class BAllocThread<T extends Poolable> extends Thread {
         allocator.deallocate(slot.obj);
       }
     } catch (Exception _) { // NOPMD
-      // ignored as per specification
+      // Ignored as per specification
     }
     slot.poison = null;
     slot.obj = null;
@@ -165,6 +165,9 @@ class BAllocThread<T extends Poolable> extends Thread {
   void setTargetSize(int size) {
     this.targetSize = size;
     LockSupport.unpark(this);
+    // Mutation testing will note, that the above call to unpark can be removed.
+    // That's okay, because it is only an optimisation to speed up the
+    // allocators reaction to the new size.
   }
 
   int getTargetSize() {

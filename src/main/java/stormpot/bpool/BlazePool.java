@@ -182,7 +182,7 @@ implements LifecycledResizablePool<T> {
       throw new PoolException("allocation failed", poison);
     }
     if (shutdown) {
-      kill(slot);
+      kill(slot); // TODO Mutation testing not killed when removing this call.
       throw new IllegalStateException("pool is shut down");
     }
   }
