@@ -287,22 +287,26 @@ public class PoolTest {
    * @param fixture
    * @throws Exception
    */
-  @Test(timeout = 300, expected = SomeRandomRuntimeException.class)
+  @Test(timeout = 300, expected = SomeRandomException.class)
   @Theory public void
   exceptionsFromExpirationMustBubbleOut(PoolFixture fixture)
-      throws Exception {
+      throws Throwable {
     config.setExpiration(new ThrowyExpiration());
     Pool<GenericPoolable> pool = fixture.initPool(config);
-    // make a couple of calls because pools might optimise for freshly
-    // created objects
-    pool.claim(longTimeout).release();
-    pool.claim(longTimeout).release();
+    
+    try {
+      // make a couple of calls because pools might optimise for freshly
+      // created objects
+      pool.claim(longTimeout).release();
+      pool.claim(longTimeout).release();
+    } catch (PoolException e) {
+      throw e.getCause();
+    }
   }
   
   /**
-   * If the Expiration throws an exception (it's only allowed to throw
-   * RuntimeException) when evaluating a slot, then that slot should be
-   * considered invalid.
+   * If the Expiration throws an exception when evaluating a slot, then that
+   * slot should be considered invalid.
    * 
    * We test for this by configuring an expiration that always throws,
    * and then we make a claim and a release to make sure that it got invoked.
@@ -322,11 +326,15 @@ public class PoolTest {
     try {
       pool.claim(longTimeout);
       fail("should throw");
-    } catch (SomeRandomRuntimeException _) {};
+    } catch (PoolException e) {
+      assertThat(e.getCause(), instanceOf(SomeRandomException.class));
+    };
     // second call to claim to ensure that the deallocation has taken place
     try {
       pool.claim(longTimeout);
-    } catch (SomeRandomRuntimeException _) {};
+    } catch (PoolException e) {
+      assertThat(e.getCause(), instanceOf(SomeRandomException.class));
+    };
     // must have deallocated that object
     assertThat(allocator.deallocations(), greaterThanOrEqualTo(1));
   }

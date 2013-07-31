@@ -227,9 +227,9 @@ implements LifecycledPool<T>, ResizablePool<T> {
       boolean invalid = false;
       try {
         invalid = bpool.deallocRule.hasExpired(this);
-      } catch (RuntimeException e) {
+      } catch (Exception e) {
         invalid = true;
-        throw e;
+        throw new PoolException("Expiration.hasExpired threw exception", e);
       } finally {
         if (invalid || index >= bpool.targetSize) {
           try {

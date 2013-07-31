@@ -87,7 +87,9 @@ public interface Pool<T extends Poolable> {
    * before an object became available.
    * @throws PoolException If an object allocation failed because the Allocator
    * threw an exception from its allocate method, or returned
-   * <code>null</code>.
+   * <code>null</code>, or the
+   * {@link Expiration#hasExpired(SlotInfo) expiration check} threw an
+   * exception.
    * @throws InterruptedException if the current thread is
    * {@link Thread#interrupt() interrupted} upon entry, or becomes interrupted
    * while waiting.

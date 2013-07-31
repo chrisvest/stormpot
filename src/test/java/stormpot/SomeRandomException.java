@@ -20,6 +20,6 @@ package stormpot;
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  *
  */
-public class SomeRandomRuntimeException extends RuntimeException {
+public class SomeRandomException extends Exception {
   private static final long serialVersionUID = 1L;
 }

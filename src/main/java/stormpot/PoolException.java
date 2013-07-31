@@ -24,6 +24,8 @@ package stormpot;
  * fails by returning <code>null</code> or throwing an exception.
  * <li>If the {@link Slot#release(Poolable)} method is misused, and the pool is
  * able to detect this.
+ * <li>If the {@link Expiration#hasExpired(SlotInfo) expiration check} throws an
+ * exception.
  * </ul>
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  *

@@ -51,21 +51,21 @@ public class TimeExpirationTest {
   }
   
   @Test public void
-  youngSlotsAreNotInvalid() {
+  youngSlotsAreNotInvalid() throws Exception {
     Expiration<Poolable> expiration = createExpiration(2);
     SlotInfo<?> info = infoWithAge(1);
     assertFalse(expiration.hasExpired(info));
   }
 
   @Test public void
-  slotsAtTheMaximumPermittedAgeAreNotInvalid() {
+  slotsAtTheMaximumPermittedAgeAreNotInvalid() throws Exception {
     Expiration<Poolable> expiration = createExpiration(2);
     SlotInfo<?> info = infoWithAge(2);
     assertFalse(expiration.hasExpired(info));
   }
   
   @Test public void
-  slotsOlderThanTheMaximumPermittedAgeAreInvalid() {
+  slotsOlderThanTheMaximumPermittedAgeAreInvalid() throws Exception {
     Expiration<Poolable> expiration = createExpiration(2);
     SlotInfo<?> info = infoWithAge(3);
     assertTrue(expiration.hasExpired(info));

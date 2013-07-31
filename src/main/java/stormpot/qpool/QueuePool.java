@@ -83,8 +83,9 @@ implements LifecycledResizablePool<T> {
     RuntimeException exception = null;
     try {
       invalid = deallocRule.hasExpired(slot);
-    } catch (RuntimeException ex) {
-      exception = ex;
+    } catch (Exception ex) {
+      exception = new PoolException(
+          "Got exception when checking whether an object had expired", ex);
     }
     if (invalid) {
       // it's invalid - into the dead queue with it and continue looping
