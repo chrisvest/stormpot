@@ -104,6 +104,9 @@ implements LifecycledResizablePool<T> {
     long deadline = timeout.getDeadline();
     boolean notClaimed = true;
     do {
+      // TODO With both getDeadline and getTimeLeft, we are making two
+      // measurements of time in a row, here. Measuring time is expensive, so
+      // it might be worth it to try and reduce it to just one call.
       long timeoutLeft = timeout.getTimeLeft(deadline);
       slot = live.poll(timeoutLeft, timeout.getBaseUnit());
       if (slot == null) {
@@ -115,7 +118,7 @@ implements LifecycledResizablePool<T> {
       do {
         // We pulled a slot off the queue. If we can transition it to the
         // claimed state, then it means it wasn't tlr-claimed and we got it.
-        // Note that the slot at this point be in any queue.
+        // Note that the slot at this point can be in any queue.
         notClaimed = !slot.live2claim();
         // If we fail to claim it, then it means that it is tlr-claimed by
         // someone else. We know this because slots in the live-queue can only
@@ -165,6 +168,8 @@ implements LifecycledResizablePool<T> {
   }
 
   private void checkForPoison(BSlot<T> slot) {
+    // TODO move the POISON_PILL back into the BlazePool class to avoid having
+    // to load the allocThread reference in this hot method.
     if (slot == allocThread.POISON_PILL) {
       // The poison pill means the pool has been shut down. The pill was
       // transitioned from live to claimed just prior to this check, so we
