@@ -400,6 +400,39 @@ public class PoolTest {
     assertThat(poolable, anyOf(is(a), is(b)));
   }
   
+  @Test(timeout = 600)
+  @Theory public void
+  slotInfoMustBeAbleToProduceRandomNumbers(PoolFixture fixture) throws Exception {
+    final AtomicReference<SlotInfo<? extends Poolable>> slotInfoRef =
+        new AtomicReference<SlotInfo<? extends Poolable>>();
+    Expiration<Poolable> expiration = new Expiration<Poolable>() {
+      public boolean hasExpired(SlotInfo<? extends Poolable> info)
+          throws Exception {
+        slotInfoRef.set(info);
+        return false;
+      }
+    };
+    config.setExpiration(expiration);
+    Pool<GenericPoolable> pool = fixture.initPool(config);
+    pool.claim(longTimeout).release(); // Now we have a SlotInfo reference.
+    SlotInfo<? extends Poolable> slotInfo = slotInfoRef.get();
+    
+    // A full suite for testing the quality of the PRNG would be excessive here.
+    // We just want a back-of-the-envelope estimate that it's random.
+    int nums = 1000000;
+    int bits = 32 * nums;
+    int ones = 0;
+    for (int i = 0; i < nums; i++) {
+      ones += Integer.bitCount(slotInfo.randomInt());
+    }
+    // In the random data that we collect, we should a roughly even split
+    // in the bits between ones and zeros.
+    // So, if we count all the one bits and double that number, we should get
+    // a number that is very close to the total number of random bits generated.
+    double diff = Math.abs(bits - ones * 2);
+    assertThat(diff, lessThan(bits * 0.005));
+  }
+  
   /**
    * Pool implementations might reuse their SlotInfo instances. We need to
    * make sure that if an object is reallocated, then the claim count for that

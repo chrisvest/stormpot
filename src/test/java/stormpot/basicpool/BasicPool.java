@@ -18,6 +18,7 @@ package stormpot.basicpool;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -281,6 +282,11 @@ implements LifecycledPool<T>, ResizablePool<T> {
     @Override
     public T getPoolable() {
       return bpool.pool.get(index);
+    }
+
+    @Override
+    public int randomInt() {
+      return new Random().nextInt();
     }
   }
 

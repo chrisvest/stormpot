@@ -15,6 +15,7 @@
  */
 package stormpot.qpool;
 
+import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -59,5 +60,19 @@ class QSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   @Override
   public T getPoolable() {
     return obj;
+  }
+
+  // XorShift PRNG with a 2^128-1 period.
+  private static final Random rng = new Random();
+  private int x = rng.nextInt();
+  private int y = rng.nextInt();
+  private int z = rng.nextInt();
+  private int w = rng.nextInt();
+  
+  @Override
+  public int randomInt() {
+    int t=(x^(x<<15));
+    x=y; y=z; z=w;
+    return w=(w^(w>>>21))^(t^(t>>>4));
   }
 }

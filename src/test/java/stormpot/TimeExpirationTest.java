@@ -42,6 +42,11 @@ public class TimeExpirationTest {
       public Poolable getPoolable() {
         return null;
       }
+
+      @Override
+      public int randomInt() {
+        return 0;
+      }
     };
   }
   
