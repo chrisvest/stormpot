@@ -32,7 +32,6 @@ import org.junit.experimental.theories.Theory;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 
-import stormpot.basicpool.BasicPoolFixture;
 import stormpot.bpool.BlazePoolFixture;
 import stormpot.qpool.QueuePoolFixture;
 
@@ -43,7 +42,6 @@ public class ResizablePoolTest {
   private static final Timeout longTimeout = new Timeout(1, TimeUnit.SECONDS);
   private static final Timeout shortTimeout = new Timeout(1, TimeUnit.MILLISECONDS);
   
-  @DataPoint public static PoolFixture basicPool = new BasicPoolFixture();
   @DataPoint public static PoolFixture queuePool = new QueuePoolFixture();
   @DataPoint public static PoolFixture blazePool = new BlazePoolFixture();
 

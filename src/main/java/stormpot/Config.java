@@ -53,7 +53,7 @@ public class Config<T extends Poolable> {
 
   private int size = 10;
   private Expiration<? super T> expiration =
-      new TimeExpiration(600, TimeUnit.SECONDS); // 10 minutes
+      new TimeSpreadExpiration(480000, 600000, TimeUnit.MILLISECONDS); // 8 to 10 minutes
   private Allocator<?> allocator;
   
   /**
@@ -128,8 +128,9 @@ public class Config<T extends Poolable> {
    * configure. The Expiration determines when a pooled object is valid
    * for claiming, or when the objects are invalid and should be deallocated.
    * <p>
-   * The default Expiration is a {@link TimeExpiration} that
-   * invalidates the objects after they have been active for 10 minutes.
+   * The default Expiration is a {@link TimeSpreadExpiration} that
+   * invalidates the objects after they have been active for somewhere between
+   * 8 to 10 minutes.
    * @param expiration The expiration we want our pools to use. Not null.
    * @return This Config instance.
    */
@@ -140,7 +141,8 @@ public class Config<T extends Poolable> {
 
   /**
    * Get the configured {@link Expiration} instance. The default is a
-   * {@link TimeExpiration} that expires objects after 10 minutes.
+   * {@link TimeSpreadExpiration} that expires objects after somewhere between
+   * 8 to 10 minutes.
    * @return The configured Expiration.
    */
   public synchronized Expiration<? super T> getExpiration() {

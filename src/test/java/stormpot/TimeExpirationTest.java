@@ -47,6 +47,15 @@ public class TimeExpirationTest {
       public int randomInt() {
         return 0;
       }
+
+      @Override
+      public long getStamp() {
+        return 0;
+      }
+
+      @Override
+      public void setStamp(long stamp) {
+      }
     };
   }
   

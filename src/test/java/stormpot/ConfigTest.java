@@ -45,7 +45,7 @@ public class ConfigTest {
   @Test public void
   mustHaveTimeBasedDeallocationRuleAsDefaul() {
     assertThat(config.getExpiration(),
-        instanceOf(TimeExpiration.class));
+        instanceOf(TimeSpreadExpiration.class));
   }
   
   @Test public void

@@ -37,6 +37,7 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   Exception poison;
   long created;
   long claims;
+  long stamp;
   
   public BSlot(BlockingQueue<BSlot<T>> live) {
     this.live = live;
@@ -153,5 +154,15 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
     int t=(x^(x<<15));
     x=y; y=z; z=w;
     return w=(w^(w>>>21))^(t^(t>>>4));
+  }
+
+  @Override
+  public long getStamp() {
+    return stamp;
+  }
+
+  @Override
+  public void setStamp(long stamp) {
+    this.stamp = stamp;
   }
 }

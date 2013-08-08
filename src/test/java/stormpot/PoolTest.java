@@ -38,7 +38,6 @@ import org.junit.experimental.theories.Theory;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 
-import stormpot.basicpool.BasicPoolFixture;
 import stormpot.bpool.BlazePoolFixture;
 import stormpot.qpool.QueuePoolFixture;
 
@@ -90,7 +89,6 @@ public class PoolTest {
   private CountingAllocator allocator;
   private Config<GenericPoolable> config;
 
-  @DataPoint public static PoolFixture basicPool = new BasicPoolFixture();
   @DataPoint public static PoolFixture queuePool = new QueuePoolFixture();
   @DataPoint public static PoolFixture blazePool = new BlazePoolFixture();
   
@@ -400,6 +398,15 @@ public class PoolTest {
     assertThat(poolable, anyOf(is(a), is(b)));
   }
   
+  /**
+   * SlotInfo instances must have a means of acting as a non-contended source
+   * of random numbers. We test this by getting a hold of a SlotInfo instance,
+   * and then pulling a large quantity of random numbers from it. If the
+   * numbers are random, then they will have a roughly even split between ones
+   * and zero bits.
+   * @param fixture
+   * @throws Exception
+   */
   @Test(timeout = 600)
   @Theory public void
   slotInfoMustBeAbleToProduceRandomNumbers(PoolFixture fixture) throws Exception {
@@ -464,6 +471,72 @@ public class PoolTest {
   }
   
   /**
+   * Verify that we can read back a stamp value from the SlotInfo that we have
+   * set, when the Slot has not been re-allocated.
+   * We test this with an Expiration that set the stamp value if it is zero,
+   * or set a flag to signify that it has been remembered, if it is the value
+   * we set it to. Then we claim and release a couple of times. If it works,
+   * the second claim+release pair would have raised the flag.
+   * @param fixture
+   * @throws Exception
+   */
+  @Test(timeout = 300)
+  @Theory public void
+  slotInfoMustRememberStamp(PoolFixture fixture) throws Exception {
+    final AtomicBoolean rememberedStamp = new AtomicBoolean();
+    Expiration<Poolable> expiration = new Expiration<Poolable>() {
+      public boolean hasExpired(SlotInfo<? extends Poolable> info) throws Exception {
+        long stamp = info.getStamp();
+        if (stamp == 0) {
+          info.setStamp(13);
+        } else if (stamp == 13) {
+          rememberedStamp.set(true);
+        }
+        return false;
+      }
+    };
+    config.setExpiration(expiration);
+    Pool<GenericPoolable> pool = fixture.initPool(config);
+    pool.claim(longTimeout).release(); // First set it...
+    pool.claim(longTimeout).release(); // ... then get it.
+    assertTrue(rememberedStamp.get());
+  }
+  
+  /**
+   * The SlotInfo stamp is zero by default. This must also be true of Slots
+   * that has had their object reallocated. So if we set the stamp, then
+   * reallocate the Poolable, then we should observe that the stamp is now back
+   * to zero again.
+   * @param fixture
+   * @throws Exception
+   */
+  @Test(timeout = 300)
+  @Theory public void
+  slotInfoStampMustResetIfSlotsAreReused(PoolFixture fixture) throws Exception {
+    final AtomicLong zeroStampsCounted = new AtomicLong(0);
+    Expiration<Poolable> expiration = new Expiration<Poolable>() {
+      public boolean hasExpired(SlotInfo<? extends Poolable> info)
+          throws Exception {
+        long stamp = info.getStamp();
+        info.setStamp(15);
+        if (stamp == 0) {
+          zeroStampsCounted.incrementAndGet();
+          return false;
+        }
+        return true;
+      }
+    };
+    config.setExpiration(expiration);
+    Pool<GenericPoolable> pool = fixture.initPool(config);
+    
+    pool.claim(longTimeout).release();
+    pool.claim(longTimeout).release();
+    pool.claim(longTimeout).release();
+    
+    assertThat(zeroStampsCounted.get(), is(3L));
+  }
+  
+  /**
    * It is not possible to claim from a pool that has been shut down. Doing
    * so will cause an IllegalStateException to be thrown. This must take
    * effect as soon as shutdown has been called. So the fact that claim()
@@ -509,7 +582,7 @@ public class PoolTest {
     spinwait(2);
     pool.claim(longTimeout).release();
     assertThat(allocator.allocations(), greaterThanOrEqualTo(2));
-  } // TODO BasicPool occasionally times out on this one
+  }
   
   /**
    * The size limit on a pool is strict, unless specially (as in a
@@ -1385,6 +1458,14 @@ public class PoolTest {
     assertTrue(Thread.interrupted());
   }
   
+  /**
+   * Pool implementations might do some kind of biasing to reduce contention.
+   * We need to make sure that if there are not enough objects for all the
+   * threads, then even biased objects must participate in the circulation.
+   * If they don't, then some threads might starve.
+   * @param fixture
+   * @throws Exception
+   */
   @Test(timeout = 300)
   @Theory public void
   mustDebiasObjectsNoLongerClaimed(PoolFixture fixture) throws Exception {
@@ -1398,6 +1479,17 @@ public class PoolTest {
     assertThat(ref.get(), is(obj));
   }
   
+  /**
+   * Pool implementations that do biasing need to ensure, that claimed objects
+   * are not available for other threads, even if the object is claimed with
+   * a biased kind of claim.
+   * In other words, if we claim an object, it might become biased to us. If we
+   * then release it and then call claim again, we might go through a different
+   * path through the code. And this new path needs to ensure that the object
+   * is properly claimed, such that no other threads can claim it as well.
+   * @param fixture
+   * @throws Exception
+   */
   @Test(timeout = 300)
   @Theory public void
   biasedClaimMustUpgradeToOrdinaryClaimIfTheObjectIsPulledFromTheQueue(PoolFixture fixture) throws Exception {
@@ -1410,6 +1502,14 @@ public class PoolTest {
     assertThat(ref.get(), nullValue());
   }
   
+  /**
+   * If a pool has been depleted, and then shut down, and another call to claim
+   * comes in, then it must immediately throw an IllegalStateException.
+   * Importantly, it must not block the thread to wait for any objects to be
+   * released.
+   * @param fixture
+   * @throws Exception
+   */
   @Test(timeout = 300, expected = IllegalStateException.class)
   @Theory public void
   depletedPoolThatHasBeenShutDownMustThrowUponClaim(PoolFixture fixture) throws Exception {
@@ -1419,6 +1519,16 @@ public class PoolTest {
     pool.claim(longTimeout);
   }
   
+  /**
+   * We must ensure that, for pool implementation that do biasing, the checking
+   * of whether the pool has been shut down must come before even a biased
+   * claim. Even though a biased claim might not do any waiting that a normal
+   * claim might do, it is still important that the shutdown notification takes
+   * precedence, because we don't know for how long the claimed object will be
+   * held, or if there will be other biased claims in the future.
+   * @param fixture
+   * @throws Exception
+   */
   @Test(timeout = 300, expected = IllegalStateException.class)
   @Theory public void
   poolThatHasBeenShutDownMustThrowUponClaimEvenIfItHasAvailableNonbiasedObjects(PoolFixture fixture) throws Exception {
@@ -1435,6 +1545,13 @@ public class PoolTest {
     pool.claim(longTimeout);
   }
   
+  /**
+   * It is explicitly permitted that the thread that releases an object back
+   * into the pool, can be a different thread than the one that claimed the
+   * particular object.
+   * @param fixture
+   * @throws Exception
+   */
   @Test(timeout = 300)
   @Theory public void
   mustNotThrowWhenReleasingObjectClaimedByAnotherThread(PoolFixture fixture) throws Exception {

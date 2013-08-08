@@ -70,4 +70,27 @@ public interface SlotInfo<T extends Poolable> {
    * @return A pseudo-random 32 bit integer.
    */
   int randomInt();
+
+  /**
+   * Get the stamp value that has been set on this SlotInfo, or 0 if none has
+   * been set since the Poolable was allocated.
+   * <p>
+   * Apart from the zero-value, the actual meaning of this value is completely
+   * up to the {@link Expiration} that sets it.
+   * @return The current stamp value.
+   */
+  long getStamp();
+
+  /**
+   * Set the stamp value on this SlotInfo.
+   * <p>
+   * This method is only thread-safe to call from within the scope of the
+   * {@link Expiration#hasExpired(SlotInfo)} method.
+   * <p>
+   * The stamp value is 0 by default, if it has not been set after the Poolable
+   * has been allocated. Its meaning is otherwise up to the particular
+   * Expiration that might use it.
+   * @param stamp The new stamp value.
+   */
+  void setStamp(long stamp);
 }

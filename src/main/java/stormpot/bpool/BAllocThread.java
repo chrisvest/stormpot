@@ -138,6 +138,7 @@ class BAllocThread<T extends Poolable> extends Thread {
     size++;
     slot.created = System.currentTimeMillis();
     slot.claims = 0;
+    slot.stamp = 0;
     slot.dead2live();
     live.offer(slot);
   }
