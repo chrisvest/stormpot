@@ -7,3 +7,5 @@ release.properties
 hs_err_*.log
 .DS_Store
 .~lock.*
+.idea
+stormpot.iml
