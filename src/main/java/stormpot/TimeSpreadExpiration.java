@@ -35,9 +35,6 @@ public class TimeSpreadExpiration implements Expiration<Poolable> {
       info.setStamp(expirationAge);
     }
     long age = info.getAgeMillis();
-    if (age < expirationAge) {
-      return false;
-    }
-    return true;
+    return age >= expirationAge;
   }
 }

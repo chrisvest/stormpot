@@ -45,12 +45,11 @@ public class ResizablePoolTest {
   @DataPoint public static PoolFixture queuePool = new QueuePoolFixture();
   @DataPoint public static PoolFixture blazePool = new BlazePoolFixture();
 
-  private CountingAllocator allocator;
   private Config<GenericPoolable> config;
   
   @Before public void
   setUp() {
-    allocator = new CountingAllocator();
+    CountingAllocator allocator = new CountingAllocator();
     config = new Config<GenericPoolable>().setAllocator(allocator).setSize(1);
   }
 

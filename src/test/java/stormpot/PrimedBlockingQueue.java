@@ -23,7 +23,7 @@ final class PrimedBlockingQueue<T> extends LinkedBlockingQueue<T> {
   private static final long serialVersionUID = -2138789305960877995L;
   
   private final Queue<Callable<T>> calls;
-  T lastValue;
+  private T lastValue;
 
   PrimedBlockingQueue(Queue<Callable<T>> calls) {
     this.calls = calls;

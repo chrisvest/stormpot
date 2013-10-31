@@ -22,7 +22,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class ConfigTest {
-  Config<Poolable> config;
+  private Config<Poolable> config;
   
   @Before public void
   setUp() {

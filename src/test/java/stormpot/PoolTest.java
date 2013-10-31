@@ -326,13 +326,13 @@ public class PoolTest {
       fail("should throw");
     } catch (PoolException e) {
       assertThat(e.getCause(), instanceOf(SomeRandomException.class));
-    };
+    }
     // second call to claim to ensure that the deallocation has taken place
     try {
       pool.claim(longTimeout);
     } catch (PoolException e) {
       assertThat(e.getCause(), instanceOf(SomeRandomException.class));
-    };
+    }
     // must have deallocated that object
     assertThat(allocator.deallocations(), greaterThanOrEqualTo(1));
   }

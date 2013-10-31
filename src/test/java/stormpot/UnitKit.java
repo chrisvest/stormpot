@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
-public class UnitKit {
+class UnitKit {
   private static final ExecutorService executor = Executors.newCachedThreadPool();
   
   public static Thread fork(Callable<?> procedure) {
@@ -61,8 +61,6 @@ public class UnitKit {
       public T call() {
         try {
           return pool.claim(timeout);
-        } catch (RuntimeException e) {
-          throw e;
         } catch (InterruptedException e) {
           throw new PoolException("claim interrupted", e);
         }

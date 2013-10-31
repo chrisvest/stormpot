@@ -37,7 +37,6 @@ class QAllocThread<T extends Poolable> extends Thread {
   private final Allocator<T> allocator;
   private volatile int targetSize;
   private int size;
-  private long deadPollTimeout = 1;
 
   public QAllocThread(
       BlockingQueue<QSlot<T>> live, BlockingQueue<QSlot<T>> dead,
@@ -60,7 +59,7 @@ class QAllocThread<T extends Poolable> extends Thread {
   private void continuouslyReplenishPool() {
     try {
       for (;;) {
-        deadPollTimeout = size == targetSize? 50 : 1;
+        long deadPollTimeout = size == targetSize ? 50 : 1;
         if (size < targetSize) {
           QSlot<T> slot = new QSlot<T>(live);
           alloc(slot);

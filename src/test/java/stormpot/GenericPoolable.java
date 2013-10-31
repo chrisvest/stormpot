@@ -18,8 +18,6 @@ package stormpot;
 public class GenericPoolable implements Poolable {
   private final Slot slot;
   public Thread lastReleaseBy; // readable in debuggers
-  public Thread lastClaimBy; // readable in debuggers
-  public boolean deallocated = false;;
 
   public GenericPoolable(Slot slot) {
     this.slot = slot;

@@ -30,7 +30,7 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   static final int TLR_CLAIMED = 3;
   static final int DEAD = 4;
   
-  final BlockingQueue<BSlot<T>> live;
+  private final BlockingQueue<BSlot<T>> live;
   // TODO make BSlot extend AtomicInt instead, to avoid the indirection.
   private final AtomicInteger state;
   T obj;
@@ -50,17 +50,17 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
       slotState = state.get();
       // We loop here because TLR_CLAIMED slots can be concurrently changed
       // into normal CLAIMED slots.
-    } while (!releaseState(slotState));
+    } while (isClaimed(slotState));
     if (slotState == CLAIMED) {
       live.offer(this);
     }
   }
   
-  private boolean releaseState(int slotState) {
+  private boolean isClaimed(int slotState) {
     if (slotState == TLR_CLAIMED) {
-      return claimTlr2live();
+      return !claimTlr2live();
     } else if (slotState == CLAIMED) {
-      return claim2live();
+      return !claim2live();
     }
     throw new PoolException("Slot release from bad state: " + slotState);
   }

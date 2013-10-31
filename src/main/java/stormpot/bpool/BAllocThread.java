@@ -45,7 +45,6 @@ class BAllocThread<T extends Poolable> extends Thread {
   private final Allocator<T> allocator;
   private volatile int targetSize;
   private int size;
-  private long deadPollTimeout = 1;
 
   public BAllocThread(
       BlockingQueue<BSlot<T>> live,
@@ -70,7 +69,7 @@ class BAllocThread<T extends Poolable> extends Thread {
   private void continuouslyReplenishPool() {
     try {
       for (;;) {
-        deadPollTimeout = size == targetSize? 50 : 1;
+        long deadPollTimeout = size == targetSize ? 50 : 1;
         if (size < targetSize) {
           BSlot<T> slot = new BSlot<T>(live);
           alloc(slot);
