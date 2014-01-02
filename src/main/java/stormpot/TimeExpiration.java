@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 Chris Vest
+ * Copyright 2012-2014 Chris Vest
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package stormpot;
 import java.util.concurrent.TimeUnit;
 
 /**
- * This is the standard time based {@link Expiration}. It will invalidate
+ * This is a time based {@link Expiration}. It will invalidate
  * objects based on how long ago they were allocated.
  * 
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
@@ -56,6 +56,7 @@ public class TimeExpiration implements Expiration<Poolable> {
    * {@link SlotInfo} is older than the maximum age permitted by this
    * TimeExpiration.
    */
+  @Override
   public boolean hasExpired(SlotInfo<? extends Poolable> info) {
     return info.getAgeMillis() > maxPermittedAgeMillis;
   }
