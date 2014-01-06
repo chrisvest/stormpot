@@ -15,14 +15,6 @@
  */
 package stormpot;
 
-import static org.junit.Assert.*;
-import static org.hamcrest.Matchers.*;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.LockSupport;
-
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -31,9 +23,16 @@ import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
-
 import stormpot.bpool.BlazePoolFixture;
 import stormpot.qpool.QueuePoolFixture;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
+
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.assertThat;
 
 @RunWith(Theories.class)
 public class ResizablePoolTest {
@@ -90,8 +89,6 @@ public class ResizablePoolTest {
    * We test for this by depleting a pool, upping the size and then claiming
    * again with a timeout that is longer than the timeout of the test. The test
    * pass if it does not timeout.
-   * @param fixture
-   * @throws Exception
    */
   @Test(timeout = 300)
   @Theory public void
@@ -118,8 +115,6 @@ public class ResizablePoolTest {
    * allocator to register that same number of deallocations. This has to
    * happen before the test times out. After that, we check that the difference
    * between the allocations and the deallocations matches the new target size.
-   * @param fixture
-   * @throws Exception
    */
   @Test(timeout = 300)
   @Theory public void
@@ -168,9 +163,6 @@ public class ResizablePoolTest {
    * releasing objects. We don't check the deallocations because it's
    * complicated and we did it in the
    * decreasingSizeMustEventuallyDeallocateSurplusObjects test above.
-   * 
-   * @param fixture
-   * @throws Exception
    */
   @Test(timeout = 300)
   @Theory public void
