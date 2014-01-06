@@ -15,16 +15,10 @@
  */
 package stormpot.bpool;
 
+import stormpot.*;
+
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-
-import stormpot.Completion;
-import stormpot.Config;
-import stormpot.Expiration;
-import stormpot.LifecycledResizablePool;
-import stormpot.PoolException;
-import stormpot.Poolable;
-import stormpot.Timeout;
 
 /**
  * BlazePool is a highly optimised {@link LifecycledResizablePool}
@@ -221,6 +215,9 @@ implements LifecycledResizablePool<T> {
   public void setTargetSize(int size) {
     if (size < 1) {
       throw new IllegalArgumentException("target size must be at least 1");
+    }
+    if (shutdown) {
+      return;
     }
     allocThread.setTargetSize(size);
   }

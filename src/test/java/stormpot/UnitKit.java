@@ -15,20 +15,16 @@
  */
 package stormpot;
 
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
-import static org.junit.Assume.*;
-
 import java.lang.Thread.State;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
+
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThat;
 
 class UnitKit {
   private static final ExecutorService executor = Executors.newCachedThreadPool();
@@ -170,11 +166,6 @@ class UnitKit {
       // AssertionError doesn't have the (String, Throwable) constructor :(
       throw new Error("Unexpected exception", e);
     }
-  }
-
-  public static Completion shutdown(Pool<?> pool) {
-    assumeThat(pool, instanceOf(LifecycledPool.class));
-    return ((LifecycledPool<?>) pool).shutdown();
   }
 
   public static void spinwait(long ms) {
