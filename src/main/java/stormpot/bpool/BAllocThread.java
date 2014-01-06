@@ -15,15 +15,15 @@
  */
 package stormpot.bpool;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.LockSupport;
-
 import stormpot.Allocator;
 import stormpot.Config;
 import stormpot.Poolable;
 import stormpot.Timeout;
+
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 
 class BAllocThread<T extends Poolable> extends Thread {
   /**
@@ -33,30 +33,27 @@ class BAllocThread<T extends Poolable> extends Thread {
    */
   private final static long shutdownPauseNanos =
       TimeUnit.MILLISECONDS.toNanos(10);
-  
-  /**
-   * Special slot used to signal that the pool has been shut down.
-   */
-  final BSlot<T> POISON_PILL;
+
   
   private final CountDownLatch completionLatch;
   private final BlockingQueue<BSlot<T>> live;
   private final BlockingQueue<BSlot<T>> dead;
   private final Allocator<T> allocator;
+  private final BSlot<T> poisonPill;
   private volatile int targetSize;
   private int size;
 
   public BAllocThread(
       BlockingQueue<BSlot<T>> live,
       BlockingQueue<BSlot<T>> dead,
-      Config<T> config) {
+      Config<T> config, BSlot<T> poisonPill) {
     this.targetSize = config.getSize();
     completionLatch = new CountDownLatch(1);
     this.allocator = config.getAllocator();
     this.size = 0;
     this.live = live;
     this.dead = dead;
-    POISON_PILL = new BSlot<T>(live);
+    this.poisonPill = poisonPill;
   }
 
   @Override
@@ -95,8 +92,8 @@ class BAllocThread<T extends Poolable> extends Thread {
     } catch (InterruptedException _) {
       // This means we've been shut down.
       // let the poison-pill enter the system
-      POISON_PILL.dead2live();
-      live.offer(POISON_PILL);
+      poisonPill.dead2live();
+      live.offer(poisonPill);
     }
   }
 
@@ -106,11 +103,11 @@ class BAllocThread<T extends Poolable> extends Thread {
       if (slot == null) {
         slot = live.poll();
       }
-      if (slot == POISON_PILL) {
+      if (slot == poisonPill) {
         // FindBugs complains that we ignore a possible exceptional return
         // value from offer(). However, since the queues are unbounded, an
         // offer will never fail.
-        live.offer(POISON_PILL);
+        live.offer(poisonPill);
         slot = null;
       }
       if (slot == null) {

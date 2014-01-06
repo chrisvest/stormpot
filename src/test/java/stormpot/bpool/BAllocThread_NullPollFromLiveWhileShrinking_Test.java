@@ -15,16 +15,15 @@
  */
 package stormpot.bpool;
 
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.concurrent.BlockingQueue;
-
 import org.junit.Test;
-
 import stormpot.AllocThread_NullPollFromLiveWhileShrinking_TestTemplate;
 import stormpot.Callable;
 import stormpot.Config;
 import stormpot.Poolable;
+
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
 
 public class BAllocThread_NullPollFromLiveWhileShrinking_Test
 extends AllocThread_NullPollFromLiveWhileShrinking_TestTemplate<BSlot<Poolable>, BAllocThread<Poolable>> {
@@ -32,8 +31,7 @@ extends AllocThread_NullPollFromLiveWhileShrinking_TestTemplate<BSlot<Poolable>,
   protected BAllocThread<Poolable> createAllocThread(
       BlockingQueue<BSlot<Poolable>> live, BlockingQueue<BSlot<Poolable>> dead,
       Config<Poolable> config) {
-    BAllocThread<Poolable> th = new BAllocThread<Poolable>(live, dead, config);
-    return th;
+    return new BAllocThread<Poolable>(live, dead, config, new BSlot<Poolable>(live));
   }
 
   protected void setTargetSize(

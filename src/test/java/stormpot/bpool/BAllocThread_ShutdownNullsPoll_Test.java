@@ -15,16 +15,15 @@
  */
 package stormpot.bpool;
 
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import org.junit.Test;
+import stormpot.AllocThread_ShutdownNullsPool_TestTemplate;
+import stormpot.Poolable;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import org.junit.Test;
-
-import stormpot.AllocThread_ShutdownNullsPool_TestTemplate;
-import stormpot.Poolable;
+import static org.hamcrest.Matchers.hasItem;
+import static org.junit.Assert.assertThat;
 
 public class BAllocThread_ShutdownNullsPoll_Test
 extends AllocThread_ShutdownNullsPool_TestTemplate<BSlot<Poolable>, BAllocThread<Poolable>>{
@@ -32,7 +31,7 @@ extends AllocThread_ShutdownNullsPool_TestTemplate<BSlot<Poolable>, BAllocThread
   @Override
   protected BAllocThread<Poolable> createAllocThread(
       BlockingQueue<BSlot<Poolable>> live, BlockingQueue<BSlot<Poolable>> dead) {
-    return new BAllocThread<Poolable>(live, dead, config);
+    return new BAllocThread<Poolable>(live, dead, config, new BSlot<Poolable>(live));
   }
 
   @Override

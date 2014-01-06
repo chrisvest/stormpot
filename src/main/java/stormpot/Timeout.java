@@ -81,6 +81,14 @@ public class Timeout {
   }
 
   /**
+   * Get the timeout value in terms of the {@link #getBaseUnit() base unit}.
+   * @return A numerical value of the timeout. Possibly zero or negative.
+   */
+  public long getTimeoutInBaseUnit() {
+    return timeoutBase;
+  }
+
+  /**
    * Calculate the amount of time that is left until the deadline, in terms
    * of the {@link #getBaseUnit() base unit}. The argument is a deadline value
    * that has been calculated with the {@link #getDeadline()} method.
@@ -108,7 +116,7 @@ public class Timeout {
 
   @Override
   public int hashCode() {
-    return 31 * 1 + (int) (timeoutBase ^ (timeoutBase >>> 32));
+    return 31 * (1 + (int) (timeoutBase ^ (timeoutBase >>> 32)));
   }
 
   /**

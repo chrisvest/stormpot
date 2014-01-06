@@ -19,6 +19,7 @@ import stormpot.*;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * BlazePool is a highly optimised {@link LifecycledResizablePool}
@@ -38,6 +39,12 @@ implements LifecycledResizablePool<T> {
   private final BlockingQueue<BSlot<T>> dead;
   private final BAllocThread<T> allocThread;
   private final Expiration<? super T> deallocRule;
+
+  /**
+   * Special slot used to signal that the pool has been shut down.
+   */
+  private final BSlot<T> poisonPill;
+
   // TODO consider making it a ThreadLocal of Ref<QSlot>, hoping that maybe
   // writes to it will be faster in not requiring a ThreadLocal look-up.
   private final ThreadLocal<BSlot<T>> tlr;
@@ -51,9 +58,10 @@ implements LifecycledResizablePool<T> {
     live = new LinkedBlockingQueue<BSlot<T>>();
     dead = new LinkedBlockingQueue<BSlot<T>>();
     tlr = new ThreadLocal<BSlot<T>>();
+    poisonPill = new BSlot<T>(live);
     synchronized (config) {
       config.validate();
-      allocThread = new BAllocThread<T>(live, dead, config);
+      allocThread = new BAllocThread<T>(live, dead, config, poisonPill);
       deallocRule = config.getExpiration();
     }
     allocThread.start();
@@ -96,16 +104,20 @@ implements LifecycledResizablePool<T> {
       // leak on our hands.
     }
     long deadline = timeout.getDeadline();
-    boolean notClaimed = true;
-    do {
-      // TODO With both getDeadline and getTimeLeft, we are making two
-      // measurements of time in a row, here. Measuring time is expensive, so
-      // it might be worth it to try and reduce it to just one call.
-      long timeoutLeft = timeout.getTimeLeft(deadline);
-      slot = live.poll(timeoutLeft, timeout.getBaseUnit());
+    long timeoutLeft = timeout.getTimeoutInBaseUnit();
+    TimeUnit baseUnit = timeout.getBaseUnit();
+    boolean notClaimed;
+    for (;;) {
+      slot = live.poll(timeoutLeft, baseUnit);
       if (slot == null) {
         // we timed out while taking from the queue - just return null
         return null;
+      }
+      if (slot == poisonPill) {
+        // The poison pill means the pool has been shut down.
+        // We must make sure to keep it circulating.
+        live.offer(poisonPill);
+        throw new IllegalStateException("pool is shut down");
       }
       // Again, attempt to claim before checking validity. We mustn't kill
       // objects that are already claimed by someone else.
@@ -135,7 +147,12 @@ implements LifecycledResizablePool<T> {
       // dead-queue *while somebody else thinks they've TLR-claimed it!*
       // We handle this in the outer loop: if we couldn't claim, then we retry
       // the loop.
-    } while (notClaimed || isInvalid(slot));
+      if (notClaimed || isInvalid(slot)) {
+        timeoutLeft = timeout.getTimeLeft(deadline);
+        continue;
+      }
+      break;
+    }
     slot.incrementClaims();
     tlr.set(slot);
     return slot.obj;
@@ -162,9 +179,7 @@ implements LifecycledResizablePool<T> {
   }
 
   private void checkForPoison(BSlot<T> slot) {
-    // TODO move the POISON_PILL back into the BlazePool class to avoid having
-    // to load the allocThread reference in this hot method.
-    if (slot == allocThread.POISON_PILL) {
+    if (slot == poisonPill) {
       // The poison pill means the pool has been shut down. The pill was
       // transitioned from live to claimed just prior to this check, so we
       // must transition it back to live and put it back into the live-queue
@@ -173,7 +188,7 @@ implements LifecycledResizablePool<T> {
       // tlr-slot, and so we don't need to worry about transitioning from
       // tlr-claimed to live.
       slot.claim2live();
-      live.offer(allocThread.POISON_PILL);
+      live.offer(poisonPill);
       throw new IllegalStateException("pool is shut down");
     }
     if (slot.poison != null) {

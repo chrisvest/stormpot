@@ -243,7 +243,11 @@ public class PoolTest {
   constructorMustThrowOnPoolSizeLessThanOne(PoolFixture fixture) {
     fixture.initPool(config.setSize(0));
   }
-  
+
+  /**
+   * Prevent the creation of pools with a null Expiration.
+   * @see Config#setExpiration(Expiration)
+   */
   @Test(timeout = 300, expected = IllegalArgumentException.class)
   @Theory public void
   constructorMustThrowOnNullExpiration(PoolFixture fixture) {
@@ -425,7 +429,7 @@ public class PoolTest {
     for (int i = 0; i < nums; i++) {
       ones += Integer.bitCount(slotInfo.randomInt());
     }
-    // In the random data that we collect, we should a roughly even split
+    // In the random data that we collect, we should see a roughly even split
     // in the bits between ones and zeros.
     // So, if we count all the one bits and double that number, we should get
     // a number that is very close to the total number of random bits generated.
@@ -1313,6 +1317,7 @@ public class PoolTest {
     try {
       // ensure at least one allocation attempt has taken place
       pool.claim(longTimeout);
+      fail("allocation attempt should have failed!");
     } catch (Exception _) {
       // we don't care about this one
     }
