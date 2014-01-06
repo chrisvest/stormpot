@@ -8,6 +8,7 @@
   <name>stormpot</name>
   <description>A fast object pool library.</description>
   <url>http://chrisvest.github.io/stormpot</url>
+  <inceptionYear>2011-2014</inceptionYear>
 
   <parent>
     <groupId>org.sonatype.oss</groupId>
@@ -122,6 +123,32 @@
           <threads>4</threads>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>com.mycila</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <version>2.5</version>
+        <configuration>
+          <header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
+          <properties>
+            <owner>Chris Vest</owner>
+            <year>${project.inceptionYear}</year>
+            <email>mr.chrisvest@gmail.com</email>
+          </properties>
+          <mapping>
+            <java>SLASHSTAR_STYLE</java>
+          </mapping>
+          <includes>
+            <include>**/*.java</include>
+          </includes>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 
@@ -157,9 +184,6 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
         <version>2.9.1</version>
-        <configuration>
-          <stylesheetfile>javadocstyle.css</stylesheetfile>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
