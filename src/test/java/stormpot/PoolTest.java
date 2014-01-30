@@ -1673,7 +1673,35 @@ public class PoolTest {
     }
   }
 
-  // TODO must not leak slots if expiration throws Throwable instead of exception
+  @Test(timeout = 601)
+  @Theory public void
+  mustNotLeakSlotsIfExpirationThrowsThrowableInsteadOfException(PoolFixture fixture) throws InterruptedException {
+    final AtomicBoolean shouldThrow = new AtomicBoolean(true);
+    config.setExpiration(new Expiration<GenericPoolable>() {
+      @Override
+      public boolean hasExpired(SlotInfo<? extends GenericPoolable> info) throws Exception {
+        if (shouldThrow.get()) {
+          sneakyThrow(new SomeRandomThrowable("Boom!"));
+        }
+        return false;
+      }
+    });
+
+    LifecycledPool<GenericPoolable> pool = lifecycled(fixture);
+    try {
+      pool.claim(longTimeout);
+      fail("Expected claim to throw");
+    } catch (PoolException pe) {
+      assertThat(pe.getCause(), instanceOf(SomeRandomThrowable.class));
+    }
+
+    // Now, the slot should not have leaked, so the next claim should succeed:
+    shouldThrow.set(false);
+    pool.claim(longTimeout).release();
+    pool.shutdown();
+  }
+
+  // TODO must reallocate poisoned slots when allocator recovers
 
 
   // NOTE: When adding, removing or modifying tests, also remember to update

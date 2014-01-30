@@ -185,4 +185,15 @@ class UnitKit {
       now = System.currentTimeMillis();
     }
   }
+
+  public static void sneakyThrow(Throwable throwable) {
+    UnitKit.<RuntimeException>_sneakyThrow(throwable);
+  }
+
+  /**
+   * http://youtu.be/7qXXWHfJha4
+   */
+  private static <T extends Throwable> void _sneakyThrow(Throwable throwable) throws T {
+    throw (T)throwable;
+  }
 }
