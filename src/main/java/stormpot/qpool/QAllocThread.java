@@ -15,15 +15,15 @@
  */
 package stormpot.qpool;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.LockSupport;
-
 import stormpot.Allocator;
 import stormpot.Config;
 import stormpot.Poolable;
 import stormpot.Timeout;
+
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 
 class QAllocThread<T extends Poolable> extends Thread {
   /**

@@ -141,9 +141,19 @@ class UnitKit {
   }
   
   public static void waitForThreadState(Thread thread, Thread.State targetState) {
+    long start = System.currentTimeMillis();
+    long check = start + 30;
     State currentState = thread.getState();
     while (currentState != targetState) {
       assertThat(currentState, is(not(Thread.State.TERMINATED)));
+      long now = System.currentTimeMillis();
+      if (now > check) {
+        long elapsed = now - start;
+        System.err.println("Warning: Been waiting to observe thread state " +
+            targetState + " for " + elapsed + " ms. Current observation: " +
+            currentState);
+        check = now + 30;
+      }
       Thread.yield();
       currentState = thread.getState();
     }
