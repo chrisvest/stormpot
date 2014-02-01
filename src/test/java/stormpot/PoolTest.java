@@ -857,11 +857,9 @@ public class PoolTest {
   }
   
   /**
-   * Pools must be prepared in the event that an Allocator throws a
-   * RuntimeException. If it is not possible to allocate an object, then
-   * the pool must throw a PoolException.
-   * Preferably, this PoolException should wrap the original RuntimeException
-   * from the Allocator, but we do not test for this here.
+   * Pools must be prepared in the event that an Allocator throws an
+   * Exception from allocate. If it is not possible to allocate an object,
+   * then the pool must throw a PoolException through claim.
    * @see PoolException
    */
   @Test(timeout = 601)
@@ -883,10 +881,38 @@ public class PoolTest {
       assertThat(poolException.getCause(), is((Throwable) expectedEception));
     }
   }
+
+  /**
+   * Pools must be prepared in the event that a Reallocator throws an
+   * Exception from reallocate. If it is not possible to reallocate an object,
+   * then the pool must throw a PoolException through claim.
+   * @see PoolException
+   */
+  @Test(timeout = 601)
+  @Theory public void
+  mustPropagateExceptionsFromReallocateThroughClaim(PoolFixture fixture)
+      throws Exception {
+    final RuntimeException expectedException = new RuntimeException("boo");
+    Reallocator<GenericPoolable> allocator = new CountingReallocator() {
+      @Override
+      public GenericPoolable reallocate(Slot slot, GenericPoolable poolable) throws Exception {
+        throw expectedException;
+      }
+    };
+    Expiration<Poolable> expiration = new CountingExpiration(true, false);
+    Pool<GenericPoolable> pool = fixture.initPool(
+        config.setAllocator(allocator).setExpiration(expiration));
+    try {
+      pool.claim(longTimeout);
+      fail("expected claim to throw");
+    } catch (PoolException poolException) {
+      assertThat(poolException.getCause(), is((Throwable) expectedException));
+    }
+  }
   
   /**
    * A pool must not break its internal invariants if an Allocator throws an
-   * exception in allocate, and they must still be usable after the exception
+   * exception in allocate, and it must still be usable after the exception
    * has bubbled out.
    * We test this by configuring an Allocator that throws an exception if a
    * boolean variable is true, or allocates as normal if not. On the first
@@ -911,6 +937,40 @@ public class PoolTest {
       }
     };
     Pool<GenericPoolable> pool = fixture.initPool(config.setAllocator(allocator));
+    try {
+      pool.claim(longTimeout);
+      fail("claim should have thrown");
+    } catch (PoolException _) {}
+    assertThat(pool.claim(longTimeout), is(notNullValue()));
+  }
+
+  /**
+   * Likewise as above, a pool must not break its internal invariants if a
+   * Reallocator throws an exception in reallocate, and it must still be
+   * usable after the exception has bubbled out.
+   * We test for this by configuring a Reallocator that always throws on
+   * reallocate, and we also configure an Expiration that will mark the first
+   * slot it checks as expired. Then, when we call claim, that first live slot
+   * will be sent back for reallocation, which will throw and poison the slot.
+   * Then the slot comes back to our still on-going claim, which throws
+   * because of the poison. The slot then gets sent back again, and now,
+   * because of the poison, it will not be reallocated, but instead have a
+   * fresh Poolable allocated anew. This new good Poolable is what we get out
+   * of the second call to claim.
+   */
+  @Test(timeout = 601)
+  @Theory public void
+  mustStillBeUsableAfterExceptionInReallocate(PoolFixture fixture)
+      throws Exception {
+    Reallocator<GenericPoolable> allocator = new CountingReallocator() {
+      @Override
+      public GenericPoolable reallocate(Slot slot, GenericPoolable poolable) throws Exception {
+        throw new RuntimeException("boo");
+      }
+    };
+    Expiration<Poolable> expiration = new CountingExpiration(true, false);
+    Pool<GenericPoolable> pool = fixture.initPool(
+        config.setAllocator(allocator).setExpiration(expiration));
     try {
       pool.claim(longTimeout);
       fail("claim should have thrown");
@@ -1104,6 +1164,37 @@ public class PoolTest {
       }
     };
     Pool<GenericPoolable> pool = fixture.initPool(config.setAllocator(allocator));
+    pool.claim(longTimeout);
+  }
+
+  /**
+   * Reallocators must never return <code>null</code> from
+   * {@link Reallocator#reallocate(Slot, Poolable)}, and if they do, then a
+   * call to claim must throw a PoolException to indicate this fact.
+   * We test this by configuring a Reallocator that always return null on
+   * reallocation, and an Expiration that will mark the first Poolable we try
+   * to claim, as expired. Then we call claim, and object will be allocated,
+   * it will be considered expired and sent back, then it gets reallocated
+   * and the reallocate method returns null. Now the slot is poisoned, gets
+   * back to the still on-going call to claim, that now throws a
+   * PoolException.
+   * @see Allocator#allocate(Slot)
+   * @see Reallocator#reallocate(Slot, Poolable)
+   * @see PoolException
+   */
+  @Test(timeout = 601, expected = PoolException.class)
+  @Theory public void
+  claimMustThrowIfReallocationReturnsNull(PoolFixture fixture)
+      throws Exception {
+    Allocator<GenericPoolable> allocator = new CountingReallocator() {
+      @Override
+      public GenericPoolable reallocate(Slot slot, GenericPoolable poolable) {
+        return null;
+      }
+    };
+    Expiration<Poolable> expiration = new CountingExpiration(true, false);
+    Pool<GenericPoolable> pool = fixture.initPool(
+        config.setAllocator(allocator).setExpiration(expiration));
     pool.claim(longTimeout);
   }
   

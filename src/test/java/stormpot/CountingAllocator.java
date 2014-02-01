@@ -39,11 +39,6 @@ public class CountingAllocator implements Allocator<GenericPoolable> {
     deallocations.incrementAndGet();
     deallocated.add(poolable);
   }
-
-  public void reset() {
-    allocations.set(0);
-    deallocations.set(0);
-  }
   
   public int allocations() {
     return allocations.get();
