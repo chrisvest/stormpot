@@ -1796,5 +1796,5 @@ public class PoolTest {
 
 
   // NOTE: When adding, removing or modifying tests, also remember to update
-  //       the Pool javadoc - especially the part about the promises.
+  //       the Pool javadoc.
 }

@@ -45,8 +45,6 @@ implements LifecycledResizablePool<T> {
    */
   private final BSlot<T> poisonPill;
 
-  // TODO consider making it a ThreadLocal of Ref<QSlot>, hoping that maybe
-  // writes to it will be faster in not requiring a ThreadLocal look-up.
   private final ThreadLocal<BSlot<T>> tlr;
   private volatile boolean shutdown = false;
   
