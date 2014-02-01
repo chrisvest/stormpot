@@ -15,13 +15,13 @@
  */
 package stormpot.qpool;
 
-import java.util.Random;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import stormpot.Poolable;
 import stormpot.Slot;
 import stormpot.SlotInfo;
+
+import java.util.Random;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 class QSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   final BlockingQueue<QSlot<T>> live;
@@ -68,7 +68,7 @@ class QSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   private int x = rng.nextInt();
   private int y = rng.nextInt();
   private int z = rng.nextInt();
-  private int w = rng.nextInt();
+  private int w = 1343246171;
   
   @Override
   public int randomInt() {
