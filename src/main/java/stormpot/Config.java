@@ -92,9 +92,9 @@ public class Config<T extends Poolable> {
   }
 
   /**
-   * Set the {@link Allocator} to use for the pools we want to configure.
-   * This will change the type-parameter of the Config object to match that
-   * of the new Allocator.
+   * Set the {@link Allocator} or {@link Reallocator} to use for the pools we
+   * want to configure. This will change the type-parameter of the Config
+   * object to match that of the new Allocator.
    * <p>
    * The allocator is initially <code>null</code> in a new Config object, and
    * can be set to <code>null</code> any time. However, in a standard
@@ -121,6 +121,23 @@ public class Config<T extends Poolable> {
    */
   public synchronized Allocator<T> getAllocator() {
     return (Allocator<T>) allocator;
+  }
+
+  /**
+   * Get the configured {@link stormpot.Allocator} instance as a
+   * {@link stormpot.Reallocator}. If the configured allocator implements the
+   * Reallocator interface, then it is returned directly. Otherwise, the
+   * allocator is wrapped in an adaptor.
+   * @return A configured or adapted Reallocator, if any.
+   */
+  public synchronized Reallocator<T> getReallocator() {
+    if (allocator == null) {
+      return null;
+    }
+    if (allocator instanceof Reallocator) {
+      return (Reallocator<T>) allocator;
+    }
+    return new ReallocatingAdaptor<T>((Allocator<T>) allocator);
   }
 
   /**

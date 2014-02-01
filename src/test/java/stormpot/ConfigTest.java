@@ -15,11 +15,12 @@
  */
 package stormpot;
 
-import static org.junit.Assert.*;
-import static org.hamcrest.Matchers.*;
-
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class ConfigTest {
   private Config<Poolable> config;
@@ -34,12 +35,40 @@ public class ConfigTest {
     config.setSize(123);
     assertTrue(config.getSize() == 123);
   }
-  
+
+  @Test public void
+  defaultAllocatorIsNull() {
+    assertThat(config.getAllocator(), is(nullValue()));
+  }
+
+  @Test public void
+  defaultReallocatorIsNull() {
+    assertThat(config.getReallocator(), is(nullValue()));
+  }
+
+  @Test public void
+  mustAdaptAllocatorsToReallocators() {
+    Allocator<GenericPoolable> allocator = new CountingAllocator();
+    Config<GenericPoolable> cfg = config.setAllocator(allocator);
+    Reallocator<GenericPoolable> reallocator = cfg.getReallocator();
+    ReallocatingAdaptor<GenericPoolable> adaptor =
+        (ReallocatingAdaptor<GenericPoolable>) reallocator;
+    assertThat(adaptor.unwrap(), sameInstance(allocator));
+  }
+
+  @Test public void
+  mustNotReadaptConfiguredReallocators() {
+    Reallocator<Poolable> expected = new ReallocatingAdaptor<Poolable>(null);
+    config.setAllocator(expected);
+    Reallocator<Poolable> actual = config.getReallocator();
+    assertThat(actual, sameInstance(expected));
+  }
+
   @Test public void
   allocatorMustBeSettable() {
-    Allocator<?> allocator = new CountingAllocator();
-    config.setAllocator(allocator);
-    assertTrue(config.getAllocator() == allocator);
+    Allocator<GenericPoolable> allocator = new CountingAllocator();
+    Config<GenericPoolable> cfg = config.setAllocator(allocator);
+    assertThat(cfg.getAllocator(), sameInstance(allocator));
   }
   
   @Test public void

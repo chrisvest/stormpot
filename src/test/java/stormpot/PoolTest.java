@@ -819,7 +819,7 @@ public class PoolTest {
     }
     pool.claim(longTimeout);
     // check if the deallocation list contains duplicates
-    List<Poolable> deallocations = allocator.deallocationList();
+    List<GenericPoolable> deallocations = allocator.deallocationList();
     for (Poolable elm : deallocations) {
       assertThat("Deallocations of " + elm,
           Collections.frequency(deallocations, elm), is(1));

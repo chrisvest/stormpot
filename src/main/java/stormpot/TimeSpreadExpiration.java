@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
  * objects based on about how long ago they were allocated.
  *
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
+ * @since 2.2
  */
 public class TimeSpreadExpiration implements Expiration<Poolable> {
 
