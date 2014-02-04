@@ -15,12 +15,15 @@
  */
 package stormpot.qpool;
 
-import stormpot.*;
-
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+
+import stormpot.Allocator;
+import stormpot.Config;
+import stormpot.Poolable;
+import stormpot.Timeout;
 
 class QAllocThread<T extends Poolable> extends Thread {
   /**
@@ -33,7 +36,8 @@ class QAllocThread<T extends Poolable> extends Thread {
   private final CountDownLatch completionLatch;
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;
-  private final Reallocator<T> allocator;
+  private final Allocator<T> allocator;
+
   private volatile int targetSize;
   private int size;
 
@@ -42,7 +46,7 @@ class QAllocThread<T extends Poolable> extends Thread {
       Config<T> config) {
     this.targetSize = config.getSize();
     completionLatch = new CountDownLatch(1);
-    this.allocator = config.getReallocator();
+    this.allocator = config.getAllocator();
     this.size = 0;
     this.live = live;
     this.dead = dead;
@@ -53,7 +57,7 @@ class QAllocThread<T extends Poolable> extends Thread {
       this.setName("qpool-allocator-" + instanceOrdinal++);
   }
 
-  @Override
+    @Override
   public void run() {
     continuouslyReplenishPool();
     shutPoolDown();
@@ -62,7 +66,6 @@ class QAllocThread<T extends Poolable> extends Thread {
 
   private void continuouslyReplenishPool() {
     try {
-      //noinspection InfiniteLoopStatement
       for (;;) {
         long deadPollTimeout = size == targetSize ? 50 : 1;
         if (size < targetSize) {
@@ -76,7 +79,8 @@ class QAllocThread<T extends Poolable> extends Thread {
             dealloc(slot);
           }
         } else if (slot != null) {
-          realloc(slot);
+          dealloc(slot);
+          alloc(slot);
           // Mutation testing might note that the above alloc() call can be
           // removed... that's okay, it's really just an optimisation that
           // prevents us from creating new slots all the time - we reuse them.
@@ -138,26 +142,6 @@ class QAllocThread<T extends Poolable> extends Thread {
     }
     slot.poison = null;
     slot.obj = null;
-  }
-
-  private void realloc(QSlot<T> slot) {
-    if (slot.poison == null) {
-      try {
-        slot.obj = allocator.reallocate(slot, slot.obj);
-        if (slot.obj == null) {
-          slot.poison = new NullPointerException("reallocation returned null");
-        }
-      } catch (Exception e) {
-        slot.poison = e;
-      }
-      slot.created = System.currentTimeMillis();
-      slot.claims = 0;
-      slot.stamp = 0;
-      live.offer(slot);
-    } else {
-      dealloc(slot);
-      alloc(slot);
-    }
   }
 
   boolean await(Timeout timeout) throws InterruptedException {
