@@ -15,10 +15,7 @@
  */
 package stormpot.bpool;
 
-import stormpot.Allocator;
-import stormpot.Config;
-import stormpot.Poolable;
-import stormpot.Timeout;
+import stormpot.*;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -39,7 +36,7 @@ class BAllocThread<T extends Poolable> extends Thread {
   private final CountDownLatch completionLatch;
   private final BlockingQueue<BSlot<T>> live;
   private final BlockingQueue<BSlot<T>> dead;
-  private final Allocator<T> allocator;
+  private final Reallocator<T> allocator;
   private final BSlot<T> poisonPill;
   private volatile int targetSize;
   private int size;
@@ -50,7 +47,7 @@ class BAllocThread<T extends Poolable> extends Thread {
       Config<T> config, BSlot<T> poisonPill) {
     this.targetSize = config.getSize();
     completionLatch = new CountDownLatch(1);
-    this.allocator = config.getAllocator();
+    this.allocator = config.getReallocator();
     this.size = 0;
     this.live = live;
     this.dead = dead;
@@ -71,6 +68,7 @@ class BAllocThread<T extends Poolable> extends Thread {
 
   private void continuouslyReplenishPool() {
     try {
+      //noinspection InfiniteLoopStatement
       for (;;) {
         long deadPollTimeout = size == targetSize ? 50 : 1;
         if (size < targetSize) {
@@ -88,8 +86,7 @@ class BAllocThread<T extends Poolable> extends Thread {
             }
           }
         } else if (slot != null) {
-          dealloc(slot);
-          alloc(slot);
+          realloc(slot);
           // Mutation testing might note that the above alloc() call can be
           // removed... that's okay, it's really just an optimisation that
           // prevents us from creating new slots all the time - we reuse them.
@@ -159,6 +156,30 @@ class BAllocThread<T extends Poolable> extends Thread {
     }
     slot.poison = null;
     slot.obj = null;
+  }
+
+  private void realloc(BSlot<T> slot) {
+    if (!slot.isDead()) {
+      throw new AssertionError("Cannot reallocate non-dead slot: " + slot);
+    }
+    if (slot.poison == null) {
+      try {
+        slot.obj = allocator.reallocate(slot, slot.obj);
+        if (slot.obj == null) {
+          slot.poison = new NullPointerException("reallocation returned null");
+        }
+      } catch (Exception e) {
+        slot.poison = e;
+      }
+      slot.created = System.currentTimeMillis();
+      slot.claims = 0;
+      slot.stamp = 0;
+      slot.dead2live();
+      live.offer(slot);
+    } else {
+      dealloc(slot);
+      alloc(slot);
+    }
   }
 
   boolean await(Timeout timeout) throws InterruptedException {
