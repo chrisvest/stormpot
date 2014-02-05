@@ -65,11 +65,11 @@ public class TimingProblemsTest {
     }
 
 
-    @Test(timeout = 1000)
+    @Test(timeout = 100)
     public void blazePoolShouldShutdownImmediatelyEvenIfItIsStillAllocatingPoolables() throws InterruptedException {
 
 
-        Config<GenericPoolable> config = new Config<GenericPoolable>().setAllocator(new SlowAllocator(20));
+        Config<GenericPoolable> config = new Config<GenericPoolable>().setAllocator(new SlowAllocator(7));
 
         BlazePool<GenericPoolable> pool = new BlazePool<GenericPoolable>(config);
         pool.setTargetSize(100);
@@ -79,17 +79,17 @@ public class TimingProblemsTest {
 
         pool.shutdown();
 
-        Thread.sleep(20);
+        Thread.sleep(50);
 
         assertThat(allocatorThread.getState(),is(Thread.State.TERMINATED));
 
 
     }
 
-    @Test(timeout = 1000)
+    @Test(timeout = 100)
     public void queuePoolShouldShutdownImmediatelyEvenIfItIsStillAllocatingPoolables() throws InterruptedException {
 
-        Config<GenericPoolable> config = new Config<GenericPoolable>().setAllocator(new SlowAllocator(20));
+        Config<GenericPoolable> config = new Config<GenericPoolable>().setAllocator(new SlowAllocator(7));
 
         QueuePool<GenericPoolable> pool = new QueuePool<GenericPoolable>(config);
         pool.setTargetSize(100);
@@ -99,7 +99,7 @@ public class TimingProblemsTest {
 
         pool.shutdown();
 
-        Thread.sleep(20);
+        Thread.sleep(50);
 
         assertThat(allocatorThread.getState(),is(Thread.State.TERMINATED));
 
