@@ -70,7 +70,9 @@ public class SelfCleaningPool<T extends Poolable> implements LifecycledResizable
 				try {
 					poolable = implementation.claim(claimTimeout);
 				} catch (InterruptedException ie) {
-                    LOGGER.fine("Dredging interrupted for poolable " + i);
+                    LOGGER.info("Dredging interrupted at poolable " + i);
+                    dredging = false;
+                    break;
 				} catch(Throwable t) {
 					LOGGER.log(Level.WARNING, "Pool is still producing exceptions", t);
 				} finally {
