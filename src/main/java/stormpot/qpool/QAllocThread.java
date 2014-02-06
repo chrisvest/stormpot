@@ -27,11 +27,14 @@ class QAllocThread<T extends Poolable> extends Thread {
    * Special slot used to signal that the pool has been shut down.
    */
   final QSlot<T> POISON_PILL = new QSlot<T>(null);
-  
+
+  private static int instanceOrdinal=0;
+
   private final CountDownLatch completionLatch;
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;
   private final Reallocator<T> allocator;
+
   private volatile int targetSize;
   private int size;
 
@@ -44,9 +47,14 @@ class QAllocThread<T extends Poolable> extends Thread {
     this.size = 0;
     this.live = live;
     this.dead = dead;
+    nameThread();
   }
 
-  @Override
+  private synchronized void nameThread() {
+      this.setName("qpool-allocator-" + instanceOrdinal++);
+  }
+
+    @Override
   public void run() {
     continuouslyReplenishPool();
     shutPoolDown();

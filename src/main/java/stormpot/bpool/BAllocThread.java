@@ -31,6 +31,7 @@ class BAllocThread<T extends Poolable> extends Thread {
   private final static long shutdownPauseNanos =
       TimeUnit.MILLISECONDS.toNanos(10);
 
+  private static int instanceOrdinal =0;
   
   private final CountDownLatch completionLatch;
   private final BlockingQueue<BSlot<T>> live;
@@ -51,9 +52,14 @@ class BAllocThread<T extends Poolable> extends Thread {
     this.live = live;
     this.dead = dead;
     this.poisonPill = poisonPill;
+    nameThread();
   }
 
-  @Override
+  private synchronized void nameThread() {
+     this.setName("blazepool-allocator-" + instanceOrdinal++);
+  }
+
+    @Override
   public void run() {
     continuouslyReplenishPool();
     shutPoolDown();
