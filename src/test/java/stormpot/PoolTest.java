@@ -16,6 +16,7 @@
 package stormpot;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
@@ -26,9 +27,7 @@ import org.junit.runner.RunWith;
 import stormpot.bpool.BlazePoolFixture;
 import stormpot.qpool.QueuePoolFixture;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -1790,6 +1789,47 @@ public class PoolTest {
     shouldThrow.set(false);
     pool.claim(longTimeout).release();
     pool.shutdown();
+  }
+
+
+  @Test
+  @Theory public void
+  mustNotLeakThreadsIfPoolIsImmediatelyShutdown(PoolFixture fixture) throws InterruptedException {
+
+    config.setSize(5);
+
+    Set<Thread> initialThreads = Thread.getAllStackTraces().keySet();
+    LifecycledPool<GenericPoolable> pool = lifecycled(fixture);
+    pool.shutdown();
+
+    Thread.sleep(51); // make life easy for pool
+
+    // no new threads since the initialisation of the pool, persist after the completion of the shutdown process.
+    Set<Thread> remainingThreads = new HashSet<Thread>(Thread.getAllStackTraces().keySet());
+    remainingThreads.removeAll(initialThreads);
+
+    assertThat(remainingThreads.size(),is(0));
+
+  }
+
+  @Test @Ignore
+  @Theory public void
+  mustNotLeakThreadsIfPoolIsImmediatelyShutdownBeforeAllocationIsFinished(PoolFixture fixture) throws InterruptedException {
+
+    config.setAllocator(new SlowAllocator(5)).setSize(5); // ~25ms to allocate
+    Set<Thread> initialThreads = Thread.getAllStackTraces().keySet();
+
+    LifecycledPool<GenericPoolable> pool = lifecycled(fixture);
+    pool.shutdown();
+
+    Thread.sleep(51); // make life easy for pool
+
+    // no new threads since the initialisation of the pool, persist after the completion of the shutdown process.
+    Set<Thread> remainingThreads = new HashSet<Thread>(Thread.getAllStackTraces().keySet());
+    remainingThreads.removeAll(initialThreads);
+
+    assertThat(remainingThreads.size(),is(0));
+
   }
 
   // TODO must reallocate poisoned slots when allocator recovers
