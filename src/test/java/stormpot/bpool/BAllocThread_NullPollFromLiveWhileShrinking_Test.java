@@ -16,10 +16,7 @@
 package stormpot.bpool;
 
 import org.junit.Test;
-import stormpot.AllocThread_NullPollFromLiveWhileShrinking_TestTemplate;
-import stormpot.Callable;
-import stormpot.Config;
-import stormpot.Poolable;
+import stormpot.*;
 
 import java.util.LinkedList;
 import java.util.Queue;
@@ -42,7 +39,9 @@ extends AllocThread_NullPollFromLiveWhileShrinking_TestTemplate<BSlot<Poolable>,
 
   @Override
   protected BSlot<Poolable> createSlot(BlockingQueue<BSlot<Poolable>> live) {
-    return new BSlot<Poolable>(live);
+    BSlot<Poolable> slot = new BSlot<Poolable>(live);
+    slot.obj = new GenericPoolable(slot);
+    return slot;
   }
   
   @Test(timeout = 300) public void

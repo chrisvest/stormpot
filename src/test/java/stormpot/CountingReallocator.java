@@ -30,6 +30,8 @@ public class CountingReallocator
   @Override
   public GenericPoolable reallocate(Slot slot, GenericPoolable poolable)
       throws Exception {
+    assert slot != null : "Slot cannot be null in reallocate";
+    assert poolable != null : "Cannot reallocate null Poolable for slot: " + slot;
     reallocations.incrementAndGet();
     reallocated.add(poolable);
     return poolable;

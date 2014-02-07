@@ -24,26 +24,32 @@ import java.util.concurrent.locks.LockSupport;
 
 class QAllocThread<T extends Poolable> extends Thread {
   /**
-   * Special slot used to signal that the pool has been shut down.
+   * The amount of time, in nanoseconds, to wait for more work when the
+   * shutdown process has deallocated all the dead and live slots it could
+   * get its hands on, but there are still (claimed) slots left.
    */
-  final QSlot<T> POISON_PILL = new QSlot<T>(null);
+  private final static long shutdownPauseNanos =
+      TimeUnit.MILLISECONDS.toNanos(10);
   
   private final CountDownLatch completionLatch;
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;
   private final Reallocator<T> allocator;
+  private final QSlot<T> poisonPill;
   private volatile int targetSize;
   private int size;
+  private int poisonedSlots;
 
   public QAllocThread(
       BlockingQueue<QSlot<T>> live, BlockingQueue<QSlot<T>> dead,
-      Config<T> config) {
+      Config<T> config, QSlot<T> poisonPill) {
     this.targetSize = config.getSize();
     completionLatch = new CountDownLatch(1);
     this.allocator = config.getReallocator();
     this.size = 0;
     this.live = live;
     this.dead = dead;
+    this.poisonPill = poisonPill;
   }
 
   @Override
@@ -73,12 +79,18 @@ class QAllocThread<T extends Poolable> extends Thread {
           // Mutation testing might note that the above alloc() call can be
           // removed... that's okay, it's really just an optimisation that
           // prevents us from creating new slots all the time - we reuse them.
+        } else if (poisonedSlots > 0) {
+          // Proactively seek out and try to heal poisoned slots
+          slot = live.poll();
+          if (slot != null) {
+            realloc(slot);
+          }
         }
       }
     } catch (InterruptedException _) {
       // This means we've been shut down.
       // let the poison-pill enter the system
-      live.offer(POISON_PILL);
+      live.offer(poisonPill);
     }
   }
 
@@ -88,15 +100,15 @@ class QAllocThread<T extends Poolable> extends Thread {
       if (slot == null) {
         slot = live.poll();
       }
-      if (slot == POISON_PILL) {
+      if (slot == poisonPill) {
         // FindBugs complains that we ignore a possible exceptional return
         // value from offer(). However, since the queues are unbounded, an
         // offer will never fail.
-        live.offer(POISON_PILL);
+        live.offer(poisonPill);
         slot = null;
       }
       if (slot == null) {
-        LockSupport.parkNanos(10000000); // 10 millis
+        LockSupport.parkNanos(shutdownPauseNanos);
       } else {
         dealloc(slot);
       }
@@ -107,9 +119,11 @@ class QAllocThread<T extends Poolable> extends Thread {
     try {
       slot.obj = allocator.allocate(slot);
       if (slot.obj == null) {
+        poisonedSlots++;
         slot.poison = new NullPointerException("allocation returned null");
       }
     } catch (Exception e) {
+      poisonedSlots++;
       slot.poison = e;
     }
     size++;
@@ -125,6 +139,8 @@ class QAllocThread<T extends Poolable> extends Thread {
     try {
       if (slot.poison == null) {
         allocator.deallocate(slot.obj);
+      } else {
+        poisonedSlots--;
       }
     } catch (Exception _) { // NOPMD
       // Ignored as per specification
@@ -135,12 +151,15 @@ class QAllocThread<T extends Poolable> extends Thread {
 
   private void realloc(QSlot<T> slot) {
     if (slot.poison == null) {
+      assert slot.obj != null : "slot.obj should not have been null";
       try {
         slot.obj = allocator.reallocate(slot, slot.obj);
         if (slot.obj == null) {
+          poisonedSlots++;
           slot.poison = new NullPointerException("reallocation returned null");
         }
       } catch (Exception e) {
+        poisonedSlots++;
         slot.poison = e;
       }
       slot.created = System.currentTimeMillis();

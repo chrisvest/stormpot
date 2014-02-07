@@ -29,6 +29,7 @@ public class CountingAllocator implements Allocator<GenericPoolable> {
     Collections.synchronizedList(new ArrayList<GenericPoolable>());
 
   public GenericPoolable allocate(Slot slot) throws Exception {
+    assert slot != null : "Slot cannot be null in allocate";
     allocations.incrementAndGet();
     GenericPoolable obj = new GenericPoolable(slot);
     allocated.add(obj);
@@ -36,6 +37,7 @@ public class CountingAllocator implements Allocator<GenericPoolable> {
   }
 
   public void deallocate(GenericPoolable poolable) throws Exception {
+    assert poolable != null : "Cannot deallocate null.";
     deallocations.incrementAndGet();
     deallocated.add(poolable);
   }
