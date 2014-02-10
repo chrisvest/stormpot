@@ -65,7 +65,8 @@ class BAllocThread<T extends Poolable> extends Thread {
     try {
       //noinspection InfiniteLoopStatement
       for (;;) {
-        long deadPollTimeout = size == targetSize ? 50 : 1;
+        boolean weHaveWorkToDo = size != targetSize || poisonedSlots > 0;
+        long deadPollTimeout = weHaveWorkToDo? 0 : 50;
         if (size < targetSize) {
           BSlot<T> slot = new BSlot<T>(live);
           alloc(slot);

@@ -1931,6 +1931,8 @@ public class PoolTest {
     assertThat(obj, is(notNullValue()));
   }
 
+  // TODO eager reallocation of poisoned slots must not frivolously reallocate non poisoned slots
+
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the Pool javadoc.
 }

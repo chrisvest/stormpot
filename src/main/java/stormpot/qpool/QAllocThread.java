@@ -63,7 +63,8 @@ class QAllocThread<T extends Poolable> extends Thread {
     try {
       //noinspection InfiniteLoopStatement
       for (;;) {
-        long deadPollTimeout = size == targetSize ? 50 : 1;
+        boolean weHaveWorkToDo = size != targetSize || poisonedSlots > 0;
+        long deadPollTimeout = weHaveWorkToDo? 0 : 50;
         if (size < targetSize) {
           QSlot<T> slot = new QSlot<T>(live);
           alloc(slot);
