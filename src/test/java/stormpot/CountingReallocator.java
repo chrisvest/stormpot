@@ -15,17 +15,12 @@
  */
 package stormpot;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class CountingReallocator
     extends CountingAllocator
     implements Reallocator<GenericPoolable> {
-  private final AtomicInteger reallocations = new AtomicInteger();
-  private final List<GenericPoolable> reallocated =
-      Collections.synchronizedList(new ArrayList<GenericPoolable>());
+  protected final AtomicInteger reallocations = new AtomicInteger();
 
   @Override
   public GenericPoolable reallocate(Slot slot, GenericPoolable poolable)
@@ -33,7 +28,6 @@ public class CountingReallocator
     assert slot != null : "Slot cannot be null in reallocate";
     assert poolable != null : "Cannot reallocate null Poolable for slot: " + slot;
     reallocations.incrementAndGet();
-    reallocated.add(poolable);
     return poolable;
   }
 }

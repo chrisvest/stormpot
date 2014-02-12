@@ -66,7 +66,7 @@ class BAllocThread<T extends Poolable> extends Thread {
       //noinspection InfiniteLoopStatement
       for (;;) {
         boolean weHaveWorkToDo = size != targetSize || poisonedSlots > 0;
-        long deadPollTimeout = weHaveWorkToDo? 0 : 50;
+        long deadPollTimeout = weHaveWorkToDo? 1 : 50; // TODO change '1' to '0' and fix tests
         if (size < targetSize) {
           BSlot<T> slot = new BSlot<T>(live);
           alloc(slot);
@@ -86,11 +86,12 @@ class BAllocThread<T extends Poolable> extends Thread {
           // Mutation testing might note that the above alloc() call can be
           // removed... that's okay, it's really just an optimisation that
           // prevents us from creating new slots all the time - we reuse them.
-        } else if (poisonedSlots > 0) {
+        } else // TODO remove the else so we don't force a dead-queue wait before eager reallocation
+        if (poisonedSlots > 0) {
           // Proactively seek out and try to heal poisoned slots
           slot = live.poll();
           if (slot != null) {
-                                                    // TODO test for this -QueuePool too
+                                                    // TODO test for this
             if ((slot.isDead() || slot.live2dead()) /* && slot.poison != null */) {
               realloc(slot);
             } else {

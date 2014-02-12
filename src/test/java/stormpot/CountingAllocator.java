@@ -21,11 +21,11 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class CountingAllocator implements Allocator<GenericPoolable> {
-  private final AtomicInteger allocations = new AtomicInteger();
-  private final AtomicInteger deallocations = new AtomicInteger();
-  private final List<GenericPoolable> allocated =
+  protected final AtomicInteger allocations = new AtomicInteger();
+  protected final AtomicInteger deallocations = new AtomicInteger();
+  protected final List<GenericPoolable> allocated =
     Collections.synchronizedList(new ArrayList<GenericPoolable>());
-  private final List<GenericPoolable> deallocated =
+  protected final List<GenericPoolable> deallocated =
     Collections.synchronizedList(new ArrayList<GenericPoolable>());
 
   public GenericPoolable allocate(Slot slot) throws Exception {

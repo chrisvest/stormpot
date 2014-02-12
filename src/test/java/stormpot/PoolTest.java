@@ -965,7 +965,9 @@ public class PoolTest {
       throws Exception {
     Reallocator<GenericPoolable> allocator = new CountingReallocator() {
       @Override
-      public GenericPoolable reallocate(Slot slot, GenericPoolable poolable) throws Exception {
+      public GenericPoolable reallocate(
+          Slot slot,
+          GenericPoolable poolable) throws Exception {
         throw new RuntimeException("boo");
       }
     };
@@ -1931,7 +1933,38 @@ public class PoolTest {
     assertThat(obj, is(notNullValue()));
   }
 
-  // TODO eager reallocation of poisoned slots must not frivolously reallocate non poisoned slots
+  @Test(timeout = 601)
+  @Theory public void
+  mustNotFrivolouslyReallocateNonPoisonedSlotsDuringEagerRecovery(
+      PoolFixture fixture) throws Exception {
+    final CountDownLatch allocationLatch = new CountDownLatch(3);
+    CountingAllocator allocator = new CountingAllocator() {
+      boolean first = true;
+
+      @Override
+      public GenericPoolable allocate(Slot slot) throws Exception {
+        try {
+          if (first) {
+            first = false;
+            allocations.incrementAndGet();
+            return null;
+          }
+          return super.allocate(slot);
+        } finally {
+          allocationLatch.countDown();
+        }
+      }
+    };
+    config.setAllocator(allocator).setSize(2);
+    Pool<GenericPoolable> pool = fixture.initPool(config);
+    allocationLatch.await();
+    // The pool should now be fully allocated and healed
+    GenericPoolable obj1 = pool.claim(longTimeout);
+    GenericPoolable obj2 = pool.claim(longTimeout);
+    assertThat(allocator.allocations(), is(3));
+    assertThat(allocator.deallocations(), is(0)); // the allocation failed
+    assertThat(allocator.deallocationList(), not(contains(obj1, obj2)));
+  }
 
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the Pool javadoc.
