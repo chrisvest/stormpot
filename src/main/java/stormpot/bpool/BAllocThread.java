@@ -38,6 +38,7 @@ class BAllocThread<T extends Poolable> extends Thread {
   private final Reallocator<T> allocator;
   private final BSlot<T> poisonPill;
   private volatile int targetSize;
+  private volatile boolean shutdown;
   private int size;
   private int poisonedSlots;
 
@@ -64,7 +65,7 @@ class BAllocThread<T extends Poolable> extends Thread {
   private void continuouslyReplenishPool() {
     try {
       //noinspection InfiniteLoopStatement
-      for (;;) {
+      while (!shutdown) {
         boolean weHaveWorkToDo = size != targetSize || poisonedSlots > 0;
         long deadPollTimeout = weHaveWorkToDo? 0 : 50;
         if (size < targetSize) {
@@ -98,12 +99,12 @@ class BAllocThread<T extends Poolable> extends Thread {
           }
         }
       }
-    } catch (InterruptedException _) {
-      // This means we've been shut down.
-      // let the poison-pill enter the system
-      poisonPill.dead2live();
-      live.offer(poisonPill);
+    } catch (InterruptedException ignore) {
     }
+    // This means we've been shut down.
+    // let the poison-pill enter the system
+    poisonPill.dead2live();
+    live.offer(poisonPill);
   }
 
   private void shutPoolDown() {
@@ -208,5 +209,10 @@ class BAllocThread<T extends Poolable> extends Thread {
 
   int getTargetSize() {
     return targetSize;
+  }
+
+  void shutdown() {
+    shutdown = true;
+    interrupt();
   }
 }
