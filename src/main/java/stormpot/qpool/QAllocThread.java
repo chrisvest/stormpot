@@ -15,7 +15,10 @@
  */
 package stormpot.qpool;
 
-import stormpot.*;
+import stormpot.Config;
+import stormpot.Poolable;
+import stormpot.Reallocator;
+import stormpot.Timeout;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -30,7 +33,7 @@ class QAllocThread<T extends Poolable> extends Thread {
    */
   private final static long shutdownPauseNanos =
       TimeUnit.MILLISECONDS.toNanos(10);
-  
+
   private final CountDownLatch completionLatch;
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;
@@ -187,10 +190,6 @@ class QAllocThread<T extends Poolable> extends Thread {
 
   void setTargetSize(int size) {
     this.targetSize = size;
-    LockSupport.unpark(this);
-    // Mutation testing will note, that the above call to unpark can be removed.
-    // That's okay, because it is only an optimisation to speed up the
-    // allocators reaction to the new size.
   }
 
   int getTargetSize() {
