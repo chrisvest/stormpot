@@ -39,6 +39,7 @@ class BAllocThread<T extends Poolable> extends Thread {
   private final BSlot<T> poisonPill;
   private volatile int targetSize;
   private int size;
+  private int poisonedSlots;
 
   public BAllocThread(
       BlockingQueue<BSlot<T>> live,
@@ -64,7 +65,8 @@ class BAllocThread<T extends Poolable> extends Thread {
     try {
       //noinspection InfiniteLoopStatement
       for (;;) {
-        long deadPollTimeout = size == targetSize ? 50 : 1;
+        boolean weHaveWorkToDo = size != targetSize || poisonedSlots > 0;
+        long deadPollTimeout = weHaveWorkToDo? 0 : 50;
         if (size < targetSize) {
           BSlot<T> slot = new BSlot<T>(live);
           alloc(slot);
@@ -81,9 +83,19 @@ class BAllocThread<T extends Poolable> extends Thread {
           }
         } else if (slot != null) {
           realloc(slot);
-          // Mutation testing might note that the above alloc() call can be
-          // removed... that's okay, it's really just an optimisation that
-          // prevents us from creating new slots all the time - we reuse them.
+        }
+
+        if (poisonedSlots > 0) {
+          // Proactively seek out and try to heal poisoned slots
+          slot = live.poll();
+          if (slot != null) {
+                                                    // TODO test for this
+            if ((slot.isDead() || slot.live2dead()) /* && slot.poison != null */) {
+              realloc(slot);
+            } else {
+              live.offer(slot);
+            }
+          }
         }
       }
     } catch (InterruptedException _) {
@@ -120,12 +132,15 @@ class BAllocThread<T extends Poolable> extends Thread {
   }
 
   private void alloc(BSlot<T> slot) {
+    assert slot != poisonPill : "Cannot allocate the poison pill: " + slot;
     try {
       slot.obj = allocator.allocate(slot);
       if (slot.obj == null) {
+        poisonedSlots++;
         slot.poison = new NullPointerException("allocation returned null");
       }
     } catch (Exception e) {
+      poisonedSlots++;
       slot.poison = e;
     }
     size++;
@@ -137,13 +152,14 @@ class BAllocThread<T extends Poolable> extends Thread {
   }
 
   private void dealloc(BSlot<T> slot) {
-    if (!slot.isDead()) {
-      throw new AssertionError("Cannot deallocate non-dead slot: " + slot);
-    }
+    assert slot.isDead() : "Cannot deallocate non-dead slot: " + slot;
+    assert slot != poisonPill : "Cannot deallocate the poison pill: " + slot;
     size--;
     try {
       if (slot.poison == null) {
         allocator.deallocate(slot.obj);
+      } else {
+        poisonedSlots--;
       }
     } catch (Exception _) { // NOPMD
       // Ignored as per specification
@@ -153,16 +169,18 @@ class BAllocThread<T extends Poolable> extends Thread {
   }
 
   private void realloc(BSlot<T> slot) {
-    if (!slot.isDead()) {
-      throw new AssertionError("Cannot reallocate non-dead slot: " + slot);
-    }
+    assert slot.isDead() : "Cannot reallocate non-dead slot: " + slot;
+    assert slot != poisonPill : "Cannot reallocate the poison pill: " + slot;
     if (slot.poison == null) {
+      assert slot.obj != null : "slot.obj should not have been null";
       try {
         slot.obj = allocator.reallocate(slot, slot.obj);
         if (slot.obj == null) {
+          poisonedSlots++;
           slot.poison = new NullPointerException("reallocation returned null");
         }
       } catch (Exception e) {
+        poisonedSlots++;
         slot.poison = e;
       }
       slot.created = System.currentTimeMillis();

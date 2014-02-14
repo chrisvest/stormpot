@@ -15,11 +15,12 @@
  */
 package stormpot.qpool;
 
-import java.util.concurrent.BlockingQueue;
-
 import stormpot.AllocThread_NullPollFromLiveWhileShrinking_TestTemplate;
 import stormpot.Config;
+import stormpot.GenericPoolable;
 import stormpot.Poolable;
+
+import java.util.concurrent.BlockingQueue;
 
 public class QAllocThread_NullPollFromLiveWhileShrinking_Test
 extends AllocThread_NullPollFromLiveWhileShrinking_TestTemplate<QSlot<Poolable>, QAllocThread<Poolable>> {
@@ -27,7 +28,7 @@ extends AllocThread_NullPollFromLiveWhileShrinking_TestTemplate<QSlot<Poolable>,
   protected QAllocThread<Poolable> createAllocThread(
       BlockingQueue<QSlot<Poolable>> live, BlockingQueue<QSlot<Poolable>> dead,
       Config<Poolable> config) {
-    QAllocThread<Poolable> th = new QAllocThread<Poolable>(live, dead, config);
+    QAllocThread<Poolable> th = new QAllocThread<Poolable>(live, dead, config, new QSlot<Poolable>(live));
     return th;
   }
 
@@ -39,6 +40,8 @@ extends AllocThread_NullPollFromLiveWhileShrinking_TestTemplate<QSlot<Poolable>,
 
   @Override
   protected QSlot<Poolable> createSlot(BlockingQueue<QSlot<Poolable>> live) {
-    return new QSlot<Poolable>(live);
+    QSlot<Poolable> slot = new QSlot<Poolable>(live);
+    slot.obj = new GenericPoolable(slot);
+    return slot;
   }
 }

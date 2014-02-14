@@ -26,7 +26,7 @@ class ReallocatingAdaptor<T extends Poolable> implements Reallocator<T> {
   public T reallocate(Slot slot, T poolable) throws Exception {
     try {
       allocator.deallocate(poolable);
-    } catch (Throwable ignore) {
+    } catch (Throwable ignore) { // NOPMD
       // ignored as per specification
     }
     return allocator.allocate(slot);

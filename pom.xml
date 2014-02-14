@@ -121,6 +121,9 @@
             <param>stormpot.qpool.*</param>
           </targetClasses>
           <threads>4</threads>
+          <jvmArgs>
+            <value>-ea</value>
+          </jvmArgs>
         </configuration>
       </plugin>
       <plugin>

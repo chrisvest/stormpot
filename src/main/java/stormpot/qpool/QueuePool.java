@@ -40,6 +40,11 @@ implements LifecycledResizablePool<T> {
   private final QAllocThread<T> allocThread;
   private final Expiration<? super T> deallocRule;
   private volatile boolean shutdown = false;
+
+  /**
+   * Special slot used to signal that the pool has been shut down.
+   */
+  final QSlot<T> poisonPill = new QSlot<T>(null);
   
   /**
    * Construct a new QueuePool instance based on the given {@link Config}.
@@ -50,15 +55,15 @@ implements LifecycledResizablePool<T> {
     dead = new LinkedBlockingQueue<QSlot<T>>();
     synchronized (config) {
       config.validate();
-      allocThread = new QAllocThread<T>(live, dead, config);
+      allocThread = new QAllocThread<T>(live, dead, config, poisonPill);
       deallocRule = config.getExpiration();
     }
     allocThread.start();
   }
 
   private void checkForPoison(QSlot<T> slot) {
-    if (slot == allocThread.POISON_PILL) {
-      live.offer(allocThread.POISON_PILL);
+    if (slot == poisonPill) {
+      live.offer(poisonPill);
       throw new IllegalStateException("pool is shut down");
     }
     if (slot.poison != null) {

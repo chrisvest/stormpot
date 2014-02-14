@@ -17,6 +17,7 @@ package stormpot.bpool;
 
 import org.junit.Test;
 import stormpot.AllocThread_ShutdownNullsPool_TestTemplate;
+import stormpot.GenericPoolable;
 import stormpot.Poolable;
 
 import java.util.concurrent.BlockingQueue;
@@ -36,7 +37,9 @@ extends AllocThread_ShutdownNullsPool_TestTemplate<BSlot<Poolable>, BAllocThread
 
   @Override
   protected BSlot<Poolable> createSlot(BlockingQueue<BSlot<Poolable>> live) {
-    return new BSlot<Poolable>(live);
+    BSlot<Poolable> slot = new BSlot<Poolable>(live);
+    slot.obj = new GenericPoolable(slot);
+    return slot;
   }
 
   @Test(timeout = 300) public void
