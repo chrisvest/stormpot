@@ -15,6 +15,7 @@
  */
 package stormpot;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -24,10 +25,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class CountingExpiration implements Expiration<Poolable> {
   private final boolean[] replies;
   private final AtomicInteger counter;
+  private final AtomicBoolean hasExpired;
 
   public CountingExpiration(boolean... replies) {
     this.replies = replies;
     counter = new AtomicInteger();
+    hasExpired = null;
+  }
+
+  public CountingExpiration(AtomicBoolean hasExpired) {
+    this.hasExpired = hasExpired;
+    counter = new AtomicInteger();
+    replies = new boolean[0];
   }
 
   @Override
@@ -37,7 +46,7 @@ public class CountingExpiration implements Expiration<Poolable> {
       counter.set(0);
     }
     int index = Math.min(count, replies.length - 1);
-    return replies[index];
+    return hasExpired == null? replies[index] : hasExpired.get();
   }
 
   public int getCount() {

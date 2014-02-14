@@ -54,6 +54,11 @@ public interface Reallocator<T extends Poolable> extends Allocator<T> {
    * wrapped inside a {@link PoolException}. Pools must be able to handle these
    * exceptions in a sane manner, and are guaranteed to return to a working
    * state if an Allocator stops throwing exceptions from its allocate method.
+   * <p>
+   * Be aware that if the reallocation of an object fails with an exception,
+   * then no attempts will be made to explicitly deallocate that object. This
+   * way, a failed reallocation is understood to effectively be a successful
+   * deallocation.
    * @param slot The slot the pool wish to allocate an object for.
    * Implementors do not need to concern themselves with the details of a
    * pools slot objects. They just have to call release on them as the
