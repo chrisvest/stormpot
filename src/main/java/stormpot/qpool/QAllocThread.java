@@ -63,7 +63,7 @@ class QAllocThread<T extends Poolable> extends Thread {
   private void continuouslyReplenishPool() {
     try {
       //noinspection InfiniteLoopStatement
-      while (!shutdown) {
+      for (;;) {
         boolean weHaveWorkToDo = size != targetSize || poisonedSlots > 0;
         long deadPollTimeout = weHaveWorkToDo? 0 : 50;
         if (size < targetSize) {
@@ -78,6 +78,10 @@ class QAllocThread<T extends Poolable> extends Thread {
           }
         } else if (slot != null) {
           realloc(slot);
+        }
+
+        if (shutdown) {
+          break;
         }
 
         if (poisonedSlots > 0) {

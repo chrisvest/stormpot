@@ -2035,18 +2035,30 @@ public class PoolTest {
   @Theory public void
   mustCompleteShutdownEvenIfAllocatorEatsTheInterruptSignal(
       PoolFixture fixture) throws InterruptedException {
-    config.setAllocator(new CountingAllocator() {
+    config.setAllocator(new CountingReallocator() {
       @Override
       public GenericPoolable allocate(Slot slot) throws Exception {
         Thread.sleep(1000);
         return super.allocate(slot);
       }
+
+      @Override
+      public GenericPoolable reallocate(
+          Slot slot,
+          GenericPoolable poolable) throws Exception {
+        Thread.sleep(1000);
+        return super.reallocate(slot, poolable);
+      }
     });
     // Give the allocation thread a head-start to get stuck sleeping in the
     // Allocator.allocate method:
-    Thread.sleep(15);
+    LifecycledPool<GenericPoolable> pool = lifecycled(fixture);
+    GenericPoolable obj = pool.claim(mediumTimeout);
+    if (obj != null) {
+      obj.release();
+    }
     // The interrupt signal from shutdown will get caught by the Allocator:
-    lifecycled(fixture).shutdown().await(longTimeout);
+    pool.shutdown().await(longTimeout);
   }
 
   // NOTE: When adding, removing or modifying tests, also remember to update
