@@ -2024,6 +2024,31 @@ public class PoolTest {
     assertThat(allocator.deallocationList(), not(contains(obj1, obj2)));
   }
 
+  /**
+   * If the interrupt happen inside the Allocator.allocate(Slot) method, and
+   * then the allocator either clears the interruption status, or throws an
+   * InterruptedException which in turn will be understood as poison, then the
+   * allocation thread can miss the shutdown signal, and never begin the
+   * shutdown sequence.
+   */
+  @Test(timeout = 601)
+  @Theory public void
+  mustCompleteShutdownEvenIfAllocatorEatsTheInterruptSignal(
+      PoolFixture fixture) throws InterruptedException {
+    config.setAllocator(new CountingAllocator() {
+      @Override
+      public GenericPoolable allocate(Slot slot) throws Exception {
+        Thread.sleep(1000);
+        return super.allocate(slot);
+      }
+    });
+    // Give the allocation thread a head-start to get stuck sleeping in the
+    // Allocator.allocate method:
+    Thread.sleep(15);
+    // The interrupt signal from shutdown will get caught by the Allocator:
+    lifecycled(fixture).shutdown().await(longTimeout);
+  }
+
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the Pool javadoc.
 }

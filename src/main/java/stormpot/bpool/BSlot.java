@@ -165,9 +165,4 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   public void setStamp(long stamp) {
     this.stamp = stamp;
   }
-
-  @Override
-  public String toString() {
-    return "BSlot@" + Integer.toHexString(hashCode()) + "[ " + obj + " ]";
-  }
 }

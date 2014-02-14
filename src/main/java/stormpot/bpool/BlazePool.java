@@ -221,7 +221,7 @@ implements LifecycledResizablePool<T> {
 
   public Completion shutdown() {
     shutdown = true;
-    allocThread.interrupt();
+    allocThread.shutdown();
     return new BPoolShutdownCompletion(allocThread);
   }
 
