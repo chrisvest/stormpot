@@ -49,6 +49,10 @@ public interface Reallocator<T extends Poolable> extends Allocator<T> {
    * With the only difference that it may, if possible, reuse the given
    * expired Poolable, either wholly or in part.
    * <p>
+   * The state stored in the {@link stormpot.SlotInfo} for the object is reset
+   * upon reallocation, just like it would be in the case of a normal
+   * deallocation-allocation cycle.
+   * <p>
    * Exceptions thrown by this method may propagate out through the
    * {@link Pool#claim(Timeout) claim} method of a pool, in the form of being
    * wrapped inside a {@link PoolException}. Pools must be able to handle these

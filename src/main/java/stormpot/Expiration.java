@@ -23,8 +23,10 @@ package stormpot;
  * accessed concurrently by multiple threads. However, for a given
  * {@link SlotInfo} and {@link Poolable} instance, only a single thread will
  * invoke the expiration at a time. This means that there is no need to
- * synchronise on the SlotInfo or Poolable objects. The easiest way to ensure
- * this, is to make sure that they never mutate any state. If they do, however,
+ * synchronise on the SlotInfo or Poolable objects.
+ * <p>
+ * The easiest way to ensure that an Expiration implementation is thread-safe,
+ * is to make sure that they never mutate any state. If they do, however,
  * then they must do so in a thread-safe manner, unless the mutable state is
  * contained within the SlotInfo or Poolable objects – in this case, the
  * mutable state will be thread-local. Be aware that making the
@@ -41,6 +43,10 @@ public interface Expiration<T extends Poolable> {
    * <p>
    * If the method throws an exception, then that is taken to mean that the
    * slot is invalid. The exception will bubble out of the
+   * <p>
+   * Note that this method can be called as often as several times per
+   * {@link Pool#claim(Timeout) claim}. The performance of this method therefor
+   * has a big influence on the percieved performance of the pool.
    * {@link Pool#claim(Timeout) claim} method, but the mechanism is
    * implementation specific. For this reason, it is generally advised that
    * Expirations do not throw exceptions.
