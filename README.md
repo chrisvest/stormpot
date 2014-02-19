@@ -7,13 +7,6 @@ your objects in the background.
 
  * Home page: http://chrisvest.github.io/stormpot/
  * Mailing list: http://groups.google.com/d/forum/stormpot
- * Maven coordinates:
-
-    &lt;dependency&gt;
-      &lt;groupId&gt;com.github.chrisvest&lt;/groupId&gt;
-      &lt;artifactId&gt;stormpot&lt;/artifactId&gt;
-      &lt;version&gt;2.1&lt;/version&gt;
-    &lt;/dependency&gt;
 
 [![Build Status](https://travis-ci.org/chrisvest/stormpot.png)](https://travis-ci.org/chrisvest/stormpot)
 
