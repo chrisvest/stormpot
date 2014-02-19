@@ -9,11 +9,11 @@ your objects in the background.
  * Mailing list: http://groups.google.com/d/forum/stormpot
  * Maven coordinates:
 
-    <dependency>
-      <groupId>com.github.chrisvest</groupId>
-      <artifactId>stormpot</artifactId>
-      <version>2.1</version>
-    </dependency>
+    &lt;dependency&gt;
+      &lt;groupId&gt;com.github.chrisvest&lt;/groupId&gt;
+      &lt;artifactId&gt;stormpot&lt;/artifactId&gt;
+      &lt;version&gt;2.1&lt;/version&gt;
+    &lt;/dependency&gt;
 
 [![Build Status](https://travis-ci.org/chrisvest/stormpot.png)](https://travis-ci.org/chrisvest/stormpot)
 
