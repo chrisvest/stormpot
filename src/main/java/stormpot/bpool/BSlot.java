@@ -24,15 +24,13 @@ import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
-class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
+class BSlot<T extends Poolable> extends AtomicInteger implements Slot, SlotInfo<T> {
   static final int LIVING = 1;
   static final int CLAIMED = 2;
   static final int TLR_CLAIMED = 3;
   static final int DEAD = 4;
   
   private final BlockingQueue<BSlot<T>> live;
-  // TODO make BSlot extend AtomicInt instead, to avoid the indirection.
-  private final AtomicInteger state;
   T obj;
   Exception poison;
   long created;
@@ -40,14 +38,14 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   long stamp;
   
   public BSlot(BlockingQueue<BSlot<T>> live) {
+    super(DEAD);
     this.live = live;
-    this.state = new AtomicInteger(DEAD);
   }
   
   public void release(Poolable obj) {
     int slotState = 0;
     do {
-      slotState = state.get();
+      slotState = get();
       // We loop here because TLR_CLAIMED slots can be concurrently changed
       // into normal CLAIMED slots.
     } while (isClaimed(slotState));
@@ -66,16 +64,13 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   }
   
   public boolean claim2live() {
-    // why would this ever fail?
-    return cas(CLAIMED, LIVING);
-    
-    // TODO maybe we can do this instead?
-//    state.lazySet(LIVING);
-//    return true;
+    lazySet(LIVING);
+    return true;
   }
   
   public boolean claimTlr2live() {
-    return cas(TLR_CLAIMED, LIVING);
+    lazySet(LIVING);
+    return true;
   }
   
   public boolean live2claim() {
@@ -103,7 +98,7 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   }
 
   private boolean cas(int expected, int update) {
-    return state.compareAndSet(expected, update);
+    return compareAndSet(expected, update);
     
     // TODO see if this is a performance boon or not:
 //    if (state.get() == expected) {
@@ -131,11 +126,11 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   }
 
   public boolean isDead() {
-    return state.get() == DEAD;
+    return get() == DEAD;
   }
   
   public int getState() {
-    return state.get();
+    return get();
   }
 
   public void incrementClaims() {
