@@ -101,6 +101,11 @@ implements LifecycledResizablePool<T> {
       // duplicate entries in the queues. Otherwise we'd have a nasty memory
       // leak on our hands.
     }
+    return slowClaim(timeout);
+  }
+
+  private T slowClaim(Timeout timeout) throws InterruptedException {
+    BSlot<T> slot;
     long deadline = timeout.getDeadline();
     long timeoutLeft = timeout.getTimeoutInBaseUnit();
     TimeUnit baseUnit = timeout.getBaseUnit();
