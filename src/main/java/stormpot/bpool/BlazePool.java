@@ -35,6 +35,13 @@ import java.util.concurrent.TimeUnit;
  */
 public final class BlazePool<T extends Poolable>
 implements LifecycledResizablePool<T> {
+  private static final Exception SHUTDOWN_POISON = new Exception() {
+    @Override
+    public Throwable fillInStackTrace() {
+      return this;
+    }
+  };
+
   private final BlockingQueue<BSlot<T>> live;
   private final BlockingQueue<BSlot<T>> dead;
   private final BAllocThread<T> allocThread;
@@ -57,6 +64,8 @@ implements LifecycledResizablePool<T> {
     dead = new LinkedBlockingQueue<BSlot<T>>();
     tlr = new ThreadLocal<BSlot<T>>();
     poisonPill = new BSlot<T>(live);
+    poisonPill.poison = SHUTDOWN_POISON;
+
     synchronized (config) {
       config.validate();
       allocThread = new BAllocThread<T>(live, dead, config, poisonPill);
@@ -182,22 +191,23 @@ implements LifecycledResizablePool<T> {
   }
 
   private void checkForPoison(BSlot<T> slot) {
-    if (slot == poisonPill) {
-      // The poison pill means the pool has been shut down. The pill was
-      // transitioned from live to claimed just prior to this check, so we
-      // must transition it back to live and put it back into the live-queue
-      // before throwing our exception.
-      // Because we always throw when we see it, it will never become a
-      // tlr-slot, and so we don't need to worry about transitioning from
-      // tlr-claimed to live.
-      slot.claim2live();
-      live.offer(poisonPill);
-      throw new IllegalStateException("pool is shut down");
-    }
-    if (slot.poison != null) {
-      Exception poison = slot.poison;
-      kill(slot);
-      throw new PoolException("allocation failed", poison);
+    Exception poison = slot.poison;
+    if (poison != null) {
+      if (poison == SHUTDOWN_POISON) {
+        // The poison pill means the pool has been shut down. The pill was
+        // transitioned from live to claimed just prior to this check, so we
+        // must transition it back to live and put it back into the live-queue
+        // before throwing our exception.
+        // Because we always throw when we see it, it will never become a
+        // tlr-slot, and so we don't need to worry about transitioning from
+        // tlr-claimed to live.
+        slot.claim2live();
+        live.offer(poisonPill);
+        throw new IllegalStateException("pool is shut down");
+      } else {
+        kill(slot);
+        throw new PoolException("allocation failed", poison);
+      }
     }
     if (shutdown) {
       kill(slot); // TODO Mutation testing not killed when removing this call.
