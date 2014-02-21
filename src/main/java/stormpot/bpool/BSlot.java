@@ -66,16 +66,13 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   }
   
   public boolean claim2live() {
-    // why would this ever fail?
-    return cas(CLAIMED, LIVING);
-    
-    // TODO maybe we can do this instead?
-//    state.lazySet(LIVING);
-//    return true;
+    state.lazySet(LIVING);
+    return true;
   }
   
   public boolean claimTlr2live() {
-    return cas(TLR_CLAIMED, LIVING);
+    state.lazySet(LIVING);
+    return true;
   }
   
   public boolean live2claim() {
