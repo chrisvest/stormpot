@@ -74,8 +74,8 @@ implements LifecycledResizablePool<T> {
     allocThread.start();
   }
 
-  public T claim(Timeout timeout) throws PoolException,
-      InterruptedException {
+  public T claim(Timeout timeout)
+      throws PoolException, InterruptedException {
     if (timeout == null) {
       throw new IllegalArgumentException("timeout cannot be null");
     }
@@ -113,7 +113,8 @@ implements LifecycledResizablePool<T> {
     return slowClaim(timeout);
   }
 
-  private T slowClaim(Timeout timeout) throws InterruptedException {
+  private T slowClaim(Timeout timeout)
+      throws PoolException, InterruptedException {
     BSlot<T> slot;
     long deadline = timeout.getDeadline();
     long timeoutLeft = timeout.getTimeoutInBaseUnit();
