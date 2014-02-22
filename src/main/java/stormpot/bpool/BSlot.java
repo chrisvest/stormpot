@@ -48,17 +48,17 @@ class BSlot<T extends Poolable> extends AtomicInteger implements Slot, SlotInfo<
       slotState = get();
       // We loop here because TLR_CLAIMED slots can be concurrently changed
       // into normal CLAIMED slots.
-    } while (isClaimed(slotState));
+    } while (!tryTransitionToLive(slotState));
     if (slotState == CLAIMED) {
       live.offer(this);
     }
   }
   
-  private boolean isClaimed(int slotState) {
+  private boolean tryTransitionToLive(int slotState) {
     if (slotState == TLR_CLAIMED) {
-      return !claimTlr2live();
+      return claimTlr2live();
     } else if (slotState == CLAIMED) {
-      return !claim2live();
+      return claim2live();
     }
     throw new PoolException("Slot release from bad state: " + slotState);
   }
@@ -69,47 +69,39 @@ class BSlot<T extends Poolable> extends AtomicInteger implements Slot, SlotInfo<
   }
   
   public boolean claimTlr2live() {
-    lazySet(LIVING);
-    return true;
+    // TODO we cannot lazySet here because we need to know if the slot was
+    // concurrently transitioned to an ordinary CLAIMED state
+//    lazySet(LIVING);
+//    return true;
+    return compareAndSet(TLR_CLAIMED, LIVING);
   }
   
   public boolean live2claim() {
-    return cas(LIVING, CLAIMED);
+    return compareAndSet(LIVING, CLAIMED);
   }
   
   public boolean live2claimTlr() {
-    return cas(LIVING, TLR_CLAIMED);
+    return compareAndSet(LIVING, TLR_CLAIMED);
   }
   
   public boolean claimTlr2claim() {
-    return cas(TLR_CLAIMED, CLAIMED); // TODO Not killed by mutation testing.
+    // TODO Not killed by mutation testing.
+    return compareAndSet(TLR_CLAIMED, CLAIMED);
   }
   
   public boolean claim2dead() {
-    return cas(CLAIMED, DEAD);
+    return compareAndSet(CLAIMED, DEAD);
   }
   
   public boolean dead2live() {
-    return cas(DEAD, LIVING); // TODO Not killed by mutation testing.
+    // TODO Not killed by mutation testing.
+    return compareAndSet(DEAD, LIVING);
   }
   
   public boolean live2dead() {
-    return cas(LIVING, DEAD);
+    return compareAndSet(LIVING, DEAD);
   }
 
-  private boolean cas(int expected, int update) {
-    return compareAndSet(expected, update);
-    
-    // TODO see if this is a performance boon or not:
-//    if (state.get() == expected) {
-//      return state.compareAndSet(expected, update);
-//    }
-//    return false;
-    
-    // TODO or perhaps this:
-//    return state.get() == expected && state.compareAndSet(expected, update);
-  }
-  
   @Override
   public long getAgeMillis() {
     return System.currentTimeMillis() - created;
