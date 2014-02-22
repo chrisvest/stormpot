@@ -20,7 +20,6 @@ import stormpot.Poolable;
 import stormpot.Slot;
 import stormpot.SlotInfo;
 
-import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -129,16 +128,17 @@ class BSlot<T extends Poolable> extends AtomicInteger implements Slot, SlotInfo<
   }
 
   // XorShift PRNG with a 2^128-1 period.
-  private static final Random rng = new Random();
-  private int x = rng.nextInt();
-  private int y = rng.nextInt();
-  private int z = rng.nextInt();
+//  private static final Random rng = new Random();
+  private int x = System.identityHashCode(this);//rng.nextInt();
+//  private int y = rng.nextInt();
+//  private int z = rng.nextInt();
   private int w = 1343246171;
   
   @Override
   public int randomInt() {
     int t=(x^(x<<15));
-    x=y; y=z; z=w;
+//    x=y; y=z; z=w;
+    x=w;
     return w=(w^(w>>>21))^(t^(t>>>4));
   }
 
