@@ -43,7 +43,7 @@ class BSlot<T extends Poolable> extends AtomicInteger implements Slot, SlotInfo<
   }
   
   public void release(Poolable obj) {
-    int slotState = 0;
+    int slotState;
     do {
       slotState = get();
       // We loop here because TLR_CLAIMED slots can be concurrently changed

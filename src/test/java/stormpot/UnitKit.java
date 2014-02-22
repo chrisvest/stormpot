@@ -193,7 +193,8 @@ class UnitKit {
   /**
    * http://youtu.be/7qXXWHfJha4
    */
+  @SuppressWarnings("unchecked")
   private static <T extends Throwable> void _sneakyThrow(Throwable throwable) throws T {
-    throw (T)throwable;
+    throw (T) throwable;
   }
 }
