@@ -85,7 +85,6 @@ class BSlot<T extends Poolable> extends AtomicInteger implements Slot, SlotInfo<
   }
   
   public boolean claimTlr2claim() {
-    // TODO Not killed by mutation testing.
     return compareAndSet(TLR_CLAIMED, CLAIMED);
   }
   
