@@ -92,10 +92,10 @@ class BSlot<T extends Poolable> extends AtomicInteger implements Slot, SlotInfo<
   public boolean claim2dead() {
     return compareAndSet(CLAIMED, DEAD);
   }
-  
-  public boolean dead2live() {
-    // TODO Not killed by mutation testing.
-    return compareAndSet(DEAD, LIVING);
+
+  // Never fails
+  public void dead2live() {
+    lazySet(LIVING);
   }
   
   public boolean live2dead() {
