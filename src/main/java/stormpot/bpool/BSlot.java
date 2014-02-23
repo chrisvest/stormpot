@@ -19,41 +19,28 @@ import stormpot.PoolException;
 import stormpot.Poolable;
 import stormpot.Slot;
 import stormpot.SlotInfo;
+import sun.misc.Unsafe;
 
+import java.lang.reflect.Field;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
-class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
+/**
+ * This class is very sensitive to the memory layout, so be careful to measure
+ * the effect of even the tiniest changes!
+ * False-sharing is a fickle and vengeful mistress.
+ */
+class BSlot<T extends Poolable> extends BSlotColdFields<T> implements Slot, SlotInfo<T> {
   static final int LIVING = 1;
   static final int CLAIMED = 2;
   static final int TLR_CLAIMED = 3;
   static final int DEAD = 4;
 
-  private final AtomicInteger state;
-
-  private int get() {
-    return state.get();
-  }
-
-  private void lazySet(int value) {
-    state.lazySet(value);
-  }
-
-  private boolean compareAndSet(int expect, int update) {
-    return state.compareAndSet(expect, update);
-  }
-
-
-  private final BlockingQueue<BSlot<T>> live;
-  T obj;
-  Exception poison;
-  long created;
-  long claims;
-  long stamp;
-  
   public BSlot(BlockingQueue<BSlot<T>> live) {
-    this.live = live;
-    this.state = new PaddedAtomicInteger(DEAD);
+    // Volatile write in the constructor: This object must be safely published,
+    // so that we are sure that the volatile write happens-before other
+    // threads observe the pointer to this object.
+    super(DEAD, live);
   }
   
   public void release(Poolable obj) {
@@ -142,19 +129,6 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
     claims++;
   }
 
-  // XorShift PRNG with a 2^128-1 period.
-  private int x = System.identityHashCode(this);
-  private int y = 938745813;
-  private int z = 452465366;
-  private int w = 1343246171;
-  
-  @Override
-  public int randomInt() {
-    int t=(x^(x<<15));
-    x=y; y=z; z=w;
-    return w=(w^(w>>>21))^(t^(t>>>4));
-  }
-
   @Override
   public long getStamp() {
     return stamp;
@@ -163,5 +137,141 @@ class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   @Override
   public void setStamp(long stamp) {
     this.stamp = stamp;
+  }
+}
+
+
+
+/*
+The Java Object Layout rendition:
+
+Running 64-bit HotSpot VM.
+Using compressed references with 3-bit shift.
+Objects are 8 bytes aligned.
+Field sizes by type: 4, 1, 1, 2, 2, 4, 4, 8, 8 [bytes]
+Array element sizes: 4, 1, 1, 2, 2, 4, 4, 8, 8 [bytes]
+
+stormpot.bpool.BSlot object internals:
+ OFFSET  SIZE          TYPE DESCRIPTION                    VALUE
+      0     4               (object header)                01 21 88 61 (0000 0001 0010 0001 1000 1000 0110 0001)
+      4     4               (object header)                6c 00 00 00 (0110 1100 0000 0000 0000 0000 0000 0000)
+      8     4               (object header)                8a b6 61 df (1000 1010 1011 0110 0110 0001 1101 1111)
+     12     4           int Padding1.p0                    0
+     16     8          long Padding1.p1                    0
+     24     8          long Padding1.p2                    0
+     32     8          long Padding1.p3                    0
+     40     8          long Padding1.p4                    0
+     48     8          long Padding1.p5                    0
+     56     8          long Padding1.p6                    0
+     64     4           int PaddedAtomicInteger.state      4
+     68     4               (alignment/padding gap)        N/A
+     72     8          long Padding2.p1                    0
+     80     8          long Padding2.p2                    0
+     88     8          long Padding2.p3                    0
+     96     8          long Padding2.p4                    0
+    104     8          long Padding2.p5                    0
+    112     8          long Padding2.p6                    0
+    120     8          long Padding2.p7                    0
+    128     8          long BSlotColdFields.stamp          0
+    136     8          long BSlotColdFields.created        0
+    144     8          long BSlotColdFields.claims         0
+    152     4           int BSlotColdFields.x              1818331169
+    156     4           int BSlotColdFields.y              938745813
+    160     4           int BSlotColdFields.z              452465366
+    164     4           int BSlotColdFields.w              1343246171
+    168     4 BlockingQueue BSlotColdFields.live           null
+    172     4      Poolable BSlotColdFields.obj            null
+    176     4     Exception BSlotColdFields.poison         null
+    180     4               (loss due to the next object alignment)
+Instance size: 184 bytes (estimated, add this JAR via -javaagent: to get accurate result)
+Space losses: 4 bytes internal + 4 bytes external = 8 bytes total
+ */
+abstract class Padding1 {
+  private int p0;
+  private long p1, p2, p3, p4, p5, p6;
+}
+
+abstract class PaddedAtomicInteger extends Padding1 {
+  private static final Unsafe unsafe;
+  private static final long stateFieldOffset;
+  private static final AtomicIntegerFieldUpdater<PaddedAtomicInteger> updater;
+
+  static {
+    Unsafe theUnsafe;
+    long theStateFieldOffset;
+    try {
+      Field theUnsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+      theUnsafeField.setAccessible(true);
+      theUnsafe = (Unsafe) theUnsafeField.get(null);
+      Field stateField = PaddedAtomicInteger.class.getDeclaredField("state");
+      theStateFieldOffset = theUnsafe.objectFieldOffset(stateField);
+    } catch (Throwable ignore) {
+      theUnsafe = null;
+      theStateFieldOffset = 0;
+    }
+    stateFieldOffset = theStateFieldOffset;
+    unsafe = theUnsafe;
+    updater = AtomicIntegerFieldUpdater.newUpdater(PaddedAtomicInteger.class, "state");
+  }
+
+  private volatile int state;
+
+  public PaddedAtomicInteger(int state) {
+    this.state = state;
+  }
+
+  protected final boolean compareAndSet(int expected, int update) {
+    if (unsafe != null) {
+      return unsafe.compareAndSwapInt(this, stateFieldOffset, expected, update);
+    } else {
+      return updater.compareAndSet(this, expected, update);
+    }
+  }
+
+  protected final void lazySet(int update) {
+    if (unsafe != null) {
+      unsafe.putOrderedInt(this, stateFieldOffset, update);
+    } else {
+      updater.lazySet(this, update);
+    }
+  }
+
+  protected int get() {
+    return state;
+  }
+}
+
+abstract class Padding2 extends PaddedAtomicInteger {
+  private long p1, p2, p3, p4, p5, p6, p7;
+
+  public Padding2(int state) {
+    super(state);
+  }
+}
+
+abstract class BSlotColdFields<T extends Poolable> extends Padding2 implements SlotInfo<T> {
+  final BlockingQueue<BSlot<T>> live;
+  long stamp;
+  long created;
+  T obj;
+  Exception poison;
+  long claims;
+
+  public BSlotColdFields(int state, BlockingQueue<BSlot<T>> live) {
+    super(state);
+    this.live = live;
+  }
+
+  // XorShift PRNG with a 2^128-1 period.
+  int x = System.identityHashCode(this);
+  int y = 938745813;
+  int z = 452465366;
+  int w = 1343246171;
+
+  @Override
+  public int randomInt() {
+    int t=(x^(x<<15));
+    x=y; y=z; z=w;
+    return w=(w^(w>>>21))^(t^(t>>>4));
   }
 }
