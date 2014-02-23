@@ -405,7 +405,7 @@ public class PoolTest {
    * numbers are random, then they will have a roughly even split between ones
    * and zero bits.
    */
-  @Test(timeout = 601)
+  @Test(timeout = 1601)
   @Theory public void
   slotInfoMustBeAbleToProduceRandomNumbers(PoolFixture fixture) throws Exception {
     final AtomicReference<SlotInfo<? extends Poolable>> slotInfoRef =
