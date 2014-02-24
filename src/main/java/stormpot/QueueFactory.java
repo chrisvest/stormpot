@@ -20,7 +20,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 class QueueFactory {
-  private static interface Factory {
+  interface Factory {
     <T> BlockingQueue<T> createUnboundedBlockingQueue();
   }
 
