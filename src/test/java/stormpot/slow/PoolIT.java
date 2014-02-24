@@ -24,9 +24,9 @@ import org.junit.experimental.theories.Theory;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import stormpot.*;
-import stormpot.BlazePoolFixture;
-import stormpot.QueuePoolFixture;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -44,9 +44,13 @@ public class PoolIT {
 
   private static final Timeout longTimeout = new Timeout(1, TimeUnit.MINUTES);
 
+  // Initialised by setUp()
   private CountingAllocator allocator;
   private Config<GenericPoolable> config;
   private ExecutorService executor;
+
+  // Initialised in the tests
+  private LifecycledResizablePool<GenericPoolable> pool;
 
   @DataPoint public static PoolFixture queuePool = new QueuePoolFixture();
   @DataPoint public static PoolFixture blazePool = new BlazePoolFixture();
@@ -65,12 +69,27 @@ public class PoolIT {
     return (LifecycledResizablePool<GenericPoolable>) pool;
   }
 
-  @Test(timeout = 1500)
-  @Theory public void highContentionMustNotCausePoolLeakage(
+  @Test(timeout = 1601)
+  @Theory public void
+  highContentionMustNotCausePoolLeakage(
       PoolFixture fixture) throws Exception {
-    final LifecycledResizablePool<GenericPoolable> pool = lifecycledResizable(fixture);
+    pool = lifecycledResizable(fixture);
 
-    Runnable runner = new Runnable() {
+    Runnable runner = createTaskClaimReleaseUntilShutdown(pool);
+
+    Future<?> future = executor.submit(runner);
+
+    long deadline = System.currentTimeMillis() + 1000;
+    do {
+      pool.claim(longTimeout).release();
+    } while (System.currentTimeMillis() < deadline);
+    pool.shutdown().await(longTimeout);
+    future.get();
+  }
+
+  private Runnable createTaskClaimReleaseUntilShutdown(
+      final LifecycledResizablePool<GenericPoolable> pool) {
+    return new Runnable() {
       @Override
       public void run() {
         try {
@@ -84,14 +103,34 @@ public class PoolIT {
         }
       }
     };
-
-    Future<?> future = executor.submit(runner);
-
-    long deadline = System.currentTimeMillis() + 1000;
-    do {
-      pool.claim(longTimeout).release();
-    } while (System.currentTimeMillis() < deadline);
-    pool.shutdown().await(longTimeout);
-    future.get();
   }
+
+  @Test(timeout = 1601)
+  @Theory public void
+  shutdownMustCompleteSuccessfullyEvenAtHighContention(
+      PoolFixture fixture) throws Exception {
+    int size = 100000;
+    config.setSize(size);
+    pool = lifecycledResizable(fixture);
+
+    List<Future<?>> futures = new ArrayList<Future<?>>();
+    for (int i = 0; i < 64; i++) {
+      Runnable runner = createTaskClaimReleaseUntilShutdown(pool);
+      futures.add(executor.submit(runner));
+    }
+
+    // Wait for all the objects to be created
+    while (allocator.allocations() < size) {
+      Thread.sleep(10);
+    }
+
+    // Very good, now shut down everything
+    pool.shutdown().await(longTimeout);
+
+    // Check that the shut down was orderly
+    for (Future<?> future : futures) {
+      future.get();
+    }
+  }
+
 }

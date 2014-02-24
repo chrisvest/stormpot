@@ -48,7 +48,7 @@ public class ExecutorTestRule implements TestRule {
         try {
           base.evaluate();
           executor.shutdown();
-          if (!executor.awaitTermination(1000, TimeUnit.SECONDS)) {
+          if (!executor.awaitTermination(5000, TimeUnit.SECONDS)) {
             throw new Exception(
                 "ExecutorService.shutdown timed out after 1 second");
           }
@@ -79,7 +79,25 @@ public class ExecutorTestRule implements TestRule {
     public void verifyAllThreadsTerminatedSuccessfully() {
       synchronized (threads) {
         for (Thread thread : threads) {
-          assertThat(thread.getState(), is(Thread.State.TERMINATED));
+          // The Thread.State is updated asynchronously by the JVM,
+          // so we occasionally have to do a couple of retries before we
+          // observe the state change.
+          Thread.State state = thread.getState();
+          int tries = 100;
+          while (state != Thread.State.TERMINATED && tries --> 0) {
+            Thread.yield();
+            state = thread.getState();
+          }
+          if (tries == 0) {
+            // Okay, this is odd. Let's ask everybody to come to a safe-point
+            // before we pass our final judgement on the thread state.
+            System.gc();
+            state = thread.getState();
+          }
+          assertThat(
+              "Unexpected thread state: " + thread + " (id " + thread.getId() + ")",
+              state,
+              is(Thread.State.TERMINATED));
         }
       }
     }
@@ -90,7 +108,7 @@ public class ExecutorTestRule implements TestRule {
             "\n===[ Dumping stack traces for all created threads ]===\n");
         for (final Thread thread : threads) {
           Exception printer = new Exception(
-              "Stack trace for " + thread + ", state = " + thread.getState());
+              "Stack trace for " + thread + " (id " + thread.getId() + "), state = " + thread.getState());
           printer.setStackTrace(thread.getStackTrace());
           printer.printStackTrace();
         }

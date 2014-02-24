@@ -135,12 +135,6 @@ implements LifecycledResizablePool<T> {
         // we timed out while taking from the queue - just return null
         return null;
       }
-      if (slot == poisonPill) { // TODO this can probably be commented out
-        // The poison pill means the pool has been shut down.
-        // We must make sure to keep it circulating.
-        live.offer(poisonPill);
-        throw new IllegalStateException("pool is shut down");
-      }
       // Again, attempt to claim before checking validity. We mustn't kill
       // objects that are already claimed by someone else.
       do {

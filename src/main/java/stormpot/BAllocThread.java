@@ -62,44 +62,8 @@ class BAllocThread<T extends Poolable> extends Thread {
 
   private void continuouslyReplenishPool() {
     try {
-      //noinspection InfiniteLoopStatement
-      for (;;) {
-        boolean weHaveWorkToDo = size != targetSize || poisonedSlots > 0;
-        long deadPollTimeout = weHaveWorkToDo? 0 : 50;
-        if (size < targetSize) {
-          BSlot<T> slot = new BSlot<T>(live);
-          alloc(slot);
-        }
-        BSlot<T> slot = dead.poll(deadPollTimeout, TimeUnit.MILLISECONDS);
-        if (size > targetSize) {
-          slot = slot == null? live.poll() : slot;
-          if (slot != null) {
-            if (slot.isDead() || slot.live2dead()) {
-              dealloc(slot);
-            } else {
-              live.offer(slot);
-            }
-          }
-        } else if (slot != null) {
-          realloc(slot);
-        }
-
-        if (shutdown) {
-          break;
-        }
-
-        if (poisonedSlots > 0) {
-          // Proactively seek out and try to heal poisoned slots
-          slot = live.poll();
-          if (slot != null) {
-                                                    // TODO test for this
-            if ((slot.isDead() || slot.live2dead()) /* && slot.poison != null */) {
-              realloc(slot);
-            } else {
-              live.offer(slot);
-            }
-          }
-        }
+      while (!shutdown) {
+        replenishPool();
       }
     } catch (InterruptedException ignore) {
     }
@@ -107,6 +71,47 @@ class BAllocThread<T extends Poolable> extends Thread {
     // let the poison-pill enter the system
     poisonPill.dead2live();
     live.offer(poisonPill);
+  }
+
+  private void replenishPool() throws InterruptedException {
+    boolean weHaveWorkToDo = size != targetSize || poisonedSlots > 0;
+    long deadPollTimeout = weHaveWorkToDo? 0 : 50;
+    if (size < targetSize) {
+      BSlot<T> slot = new BSlot<T>(live);
+      alloc(slot);
+    }
+    BSlot<T> slot = dead.poll(deadPollTimeout, TimeUnit.MILLISECONDS);
+    if (size > targetSize) {
+      slot = slot == null? live.poll() : slot;
+      if (slot != null) {
+        if (slot.isDead() || slot.live2dead()) {
+          dealloc(slot);
+        } else {
+          live.offer(slot);
+        }
+      }
+    } else if (slot != null) {
+      realloc(slot);
+    }
+
+    if (shutdown) {
+      // Prior allocations might notice that we've been shut down. In that
+      // case, we need to skip the eager reallocation of poisoned slots.
+      return;
+    }
+
+    if (poisonedSlots > 0) {
+      // Proactively seek out and try to heal poisoned slots
+      slot = live.poll();
+      if (slot != null) {
+                                                // TODO test for this
+        if ((slot.isDead() || slot.live2dead()) /* && slot.poison != null */) {
+          realloc(slot);
+        } else {
+          live.offer(slot);
+        }
+      }
+    }
   }
 
   private void shutPoolDown() {
