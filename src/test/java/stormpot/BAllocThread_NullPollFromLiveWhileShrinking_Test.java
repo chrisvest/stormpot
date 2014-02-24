@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot.bpool;
+package stormpot;
 
 import org.junit.Test;
 import stormpot.*;

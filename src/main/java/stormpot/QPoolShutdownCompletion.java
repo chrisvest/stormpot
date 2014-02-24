@@ -13,10 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot.qpool;
-
-import stormpot.Completion;
-import stormpot.Timeout;
+package stormpot;
 
 final class QPoolShutdownCompletion implements Completion {
   private final QAllocThread<?> allocThread;

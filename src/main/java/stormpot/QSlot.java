@@ -13,11 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot.qpool;
-
-import stormpot.Poolable;
-import stormpot.Slot;
-import stormpot.SlotInfo;
+package stormpot;
 
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;

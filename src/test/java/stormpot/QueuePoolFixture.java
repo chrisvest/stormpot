@@ -13,15 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- * A general purpose {@link stormpot.LifecycledResizablePool} implementation
- * based on a queueing design.
- * <p>
- * The design is simple and straight forward, and exhibits a reasonable
- * base-line performance in all cases. If, however, the same threads are going
- * to claim and release objects from the pool over and over again — for
- * instance in the case of a typical Java web application — then
- * {@link stormpot.bpool.BlazePool} is likely going to yield better
- * performance.
- */
-package stormpot.qpool;
+package stormpot;
+
+import stormpot.*;
+import stormpot.qpool.*;
+
+public class QueuePoolFixture implements PoolFixture {
+  public <T extends Poolable> Pool<T> initPool(Config<T> config) {
+    return new stormpot.qpool.QueuePool<T>(config);
+  }
+}

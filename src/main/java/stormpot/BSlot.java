@@ -13,12 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot.bpool;
+package stormpot;
 
-import stormpot.PoolException;
-import stormpot.Poolable;
-import stormpot.Slot;
-import stormpot.SlotInfo;
 import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
@@ -155,7 +151,7 @@ Objects are 8 bytes aligned.
 Field sizes by type: 4, 1, 1, 2, 2, 4, 4, 8, 8 [bytes]
 Array element sizes: 4, 1, 1, 2, 2, 4, 4, 8, 8 [bytes]
 
-stormpot.bpool.BSlot object internals:
+stormpot.BSlot object internals:
  OFFSET  SIZE          TYPE DESCRIPTION                    VALUE
       0     4               (object header)                01 21 88 61 (0000 0001 0010 0001 1000 1000 0110 0001)
       4     4               (object header)                6c 00 00 00 (0110 1100 0000 0000 0000 0000 0000 0000)

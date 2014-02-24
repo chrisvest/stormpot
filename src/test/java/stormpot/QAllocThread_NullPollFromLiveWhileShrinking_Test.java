@@ -13,21 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot.qpool;
-
-import stormpot.AllocThread_ShutdownNullsPool_TestTemplate;
-import stormpot.GenericPoolable;
-import stormpot.Poolable;
+package stormpot;
 
 import java.util.concurrent.BlockingQueue;
 
-public class QAllocThread_ShutdownNullsPoll_Test
-extends AllocThread_ShutdownNullsPool_TestTemplate<QSlot<Poolable>, QAllocThread<Poolable>> {
+public class QAllocThread_NullPollFromLiveWhileShrinking_Test
+extends AllocThread_NullPollFromLiveWhileShrinking_TestTemplate<QSlot<Poolable>, QAllocThread<Poolable>> {
 
-  @Override
   protected QAllocThread<Poolable> createAllocThread(
-      BlockingQueue<QSlot<Poolable>> live, BlockingQueue<QSlot<Poolable>> dead) {
-    return new QAllocThread<Poolable>(live, dead, config, new QSlot<Poolable>(live));
+      BlockingQueue<QSlot<Poolable>> live, BlockingQueue<QSlot<Poolable>> dead,
+      Config<Poolable> config) {
+    QAllocThread<Poolable> th = new QAllocThread<Poolable>(live, dead, config, new QSlot<Poolable>(live));
+    return th;
+  }
+
+  protected void setTargetSize(
+      final QAllocThread<Poolable> thread,
+      final int size) {
+    thread.setTargetSize(size);
   }
 
   @Override

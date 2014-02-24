@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot.qpool;
+package stormpot;
 
-import stormpot.Config;
-import stormpot.Pool;
-import stormpot.PoolFixture;
-import stormpot.Poolable;
+import stormpot.*;
+import stormpot.bpool.*;
 
-public class QueuePoolFixture implements PoolFixture {
+public class BlazePoolFixture implements PoolFixture {
+
+  @Override
   public <T extends Poolable> Pool<T> initPool(Config<T> config) {
-    return new QueuePool<T>(config);
+    return new stormpot.bpool.BlazePool<T>(config);
   }
 }

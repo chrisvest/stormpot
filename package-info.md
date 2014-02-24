@@ -169,7 +169,7 @@ because we want our code to have a clean shut-down path; some methods take a
 are going to have to implement in our own code, and we will be needing the
 {@link stormpot.Slot} interface to do that; and finally we are going to
 need a concrete pool implementation from the library: the
-{@link stormpot.bpool.BlazePool BlazePool}.
+{@link stormpot.BlazePool BlazePool}.
 
     ::: java
     import stormpot.Allocator;
@@ -178,7 +178,7 @@ need a concrete pool implementation from the library: the
     import stormpot.Poolable;
     import stormpot.Slot;
     import stormpot.Timeout;
-    import stormpot.bpool.BlazePool;
+    import stormpot.BlazePool;
 
 The next thing we want to do, is to implement our pooled object - in this
 case our DAO class called `MyDao`. To keep everything in one file, we

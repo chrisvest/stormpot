@@ -13,12 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot.bpool;
+package stormpot;
 
 import org.junit.Test;
-import stormpot.AllocThread_ShutdownNullsPool_TestTemplate;
-import stormpot.GenericPoolable;
-import stormpot.Poolable;
+import stormpot.*;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;

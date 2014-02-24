@@ -198,7 +198,7 @@ because we want our code to have a clean shut-down path; some methods take a
 are going to have to implement in our own code, and we will be needing the
 {@link stormpot.Slot} interface to do that; and finally we are going to
 need a concrete pool implementation from the library: the
-{@link stormpot.bpool.BlazePool BlazePool}.</p>
+{@link stormpot.BlazePool BlazePool}.</p>
 
 <div class="codehilite"><pre><code><span class="cckn">import</span> <span class="ccnn">stormpot.Allocator</span><span class="cco">;</span>
 <span class="cckn">import</span> <span class="ccnn">stormpot.Config</span><span class="cco">;</span>
@@ -206,7 +206,7 @@ need a concrete pool implementation from the library: the
 <span class="cckn">import</span> <span class="ccnn">stormpot.Poolable</span><span class="cco">;</span>
 <span class="cckn">import</span> <span class="ccnn">stormpot.Slot</span><span class="cco">;</span>
 <span class="cckn">import</span> <span class="ccnn">stormpot.Timeout</span><span class="cco">;</span>
-<span class="cckn">import</span> <span class="ccnn">stormpot.bpool.BlazePool</span><span class="cco">;</span>
+<span class="cckn">import</span> <span class="ccnn">stormpot.BlazePool</span><span class="cco">;</span>
 </code></pre></div>
 
 <p>The next thing we want to do, is to implement our pooled object - in this

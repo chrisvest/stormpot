@@ -13,19 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot.qpool;
-
-import stormpot.Config;
-import stormpot.Poolable;
-import stormpot.Reallocator;
-import stormpot.Timeout;
+package stormpot;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
-class QAllocThread<T extends Poolable> extends Thread {
+class BAllocThread<T extends Poolable> extends Thread {
   /**
    * The amount of time, in nanoseconds, to wait for more work when the
    * shutdown process has deallocated all the dead and live slots it could
@@ -34,19 +29,21 @@ class QAllocThread<T extends Poolable> extends Thread {
   private final static long shutdownPauseNanos =
       TimeUnit.MILLISECONDS.toNanos(10);
 
+  
   private final CountDownLatch completionLatch;
-  private final BlockingQueue<QSlot<T>> live;
-  private final BlockingQueue<QSlot<T>> dead;
+  private final BlockingQueue<BSlot<T>> live;
+  private final BlockingQueue<BSlot<T>> dead;
   private final Reallocator<T> allocator;
-  private final QSlot<T> poisonPill;
+  private final BSlot<T> poisonPill;
   private volatile int targetSize;
   private volatile boolean shutdown;
   private int size;
   private int poisonedSlots;
 
-  public QAllocThread(
-      BlockingQueue<QSlot<T>> live, BlockingQueue<QSlot<T>> dead,
-      Config<T> config, QSlot<T> poisonPill) {
+  public BAllocThread(
+      BlockingQueue<BSlot<T>> live,
+      BlockingQueue<BSlot<T>> dead,
+      Config<T> config, BSlot<T> poisonPill) {
     this.targetSize = config.getSize();
     completionLatch = new CountDownLatch(1);
     this.allocator = config.getReallocator();
@@ -70,14 +67,18 @@ class QAllocThread<T extends Poolable> extends Thread {
         boolean weHaveWorkToDo = size != targetSize || poisonedSlots > 0;
         long deadPollTimeout = weHaveWorkToDo? 0 : 50;
         if (size < targetSize) {
-          QSlot<T> slot = new QSlot<T>(live);
+          BSlot<T> slot = new BSlot<T>(live);
           alloc(slot);
         }
-        QSlot<T> slot = dead.poll(deadPollTimeout, TimeUnit.MILLISECONDS);
+        BSlot<T> slot = dead.poll(deadPollTimeout, TimeUnit.MILLISECONDS);
         if (size > targetSize) {
           slot = slot == null? live.poll() : slot;
           if (slot != null) {
-            dealloc(slot);
+            if (slot.isDead() || slot.live2dead()) {
+              dealloc(slot);
+            } else {
+              live.offer(slot);
+            }
           }
         } else if (slot != null) {
           realloc(slot);
@@ -91,10 +92,11 @@ class QAllocThread<T extends Poolable> extends Thread {
           // Proactively seek out and try to heal poisoned slots
           slot = live.poll();
           if (slot != null) {
-            if (slot.poison == null) {
-              live.offer(slot);
-            } else {
+                                                    // TODO test for this
+            if ((slot.isDead() || slot.live2dead()) /* && slot.poison != null */) {
               realloc(slot);
+            } else {
+              live.offer(slot);
             }
           }
         }
@@ -103,12 +105,13 @@ class QAllocThread<T extends Poolable> extends Thread {
     }
     // This means we've been shut down.
     // let the poison-pill enter the system
+    poisonPill.dead2live();
     live.offer(poisonPill);
   }
 
   private void shutPoolDown() {
     while (size > 0) {
-      QSlot<T> slot = dead.poll();
+      BSlot<T> slot = dead.poll();
       if (slot == null) {
         slot = live.poll();
       }
@@ -122,12 +125,17 @@ class QAllocThread<T extends Poolable> extends Thread {
       if (slot == null) {
         LockSupport.parkNanos(shutdownPauseNanos);
       } else {
-        dealloc(slot);
+        if (slot.isDead() || slot.live2dead()) {
+          dealloc(slot);
+        } else {
+          live.offer(slot);
+        }
       }
     }
   }
 
-  private void alloc(QSlot<T> slot) {
+  private void alloc(BSlot<T> slot) {
+    assert slot != poisonPill : "Cannot allocate the poison pill: " + slot;
     try {
       slot.obj = allocator.allocate(slot);
       if (slot.obj == null) {
@@ -142,11 +150,13 @@ class QAllocThread<T extends Poolable> extends Thread {
     slot.created = System.currentTimeMillis();
     slot.claims = 0;
     slot.stamp = 0;
-    slot.claimed.set(true);
-    slot.release(slot.obj);
+    slot.dead2live();
+    live.offer(slot);
   }
 
-  private void dealloc(QSlot<T> slot) {
+  private void dealloc(BSlot<T> slot) {
+    assert slot.isDead() : "Cannot deallocate non-dead slot: " + slot;
+    assert slot != poisonPill : "Cannot deallocate the poison pill: " + slot;
     size--;
     try {
       if (slot.poison == null) {
@@ -161,7 +171,9 @@ class QAllocThread<T extends Poolable> extends Thread {
     slot.obj = null;
   }
 
-  private void realloc(QSlot<T> slot) {
+  private void realloc(BSlot<T> slot) {
+    assert slot.isDead() : "Cannot reallocate non-dead slot: " + slot;
+    assert slot != poisonPill : "Cannot reallocate the poison pill: " + slot;
     if (slot.poison == null) {
       assert slot.obj != null : "slot.obj should not have been null";
       try {
@@ -177,6 +189,7 @@ class QAllocThread<T extends Poolable> extends Thread {
       slot.created = System.currentTimeMillis();
       slot.claims = 0;
       slot.stamp = 0;
+      slot.dead2live();
       live.offer(slot);
     } else {
       dealloc(slot);

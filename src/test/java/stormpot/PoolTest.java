@@ -23,8 +23,8 @@ import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
-import stormpot.bpool.BlazePoolFixture;
-import stormpot.qpool.QueuePoolFixture;
+import stormpot.BlazePoolFixture;
+import stormpot.QueuePoolFixture;
 
 import java.util.ArrayList;
 import java.util.Collections;

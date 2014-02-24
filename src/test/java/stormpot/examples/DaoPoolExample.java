@@ -30,7 +30,7 @@ import stormpot.Poolable;
 import stormpot.Slot;
 import stormpot.SlotInfo;
 import stormpot.Timeout;
-import stormpot.qpool.QueuePool;
+import stormpot.QueuePool;
 
 public class DaoPoolExample {
   static class MyDao implements Poolable {
