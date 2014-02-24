@@ -128,10 +128,7 @@
             <param>stormpot.*</param>
           </targetTests>
           <targetClasses>
-            <param>stormpot.Config</param>
-            <param>stormpot.PoolException</param>
-            <param>stormpot.bpool.*</param>
-            <param>stormpot.qpool.*</param>
+            <param>stormpot.*</param>
           </targetClasses>
           <threads>4</threads>
           <jvmArgs>
