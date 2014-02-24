@@ -202,10 +202,6 @@ class BAllocThread<T extends Poolable> extends Thread {
     }
   }
 
-  boolean await(Timeout timeout) throws InterruptedException {
-    return completionLatch.await(timeout.getTimeout(), timeout.getUnit());
-  }
-
   void setTargetSize(int size) {
     this.targetSize = size;
   }
@@ -214,8 +210,9 @@ class BAllocThread<T extends Poolable> extends Thread {
     return targetSize;
   }
 
-  void shutdown() {
+  Completion shutdown() {
     shutdown = true;
     interrupt();
+    return new LatchCompletion(completionLatch);
   }
 }

@@ -105,7 +105,7 @@ public class PoolIT {
     };
   }
 
-  @Test(timeout = 1601)
+  @Test(timeout = 16010)
   @Theory public void
   shutdownMustCompleteSuccessfullyEvenAtHighContention(
       PoolFixture fixture) throws Exception {

@@ -15,11 +15,13 @@
  */
 package stormpot;
 
-final class BPoolShutdownCompletion implements Completion {
-  private final BAllocThread<?> allocThread;
+import java.util.concurrent.CountDownLatch;
+
+final class LatchCompletion implements Completion {
+  private final CountDownLatch completionLatch;
   
-  public BPoolShutdownCompletion(BAllocThread<?> allocThread) {
-    this.allocThread = allocThread;
+  public LatchCompletion(CountDownLatch completionLatch) {
+    this.completionLatch = completionLatch;
   }
   
   public boolean await(Timeout timeout)
@@ -27,6 +29,6 @@ final class BPoolShutdownCompletion implements Completion {
     if (timeout == null) {
       throw new IllegalArgumentException("timeout cannot be null");
     }
-    return allocThread.await(timeout);
+    return completionLatch.await(timeout.getTimeout(), timeout.getUnit());
   }
 }

@@ -16,7 +16,6 @@
 package stormpot;
 
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * QueuePool is a fairly simple {@link LifecycledResizablePool} implementation
@@ -57,8 +56,8 @@ implements LifecycledResizablePool<T> {
    * @param config The pool configuration to use.
    */
   public QueuePool(Config<T> config) {
-    live = new LinkedBlockingQueue<QSlot<T>>();
-    dead = new LinkedBlockingQueue<QSlot<T>>();
+    live = QueueFactory.createUnboundedBlockingQueue();
+    dead = QueueFactory.createUnboundedBlockingQueue();
     synchronized (config) {
       config.validate();
       allocThread = new QAllocThread<T>(live, dead, config, poisonPill);
@@ -126,8 +125,7 @@ implements LifecycledResizablePool<T> {
 
   public Completion shutdown() {
     shutdown = true;
-    allocThread.shutdown();
-    return new QPoolShutdownCompletion(allocThread);
+    return allocThread.shutdown();
   }
 
   public void setTargetSize(int size) {

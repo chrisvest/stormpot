@@ -179,10 +179,6 @@ class QAllocThread<T extends Poolable> extends Thread {
     }
   }
 
-  boolean await(Timeout timeout) throws InterruptedException {
-    return completionLatch.await(timeout.getTimeout(), timeout.getUnit());
-  }
-
   void setTargetSize(int size) {
     this.targetSize = size;
   }
@@ -191,8 +187,9 @@ class QAllocThread<T extends Poolable> extends Thread {
     return targetSize;
   }
 
-  void shutdown() {
+  LatchCompletion shutdown() {
     shutdown = true;
     interrupt();
+    return new LatchCompletion(completionLatch);
   }
 }

@@ -16,7 +16,6 @@
 package stormpot;
 
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -65,8 +64,8 @@ implements LifecycledResizablePool<T> {
    * @param config The pool configuration to use.
    */
   public BlazePool(Config<T> config) {
-    live = new LinkedBlockingQueue<BSlot<T>>();
-    dead = new LinkedBlockingQueue<BSlot<T>>();
+    live = QueueFactory.createUnboundedBlockingQueue();
+    dead = QueueFactory.createUnboundedBlockingQueue();
     tlr = new ThreadLocal<BSlot<T>>();
     poisonPill = new BSlot<T>(live);
     poisonPill.poison = SHUTDOWN_POISON;
@@ -240,8 +239,7 @@ implements LifecycledResizablePool<T> {
 
   public Completion shutdown() {
     shutdown = true;
-    allocThread.shutdown();
-    return new BPoolShutdownCompletion(allocThread);
+    return allocThread.shutdown();
   }
 
   public void setTargetSize(int size) {
