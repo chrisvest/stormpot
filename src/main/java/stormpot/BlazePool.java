@@ -97,7 +97,7 @@ implements LifecycledResizablePool<T> {
       // If we checked validity before claiming, then we might find that it
       // had expired, and throw it in the dead queue, causing a claimed
       // Poolable to be deallocated before it is released.
-      if (!isInvalid(slot)) {
+      if (!isInvalid(slot, true)) {
         slot.incrementClaims();
         return slot.obj;
       }
@@ -162,7 +162,7 @@ implements LifecycledResizablePool<T> {
       // dead-queue *while somebody else thinks they've TLR-claimed it!*
       // We handle this in the outer loop: if we couldn't claim, then we retry
       // the loop.
-      if (notClaimed || isInvalid(slot)) {
+      if (notClaimed || isInvalid(slot, false)) {
         timeoutLeft = timeout.getTimeLeft(deadline);
         continue;
       }
@@ -173,8 +173,33 @@ implements LifecycledResizablePool<T> {
     return slot.obj;
   }
 
-  private boolean isInvalid(BSlot<T> slot) {
-    checkForPoison(slot);
+  private boolean isInvalid(BSlot<T> slot, boolean isTlr) {
+    Exception poison = slot.poison;
+    if (poison != null) {
+      if (poison == SHUTDOWN_POISON) {
+        // The poison pill means the pool has been shut down. The pill was
+        // transitioned from live to claimed just prior to this check, so we
+        // must transition it back to live and put it back into the live-queue
+        // before throwing our exception.
+        // Because we always throw when we see it, it will never become a
+        // tlr-slot, and so we don't need to worry about transitioning from
+        // tlr-claimed to live.
+        slot.claim2live();
+        live.offer(poisonPill);
+        throw new IllegalStateException("pool is shut down");
+      } else {
+        kill(slot);
+        if (isTlr) {
+          return true;
+        } else {
+          throw new PoolException("allocation failed", poison);
+        }
+      }
+    }
+    if (shutdown) {
+      kill(slot); // TODO Mutation testing not killed when removing this call.
+      throw new IllegalStateException("pool is shut down");
+    }
     boolean invalid = true;
     RuntimeException exception = null;
     try {
@@ -193,31 +218,6 @@ implements LifecycledResizablePool<T> {
     return invalid;
   }
 
-  private void checkForPoison(BSlot<T> slot) {
-    Exception poison = slot.poison;
-    if (poison != null) {
-      if (poison == SHUTDOWN_POISON) {
-        // The poison pill means the pool has been shut down. The pill was
-        // transitioned from live to claimed just prior to this check, so we
-        // must transition it back to live and put it back into the live-queue
-        // before throwing our exception.
-        // Because we always throw when we see it, it will never become a
-        // tlr-slot, and so we don't need to worry about transitioning from
-        // tlr-claimed to live.
-        slot.claim2live();
-        live.offer(poisonPill);
-        throw new IllegalStateException("pool is shut down");
-      } else {
-        kill(slot);
-        throw new PoolException("allocation failed", poison);
-      }
-    }
-    if (shutdown) {
-      kill(slot); // TODO Mutation testing not killed when removing this call.
-      throw new IllegalStateException("pool is shut down");
-    }
-  }
-
   private void kill(BSlot<T> slot) {
     // The use of claim2dead() here ensures that we don't put slots into the
     // dead-queue more than once. Many threads might have this as their
@@ -232,6 +232,7 @@ implements LifecycledResizablePool<T> {
         return;
       }
       if (state == BSlot.TLR_CLAIMED && slot.claimTlr2live()) {
+        tlr.set(null);
         return;
       }
     }

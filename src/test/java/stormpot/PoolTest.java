@@ -23,13 +23,12 @@ import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
-import stormpot.BlazePoolFixture;
-import stormpot.QueuePoolFixture;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -1631,6 +1630,55 @@ public class PoolTest {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     GenericPoolable obj = forkFuture($claim(pool, longTimeout)).get();
     obj.release();
+  }
+
+  @Test(timeout=601)
+  @Theory public void
+  mustNotCachePoisonedSlots(PoolFixture fixture) throws Exception {
+    final Semaphore allocationSemaphore = new Semaphore(1);
+    final AtomicBoolean hasExpired = new AtomicBoolean(false);
+    final AtomicBoolean allocationThrows = new AtomicBoolean(false);
+    final String expirationCause = "expiration blew up!";
+    final String allocationCause = "allocation blew up!";
+    config.setExpiration(new Expiration<GenericPoolable>() {
+      @Override
+      public boolean hasExpired(SlotInfo<? extends GenericPoolable> info) {
+        return hasExpired.get();
+      }
+    });
+    allocator = new CountingAllocator() {
+      @Override
+      public GenericPoolable allocate(Slot slot) throws Exception {
+        if (allocationThrows.get()) {
+          // Only fail one allocation at a time.
+          allocationThrows.set(false);
+          throw new RuntimeException(allocationCause);
+        }
+        allocationSemaphore.acquire();
+        return super.allocate(slot);
+      }
+    };
+    config.setAllocator(allocator);
+    Pool<GenericPoolable> pool = fixture.initPool(config);
+    pool.claim(longTimeout).release(); // The slot might be cached now
+    hasExpired.set(true);
+    allocationThrows.set(true);
+    // The slot is now sent back to the allocator for reallocation.
+    // That reallocation will fail, and we will observe the failure.
+    try {
+      pool.claim(longTimeout);
+      fail("second claim should have thrown");
+    } catch (PoolException e) {
+      hasExpired.set(false);
+      assertThat(e.getCause().getMessage(), is(allocationCause));
+    }
+    // Now we have observed the failed reallocation. The slot has been sent
+    // back to the allocator for reallocation again. This time the allocation
+    // will succeed, and we should be able to observe that success.
+    // That is, we should not get an exception here, but instead block because
+    // the allocator is stuck on our semaphore.
+    assertNull(pool.claim(mediumTimeout));
+    assertNull(pool.claim(mediumTimeout));
   }
 
   @Test(expected = IllegalArgumentException.class)
