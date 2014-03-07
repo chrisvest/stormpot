@@ -16,11 +16,13 @@
 package stormpot;
 
 import java.lang.Thread.State;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.LockSupport;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -126,14 +128,21 @@ class UnitKit {
   }
   
   public static Callable<Void> $delayedReleases(
-      final Poolable[] objs, long delay, TimeUnit delayUnit) {
-    final long deadline =
-      System.currentTimeMillis() + delayUnit.toMillis(delay);
+      final Poolable[] objs,
+      final long delay,
+      final TimeUnit delayUnit) {
     return new Callable<Void>() {
       public Void call() throws Exception {
-        for (Poolable obj : objs) {
-          LockSupport.parkUntil(deadline);
-          obj.release();
+        List<Poolable> list = new ArrayList<Poolable>(Arrays.asList(objs));
+        try {
+          while (list.size() > 0) {
+            delayUnit.sleep(delay);
+            list.remove(0).release();
+          }
+        } catch (InterruptedException e) {
+          for (Poolable obj : list) {
+            obj.release();
+          }
         }
         return null;
       }
