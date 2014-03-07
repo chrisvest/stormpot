@@ -29,9 +29,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
@@ -1709,53 +1710,97 @@ public class PoolTest {
     obj.release();
   }
 
+  /**
+   * Here's the scenario we're trying to target:
+   *
+   * - You (or your thread) do a successful claim, and triumphantly stores it
+   *   in the ThreadLocal cache.
+   * - You then return the object after use, so now it's back in the
+   *   live-queue for others to grab.
+   * - Someone else tries to claim the object, but decides that it has expired,
+   *   and sends it off through the dead-queue to be reallocated.
+   * - The reallocation fails for some reason, and the slot is now poisoned.
+   * - You want to claim an object again, and start by looking in the
+   *   ThreadLocal cache.
+   * - You find the slot for the object you had last, but the slot is poisoned.
+   * - Now, because you found it in the ThreadLocal cache – and notably did
+   *   *not* pull it off of the live-queue – you cannot just put it on the
+   *   dead-queue, because that could lead to unbounded memory use.
+   * - Instead, it has to be marked as live, and we instead have to wait for
+   *   someone to pull it off of the live-queue, check the poison again, and
+   *   *then* put it on the dead-queue.
+   * - Your ThreadLocal reclaim attempt then end in throwing the poison,
+   *   wrapped in a PoolException.
+   * - Sadly, this process does not involve clearing out the ThreadLocal cache,
+   *   so if you quickly catch the exception and try to claim again, you will
+   *   find the same exact poisoned slot and go through the same routine, that
+   *   ends in a thrown exception and a poisoned slot still left in the
+   *   ThreadLocal cache.
+   */
   @Test(timeout=601)
   @Theory public void // TODO should fail but does not
   mustNotCachePoisonedSlots(PoolFixture fixture) throws Exception {
-    final Semaphore allocationSemaphore = new Semaphore(1);
+    // First we prime the possible thread-local cache to a particular object.
+    // Then we instruct the allocator to always throw an exception when it is
+    // told to allocate on that particular slot.
+    // Then, in another thread, we mark all objects in the pool as expired.
+    // Once we have observed a reallocation attempt at our primed slot, we
+    // try to reclaim it. The reclaim must not throw an exception because of
+    // the cached poisoned slot.
+    config.setSize(10);
+
     final AtomicBoolean hasExpired = new AtomicBoolean(false);
-    final AtomicBoolean allocationThrows = new AtomicBoolean(false);
-    final String expirationCause = "expiration blew up!";
-    final String allocationCause = "allocation blew up!";
     config.setExpiration(new Expiration<GenericPoolable>() {
       @Override
       public boolean hasExpired(SlotInfo<? extends GenericPoolable> info) {
         return hasExpired.get();
       }
     });
-    allocator = new CountingAllocator() {
+
+    final String allocationCause = "allocation blew up!";
+    final AtomicReference<Slot> failOnAllocatingSlot =
+        new AtomicReference<Slot>();
+    final AtomicInteger observedFailedAllocation = new AtomicInteger();
+    config.setAllocator(new CountingAllocator() {
       @Override
       public GenericPoolable allocate(Slot slot) throws Exception {
-        if (allocationThrows.get()) {
-          // Only fail one allocation at a time.
-          allocationThrows.set(false);
+        if (slot == failOnAllocatingSlot.get()) {
+          observedFailedAllocation.incrementAndGet();
           throw new RuntimeException(allocationCause);
         }
-        allocationSemaphore.acquire();
         return super.allocate(slot);
       }
-    };
-    config.setAllocator(allocator);
+    });
+
     createPool(fixture);
-    pool.claim(longTimeout).release(); // The slot might be cached now
+
+    // Prime any thread-local cache
+    GenericPoolable obj = pool.claim(longTimeout);
+    failOnAllocatingSlot.set(obj.slot);
+    obj.release();
+
+    // Expire all poolables
     hasExpired.set(true);
-    allocationThrows.set(true);
-    // The slot is now sent back to the allocator for reallocation.
-    // That reallocation will fail, and we will observe the failure.
+    AtomicReference<GenericPoolable> ref =
+        new AtomicReference<GenericPoolable>();
     try {
-      pool.claim(longTimeout);
-      fail("second claim should have thrown");
-    } catch (PoolException e) {
-      hasExpired.set(false);
-      assertThat(e.getCause().getMessage(), is(allocationCause));
+      forkFuture(capture($claim(pool, mediumTimeout), ref)).get();
+    } catch (ExecutionException ignore) {
+      // This is okay. We just got a failed reallocation.
     }
-    // Now we have observed the failed reallocation. The slot has been sent
-    // back to the allocator for reallocation again. This time the allocation
-    // will succeed, and we should be able to observe that success.
-    // That is, we should not get an exception here, but instead block because
-    // the allocator is stuck on our semaphore.
-    assertNull(pool.claim(mediumTimeout));
-    assertNull(pool.claim(mediumTimeout));
+    assertNull(ref.get());
+
+    // Wait for our primed slot to get reallocated
+    while(observedFailedAllocation.get() < 2) {
+      Thread.yield();
+    }
+    spinwait(5);
+
+    // Things no longer expire...
+    hasExpired.set(false);
+
+    // ... so we should be able to claim without trouble
+    pool.claim(longTimeout).release();
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -1822,7 +1867,7 @@ public class PoolTest {
     int startingSize = 5;
     int newSize = 1;
     final Thread main = Thread.currentThread();
-    CountingAllocator allocator = new UnparkingCountingAllocator(main);
+    CountingAllocator allocator = new CountingAllocator();
     config.setSize(startingSize);
     config.setAllocator(allocator);
     createPool(fixture);
