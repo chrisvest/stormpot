@@ -1738,7 +1738,7 @@ public class PoolTest {
    *   ThreadLocal cache.
    */
   @Test(timeout=601)
-  @Theory public void // TODO should fail but does not
+  @Theory public void // TODO racy for QueuePool, and probably BlazePool as well - we might accidentally claim the poisoned slot
   mustNotCachePoisonedSlots(PoolFixture fixture) throws Exception {
     // First we prime the possible thread-local cache to a particular object.
     // Then we instruct the allocator to always throw an exception when it is

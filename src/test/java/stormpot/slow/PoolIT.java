@@ -15,6 +15,7 @@
  */
 package stormpot.slow;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -25,22 +26,21 @@ import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import stormpot.*;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeThat;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
+@SuppressWarnings("unchecked")
 @RunWith(Theories.class)
 public class PoolIT {
   @Rule public final TestRule failurePrinter = new FailurePrinterTestRule();
-  @Rule public final ExecutorTestRule executorFactory = new ExecutorTestRule();
+  @Rule public final ExecutorTestRule executorTestRule = new ExecutorTestRule();
 
   private static final Timeout longTimeout = new Timeout(1, TimeUnit.MINUTES);
 
@@ -55,12 +55,30 @@ public class PoolIT {
   @DataPoint public static PoolFixture queuePool = new QueuePoolFixture();
   @DataPoint public static PoolFixture blazePool = new BlazePoolFixture();
 
-  @Before
-  public void
+  @Before public void
   setUp() {
     allocator = new CountingAllocator();
     config = new Config<GenericPoolable>().setSize(1).setAllocator(allocator);
-    executor = executorFactory.getExecutorService();
+    executor = executorTestRule.getExecutorService();
+  }
+
+  @After public void
+  verifyObjectsAreNeverDeallocatedMoreThanOnce() {
+    List<GenericPoolable> deallocated = allocator.deallocationList();
+    Collections.sort(deallocated, new OrderByIdentityHashcode());
+    Iterator<GenericPoolable> iter = deallocated.iterator();
+    List<GenericPoolable> duplicates = new ArrayList<GenericPoolable>();
+    if (iter.hasNext()) {
+      GenericPoolable a = iter.next();
+      while (iter.hasNext()) {
+        GenericPoolable b = iter.next();
+        if (a == b) {
+          duplicates.add(b);
+        }
+        a = b;
+      }
+    }
+    assertThat(duplicates, is(emptyIterableOf(GenericPoolable.class)));
   }
 
   private LifecycledResizablePool<GenericPoolable> lifecycledResizable(PoolFixture fixture) {
@@ -69,7 +87,7 @@ public class PoolIT {
     return (LifecycledResizablePool<GenericPoolable>) pool;
   }
 
-  @Test(timeout = 1601)
+  @Test(timeout = 16010)
   @Theory public void
   highContentionMustNotCausePoolLeakage(
       PoolFixture fixture) throws Exception {
@@ -78,8 +96,9 @@ public class PoolIT {
     Runnable runner = createTaskClaimReleaseUntilShutdown(pool);
 
     Future<?> future = executor.submit(runner);
+    executorTestRule.printOnFailure(future);
 
-    long deadline = System.currentTimeMillis() + 1000;
+    long deadline = System.currentTimeMillis() + 5000;
     do {
       pool.claim(longTimeout).release();
     } while (System.currentTimeMillis() < deadline);
@@ -88,18 +107,22 @@ public class PoolIT {
   }
 
   private Runnable createTaskClaimReleaseUntilShutdown(
-      final LifecycledResizablePool<GenericPoolable> pool) {
+      final LifecycledResizablePool<GenericPoolable> pool,
+      final Class<? extends Throwable>... acceptableExceptions) {
     return new Runnable() {
       @Override
       public void run() {
-        try {
-          for (;;) {
+        for (;;) {
+          try {
             pool.claim(longTimeout).release();
+          } catch (InterruptedException ignore) {
+            // This is okay
+          } catch (IllegalStateException e) {
+            assertThat(e, hasMessage(equalTo("pool is shut down")));
+            break;
+          } catch (PoolException e) {
+            assertThat(e.getCause().getClass(), isOneOf(acceptableExceptions));
           }
-        } catch (InterruptedException e) {
-          throw new RuntimeException(e);
-        } catch (IllegalStateException e) {
-          assertThat(e, hasMessage(equalTo("pool is shut down")));
         }
       }
     };
@@ -118,6 +141,7 @@ public class PoolIT {
       Runnable runner = createTaskClaimReleaseUntilShutdown(pool);
       futures.add(executor.submit(runner));
     }
+    executorTestRule.printOnFailure(futures);
 
     // Wait for all the objects to be created
     while (allocator.allocations() < size) {
@@ -133,4 +157,75 @@ public class PoolIT {
     }
   }
 
+  @Test(timeout = 16010)
+  @Theory public void
+  highObjectChurnMustNotCausePoolLeakage(
+      PoolFixture fixture) throws Exception {
+    config.setSize(8);
+    allocator = new CountingReallocator() {
+      private final Random rnd = new Random();
+
+      @Override
+      public GenericPoolable reallocate(Slot slot, GenericPoolable poolable) throws Exception {
+        // About 20% of reallocations will throw
+        if (rnd.nextInt(1024) < 201) {
+          throw new SomeRandomException();
+        }
+        return super.reallocate(slot, poolable);
+      }
+
+      @Override
+      public GenericPoolable allocate(Slot slot) throws Exception {
+        // About 20% of allocations will throw
+        if (rnd.nextInt(1024) < 204) {
+          throw new SomeRandomException();
+        }
+        return super.allocate(slot);
+      }
+
+      @Override
+      public void deallocate(GenericPoolable poolable) throws Exception {
+        // About 20% of deallocations will throw
+        if (rnd.nextInt(1024) < 204) {
+          throw new SomeRandomException();
+        }
+        super.deallocate(poolable);
+      }
+    };
+    config.setAllocator(allocator);
+    config.setExpiration(new Expiration<GenericPoolable>() {
+      @Override
+      public boolean hasExpired(
+          SlotInfo<? extends GenericPoolable> info) throws Exception {
+        int x = info.randomInt();
+        if ((x & 0xFF) > 250) {
+          // About 3% of checks throw an exception
+          throw new SomeRandomException();
+        }
+        // About 1 in 8 checks causes expiration
+        return (x & 0x0F) < 0x02;
+      }
+    });
+
+    pool = lifecycledResizable(fixture);
+
+    List<Future<?>> futures = new ArrayList<Future<?>>();
+    for (int i = 0; i < 64; i++) {
+      Runnable runner = createTaskClaimReleaseUntilShutdown(
+          pool,
+          SomeRandomException.class);
+      futures.add(executor.submit(runner));
+    }
+    executorTestRule.printOnFailure(futures);
+
+    Thread.sleep(5000);
+
+    // The shutdown completes if no objects are leaked
+    pool.shutdown().await(longTimeout);
+
+    for (Future<?> future : futures) {
+      // Also verify that no unexpected exceptions were thrown
+      future.get();
+    }
+  }
 }

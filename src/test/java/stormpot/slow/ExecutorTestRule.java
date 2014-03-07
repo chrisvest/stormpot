@@ -22,10 +22,7 @@ import org.junit.runners.model.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -33,6 +30,7 @@ import static org.junit.Assert.assertThat;
 public class ExecutorTestRule implements TestRule {
   private TestThreadFactory threadFactory;
   private ExecutorService executor;
+  private List<Future<?>> futuresToPrintOnFailure = new ArrayList<Future<?>>();
 
   public ExecutorService getExecutorService() {
     return executor;
@@ -55,6 +53,7 @@ public class ExecutorTestRule implements TestRule {
           threadFactory.verifyAllThreadsTerminatedSuccessfully();
         } catch (Throwable throwable) {
           threadFactory.dumpAllThreads();
+          printFuturesForFailure();
           throw throwable;
         }
       }
@@ -63,6 +62,36 @@ public class ExecutorTestRule implements TestRule {
 
   protected ExecutorService createExecutor(ThreadFactory threadFactory) {
     return Executors.newCachedThreadPool(threadFactory);
+  }
+
+  public void printOnFailure(List<Future<?>> futures) {
+    futuresToPrintOnFailure.addAll(futures);
+  }
+
+  public void printOnFailure(Future<?> future) {
+    futuresToPrintOnFailure.add(future);
+  }
+
+  private void printFuturesForFailure() {
+    System.err.println(
+        "\n===[ Dumping all registered futures ]===\n");
+    for (Future<?> future : futuresToPrintOnFailure) {
+      System.err.printf(
+          "future = %s, isDone? %s, isCancelled? %s%n",
+          future,
+          future.isDone(),
+          future.isCancelled());
+      if (future.isDone()) {
+        System.err.print("    result: ");
+        try {
+          System.err.println(future.get());
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+    }
+    System.err.println(
+        "\n===[ End dumping all registered futures ]===\n");
   }
 
   private class TestThreadFactory implements ThreadFactory {
@@ -85,7 +114,11 @@ public class ExecutorTestRule implements TestRule {
           Thread.State state = thread.getState();
           int tries = 100;
           while (state != Thread.State.TERMINATED && tries --> 0) {
-            Thread.yield();
+            try {
+              thread.join(10);
+            } catch (InterruptedException e) {
+              throw new AssertionError(e);
+            }
             state = thread.getState();
           }
           if (tries == 0) {
