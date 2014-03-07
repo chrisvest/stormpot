@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1738,7 +1739,7 @@ public class PoolTest {
    *   ThreadLocal cache.
    */
   @Test(timeout=601)
-  @Theory public void // TODO racy for QueuePool, and probably BlazePool as well - we might accidentally claim the poisoned slot
+  @Theory public void
   mustNotCachePoisonedSlots(PoolFixture fixture) throws Exception {
     // First we prime the possible thread-local cache to a particular object.
     // Then we instruct the allocator to always throw an exception when it is
@@ -1748,6 +1749,9 @@ public class PoolTest {
     // try to reclaim it. The reclaim must not throw an exception because of
     // the cached poisoned slot.
     config.setSize(10);
+
+    // Enough permits for each initial allocation:
+    final Semaphore semaphore = new Semaphore(10);
 
     final AtomicBoolean hasExpired = new AtomicBoolean(false);
     config.setExpiration(new Expiration<GenericPoolable>() {
@@ -1764,6 +1768,7 @@ public class PoolTest {
     config.setAllocator(new CountingAllocator() {
       @Override
       public GenericPoolable allocate(Slot slot) throws Exception {
+        semaphore.acquire();
         if (slot == failOnAllocatingSlot.get()) {
           observedFailedAllocation.incrementAndGet();
           throw new RuntimeException(allocationCause);
@@ -1786,21 +1791,27 @@ public class PoolTest {
     try {
       forkFuture(capture($claim(pool, mediumTimeout), ref)).get();
     } catch (ExecutionException ignore) {
-      // This is okay. We just got a failed reallocation.
+      // This is okay. We just got a failed reallocation
     }
     assertNull(ref.get());
 
+    // Give the allocator enough permits to reallocate the whole pool, again
+    semaphore.release(10);
+
     // Wait for our primed slot to get reallocated
-    while(observedFailedAllocation.get() < 2) {
+    while(observedFailedAllocation.get() < 1) {
       Thread.yield();
     }
-    spinwait(5);
+    spinwait(5); // Heuristically wait for the slot to become live
 
     // Things no longer expire...
     hasExpired.set(false);
 
     // ... so we should be able to claim without trouble
     pool.claim(longTimeout).release();
+
+    // Finally unblock the allocator thread so shutdown can proceed
+    semaphore.release(1);
   }
 
   @Test(expected = IllegalArgumentException.class)
