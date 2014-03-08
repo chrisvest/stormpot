@@ -1748,10 +1748,10 @@ public class PoolTest {
     // Once we have observed a reallocation attempt at our primed slot, we
     // try to reclaim it. The reclaim must not throw an exception because of
     // the cached poisoned slot.
-    config.setSize(10);
+    config.setSize(3);
 
     // Enough permits for each initial allocation:
-    final Semaphore semaphore = new Semaphore(10);
+    final Semaphore semaphore = new Semaphore(3);
 
     final AtomicBoolean hasExpired = new AtomicBoolean(false);
     config.setExpiration(new Expiration<GenericPoolable>() {
@@ -1789,14 +1789,14 @@ public class PoolTest {
     AtomicReference<GenericPoolable> ref =
         new AtomicReference<GenericPoolable>();
     try {
-      forkFuture(capture($claim(pool, mediumTimeout), ref)).get();
+      forkFuture(capture($claim(pool, shortTimeout), ref)).get();
     } catch (ExecutionException ignore) {
       // This is okay. We just got a failed reallocation
     }
     assertNull(ref.get());
 
     // Give the allocator enough permits to reallocate the whole pool, again
-    semaphore.release(10);
+    semaphore.release(3);
 
     // Wait for our primed slot to get reallocated
     while(observedFailedAllocation.get() < 1) {
@@ -1809,9 +1809,6 @@ public class PoolTest {
 
     // ... so we should be able to claim without trouble
     pool.claim(longTimeout).release();
-
-    // Finally unblock the allocator thread so shutdown can proceed
-    semaphore.release(1);
   }
 
   @Test(expected = IllegalArgumentException.class)
