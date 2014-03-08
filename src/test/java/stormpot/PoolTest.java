@@ -1765,7 +1765,7 @@ public class PoolTest {
     final AtomicReference<Slot> failOnAllocatingSlot =
         new AtomicReference<Slot>();
     final AtomicInteger observedFailedAllocation = new AtomicInteger();
-    config.setAllocator(new CountingAllocator() {
+    allocator = new CountingAllocator() {
       @Override
       public GenericPoolable allocate(Slot slot) throws Exception {
         semaphore.acquire();
@@ -1775,14 +1775,20 @@ public class PoolTest {
         }
         return super.allocate(slot);
       }
-    });
+    };
+    config.setAllocator(allocator);
 
     createPool(fixture);
+
+    // Wait for the pool to fill
+    while (allocator.allocations() < 3) {
+      Thread.yield();
+    }
 
     // Prime any thread-local cache
     GenericPoolable obj = pool.claim(longTimeout);
     failOnAllocatingSlot.set(obj.slot);
-    obj.release();
+    obj.release(); // Places slot at end of queue
 
     // Expire all poolables
     hasExpired.set(true);
