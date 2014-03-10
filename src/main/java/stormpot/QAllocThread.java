@@ -158,7 +158,6 @@ class QAllocThread<T extends Poolable> extends Thread {
 
   private void realloc(QSlot<T> slot) {
     if (slot.poison == null) {
-      assert slot.obj != null : "slot.obj should not have been null";
       try {
         slot.obj = allocator.reallocate(slot, slot.obj);
         if (slot.obj == null) {

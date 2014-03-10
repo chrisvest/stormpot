@@ -121,9 +121,6 @@ class BAllocThread<T extends Poolable> extends Thread {
         slot = live.poll();
       }
       if (slot == poisonPill) {
-        // FindBugs complains that we ignore a possible exceptional return
-        // value from offer(). However, since the queues are unbounded, an
-        // offer will never fail.
         live.offer(poisonPill);
         slot = null;
       }
@@ -140,7 +137,6 @@ class BAllocThread<T extends Poolable> extends Thread {
   }
 
   private void alloc(BSlot<T> slot) {
-    assert slot != poisonPill : "Cannot allocate the poison pill: " + slot;
     try {
       slot.obj = allocator.allocate(slot);
       if (slot.obj == null) {
@@ -160,8 +156,6 @@ class BAllocThread<T extends Poolable> extends Thread {
   }
 
   private void dealloc(BSlot<T> slot) {
-    assert slot.isDead() : "Cannot deallocate non-dead slot: " + slot;
-    assert slot != poisonPill : "Cannot deallocate the poison pill: " + slot;
     size--;
     try {
       if (slot.poison == null) {
@@ -177,10 +171,7 @@ class BAllocThread<T extends Poolable> extends Thread {
   }
 
   private void realloc(BSlot<T> slot) {
-    assert slot.isDead() : "Cannot reallocate non-dead slot: " + slot;
-    assert slot != poisonPill : "Cannot reallocate the poison pill: " + slot;
     if (slot.poison == null) {
-      assert slot.obj != null : "slot.obj should not have been null";
       try {
         slot.obj = allocator.reallocate(slot, slot.obj);
         if (slot.obj == null) {
