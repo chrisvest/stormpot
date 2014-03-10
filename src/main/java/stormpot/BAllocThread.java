@@ -77,21 +77,13 @@ class BAllocThread<T extends Poolable> extends Thread {
     boolean weHaveWorkToDo = size != targetSize || poisonedSlots > 0;
     long deadPollTimeout = weHaveWorkToDo? 0 : 50;
     if (size < targetSize) {
-      BSlot<T> slot = new BSlot<T>(live);
-      alloc(slot);
+      increaseSizeByAllocating();
     }
     BSlot<T> slot = dead.poll(deadPollTimeout, TimeUnit.MILLISECONDS);
     if (size > targetSize) {
-      slot = slot == null? live.poll() : slot;
-      if (slot != null) {
-        if (slot.isDead() || slot.live2dead()) {
-          dealloc(slot);
-        } else {
-          live.offer(slot);
-        }
-      }
+      reduceSizeByDeallocating(slot);
     } else if (slot != null) {
-      realloc(slot);
+      reallocateDeadSlot(slot);
     }
 
     if (shutdown) {
@@ -102,14 +94,39 @@ class BAllocThread<T extends Poolable> extends Thread {
 
     if (poisonedSlots > 0) {
       // Proactively seek out and try to heal poisoned slots
-      slot = live.poll();
-      if (slot != null) {
-                                                // TODO test for this
-        if ((slot.isDead() || slot.live2dead()) /* && slot.poison != null */) {
-          realloc(slot);
-        } else {
-          live.offer(slot);
-        }
+      proactivelyHealPoison();
+    }
+  }
+
+  private void increaseSizeByAllocating() {
+    BSlot<T> slot = new BSlot<T>(live);
+    alloc(slot);
+  }
+
+  private void reduceSizeByDeallocating(BSlot<T> slot) {
+    slot = slot == null? live.poll() : slot;
+    if (slot != null) {
+      if (slot.isDead() || slot.live2dead()) {
+        dealloc(slot);
+      } else {
+        live.offer(slot);
+      }
+    }
+  }
+
+  private void reallocateDeadSlot(BSlot<T> slot) {
+    realloc(slot);
+  }
+
+  private void proactivelyHealPoison() {
+    BSlot<T> slot;
+    slot = live.poll();
+    if (slot != null) {
+                                              // TODO test for this
+      if ((slot.isDead() || slot.live2dead()) /* && slot.poison != null */) {
+        realloc(slot);
+      } else {
+        live.offer(slot);
       }
     }
   }
@@ -148,11 +165,15 @@ class BAllocThread<T extends Poolable> extends Thread {
       slot.poison = e;
     }
     size++;
+    resetSlot(slot);
+    live.offer(slot);
+  }
+
+  private void resetSlot(BSlot<T> slot) {
     slot.created = System.currentTimeMillis();
     slot.claims = 0;
     slot.stamp = 0;
     slot.dead2live();
-    live.offer(slot);
   }
 
   private void dealloc(BSlot<T> slot) {
@@ -163,7 +184,7 @@ class BAllocThread<T extends Poolable> extends Thread {
       } else {
         poisonedSlots--;
       }
-    } catch (Exception _) { // NOPMD
+    } catch (Exception ignore) { // NOPMD
       // Ignored as per specification
     }
     slot.poison = null;
@@ -182,10 +203,7 @@ class BAllocThread<T extends Poolable> extends Thread {
         poisonedSlots++;
         slot.poison = e;
       }
-      slot.created = System.currentTimeMillis();
-      slot.claims = 0;
-      slot.stamp = 0;
-      slot.dead2live();
+      resetSlot(slot);
       live.offer(slot);
     } else {
       dealloc(slot);

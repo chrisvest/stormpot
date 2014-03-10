@@ -108,9 +108,6 @@ class QAllocThread<T extends Poolable> extends Thread {
         slot = live.poll();
       }
       if (slot == poisonPill) {
-        // FindBugs complains that we ignore a possible exceptional return
-        // value from offer(). However, since the queues are unbounded, an
-        // offer will never fail.
         live.offer(poisonPill);
         slot = null;
       }
@@ -149,7 +146,7 @@ class QAllocThread<T extends Poolable> extends Thread {
       } else {
         poisonedSlots--;
       }
-    } catch (Exception _) { // NOPMD
+    } catch (Exception ignore) { // NOPMD
       // Ignored as per specification
     }
     slot.poison = null;
