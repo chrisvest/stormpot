@@ -66,14 +66,6 @@ class BSlot<T extends Poolable> extends BSlotColdFields<T> implements Slot, Slot
   }
 
   public boolean claimTlr2live() {
-    // TODO we cannot lazySet here because we need to know if the slot was
-    // concurrently transitioned to an ordinary CLAIMED state.
-    // Seriously, though, if the algorithm could somehow be changed such that
-    // this became a valid optimisation, then there is a HUGE win to be had
-    // here. We could potentially boost the 8-threads case from 270-280 million
-    // claim-release cycles per second, up to about 470 million!
-//    lazySet(LIVING);
-//    return true;
     return compareAndSet(TLR_CLAIMED, LIVING);
   }
   

@@ -197,7 +197,7 @@ implements LifecycledResizablePool<T> {
       }
     }
     if (shutdown) {
-      kill(slot); // TODO Mutation testing not killed when removing this call.
+      kill(slot);
       throw new IllegalStateException("pool is shut down");
     }
     boolean invalid = true;
