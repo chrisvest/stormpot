@@ -5,3 +5,6 @@ release.properties
 target
 *.swp
 
+.DS_Store
+.idea
+*.iml
