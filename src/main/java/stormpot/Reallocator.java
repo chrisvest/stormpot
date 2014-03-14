@@ -27,8 +27,8 @@ package stormpot;
  * <p>
  * The accretion of old generation garbage is inevitable, but the rate can be
  * slowed by reusing as much as possible of the Poolable instances, when they
- * to be reallocated. This interface is only here to enable this optimisation,
- * and implementing it is completely optional.
+ * are to be reallocated. This interface is only here to enable this
+ * optimisation, and implementing it is completely optional.
  *
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  *
@@ -57,12 +57,13 @@ public interface Reallocator<T extends Poolable> extends Allocator<T> {
    * {@link Pool#claim(Timeout) claim} method of a pool, in the form of being
    * wrapped inside a {@link PoolException}. Pools must be able to handle these
    * exceptions in a sane manner, and are guaranteed to return to a working
-   * state if an Allocator stops throwing exceptions from its allocate method.
+   * state if a Reallocator stops throwing exceptions from its reallocate
+   * method.
    * <p>
    * Be aware that if the reallocation of an object fails with an exception,
    * then no attempts will be made to explicitly deallocate that object. This
-   * way, a failed reallocation is understood to effectively be a successful
-   * deallocation.
+   * way, a failed reallocation is implicitly understood to effectively be a
+   * successful deallocation.
    * @param slot The slot the pool wish to allocate an object for.
    * Implementors do not need to concern themselves with the details of a
    * pools slot objects. They just have to call release on them as the

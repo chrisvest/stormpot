@@ -37,7 +37,7 @@ package stormpot;
  * in the allocator, if at all possible.
  * 
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
- *
+ * @see stormpot.Reallocator
  * @param <T> any type that implements Poolable.
  */
 public interface Allocator<T extends Poolable> {

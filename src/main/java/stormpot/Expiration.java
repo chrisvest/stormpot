@@ -32,7 +32,12 @@ package stormpot;
  * mutable state will be thread-local. Be aware that making the
  * {@link #hasExpired(SlotInfo) hasExpired} method {@code synchronized} will
  * most likely severely reduce the performance and scalability of the pool.
- * 
+ * <p>
+ * The Expiration can be invoked several times during a
+ * {@link Pool#claim(Timeout) claim} call, so it is important that the
+ * Expiration is fast. It can easily be the dominating factor in the
+ * performance of the pool.
+ *
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  */
 public interface Expiration<T extends Poolable> {
@@ -43,19 +48,20 @@ public interface Expiration<T extends Poolable> {
    * <p>
    * If the method throws an exception, then that is taken to mean that the
    * slot is invalid. The exception will bubble out of the
+   * {@link Pool#claim(Timeout) claim} method, but the mechanism is
+   * implementation specific. For this reason, it is generally advised that
+   * Expirations do not throw exceptions.
    * <p>
    * Note that this method can be called as often as several times per
    * {@link Pool#claim(Timeout) claim}. The performance of this method therefor
    * has a big influence on the percieved performance of the pool.
-   * {@link Pool#claim(Timeout) claim} method, but the mechanism is
-   * implementation specific. For this reason, it is generally advised that
-   * Expirations do not throw exceptions.
+   *
    * @param info An informative representative of the slot being tested.
    * Never <code>null</code>.
    * @return <code>true</code> if the Slot and Poolable in question should be
    * deallocated, <code>false</code> if it is valid and eligible for claiming.
    * @throws Exception If checking the validity of the Slot or Poolable somehow
-   * went wrong. In this case, the Poolable will be assumed to have expired.
+   * went wrong. In this case, the Poolable will be assumed to be expired.
    */
   boolean hasExpired(SlotInfo<? extends T> info) throws Exception;
 }

@@ -15,7 +15,8 @@ Why choose Stormpot?
 
 ... over, say, Commons-Pool? Good question! Both libraries are released under
 the Apache 2.0 license, both have thorough documentation, both have high test
-coverage (Stormpot have 100%) and both depend on nothing but Java itself.
+coverage (Stormpot has over 90% coverage) and both depend on nothing but Java
+itself.
 
 There are differences, though. Stormpot has a small invasive API, whereas
 Commons-Pool has a richer and less intrusive API. The different slants in their
