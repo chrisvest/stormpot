@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>Config.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.html" class="el_package">stormpot</a> &gt; <span class="el_source">Config.java</span></div><h1>Config.java</h1><pre class="source lang-java linenums">/*
- * Copyright 2011 Chris Vest
- * 
+ * Copyright (C) 2011-2014 Chris Vest (mr.chrisvest@gmail.com)
+ *
  * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -53,7 +53,7 @@ public class Config&lt;T extends Poolable&gt; {
 
 <span class="fc" id="L54">  private int size = 10;</span>
 <span class="fc" id="L55">  private Expiration&lt;? super T&gt; expiration =</span>
-      new TimeExpiration(600, TimeUnit.SECONDS); // 10 minutes
+      new TimeSpreadExpiration(480000, 600000, TimeUnit.MILLISECONDS); // 8 to 10 minutes
   private Allocator&lt;?&gt; allocator;
   
   /**
@@ -92,9 +92,9 @@ public class Config&lt;T extends Poolable&gt; {
   }
 
   /**
-   * Set the {@link Allocator} to use for the pools we want to configure.
-   * This will change the type-parameter of the Config object to match that
-   * of the new Allocator.
+   * Set the {@link Allocator} or {@link Reallocator} to use for the pools we
+   * want to configure. This will change the type-parameter of the Config
+   * object to match that of the new Allocator.
    * &lt;p&gt;
    * The allocator is initially &lt;code&gt;null&lt;/code&gt; in a new Config object, and
    * can be set to &lt;code&gt;null&lt;/code&gt; any time. However, in a standard
@@ -124,27 +124,46 @@ public class Config&lt;T extends Poolable&gt; {
   }
 
   /**
+   * Get the configured {@link stormpot.Allocator} instance as a
+   * {@link stormpot.Reallocator}. If the configured allocator implements the
+   * Reallocator interface, then it is returned directly. Otherwise, the
+   * allocator is wrapped in an adaptor.
+   * @return A configured or adapted Reallocator, if any.
+   */
+  public synchronized Reallocator&lt;T&gt; getReallocator() {
+<span class="fc bfc" id="L134" title="All 2 branches covered.">    if (allocator == null) {</span>
+<span class="fc" id="L135">      return null;</span>
+    }
+<span class="fc bfc" id="L137" title="All 2 branches covered.">    if (allocator instanceof Reallocator) {</span>
+<span class="fc" id="L138">      return (Reallocator&lt;T&gt;) allocator;</span>
+    }
+<span class="fc" id="L140">    return new ReallocatingAdaptor&lt;T&gt;((Allocator&lt;T&gt;) allocator);</span>
+  }
+
+  /**
    * Set the {@link Expiration} to use for the pools we want to
    * configure. The Expiration determines when a pooled object is valid
    * for claiming, or when the objects are invalid and should be deallocated.
    * &lt;p&gt;
-   * The default Expiration is a {@link TimeExpiration} that
-   * invalidates the objects after they have been active for 10 minutes.
+   * The default Expiration is a {@link TimeSpreadExpiration} that
+   * invalidates the objects after they have been active for somewhere between
+   * 8 to 10 minutes.
    * @param expiration The expiration we want our pools to use. Not null.
    * @return This Config instance.
    */
   public synchronized Config&lt;T&gt; setExpiration(Expiration&lt;? super T&gt; expiration) {
-<span class="fc" id="L137">    this.expiration = expiration;</span>
-<span class="fc" id="L138">    return this;</span>
+<span class="fc" id="L155">    this.expiration = expiration;</span>
+<span class="fc" id="L156">    return this;</span>
   }
 
   /**
    * Get the configured {@link Expiration} instance. The default is a
-   * {@link TimeExpiration} that expires objects after 10 minutes.
+   * {@link TimeSpreadExpiration} that expires objects after somewhere between
+   * 8 to 10 minutes.
    * @return The configured Expiration.
    */
   public synchronized Expiration&lt;? super T&gt; getExpiration() {
-<span class="fc" id="L147">    return expiration;</span>
+<span class="fc" id="L166">    return expiration;</span>
   }
 
   /**
@@ -156,17 +175,17 @@ public class Config&lt;T extends Poolable&gt; {
    * &lt;code&gt;null&lt;/code&gt;.
    */
   public synchronized void validate() throws IllegalArgumentException {
-<span class="fc bfc" id="L159" title="All 2 branches covered.">    if (size &lt; 1) {</span>
-<span class="fc" id="L160">      throw new IllegalArgumentException(</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">    if (size &lt; 1) {</span>
+<span class="fc" id="L179">      throw new IllegalArgumentException(</span>
           &quot;size must be at least 1, but was &quot; + size);
     }
-<span class="fc bfc" id="L163" title="All 2 branches covered.">    if (allocator == null) {</span>
-<span class="fc" id="L164">      throw new IllegalArgumentException(</span>
+<span class="fc bfc" id="L182" title="All 2 branches covered.">    if (allocator == null) {</span>
+<span class="fc" id="L183">      throw new IllegalArgumentException(</span>
           &quot;Allocator cannot be null&quot;);
     }
-<span class="fc bfc" id="L167" title="All 2 branches covered.">    if (expiration == null) {</span>
-<span class="fc" id="L168">      throw new IllegalArgumentException(&quot;Expiration cannot be null&quot;);</span>
+<span class="fc bfc" id="L186" title="All 2 branches covered.">    if (expiration == null) {</span>
+<span class="fc" id="L187">      throw new IllegalArgumentException(&quot;Expiration cannot be null&quot;);</span>
     }
-<span class="fc" id="L170">  }</span>
+<span class="fc" id="L189">  }</span>
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.5.10.201208310627</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>

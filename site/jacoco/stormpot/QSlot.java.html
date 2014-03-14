@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>QSlot.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.html" class="el_package">stormpot</a> &gt; <span class="el_source">QSlot.java</span></div><h1>QSlot.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2011-2014 Chris Vest (mr.chrisvest@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package stormpot;
+
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+class QSlot&lt;T extends Poolable&gt; implements Slot, SlotInfo&lt;T&gt; {
+  final BlockingQueue&lt;QSlot&lt;T&gt;&gt; live;
+  final AtomicBoolean claimed;
+  T obj;
+  Exception poison;
+  long created;
+  long claims;
+  long stamp;
+  
+<span class="fc" id="L30">  public QSlot(BlockingQueue&lt;QSlot&lt;T&gt;&gt; live) {</span>
+<span class="fc" id="L31">    this.live = live;</span>
+<span class="fc" id="L32">    this.claimed = new AtomicBoolean(true);</span>
+<span class="fc" id="L33">  }</span>
+  
+  public void claim() {
+<span class="fc" id="L36">    claimed.set(true);</span>
+<span class="fc" id="L37">    claims++;</span>
+<span class="fc" id="L38">  }</span>
+
+  public void release(Poolable obj) {
+<span class="fc bfc" id="L41" title="All 2 branches covered.">    if (claimed.compareAndSet(true, false)) {</span>
+<span class="fc" id="L42">      live.offer(this);</span>
+    }
+<span class="fc" id="L44">  }</span>
+
+  @Override
+  public long getAgeMillis() {
+<span class="fc" id="L48">    return System.currentTimeMillis() - created;</span>
+  }
+
+  @Override
+  public long getClaimCount() {
+<span class="fc" id="L53">    return claims;</span>
+  }
+
+  @Override
+  public T getPoolable() {
+<span class="fc" id="L58">    return obj;</span>
+  }
+
+  // XorShift PRNG with a 2^128-1 period.
+<span class="fc" id="L62">  int x = System.identityHashCode(this);</span>
+<span class="fc" id="L63">  int y = -938745813;</span>
+<span class="fc" id="L64">  int z = 452465366;</span>
+<span class="fc" id="L65">  int w = 1343246171;</span>
+
+  @Override
+  public int randomInt() {
+<span class="fc" id="L69">    int t = x^(x&lt;&lt;15);</span>
+    //noinspection SuspiciousNameCombination
+<span class="fc" id="L71">    x = y; y = z; z = w;</span>
+<span class="fc" id="L72">    return w = (w^(w&gt;&gt;&gt;21))^(t^(t&gt;&gt;&gt;4));</span>
+  }
+
+  @Override
+  public long getStamp() {
+<span class="fc" id="L77">    return stamp;</span>
+  }
+
+  @Override
+  public void setStamp(long stamp) {
+<span class="fc" id="L82">    this.stamp = stamp;</span>
+<span class="fc" id="L83">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>

@@ -1,13 +1,24 @@
 GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
-stormpot,stormpot.qpool,QSlot,0,46,0,2,0,13,0,7,0,6
-stormpot,stormpot.qpool,QueuePool,0,188,0,18,0,52,0,16,0,7
-stormpot,stormpot.qpool,QAllocThread,0,230,0,24,0,67,0,21,0,9
-stormpot,stormpot.qpool,QPoolShutdownCompletion,0,18,0,2,0,6,0,3,0,2
-stormpot,stormpot.bpool,BSlot,0,132,1,9,0,31,1,22,0,18
-stormpot,stormpot.bpool,BlazePool,1,251,4,36,1,69,4,24,0,8
-stormpot,stormpot.bpool,BPoolShutdownCompletion,0,18,0,2,0,6,0,3,0,2
-stormpot,stormpot.bpool,BAllocThread,0,278,0,34,0,75,0,27,0,10
+stormpot,stormpot.qpool,QueuePool,0,4,0,0,0,2,0,1,0,1
+stormpot,stormpot.bpool,BlazePool,0,4,0,0,0,2,0,1,0,1
+stormpot,stormpot,QAllocThread,0,342,0,40,0,97,0,31,0,11
 stormpot,stormpot,TimeExpiration,0,34,0,6,0,8,0,5,0,2
-stormpot,stormpot,Config,0,71,0,6,0,20,0,11,0,8
+stormpot,stormpot,QueueFactory.new QueueFactory.Factory() {...},7,0,0,0,2,0,2,0,2,0
+stormpot,stormpot,QueueFactory.new QueueFactory.Factory() {...},21,13,0,0,4,2,0,2,0,2
+stormpot,stormpot,ReallocatingAdaptor,0,30,0,0,0,11,0,5,0,5
+stormpot,stormpot,Padding1,0,3,0,0,0,1,0,1,0,1
+stormpot,stormpot,BlazePool.new Exception() {...},0,5,0,0,0,2,0,2,0,2
 stormpot,stormpot,PoolException,0,9,0,0,0,4,0,2,0,2
-stormpot,stormpot,Timeout,0,73,0,6,0,18,0,12,0,9
+stormpot,stormpot,Padding2,0,4,0,0,0,2,0,1,0,1
+stormpot,stormpot,LatchCompletion,0,21,0,2,0,6,0,3,0,2
+stormpot,stormpot,PaddedAtomicInteger,15,57,2,2,5,19,2,5,0,5
+stormpot,stormpot,BSlot,0,120,0,10,0,32,0,24,0,19
+stormpot,stormpot,BSlotColdFields,0,57,0,0,0,10,0,2,0,2
+stormpot,stormpot,Config,0,91,0,10,0,25,0,14,0,9
+stormpot,stormpot,BlazePool,0,279,2,42,0,78,2,29,0,9
+stormpot,stormpot,TimeSpreadExpiration,0,75,0,10,0,17,0,7,0,2
+stormpot,stormpot,BAllocThread,0,392,2,52,0,112,2,42,0,17
+stormpot,stormpot,QueuePool,0,193,0,20,0,54,0,17,0,7
+stormpot,stormpot,QueueFactory,8,33,1,1,4,11,2,2,1,2
+stormpot,stormpot,Timeout,0,78,0,6,0,19,0,13,0,10
+stormpot,stormpot,QSlot,0,103,0,2,0,23,0,10,0,9
