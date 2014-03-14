@@ -122,8 +122,7 @@ class BAllocThread<T extends Poolable> extends Thread {
     BSlot<T> slot;
     slot = live.poll();
     if (slot != null) {
-                                              // TODO test for this
-      if ((slot.isDead() || slot.live2dead()) /* && slot.poison != null */) {
+      if (slot.poison != null && (slot.isDead() || slot.live2dead())) {
         realloc(slot);
       } else {
         live.offer(slot);
