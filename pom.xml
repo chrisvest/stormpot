@@ -46,7 +46,7 @@
     <outputEncoding>UTF-8</outputEncoding>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <java.version>1.6</java.version>
-    <jacoco.version>0.6.3.201306030806</jacoco.version>
+    <jacoco.version>0.7.0.201403182114</jacoco.version>
   </properties>
 
   <build>
@@ -219,14 +219,15 @@
         <artifactId>jacoco-maven-plugin</artifactId>
         <version>${jacoco.version}</version>
       </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
-        <version>2.5.3</version>
-        <configuration>
-          <effort>Max</effort>
-        </configuration>
-      </plugin>
+      <!-- Does not support Java 8 just yet -->
+      <!--<plugin>-->
+        <!--<groupId>org.codehaus.mojo</groupId>-->
+        <!--<artifactId>findbugs-maven-plugin</artifactId>-->
+        <!--<version>2.5.3</version>-->
+        <!--<configuration>-->
+          <!--<effort>Max</effort>-->
+        <!--</configuration>-->
+      <!--</plugin>-->
     </plugins>
   </reporting>
 </project>

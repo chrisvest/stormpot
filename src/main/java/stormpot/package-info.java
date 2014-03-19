@@ -38,7 +38,7 @@ words and sound silly.</p>
 
 <p><strong>Contents:</strong></p>
 
-<p><ul>
+<ul>
   <li><a href="#introduction">Introduction</a></li>
   <li><a href="#simplest-possible-usage">Simplest Possible Usage</a></li>
   <li><a href="#tutorial">Tutorial</a></li>
@@ -48,7 +48,7 @@ words and sound silly.</p>
     <li><a href="#interruption">Interruption</a></li>
   </ul></li>
 </ul>
-</p>
+
 
 <h1 id="introduction">Introduction</h1>
 
@@ -419,7 +419,7 @@ configuration}, the Stormpot poolig library will exhibit and guarantee a number
 of memory effects, that can be relied upon in concurrent and multi-threaded
 programs.</p>
 
-<h3 id="happens-before-edges"><em>Happens-Before</em> Edges</h3>
+<h2 id="happens-before-edges"><em>Happens-Before</em> Edges</h2>
 
 <ol>
 <li>The {@link stormpot.Allocator#allocate(Slot) allocation} of an object
@@ -434,7 +434,7 @@ all objects <em>happens-before</em> the
 {@link stormpot.Completion#await(Timeout) await of a shutdown completion} returns.</li>
 </ol>
 
-<h3 id="interruption">Interruption</h3>
+<h2 id="interruption">Interruption</h2>
 
 <p>The (only two) blocking methods, {@link stormpot.Pool#claim(Timeout)} and
 {@link stormpot.Completion#await(Timeout)}, behave correctly with respect to

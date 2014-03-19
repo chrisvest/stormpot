@@ -70,13 +70,13 @@ required for its implementation is this:
     // MyPoolable.java - minimum Poolable implementation
     import stormpot.Poolable;
     import stormpot.Slot;
-    
+
     public class MyPoolable implements Poolable {
       private final Slot slot;
       public MyPoolable(Slot slot) {
         this.slot = slot;
       }
-    
+
       public void release() {
         slot.release(this);
       }
@@ -93,12 +93,12 @@ interface:
     // MyAllocator.java - minimum Allocator implementation
     import stormpot.Allocator;
     import stormpot.Slot;
-    
+
     public class MyAllocator implements Allocator<MyPoolable> {
       public MyPoolable allocate(Slot slot) throws Exception {
         return new MyPoolable(slot);
       }
-      
+
       public void deallocate(MyPoolable poolable) throws Exception {
         // Nothing to do here
         // But it's a perfect place to close sockets, files, etc.
@@ -114,7 +114,7 @@ Stormpot. All that is left is a little bit of configuration:
     Config<MyPoolable> config = new Config<MyPoolable>().setAllocator(allocator);
     Pool<MyPoolable> pool = new BlazePool<MyPoolable>(config);
     Timeout timeout = new Timeout(1, TimeUnit.SECONDS);
-    
+
     MyPoolable object = pool.claim(timeout);
     try {
       // do stuff with 'object'
@@ -157,7 +157,7 @@ a {@link javax.sql.DataSource}. So let us start off by importing those:
     ::: java
     import java.sql.Connection;
     import java.sql.SQLException;
-    
+
     import javax.sql.DataSource;
 
 We are also going to need most of the Stormpot API. We are going to need
@@ -197,7 +197,7 @@ through the constructor:
       static class MyDao implements Poolable {
       private final Slot slot;
       private final Connection connection;
-      
+
       private MyDao(Slot slot, Connection connection) {
         this.slot = slot;
         this.connection = connection;
@@ -260,7 +260,7 @@ a parameter to its constructor, and put it in a `final` field:
     ::: java
       static class MyDaoAllocator implements Allocator<MyDao> {
         private final DataSource dataSource;
-        
+
         public MyDaoAllocator(DataSource dataSource) {
           this.dataSource = dataSource;
         }
@@ -307,7 +307,7 @@ But let us build that pool before we get to that:
     ::: java
       static class MyDaoPool {
         private final LifecycledPool<MyDao> pool;
-        
+
         public MyDaoPool(DataSource dataSource) {
           MyDaoAllocator allocator = new MyDaoAllocator(dataSource);
           Config<MyDao> config = new Config<MyDao>().setAllocator(allocator);
@@ -358,7 +358,7 @@ through the method:
           }
         }
       }
-      
+
       static interface WithMyDaoDo<T> {
         public T doWithDao(MyDao dao);
       }
@@ -392,7 +392,7 @@ configuration}, the Stormpot poolig library will exhibit and guarantee a number
 of memory effects, that can be relied upon in concurrent and multi-threaded
 programs.
 
-### *Happens-Before* Edges
+## *Happens-Before* Edges
 
 1. The {@link stormpot.Allocator#allocate(Slot) allocation} of an object
    *happens-before* any {@link stormpot.Pool#claim(Timeout) claim} of that object.
@@ -405,7 +405,7 @@ programs.
    all objects *happens-before* the
    {@link stormpot.Completion#await(Timeout) await of a shutdown completion} returns.
 
-### Interruption
+## Interruption
 
 The (only two) blocking methods, {@link stormpot.Pool#claim(Timeout)} and
 {@link stormpot.Completion#await(Timeout)}, behave correctly with respect to

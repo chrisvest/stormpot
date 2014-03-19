@@ -30,7 +30,7 @@ package stormpot;
  * objects to be released back into the pool.
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  *
- * @param <T>
+ * @param <T> The type of {@link Poolable} contained in this pool.
  */
 public interface ResizablePool<T extends Poolable> extends Pool<T> {
   /**
