@@ -66,6 +66,8 @@ class BAllocThread<T extends Poolable> extends Thread {
         replenishPool();
       }
     } catch (InterruptedException ignore) {
+      // This can only be thrown by the dead.poll() method call, because alloc
+      // catches exceptions and use them for poison.
     }
     // This means we've been shut down.
     // let the poison-pill enter the system

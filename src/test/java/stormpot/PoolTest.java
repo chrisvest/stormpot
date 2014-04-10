@@ -2280,6 +2280,45 @@ public class PoolTest {
     pool.shutdown().await(longTimeout);
   }
 
+  @Test(timeout = 601)
+  @Theory public void
+  poolMustTollerateInterruptedExceptionFromAllocatorWhenNotShutDown(
+      PoolFixture fixture) throws InterruptedException {
+    config.setAllocator(new CountingAllocator() {
+      private final AtomicInteger counter = new AtomicInteger();
+      @Override
+      public GenericPoolable allocate(Slot slot) throws Exception {
+        if (counter.incrementAndGet() == 1) {
+          throw new InterruptedException("boom");
+        }
+        return super.allocate(slot);
+      }
+    });
+    AtomicBoolean hasExpired = new AtomicBoolean();
+    config.setExpiration(new CountingExpiration(hasExpired));
+    createPool(fixture);
+
+    // This will capture the failed allocation:
+    try {
+      pool.claim(longTimeout).release();
+    } catch (PoolException e) {
+      assertThat(e.getCause(), instanceOf(InterruptedException.class));
+    }
+
+    // This should succeed like nothing happened:
+    pool.claim(longTimeout).release();
+
+    // Cause an extra reallocation to make sure that works:
+    hasExpired.set(true);
+    assertNull(pool.claim(shortTimeout));
+    hasExpired.set(false);
+
+    // These should again succeed like nothing happened:
+    pool.claim(longTimeout).release();
+    pool.claim(longTimeout).release();
+    shutPoolDown();
+  }
+
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the Pool javadoc.
 }
