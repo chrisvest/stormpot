@@ -844,7 +844,7 @@ public class PoolTest {
     for (int i = 0; i < 10; i++) {
       try {
         obj.release();
-      } catch (Exception _) {
+      } catch (Exception ignore) {
         // we don't really care if the pool is able to detect this or not
         // we are still going to check with the Allocator.
       }
@@ -988,7 +988,7 @@ public class PoolTest {
     Pool<GenericPoolable> pool = fixture.initPool(config.setAllocator(allocator));
     try {
       pool.claim(longTimeout).release();
-    } catch (PoolException _) {}
+    } catch (PoolException ignore) {}
     assertThat(pool.claim(longTimeout), is(notNullValue()));
   }
 
@@ -1039,7 +1039,7 @@ public class PoolTest {
     try {
       pool.claim(longTimeout);
       fail("claim should have thrown");
-    } catch (PoolException _) {}
+    } catch (PoolException ignore) {}
     throwInAllocate.set(false);
     hasExpired.set(false);
     allocationLatch.await();
@@ -1177,12 +1177,12 @@ public class PoolTest {
   throws Exception {
     try {
       awaitOnCompletionWhenInterruptedMustThrow(fixture);
-    } catch (InterruptedException _) {}
+    } catch (InterruptedException ignore) {}
     assertFalse(Thread.interrupted());
     
     try {
       awaitWithTimeoutOnCompletionMustThrowUponInterruption(fixture);
-    } catch (InterruptedException _) {}
+    } catch (InterruptedException ignore) {}
     assertFalse(Thread.interrupted());
   }
 
@@ -1215,7 +1215,7 @@ public class PoolTest {
   awaitOnFinishedCompletionMustClearInterruption(PoolFixture fixture) {
     try {
       awaitWithTimeoutOnFinishedCompletionWhenInterruptedMustThrow(fixture);
-    } catch (InterruptedException _) {}
+    } catch (InterruptedException ignore) {}
     assertFalse(Thread.interrupted());
   }
   
@@ -1339,7 +1339,7 @@ public class PoolTest {
     try {
       blockedClaimWithTimeoutMustThrowUponInterruption(fixture);
       fail("expected InterruptedException from claim");
-    } catch (InterruptedException _) {}
+    } catch (InterruptedException ignore) {}
     assertFalse(Thread.interrupted());
   }
   
@@ -1522,7 +1522,7 @@ public class PoolTest {
       // ensure at least one allocation attempt has taken place
       pool.claim(longTimeout);
       fail("allocation attempt should have failed!");
-    } catch (Exception _) {
+    } catch (Exception ignore) {
       // we don't care about this one
     }
     return pool;

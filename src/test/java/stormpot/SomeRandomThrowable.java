@@ -16,6 +16,8 @@
 package stormpot;
 
 public class SomeRandomThrowable extends Throwable {
+  private static final long serialVersionUID = 42L;
+
   public SomeRandomThrowable(String message) {
     super(message);
   }

@@ -40,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 public class BlazePool<T extends Poolable>
 implements LifecycledResizablePool<T> {
   private static final Exception SHUTDOWN_POISON = new Exception() {
+    private static final long serialVersionUID = 31137L;
     @Override
     public Throwable fillInStackTrace() {
       return this;

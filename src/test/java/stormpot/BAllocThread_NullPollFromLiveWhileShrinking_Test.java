@@ -16,7 +16,6 @@
 package stormpot;
 
 import org.junit.Test;
-import stormpot.*;
 
 import java.util.LinkedList;
 import java.util.Queue;
@@ -64,7 +63,7 @@ extends AllocThread_NullPollFromLiveWhileShrinking_TestTemplate<BSlot<Poolable>,
     
     try {
       th.run();
-    } catch (Stop _) {
+    } catch (Stop ignore) {
       // we're happy now
     }
   }

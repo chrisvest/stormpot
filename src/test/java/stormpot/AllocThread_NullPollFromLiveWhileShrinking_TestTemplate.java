@@ -15,13 +15,13 @@
  */
 package stormpot;
 
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.concurrent.BlockingQueue;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
+
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
 
 /**
  * This is a rather esoteric case. It turned out that when a queue-based Pool
@@ -96,7 +96,7 @@ public abstract class AllocThread_NullPollFromLiveWhileShrinking_TestTemplate<
     
     try {
       th.run();
-    } catch (Stop _) {
+    } catch (Stop ignore) {
       // we're happy now
     }
   }
