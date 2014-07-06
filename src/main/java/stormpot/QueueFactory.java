@@ -24,17 +24,49 @@ class QueueFactory {
     <T> BlockingQueue<T> createUnboundedBlockingQueue();
   }
 
+  static enum FactoryChoiceReason {
+    DEFAULT_FIRST_CHOICE("The " + QUEUE_IMPL_FIRST_CHOICE + " was available on the classpath, and the " +
+        QUEUE_IMPL + " system property did not specify any alternative implementation to use."),
+    SPECIFIED_CHOICE("The " + QUEUE_IMPL + " system property specified the queue implementation to use, " +
+        "specifically " + System.getProperty(QUEUE_IMPL) + "."),
+    DEFAULT_SECOND_CHOICE("The " + QUEUE_IMPL_FIRST_CHOICE + " was not available on the classpath, and the " +
+        QUEUE_IMPL + " system property did not specify any alternative implementation to use, so " +
+        QUEUE_IMPL_SECOND_CHOICE + " was used as the default fallback."),
+    DEFAULT_FALLBACK("")
+    ;
+
+    private final String description;
+
+    FactoryChoiceReason(String description) {
+      this.description = description;
+    }
+
+    public String toString() {
+      return super.toString() + "(" + description + ")";
+    }
+  }
+
   private static final Factory factory;
+  private static final FactoryChoiceReason reason;
+
+  private static final String QUEUE_IMPL = "stormpot.blocking.queue.impl";
+  private static final String QUEUE_IMPL_FIRST_CHOICE = "java.util.concurrent.LinkedTransferQueue";
+  private static final String QUEUE_IMPL_SECOND_CHOICE = LinkedBlockingQueue.class.getCanonicalName();
 
   static {
     Factory theFactory = null;
-    String queueClass = System.getProperty(
-        "stormpot.blocking.queue.impl",
-        "java.util.concurrent.LinkedTransferQueue");
+    FactoryChoiceReason theReason = FactoryChoiceReason.SPECIFIED_CHOICE;
+    String queueType = System.getProperty(QUEUE_IMPL);
+
+    if (queueType == null) {
+      queueType = QUEUE_IMPL_FIRST_CHOICE;
+      theReason = FactoryChoiceReason.DEFAULT_FIRST_CHOICE;
+    }
+
     try {
-      Class<?> transferqueueClass = Class.forName(queueClass);
-      final Constructor<?> constructor = transferqueueClass.getConstructor();
-      constructor.newInstance(); // Just making sure that it works...
+      Class<?> queueClass = Class.forName(queueType);
+      final Constructor<?> constructor = queueClass.getConstructor();
+      BlockingQueue.class.cast(constructor.newInstance()); // Just making sure that it works...
       theFactory = new Factory() {
         @SuppressWarnings("unchecked")
         @Override
@@ -50,8 +82,17 @@ class QueueFactory {
           return new LinkedBlockingQueue<T>();
         }
       };
-    } catch (Exception ignore) {
+    } catch (Exception e) {
+      if (theReason == FactoryChoiceReason.SPECIFIED_CHOICE) {
+        Exception exception = new Exception(
+            "WARNING: The queue implementation specified by the " + QUEUE_IMPL + " system property, " +
+            "specifically " + queueType + ", was determined to be unusable. " +
+            "Falling back to the " + QUEUE_IMPL_SECOND_CHOICE + " implementation.",
+            e);
+        exception.printStackTrace();
+      }
     }
+
     if (theFactory == null) {
       theFactory = new Factory() {
         @Override
@@ -59,11 +100,19 @@ class QueueFactory {
           return new LinkedBlockingQueue<T>();
         }
       };
+      theReason = theReason == FactoryChoiceReason.DEFAULT_FIRST_CHOICE?
+          FactoryChoiceReason.DEFAULT_SECOND_CHOICE : FactoryChoiceReason.DEFAULT_FALLBACK;
     }
+
     factory = theFactory;
+    reason = theReason;
   }
 
   static <T> BlockingQueue<T> createUnboundedBlockingQueue() {
     return factory.createUnboundedBlockingQueue();
+  }
+
+  static FactoryChoiceReason getQueueFactoryChoiceReason() {
+    return reason;
   }
 }
