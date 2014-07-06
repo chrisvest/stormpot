@@ -898,11 +898,11 @@ public class PoolTest {
   @Theory public void
   mustPropagateExceptionsFromAllocateThroughClaim(PoolFixture fixture)
   throws Exception {
-    final RuntimeException expectedEception = new RuntimeException("boo");
+    final RuntimeException expectedException = new RuntimeException("boo");
     Allocator<GenericPoolable> allocator = new CountingAllocator() {
       @Override
       public GenericPoolable allocate(Slot slot) {
-        throw expectedEception;
+        throw expectedException;
       }
     };
     Pool<GenericPoolable> pool = fixture.initPool(config.setAllocator(allocator));
@@ -910,7 +910,7 @@ public class PoolTest {
       pool.claim(longTimeout);
       fail("expected claim to throw");
     } catch (PoolException poolException) {
-      assertThat(poolException.getCause(), is((Throwable) expectedEception));
+      assertThat(poolException.getCause(), is((Throwable) expectedException));
     }
   }
 
@@ -1596,7 +1596,7 @@ public class PoolTest {
    */
   @Test(timeout = 601)
   @Theory public void
-  mustDebiasObjectsNoLongerClaimed(PoolFixture fixture) throws Exception {
+  mustUnbiasObjectsNoLongerClaimed(PoolFixture fixture) throws Exception {
     createPool(fixture);
     Poolable obj = pool.claim(longTimeout);
     obj.release(); // item now biased to our thread
@@ -1683,7 +1683,7 @@ public class PoolTest {
    */
   @Test(timeout = 601, expected = IllegalStateException.class)
   @Theory public void
-  poolThatHasBeenShutDownMustThrowUponClaimEvenIfItHasAvailableNonbiasedObjects(PoolFixture fixture) throws Exception {
+  poolThatHasBeenShutDownMustThrowUponClaimEvenIfItHasAvailableUnbiasedObjects(PoolFixture fixture) throws Exception {
     config.setSize(4);
     createPool(fixture);
     GenericPoolable a = pool.claim(longTimeout);
@@ -1975,7 +1975,7 @@ public class PoolTest {
 
   /**
    * Make sure that the pool does not get into a bad state, caused by concurrent
-   * background resizing jobs interferring with each other.
+   * background resizing jobs interfering with each other.
    *
    * We test this by creating a small pool, then resizing it larger (so much so that
    * any resizing job is unlikely to finish before we can make our next move) and then
@@ -2282,7 +2282,7 @@ public class PoolTest {
 
   @Test(timeout = 601)
   @Theory public void
-  poolMustTollerateInterruptedExceptionFromAllocatorWhenNotShutDown(
+  poolMustTolerateInterruptedExceptionFromAllocatorWhenNotShutDown(
       PoolFixture fixture) throws InterruptedException {
     config.setAllocator(new CountingAllocator() {
       private final AtomicInteger counter = new AtomicInteger();
