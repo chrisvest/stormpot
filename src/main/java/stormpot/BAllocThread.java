@@ -35,8 +35,15 @@ class BAllocThread<T extends Poolable> extends Thread {
   private final BlockingQueue<BSlot<T>> dead;
   private final Reallocator<T> allocator;
   private final BSlot<T> poisonPill;
+
+  // Single reader: this. Many writers.
   private volatile int targetSize;
   private volatile boolean shutdown;
+
+  // Many readers. Single writer: this.
+  private volatile long allocationCount;
+  private volatile long failedAllocationCount;
+
   private int size;
   private int poisonedSlots;
 
@@ -159,10 +166,14 @@ class BAllocThread<T extends Poolable> extends Thread {
       slot.obj = allocator.allocate(slot);
       if (slot.obj == null) {
         poisonedSlots++;
+        failedAllocationCount++;
         slot.poison = new NullPointerException("allocation returned null");
+      } else {
+        allocationCount++;
       }
     } catch (Exception e) {
       poisonedSlots++;
+      failedAllocationCount++;
       slot.poison = e;
     }
     size++;
@@ -198,10 +209,14 @@ class BAllocThread<T extends Poolable> extends Thread {
         slot.obj = allocator.reallocate(slot, slot.obj);
         if (slot.obj == null) {
           poisonedSlots++;
+          failedAllocationCount++;
           slot.poison = new NullPointerException("reallocation returned null");
+        } else {
+          allocationCount++;
         }
       } catch (Exception e) {
         poisonedSlots++;
+        failedAllocationCount++;
         slot.poison = e;
       }
       resetSlot(slot);
@@ -224,5 +239,13 @@ class BAllocThread<T extends Poolable> extends Thread {
     shutdown = true;
     interrupt();
     return new LatchCompletion(completionLatch);
+  }
+
+  public long getAllocationCount() {
+    return allocationCount;
+  }
+
+  public long getFailedAllocationCount() {
+    return failedAllocationCount;
   }
 }

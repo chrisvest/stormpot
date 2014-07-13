@@ -39,7 +39,7 @@ import java.util.concurrent.BlockingQueue;
  * @param <T> The type of {@link Poolable} managed by this pool.
  */
 public class QueuePool<T extends Poolable>
-implements LifecycledResizablePool<T> {
+    implements LifecycledResizablePool<T>, ManagedPool {
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;
   private final QAllocThread<T> allocThread;
@@ -104,6 +104,7 @@ implements LifecycledResizablePool<T> {
     return invalid;
   }
 
+  @Override
   public T claim(Timeout timeout) throws PoolException,
       InterruptedException {
     if (timeout == null) {
@@ -123,11 +124,13 @@ implements LifecycledResizablePool<T> {
     return slot.obj;
   }
 
+  @Override
   public Completion shutdown() {
     shutdown = true;
     return allocThread.shutdown();
   }
 
+  @Override
   public void setTargetSize(int size) {
     if (size < 1) {
       throw new IllegalArgumentException("target size must be at least 1");
@@ -138,7 +141,18 @@ implements LifecycledResizablePool<T> {
     allocThread.setTargetSize(size);
   }
 
+  @Override
   public int getTargetSize() {
     return allocThread.getTargetSize();
+  }
+
+  @Override
+  public long getAllocationCount() {
+    return allocThread.getAllocationCount();
+  }
+
+  @Override
+  public long getFailedAllocationCount() {
+    return allocThread.getFailedAllocationCount();
   }
 }

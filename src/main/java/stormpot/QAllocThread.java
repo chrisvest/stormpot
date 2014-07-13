@@ -34,8 +34,15 @@ class QAllocThread<T extends Poolable> extends Thread {
   private final BlockingQueue<QSlot<T>> dead;
   private final Reallocator<T> allocator;
   private final QSlot<T> poisonPill;
+
+  // Single reader: this. Many writers.
   private volatile int targetSize;
   private volatile boolean shutdown;
+
+  // Many readers. Single writer: this.
+  private volatile long allocationCount;
+  private volatile long failedAllocationCount;
+
   private int size;
   private int poisonedSlots;
 
@@ -126,10 +133,14 @@ class QAllocThread<T extends Poolable> extends Thread {
       slot.obj = allocator.allocate(slot);
       if (slot.obj == null) {
         poisonedSlots++;
+        failedAllocationCount++;
         slot.poison = new NullPointerException("allocation returned null");
+      } else {
+        allocationCount++;
       }
     } catch (Exception e) {
       poisonedSlots++;
+      failedAllocationCount++;
       slot.poison = e;
     }
     size++;
@@ -161,10 +172,14 @@ class QAllocThread<T extends Poolable> extends Thread {
         slot.obj = allocator.reallocate(slot, slot.obj);
         if (slot.obj == null) {
           poisonedSlots++;
+          failedAllocationCount++;
           slot.poison = new NullPointerException("reallocation returned null");
+        } else {
+          allocationCount++;
         }
       } catch (Exception e) {
         poisonedSlots++;
+        failedAllocationCount++;
         slot.poison = e;
       }
       slot.created = System.currentTimeMillis();
@@ -189,5 +204,13 @@ class QAllocThread<T extends Poolable> extends Thread {
     shutdown = true;
     interrupt();
     return new LatchCompletion(completionLatch);
+  }
+
+  public long getAllocationCount() {
+    return allocationCount;
+  }
+
+  public long getFailedAllocationCount() {
+    return failedAllocationCount;
   }
 }

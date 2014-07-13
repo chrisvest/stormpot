@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit;
  * @param <T> The type of {@link Poolable} managed by this pool.
  */
 public class BlazePool<T extends Poolable>
-implements LifecycledResizablePool<T> {
+    implements LifecycledResizablePool<T>, ManagedPool {
   private static final Exception SHUTDOWN_POISON = new Exception() {
     private static final long serialVersionUID = 31137L;
     @Override
@@ -79,6 +79,7 @@ implements LifecycledResizablePool<T> {
     allocThread.start();
   }
 
+  @Override
   public T claim(Timeout timeout)
       throws PoolException, InterruptedException {
     if (timeout == null) {
@@ -115,15 +116,15 @@ implements LifecycledResizablePool<T> {
       // duplicate entries in the queues. Otherwise we'd have a nasty memory
       // leak on our hands.
     }
-    // The thread-local claim failed, so we have to go throught the slow-path.
+    // The thread-local claim failed, so we have to go through the slow-path.
     return slowClaim(timeout);
   }
 
   private T slowClaim(Timeout timeout)
       throws PoolException, InterruptedException {
     // The slow-path for claim is in its own method to allow the fast-path to
-    // inline seperately. At this point, taking a performance hit is
-    // ineviateble anyway, so we're allowed a bit more leeway.
+    // inline separately. At this point, taking a performance hit is
+    // inevitable anyway, so we're allowed a bit more leeway.
     BSlot<T> slot;
     long deadline = timeout.getDeadline();
     long timeoutLeft = timeout.getTimeoutInBaseUnit();
@@ -239,11 +240,13 @@ implements LifecycledResizablePool<T> {
     }
   }
 
+  @Override
   public Completion shutdown() {
     shutdown = true;
     return allocThread.shutdown();
   }
 
+  @Override
   public void setTargetSize(int size) {
     if (size < 1) {
       throw new IllegalArgumentException("target size must be at least 1");
@@ -254,7 +257,18 @@ implements LifecycledResizablePool<T> {
     allocThread.setTargetSize(size);
   }
 
+  @Override
   public int getTargetSize() {
     return allocThread.getTargetSize();
+  }
+
+  @Override
+  public long getAllocationCount() {
+    return allocThread.getAllocationCount();
+  }
+
+  @Override
+  public long getFailedAllocationCount() {
+    return allocThread.getFailedAllocationCount();
   }
 }

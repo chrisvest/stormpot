@@ -15,6 +15,7 @@
  */
 package stormpot;
 
+import org.junit.internal.AssumptionViolatedException;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -55,6 +56,8 @@ public class FailurePrinterTestRule implements TestRule {
 
         try {
           base.evaluate();
+        } catch (AssumptionViolatedException ignore) {
+          // This is fine.
         } catch (Throwable th) {
           long cpuTimeNs = getCpuTimeNs(threadMXBean) - startCpuTimeNs;
           long userTimeNs = getUserTimeNs(threadMXBean) - startUserTimeNs;

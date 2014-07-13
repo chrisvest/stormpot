@@ -188,10 +188,10 @@ class UnitKit {
   }
 
   public static void spinwait(long ms) {
-    long now = System.currentTimeMillis();
-    long deadline = now + ms;
+    long now = System.nanoTime();
+    long deadline = now + TimeUnit.MILLISECONDS.toNanos(ms);
     while (now < deadline) {
-      now = System.currentTimeMillis();
+      now = System.nanoTime();
     }
   }
 
