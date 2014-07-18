@@ -15,21 +15,8 @@
  */
 package stormpot;
 
-import java.util.concurrent.BlockingQueue;
-
-public class QAllocThread_ShutdownNullsPoll_Test
-extends AllocThread_ShutdownNullsPool_TestTemplate<QSlot<Poolable>, QAllocThread<Poolable>> {
-
+public class NullSlot implements Slot {
   @Override
-  protected QAllocThread<Poolable> createAllocThread(
-      BlockingQueue<QSlot<Poolable>> live, BlockingQueue<QSlot<Poolable>> dead) {
-    return new QAllocThread<Poolable>(live, dead, config, new QSlot<Poolable>(live), null);
-  }
-
-  @Override
-  protected QSlot<Poolable> createSlot(BlockingQueue<QSlot<Poolable>> live) {
-    QSlot<Poolable> slot = new QSlot<Poolable>(live);
-    slot.obj = new GenericPoolable(slot);
-    return slot;
+  public void release(Poolable obj) {
   }
 }

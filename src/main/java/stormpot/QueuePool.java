@@ -44,13 +44,14 @@ public class QueuePool<T extends Poolable>
   private final BlockingQueue<QSlot<T>> dead;
   private final QAllocThread<T> allocThread;
   private final Expiration<? super T> deallocRule;
+  private final LatencyRecorder latencyRecorder;
   private volatile boolean shutdown = false;
 
   /**
    * Special slot used to signal that the pool has been shut down.
    */
   final QSlot<T> poisonPill = new QSlot<T>(null);
-  
+
   /**
    * Construct a new QueuePool instance based on the given {@link Config}.
    * @param config The pool configuration to use.
@@ -60,7 +61,9 @@ public class QueuePool<T extends Poolable>
     dead = QueueFactory.createUnboundedBlockingQueue();
     synchronized (config) {
       config.validate();
-      allocThread = new QAllocThread<T>(live, dead, config, poisonPill);
+      latencyRecorder = config.getLatencyRecorder();
+      allocThread = new QAllocThread<T>(
+          live, dead, config, poisonPill, latencyRecorder);
       deallocRule = config.getExpiration();
     }
     allocThread.start();
@@ -154,5 +157,58 @@ public class QueuePool<T extends Poolable>
   @Override
   public long getFailedAllocationCount() {
     return allocThread.getFailedAllocationCount();
+  }
+
+  @Override
+  public boolean isShutDown() {
+    return shutdown;
+  }
+
+  @Override
+  public double getObjectLifetimePercentile(double percentile) {
+    if (latencyRecorder == null) {
+      return Double.NaN;
+    }
+    return latencyRecorder.getObjectLifetimePercentile(percentile);
+  }
+
+  @Override
+  public double getAllocationLatencyPercentile(double percentile) {
+    if (latencyRecorder == null) {
+      return Double.NaN;
+    }
+    return latencyRecorder.getAllocationLatencyPercentile(percentile);
+  }
+
+  @Override
+  public double getAllocationFailureLatencyPercentile(double percentile) {
+    if (latencyRecorder == null) {
+      return Double.NaN;
+    }
+    return latencyRecorder.getAllocationFailureLatencyPercentile(percentile);
+  }
+
+  @Override
+  public double getReallocationLatencyPercentile(double percentile) {
+    if (latencyRecorder == null) {
+      return Double.NaN;
+    }
+    return latencyRecorder.getReallocationLatencyPercentile(percentile);
+  }
+
+  @Override
+  public double getReallocationFailureLatencyPercentile(double percentile) {
+    if (latencyRecorder == null) {
+      return Double.NaN;
+    }
+    return latencyRecorder.getReallocationFailurePercentile(percentile);
+  }
+
+  @Override
+  public double getDeallocationLatencyPercentile(double percentile) {
+    if (latencyRecorder == null) {
+      return Double.NaN;
+    }
+    return latencyRecorder.getDeallocationLatencyPercentile(percentile);
   }
 }

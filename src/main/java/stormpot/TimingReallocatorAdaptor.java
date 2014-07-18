@@ -15,34 +15,26 @@
  */
 package stormpot;
 
-class ReallocatingAdaptor<T extends Poolable> implements Reallocator<T> {
-  protected final Allocator<T> allocator;
-
-  public ReallocatingAdaptor(Allocator<T> allocator) {
-    this.allocator = allocator;
+class TimingReallocatorAdaptor<T extends Poolable>
+    extends TimingReallocatingAdaptor<T>
+    implements Reallocator<T> {
+  public TimingReallocatorAdaptor(
+      Reallocator<T> allocator, LatencyRecorder latencyRecorder) {
+    super(allocator, latencyRecorder);
   }
 
   @Override
   public T reallocate(Slot slot, T poolable) throws Exception {
+    long start = System.currentTimeMillis();
     try {
-      allocator.deallocate(poolable);
-    } catch (Throwable ignore) { // NOPMD
-      // ignored as per specification
+      T obj = ((Reallocator<T>) allocator).reallocate(slot, poolable);
+      long elapsed = System.currentTimeMillis() - start;
+      latencyRecorder.recordReallocationLatencySampleMillis(elapsed);
+      return obj;
+    } catch (Exception e) {
+      long elapsed = System.currentTimeMillis() - start;
+      latencyRecorder.recordReallocationFailureLatencySampleMillis(elapsed);
+      throw e;
     }
-    return allocator.allocate(slot);
-  }
-
-  @Override
-  public T allocate(Slot slot) throws Exception {
-    return allocator.allocate(slot);
-  }
-
-  @Override
-  public void deallocate(T poolable) throws Exception {
-    allocator.deallocate(poolable);
-  }
-
-  public Allocator<T> unwrap() {
-    return allocator;
   }
 }

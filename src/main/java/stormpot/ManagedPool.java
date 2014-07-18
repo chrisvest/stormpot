@@ -64,4 +64,23 @@ public interface ManagedPool {
    * @see ResizablePool#getTargetSize()
    */
   int getTargetSize();
+
+  /**
+   * Returns 'true' if the shut down process has been started on this pool,
+   * 'false' otherwise. This method does not reveal whether or not the shut
+   * down process has completed.
+   */
+  boolean isShutDown();
+
+  double getObjectLifetimePercentile(double percentile);
+
+  double getAllocationLatencyPercentile(double percentile);
+
+  double getAllocationFailureLatencyPercentile(double percentile);
+
+  double getReallocationLatencyPercentile(double percentile);
+
+  double getReallocationFailureLatencyPercentile(double percentile);
+
+  double getDeallocationLatencyPercentile(double percentile);
 }

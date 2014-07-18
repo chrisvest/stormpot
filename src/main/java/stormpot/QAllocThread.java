@@ -34,6 +34,7 @@ class QAllocThread<T extends Poolable> extends Thread {
   private final BlockingQueue<QSlot<T>> dead;
   private final Reallocator<T> allocator;
   private final QSlot<T> poisonPill;
+  private final LatencyRecorder latencyRecorder;
 
   // Single reader: this. Many writers.
   private volatile int targetSize;
@@ -47,11 +48,15 @@ class QAllocThread<T extends Poolable> extends Thread {
   private int poisonedSlots;
 
   public QAllocThread(
-      BlockingQueue<QSlot<T>> live, BlockingQueue<QSlot<T>> dead,
-      Config<T> config, QSlot<T> poisonPill) {
+      BlockingQueue<QSlot<T>> live,
+      BlockingQueue<QSlot<T>> dead,
+      Config<T> config,
+      QSlot<T> poisonPill,
+      LatencyRecorder latencyRecorder) {
+    this.latencyRecorder = latencyRecorder;
     this.targetSize = config.getSize();
     completionLatch = new CountDownLatch(1);
-    this.allocator = config.getReallocator();
+    this.allocator = config.getAdaptedReallocator();
     this.size = 0;
     this.live = live;
     this.dead = dead;
@@ -155,6 +160,7 @@ class QAllocThread<T extends Poolable> extends Thread {
     size--;
     try {
       if (slot.poison == null) {
+        recordObjectLifetimeSample(System.currentTimeMillis() - slot.created);
         allocator.deallocate(slot.obj);
       } else {
         poisonedSlots--;
@@ -182,13 +188,21 @@ class QAllocThread<T extends Poolable> extends Thread {
         failedAllocationCount++;
         slot.poison = e;
       }
-      slot.created = System.currentTimeMillis();
+      long now = System.currentTimeMillis();
+      recordObjectLifetimeSample(now - slot.created);
+      slot.created = now;
       slot.claims = 0;
       slot.stamp = 0;
       live.offer(slot);
     } else {
       dealloc(slot);
       alloc(slot);
+    }
+  }
+
+  private void recordObjectLifetimeSample(long milliseconds) {
+    if (latencyRecorder != null) {
+      latencyRecorder.recordObjectLifetimeSampleMillis(milliseconds);
     }
   }
 

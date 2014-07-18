@@ -35,6 +35,7 @@ class BAllocThread<T extends Poolable> extends Thread {
   private final BlockingQueue<BSlot<T>> dead;
   private final Reallocator<T> allocator;
   private final BSlot<T> poisonPill;
+  private final LatencyRecorder latencyRecorder;
 
   // Single reader: this. Many writers.
   private volatile int targetSize;
@@ -53,7 +54,8 @@ class BAllocThread<T extends Poolable> extends Thread {
       Config<T> config, BSlot<T> poisonPill) {
     this.targetSize = config.getSize();
     completionLatch = new CountDownLatch(1);
-    this.allocator = config.getReallocator();
+    this.allocator = config.getAdaptedReallocator();
+    this.latencyRecorder = config.getLatencyRecorder();
     this.size = 0;
     this.live = live;
     this.dead = dead;
@@ -177,12 +179,12 @@ class BAllocThread<T extends Poolable> extends Thread {
       slot.poison = e;
     }
     size++;
-    resetSlot(slot);
+    resetSlot(slot, System.currentTimeMillis());
     live.offer(slot);
   }
 
-  private void resetSlot(BSlot<T> slot) {
-    slot.created = System.currentTimeMillis();
+  private void resetSlot(BSlot<T> slot, long now) {
+    slot.created = now;
     slot.claims = 0;
     slot.stamp = 0;
     slot.dead2live();
@@ -192,6 +194,8 @@ class BAllocThread<T extends Poolable> extends Thread {
     size--;
     try {
       if (slot.poison == null) {
+        long now = System.currentTimeMillis();
+        recordObjectLifetimeSample(now - slot.created);
         allocator.deallocate(slot.obj);
       } else {
         poisonedSlots--;
@@ -219,11 +223,19 @@ class BAllocThread<T extends Poolable> extends Thread {
         failedAllocationCount++;
         slot.poison = e;
       }
-      resetSlot(slot);
+      long now = System.currentTimeMillis();
+      recordObjectLifetimeSample(now - slot.created);
+      resetSlot(slot, now);
       live.offer(slot);
     } else {
       dealloc(slot);
       alloc(slot);
+    }
+  }
+
+  private void recordObjectLifetimeSample(long milliseconds) {
+    if (latencyRecorder != null) {
+      latencyRecorder.recordObjectLifetimeSampleMillis(milliseconds);
     }
   }
 

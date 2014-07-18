@@ -569,7 +569,89 @@ public class PoolTest {
     
     assertThat(zeroStampsCounted.get(), is(3L));
   }
-  
+
+  @Test(timeout = 601)
+  @Theory public void
+  slotInfoMustHaveAgeInMillis(PoolFixture fixture) throws InterruptedException {
+    final AtomicLong age = new AtomicLong();
+    Expiration<Poolable> expiration = new Expiration<Poolable>() {
+      @Override
+      public boolean hasExpired(SlotInfo<? extends Poolable> info) throws Exception {
+        age.set(info.getAgeMillis());
+        return false;
+      }
+    };
+    config.setExpiration(expiration);
+    createPool(fixture);
+    pool.claim(longTimeout).release();
+    long firstAge = age.get();
+    spinwait(5);
+    pool.claim(longTimeout).release();
+    long secondAge = age.get();
+    assertThat(secondAge - firstAge, greaterThanOrEqualTo(5L));
+  }
+
+  @Test(timeout = 601)
+  @Theory public void
+  slotInfoAgeMustResetAfterAllocation(PoolFixture fixture) throws InterruptedException {
+    final AtomicBoolean hasExpired = new AtomicBoolean();
+    final AtomicLong age = new AtomicLong();
+    Expiration<Poolable> expiration = new Expiration<Poolable>() {
+      @Override
+      public boolean hasExpired(SlotInfo<? extends Poolable> info) throws Exception {
+        age.set(info.getAgeMillis());
+        return hasExpired.get();
+      }
+    };
+    config.setExpiration(expiration);
+    // Reallocations will fail, causing the slot to be poisoned.
+    // Then, the poisoned slot will not be reallocated again, but rather
+    // go through the deallocate-allocate cycle.
+    config.setAllocator(new FallibleReallocator(new Exception(), true, false, true));
+    createPool(fixture);
+    pool.claim(longTimeout).release();
+    spinwait(5); // time transpires
+    pool.claim(longTimeout).release();
+    long firstAge = age.get(); // age is now at least 5 ms
+    hasExpired.set(true);
+    try {
+      pool.claim(longTimeout).release();
+    } catch (Exception e) {
+      // ignore
+    }
+    hasExpired.set(false);
+    // new object should have a new age
+    pool.claim(longTimeout).release();
+    long secondAge = age.get(); // age should be less than age of prev. obj.
+    assertThat(secondAge, lessThan(firstAge));
+  }
+
+  @Test(timeout = 601)
+  @Theory public void
+  slotInfoAgeMustResetAfterReallocation(PoolFixture fixture) throws InterruptedException {
+    final AtomicBoolean hasExpired = new AtomicBoolean();
+    final AtomicLong age = new AtomicLong();
+    Expiration<Poolable> expiration = new Expiration<Poolable>() {
+      @Override
+      public boolean hasExpired(SlotInfo<? extends Poolable> info) throws Exception {
+        age.set(info.getAgeMillis());
+        return hasExpired.get();
+      }
+    };
+    config.setExpiration(expiration);
+    createPool(fixture);
+    pool.claim(longTimeout).release();
+    spinwait(5); // time transpires
+    pool.claim(longTimeout).release();
+    long firstAge = age.get();
+    hasExpired.set(true);
+    assertNull(pool.claim(zeroTimeout)); // cause reallocation
+    hasExpired.set(false);
+    pool.claim(longTimeout).release(); // new object, new age
+    long secondAge = age.get();
+    assertThat(secondAge, lessThan(firstAge));
+  }
+
   /**
    * It is not possible to claim from a pool that has been shut down. Doing
    * so will cause an IllegalStateException to be thrown. This must take
@@ -2411,12 +2493,105 @@ public class PoolTest {
     managedPool.setTargetSize(5);
     assertThat(managedPool.getTargetSize(), is(5));
   }
-  // TODO managed pool must give pool state
-  // TODO managed pool must maintain mean object lifetime
 
-  // TODO managed pool must maintain allocation latency histogram?
-  // TODO managed pool must sum up claim counts?
-  // TODO managed pool must maintain recent allocation success rate?
+  @Test(timeout = 601)
+  @Theory public void
+  managedPoolMustGivePoolState(PoolFixture fixture) {
+    ManagedPool managedPool = assumeManagedPool(fixture);
+
+    assertFalse(managedPool.isShutDown());
+  }
+
+  @Test(timeout = 601)
+  @Theory public void
+  managedPoolMustReturnNaNWhenNoLatencyRecordHasBeenConfigured(PoolFixture fixture) {
+    ManagedPool managedPool = assumeManagedPool(fixture);
+    assertThat(managedPool.getAllocationLatencyPercentile(0.5), is(Double.NaN));
+    assertThat(managedPool.getObjectLifetimePercentile(0.5), is(Double.NaN));
+  }
+
+  @Test(timeout = 601)
+  @Theory public void
+  managedPoolMustGetLatencyPercentilesFromConfiguredLatencyRecorder(PoolFixture fixture) {
+    config.setLatencyRecorder(
+        new FixedMeanLatencyRecorder(1.37, 2.37, 3.37, 4.37, 5.37, 6.37));
+    ManagedPool managedPool = assumeManagedPool(fixture);
+    assertThat(managedPool.getObjectLifetimePercentile(0.5), is(1.37));
+    assertThat(managedPool.getAllocationLatencyPercentile(0.5), is(2.37));
+    assertThat(managedPool.getAllocationFailureLatencyPercentile(0.5), is(3.37));
+    assertThat(managedPool.getReallocationLatencyPercentile(0.5), is(4.37));
+    assertThat(managedPool.getReallocationFailureLatencyPercentile(0.5), is(5.37));
+    assertThat(managedPool.getDeallocationLatencyPercentile(0.5), is(6.37));
+  }
+
+  @Test(timeout = 601)
+  @Theory public void
+  managedPoolMustRecordObjectLifetimeOnDeallocateInConfiguredLatencyRecorder(
+      PoolFixture fixture) throws InterruptedException {
+    config.setLatencyRecorder(new LastSampleLatencyRecorder());
+    config.setAllocator(new FallibleReallocator(new Exception(), true, false, true));
+    AtomicBoolean hasExpired = new AtomicBoolean();
+    config.setExpiration(new CountingExpiration(hasExpired));
+    ManagedPool managedPool = assumeManagedPool(fixture);
+    GenericPoolable obj = pool.claim(longTimeout);
+    spinwait(5);
+    obj.release();
+    hasExpired.set(true);
+    try {
+      // hit the reallocation failure
+      pool.claim(longTimeout);
+      fail("expected an exception to be thrown");
+    } catch (Exception ignore) {}
+    hasExpired.set(false);
+    // this should go through the normal deallocate-allocate cycle
+    obj = pool.claim(longTimeout); // wait for reallocation
+    try {
+      assertThat(
+          managedPool.getObjectLifetimePercentile(0.0),
+          allOf(greaterThanOrEqualTo(5.0), not(Double.NaN)));
+    } finally {
+      obj.release();
+    }
+  }
+
+  @Test(timeout = 601)
+  @Theory public void
+  managedPoolMustNotRecordObjectLifetimeLatencyBeforeFirstDeallocation(
+      PoolFixture fixture) throws InterruptedException {
+    config.setLatencyRecorder(new LastSampleLatencyRecorder());
+    ManagedPool managedPool = assumeManagedPool(fixture);
+    GenericPoolable obj = pool.claim(longTimeout);
+    try {
+      assertThat(managedPool.getObjectLifetimePercentile(0.0), is(Double.NaN));
+    } finally {
+      obj.release();
+    }
+  }
+
+  @Test(timeout = 601)
+  @Theory public void
+  managedPoolMustRecordObjectLifetimeOnReallocateInConfiguredLatencyRecorder(
+      PoolFixture fixture) throws InterruptedException {
+    config.setLatencyRecorder(new LastSampleLatencyRecorder());
+    config.setAllocator(new CountingAllocator());
+    AtomicBoolean hasExpired = new AtomicBoolean();
+    config.setExpiration(new CountingExpiration(hasExpired));
+    ManagedPool managedPool = assumeManagedPool(fixture);
+    GenericPoolable obj = pool.claim(longTimeout);
+    spinwait(5);
+    obj.release();
+    hasExpired.set(true);
+    assertNull(pool.claim(zeroTimeout));
+    hasExpired.set(false);
+    obj = pool.claim(longTimeout); // wait for reallocation
+    try {
+      assertThat(
+          managedPool.getObjectLifetimePercentile(0.0),
+          allOf(greaterThanOrEqualTo(5.0), not(Double.NaN)));
+    } finally {
+      obj.release();
+    }
+  }
 
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the Pool javadoc.

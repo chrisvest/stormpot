@@ -55,7 +55,8 @@ public class Config<T extends Poolable> {
   private Expiration<? super T> expiration =
       new TimeSpreadExpiration(480000, 600000, TimeUnit.MILLISECONDS); // 8 to 10 minutes
   private Allocator<?> allocator;
-  
+  private LatencyRecorder latencyRecorder;
+
   /**
    * Build a new empty Config object. Most settings have reasonable default
    * values. However, no {@link Allocator} is configured by default, and one
@@ -166,6 +167,15 @@ public class Config<T extends Poolable> {
     return expiration;
   }
 
+  public synchronized Config<T> setLatencyRecorder(LatencyRecorder latencyRecorder) {
+    this.latencyRecorder = latencyRecorder;
+    return this;
+  }
+
+  public synchronized LatencyRecorder getLatencyRecorder() {
+    return latencyRecorder;
+  }
+
   /**
    * Check that the configuration is valid in terms of the <em>standard
    * configuration</em>. This method is useful in the
@@ -185,6 +195,25 @@ public class Config<T extends Poolable> {
     }
     if (expiration == null) {
       throw new IllegalArgumentException("Expiration cannot be null");
+    }
+  }
+
+  Reallocator<T> getAdaptedReallocator() {
+    if (allocator == null) {
+      return null;
+    }
+    if (latencyRecorder == null) {
+      if (allocator instanceof Reallocator) {
+        return (Reallocator<T>) allocator;
+      }
+      return new ReallocatingAdaptor<T>((Allocator<T>) allocator);
+    } else {
+      if (allocator instanceof Reallocator) {
+        return new TimingReallocatorAdaptor<T>(
+            (Reallocator<T>) allocator, latencyRecorder);
+      }
+      return new TimingReallocatingAdaptor<T>(
+          (Allocator<T>) allocator, latencyRecorder);
     }
   }
 }

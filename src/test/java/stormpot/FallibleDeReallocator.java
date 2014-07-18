@@ -15,21 +15,24 @@
  */
 package stormpot;
 
-import java.util.concurrent.BlockingQueue;
+public class FallibleDeReallocator extends CountingReallocator {
+  private final Exception exception;
+  private final boolean[] replies;
+  private int counter;
 
-public class QAllocThread_ShutdownNullsPoll_Test
-extends AllocThread_ShutdownNullsPool_TestTemplate<QSlot<Poolable>, QAllocThread<Poolable>> {
-
-  @Override
-  protected QAllocThread<Poolable> createAllocThread(
-      BlockingQueue<QSlot<Poolable>> live, BlockingQueue<QSlot<Poolable>> dead) {
-    return new QAllocThread<Poolable>(live, dead, config, new QSlot<Poolable>(live), null);
+  public FallibleDeReallocator(Exception exception, boolean... replies) {
+    this.exception = exception;
+    this.replies = replies;
+    counter = 0;
   }
 
   @Override
-  protected QSlot<Poolable> createSlot(BlockingQueue<QSlot<Poolable>> live) {
-    QSlot<Poolable> slot = new QSlot<Poolable>(live);
-    slot.obj = new GenericPoolable(slot);
-    return slot;
+  public void deallocate(GenericPoolable poolable) throws Exception {
+    boolean reply = replies[counter];
+    counter = Math.min(replies.length - 1, counter + 1);
+    if (!reply) {
+      throw exception;
+    }
+    super.deallocate(poolable);
   }
 }

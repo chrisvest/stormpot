@@ -23,7 +23,7 @@ extends AllocThread_NullPollFromLiveWhileShrinking_TestTemplate<QSlot<Poolable>,
   protected QAllocThread<Poolable> createAllocThread(
       BlockingQueue<QSlot<Poolable>> live, BlockingQueue<QSlot<Poolable>> dead,
       Config<Poolable> config) {
-    QAllocThread<Poolable> th = new QAllocThread<Poolable>(live, dead, config, new QSlot<Poolable>(live));
+    QAllocThread<Poolable> th = new QAllocThread<Poolable>(live, dead, config, new QSlot<Poolable>(live), null);
     return th;
   }
 
