@@ -15,13 +15,15 @@
  */
 package stormpot;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
+
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
+import static stormpot.AlloKit.allocator;
 
 /**
  * In this test, we make sure that the shut down process takes precautions
@@ -38,7 +40,7 @@ public abstract class AllocThread_ShutdownNullsPool_TestTemplate<
   @Before
   public void setUp() {
     config = new Config<Poolable>();
-    config.setAllocator(new CountingAllocator());
+    config.setAllocator(allocator());
     config.setSize(2);
   }
 

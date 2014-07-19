@@ -47,6 +47,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.junit.Assume.assumeThat;
+import static stormpot.AlloKit.*;
 import static stormpot.UnitKit.*;
 
 /**
@@ -103,7 +104,7 @@ public class PoolTest {
   
   @Before public void
   setUp() {
-    allocator = new CountingAllocator();
+    allocator = allocator();
     config = new Config<GenericPoolable>().setSize(1).setAllocator(allocator);
   }
 
@@ -199,7 +200,7 @@ public class PoolTest {
     createPool(fixture);
     GenericPoolable obj = pool.claim(longTimeout);
     try {
-      assertThat(allocator.allocations(), is(greaterThan(0)));
+      assertThat(allocator.countAllocations(), is(greaterThan(0)));
     } finally {
       obj.release();
     }
@@ -269,7 +270,7 @@ public class PoolTest {
     createPool(fixture);
     pool.claim(longTimeout).release();
     pool.claim(longTimeout).release();
-    assertThat(allocator.allocations(), is(1));
+    assertThat(allocator.countAllocations(), is(1));
   }
   
   /**
@@ -314,6 +315,7 @@ public class PoolTest {
   @Test(timeout = 601)
   @Theory public void
   mustUseProvidedExpiration(PoolFixture fixture) throws Exception {
+    config.setAllocator(allocator());
     CountingExpiration expiration = new CountingExpiration(false);
     config.setExpiration(expiration);
     createPool(fixture);
@@ -377,7 +379,7 @@ public class PoolTest {
       assertThat(e.getCause(), instanceOf(SomeRandomException.class));
     }
     // must have deallocated that object
-    assertThat(allocator.deallocations(), greaterThanOrEqualTo(1));
+    assertThat(allocator.countDeallocations(), greaterThanOrEqualTo(1));
   }
   
   /**
@@ -607,7 +609,7 @@ public class PoolTest {
     // Reallocations will fail, causing the slot to be poisoned.
     // Then, the poisoned slot will not be reallocated again, but rather
     // go through the deallocate-allocate cycle.
-    config.setAllocator(new FallibleReallocator(new Exception(), true, false, true));
+    config.setAllocator(reallocator(realloc($throw(new Exception()))));
     createPool(fixture);
     pool.claim(longTimeout).release();
     spinwait(5); // time transpires
@@ -693,7 +695,7 @@ public class PoolTest {
     pool.claim(longTimeout).release();
     spinwait(2);
     pool.claim(longTimeout).release();
-    assertThat(allocator.allocations(), greaterThanOrEqualTo(2));
+    assertThat(allocator.countAllocations(), greaterThanOrEqualTo(2));
   }
   
   /**
@@ -721,7 +723,7 @@ public class PoolTest {
     pool.claim(longTimeout).release();
     spinwait(2);
     pool.claim(longTimeout).release();
-    assertThat(allocator.deallocations(), greaterThanOrEqualTo(1));
+    assertThat(allocator.countDeallocations(), greaterThanOrEqualTo(1));
   }
   
   /**
@@ -749,7 +751,7 @@ public class PoolTest {
     p1.release();
     p2.release();
     pool.shutdown().await(longTimeout);
-    assertThat(allocator.deallocations(), is(2));
+    assertThat(allocator.countDeallocations(), is(2));
   }
   
   /**
@@ -799,7 +801,7 @@ public class PoolTest {
     assertNotNull("Did not deplete pool in time", obj);
     pool.shutdown().await(mediumTimeout);
     try {
-      assertThat(allocator.deallocations(), is(0));
+      assertThat(allocator.countDeallocations(), is(0));
     } finally {
       obj.release();
     }
@@ -954,7 +956,7 @@ public class PoolTest {
     }
     pool.claim(longTimeout);
     // check if the deallocation list contains duplicates
-    List<GenericPoolable> deallocations = allocator.deallocationList();
+    List<GenericPoolable> deallocations = allocator.getDeallocations();
     for (Poolable elm : deallocations) {
       assertThat("Deallocations of " + elm,
           Collections.frequency(deallocations, elm), is(1));
@@ -976,14 +978,7 @@ public class PoolTest {
   @Theory public void
   shutdownMustNotDeallocateEmptySlots(PoolFixture fixture) throws Exception {
     final AtomicBoolean wasNull = new AtomicBoolean();
-    Allocator<GenericPoolable> allocator = new CountingAllocator() {
-      @Override
-      public void deallocate(GenericPoolable poolable) {
-        if (poolable == null) {
-          wasNull.set(true);
-        }
-      }
-    };
+    allocator = allocator(dealloc($observeNull(wasNull, $null)));
     config.setAllocator(allocator).setExpiration(oneMsTTL);
     createPool(fixture);
     pool.claim(longTimeout).release();
@@ -1002,9 +997,9 @@ public class PoolTest {
   mustPropagateExceptionsFromAllocateThroughClaim(PoolFixture fixture)
       throws Exception {
     final RuntimeException expectedException = new RuntimeException("boo");
-    Allocator<GenericPoolable> allocator =
-        new FallibleAllocator(expectedException, false);
-    Pool<GenericPoolable> pool = fixture.initPool(config.setAllocator(allocator));
+    allocator = allocator(alloc($throw(expectedException)));
+    config.setAllocator(allocator);
+    createPool(fixture);
     try {
       pool.claim(longTimeout);
       fail("expected claim to throw");
@@ -1024,12 +1019,7 @@ public class PoolTest {
   mustPropagateExceptionsFromReallocateThroughClaim(PoolFixture fixture)
       throws Exception {
     final RuntimeException expectedException = new RuntimeException("boo");
-    Reallocator<GenericPoolable> allocator = new CountingReallocator() {
-      @Override
-      public GenericPoolable reallocate(Slot slot, GenericPoolable poolable) throws Exception {
-        throw expectedException;
-      }
-    };
+    allocator = reallocator(realloc($throw(expectedException)));
     AtomicBoolean hasExpired = new AtomicBoolean();
     Expiration<Poolable> expiration = new CountingExpiration(hasExpired);
     Pool<GenericPoolable> pool = fixture.initPool(
@@ -1074,13 +1064,15 @@ public class PoolTest {
   @Theory public void
   mustStillBeUsableAfterExceptionInAllocate(PoolFixture fixture)
       throws Exception {
-    Allocator<GenericPoolable> allocator =
-        new FallibleAllocator(new RuntimeException("boo"), false, true);
-    Pool<GenericPoolable> pool = fixture.initPool(config.setAllocator(allocator));
+    allocator = allocator(alloc($throw(new RuntimeException("boo")), $new));
+    config.setAllocator(allocator);
+    createPool(fixture);
     try {
       pool.claim(longTimeout).release();
     } catch (PoolException ignore) {}
-    assertThat(pool.claim(longTimeout), is(notNullValue()));
+    GenericPoolable obj = pool.claim(longTimeout);
+    assertThat(obj, is(notNullValue()));
+    obj.release();
   }
 
   /**
@@ -1104,23 +1096,11 @@ public class PoolTest {
     final AtomicBoolean throwInAllocate = new AtomicBoolean();
     final AtomicBoolean hasExpired = new AtomicBoolean();
     final CountDownLatch allocationLatch = new CountDownLatch(2);
-    Reallocator<GenericPoolable> allocator = new CountingReallocator() {
-      @Override
-      public GenericPoolable allocate(Slot slot) throws Exception {
-        if (throwInAllocate.get()) {
-          throw new RuntimeException("boo");
-        }
-        allocationLatch.countDown();
-        return super.allocate(slot);
-      }
-
-      @Override
-      public GenericPoolable reallocate(
-          Slot slot,
-          GenericPoolable poolable) throws Exception {
-        throw new RuntimeException("boo");
-      }
-    };
+    allocator = reallocator(
+        alloc($if(throwInAllocate,
+            $throw(new RuntimeException("boo")),
+            $countDown(allocationLatch, $new))),
+        realloc($throw(new RuntimeException("boo"))));
     Expiration<Poolable> expiration = new CountingExpiration(hasExpired);
     Pool<GenericPoolable> pool = fixture.initPool(
         config.setAllocator(allocator).setExpiration(expiration));
@@ -1157,15 +1137,10 @@ public class PoolTest {
   @Theory public void
   mustSwallowExceptionsFromDeallocateThroughRelease(PoolFixture fixture)
       throws Exception {
-    Allocator<GenericPoolable> allocator = new CountingAllocator() {
-      @Override
-      public void deallocate(GenericPoolable poolable) {
-        throw new RuntimeException("boo");
-      }
-    };
+    allocator = allocator(dealloc($throw(new RuntimeException("boo"))));
     config.setAllocator(allocator);
-    Pool<GenericPoolable> pool = fixture.initPool(
-        config.setExpiration(oneMsTTL));
+    config.setExpiration(oneMsTTL);
+    createPool(fixture);
     pool.claim(longTimeout).release();
     spinwait(2);
     pool.claim(longTimeout).release();
@@ -1194,20 +1169,15 @@ public class PoolTest {
   @Theory public void
   mustSwallowExceptionsFromDeallocateThroughShutdown(PoolFixture fixture)
       throws Exception {
-    CountingAllocator allocator = new CountingAllocator() {
-      @Override
-      public void deallocate(GenericPoolable poolable) throws Exception {
-        super.deallocate(poolable);
-        throw new RuntimeException("boo");
-      }
-    };
+    CountingAllocator allocator = allocator(
+        dealloc($throw(new RuntimeException("boo"))));
     config.setAllocator(allocator).setSize(2);
     createPool(fixture);
     Poolable obj= pool.claim(longTimeout);
     pool.claim(longTimeout).release();
     obj.release();
     pool.shutdown().await(longTimeout);
-    assertThat(allocator.deallocations(), is(2));
+    assertThat(allocator.countDeallocations(), is(2));
   }
   
   /**
@@ -1323,7 +1293,7 @@ public class PoolTest {
   @Theory public void
   claimMustThrowIfAllocationReturnsNull(PoolFixture fixture)
       throws Exception {
-    Allocator<GenericPoolable> allocator = new NullyAllocator(false);
+    Allocator<GenericPoolable> allocator = allocator(alloc($null));
     Pool<GenericPoolable> pool = fixture.initPool(config.setAllocator(allocator));
     pool.claim(longTimeout);
   }
@@ -1347,16 +1317,13 @@ public class PoolTest {
   @Theory public void
   claimMustThrowIfReallocationReturnsNull(PoolFixture fixture)
       throws Exception {
-    Allocator<GenericPoolable> allocator = new CountingReallocator() {
-      @Override
-      public GenericPoolable reallocate(Slot slot, GenericPoolable poolable) {
-        return null;
-      }
-    };
+    allocator = reallocator(realloc($null));
     AtomicBoolean hasExpired = new AtomicBoolean();
     Expiration<Poolable> expiration = new CountingExpiration(hasExpired);
-    Pool<GenericPoolable> pool = fixture.initPool(
-        config.setAllocator(allocator).setExpiration(expiration).setSize(2));
+    config.setAllocator(allocator);
+    config.setExpiration(expiration);
+    config.setSize(2);
+    createPool(fixture);
     // Make sure the pool is fully allocated
     hasExpired.set(false);
     GenericPoolable obj1 = pool.claim(longTimeout);
@@ -1442,15 +1409,15 @@ public class PoolTest {
   @Theory public void
   claimMustStayWithinDeadlineEvenIfAllocatorBlocks(PoolFixture fixture)
       throws Exception {
-    Allocator<GenericPoolable> allocator = new CountingAllocator() {
-      @Override
-      public GenericPoolable allocate(Slot slot) throws Exception {
-        LockSupport.park();
-        return super.allocate(slot);
-      }
-    };
-    Pool<GenericPoolable> pool = fixture.initPool(config.setAllocator(allocator));
-    pool.claim(shortTimeout);
+    Semaphore semaphore = new Semaphore(0);
+    allocator = allocator(alloc($acquire(semaphore, $new)));
+    config.setAllocator(allocator);
+    createPool(fixture);
+    try {
+      pool.claim(shortTimeout);
+    } finally {
+      semaphore.release(10);
+    }
   }
   
   /**
@@ -1482,17 +1449,7 @@ public class PoolTest {
     // any problems. I may have to revisit this one in the future.
     final Poolable[] objs = new Poolable[50];
     final Lock lock = new ReentrantLock();
-    Allocator<GenericPoolable> allocator = new CountingAllocator() {
-      @Override
-      public GenericPoolable allocate(Slot slot) throws Exception {
-        lock.lock();
-        try {
-          return super.allocate(slot);
-        } finally {
-          lock.unlock();
-        }
-      }
-    };
+    allocator = allocator(alloc($sync(lock, $new)));
     config.setAllocator(allocator);
     config.setExpiration(fiveMsTTL);
     config.setSize(objs.length);
@@ -1589,7 +1546,7 @@ public class PoolTest {
   @Theory public void
   mustCompleteShutDownEvenIfAllSlotsHaveNullErrors(PoolFixture fixture)
       throws InterruptedException {
-    Allocator<GenericPoolable> allocator = new NullyAllocator(false);
+    Allocator<GenericPoolable> allocator = allocator(alloc($null));
     LifecycledPool<GenericPoolable> pool = givenPoolWithFailedAllocation(fixture, allocator);
     // the shut-down procedure must complete before the test times out.
     pool.shutdown().await(longTimeout);
@@ -1621,7 +1578,7 @@ public class PoolTest {
   mustCompleteShutDownEvenIfAllSlotsHaveAllocationErrors(PoolFixture fixture)
       throws InterruptedException {
     Allocator<GenericPoolable> allocator =
-        new FallibleAllocator(new Exception("it's terrible stuff!!!"), false);
+        allocator(alloc($throw(new Exception("it's terrible stuff!!!"))));
     LifecycledPool<GenericPoolable> pool =
         givenPoolWithFailedAllocation(fixture, allocator);
     // must complete before the test timeout:
@@ -1848,23 +1805,23 @@ public class PoolTest {
     final AtomicReference<Slot> failOnAllocatingSlot =
         new AtomicReference<Slot>();
     final AtomicInteger observedFailedAllocation = new AtomicInteger();
-    allocator = new CountingAllocator() {
+    Action observeFailure = new Action() {
       @Override
-      public GenericPoolable allocate(Slot slot) throws Exception {
-        semaphore.acquire();
+      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
         if (slot == failOnAllocatingSlot.get()) {
           observedFailedAllocation.incrementAndGet();
           throw new RuntimeException(allocationCause);
         }
-        return super.allocate(slot);
+        return new GenericPoolable(slot);
       }
     };
+    allocator = allocator(alloc($acquire(semaphore, observeFailure)));
     config.setAllocator(allocator);
 
     createPool(fixture);
 
     // Wait for the pool to fill
-    while (allocator.allocations() < 3) {
+    while (allocator.countAllocations() < 3) {
       Thread.yield();
     }
 
@@ -1963,17 +1920,17 @@ public class PoolTest {
       throws Exception {
     int startingSize = 5;
     int newSize = 1;
-    CountingAllocator allocator = new CountingAllocator();
+    allocator = allocator();
     config.setSize(startingSize);
     config.setAllocator(allocator);
     createPool(fixture);
     List<GenericPoolable> objs = new ArrayList<GenericPoolable>();
 
-    while (allocator.allocations() != startingSize) {
+    while (allocator.countAllocations() != startingSize) {
       objs.add(pool.claim(longTimeout)); // force the pool to do work
     }
     pool.setTargetSize(newSize);
-    while (allocator.deallocations() != startingSize - newSize) {
+    while (allocator.countDeallocations() != startingSize - newSize) {
       if (objs.size() > 0) {
         objs.remove(0).release(); // give the pool objects to deallocate
       } else {
@@ -1981,7 +1938,7 @@ public class PoolTest {
       }
       LockSupport.parkNanos(10000000); // 10 millis
     }
-    int actualSize = allocator.allocations() - allocator.deallocations();
+    int actualSize = allocator.countAllocations() - allocator.countDeallocations();
     try {
       assertThat(actualSize, is(newSize));
     } finally {
@@ -2016,7 +1973,6 @@ public class PoolTest {
       throws Exception {
     int startingSize = 5;
     int newSize = 1;
-    CountingAllocator allocator = new CountingAllocator();
     Expiration<Poolable> expiration = new CountingExpiration(
         // our 5 items are not expired when we deplete the pool
         false, false, false, false, false,
@@ -2040,7 +1996,7 @@ public class PoolTest {
     // returns null (it's still depleted) and allocation count stays put
     try {
       assertThat(pool.claim(shortTimeout), nullValue());
-      assertThat(allocator.allocations(), is(startingSize));
+      assertThat(allocator.countAllocations(), is(startingSize));
     } finally {
       objs.remove(0).release();
     }
@@ -2080,8 +2036,8 @@ public class PoolTest {
     int allocations;
     do {
       Thread.sleep(1);
-      deallocations = allocator.deallocations();
-      allocations = allocator.allocations();
+      deallocations = allocator.countDeallocations();
+      allocations = allocator.countAllocations();
     } while (allocations - deallocations > 1);
 
     // Now we should be left with exactly one object that we can claim:
@@ -2132,15 +2088,9 @@ public class PoolTest {
   mustProactivelyReallocatePoisonedSlotsWhenAllocatorStopsThrowingExceptions(
       PoolFixture fixture) throws Exception {
     final CountDownLatch allocationLatch = new CountDownLatch(1);
-    CountingAllocator allocator = new FallibleAllocator(
-        new Exception("boom"), false, true) {
-      @Override
-      public GenericPoolable allocate(Slot slot) throws Exception {
-        GenericPoolable obj = super.allocate(slot);
-        allocationLatch.countDown();
-        return obj;
-      }
-    };
+    allocator = allocator(alloc(
+        $throw(new Exception("boom")),
+        $countDown(allocationLatch, $new)));
     config.setAllocator(allocator);
     createPool(fixture);
     allocationLatch.await();
@@ -2158,26 +2108,9 @@ public class PoolTest {
       PoolFixture fixture) throws Exception {
     final AtomicBoolean expired = new AtomicBoolean();
     final CountDownLatch allocationLatch = new CountDownLatch(2);
-    CountingReallocator allocator = new CountingReallocator() {
-      boolean first = true;
-
-      @Override
-      public GenericPoolable allocate(Slot slot) throws Exception {
-        allocationLatch.countDown();
-        return super.allocate(slot);
-      }
-
-      @Override
-      public GenericPoolable reallocate(
-          Slot slot,
-          GenericPoolable poolable) throws Exception {
-        if (first) {
-          first = false;
-          throw new Exception("boom");
-        }
-        return super.reallocate(slot, poolable);
-      }
-    };
+    allocator = reallocator(
+        alloc($countDown(allocationLatch, $new)),
+        realloc($throw(new Exception("boom")), $new));
     Expiration<Poolable> expiration = new Expiration<Poolable>() {
       @Override
       public boolean hasExpired(SlotInfo<? extends Poolable> info) throws Exception {
@@ -2206,21 +2139,8 @@ public class PoolTest {
   mustProactivelyReallocatePoisonedSlotsWhenAllocatorStopsReturningNull(
       PoolFixture fixture) throws Exception {
     final CountDownLatch allocationLatch = new CountDownLatch(1);
-    CountingAllocator allocator = new CountingAllocator() {
-      boolean first = true;
-      @Override
-      public GenericPoolable allocate(Slot slot) throws Exception {
-        if (first) {
-          first = false;
-          return null;
-        }
-        try {
-          return super.allocate(slot);
-        } finally {
-          allocationLatch.countDown();
-        }
-      }
-    };
+    allocator = allocator(
+        alloc($null, $countDown(allocationLatch, $new)));
     config.setAllocator(allocator);
     createPool(fixture);
     allocationLatch.await();
@@ -2238,26 +2158,9 @@ public class PoolTest {
       PoolFixture fixture) throws Exception {
     final AtomicBoolean expired = new AtomicBoolean();
     final CountDownLatch allocationLatch = new CountDownLatch(2);
-    CountingReallocator allocator = new CountingReallocator() {
-      boolean first = true;
-
-      @Override
-      public GenericPoolable allocate(Slot slot) throws Exception {
-        allocationLatch.countDown();
-        return super.allocate(slot);
-      }
-
-      @Override
-      public GenericPoolable reallocate(
-          Slot slot,
-          GenericPoolable poolable) throws Exception {
-        if (first) {
-          first = false;
-          return null;
-        }
-        return super.reallocate(slot, poolable);
-      }
-    };
+    allocator = reallocator(
+        alloc($countDown(allocationLatch, $new)),
+        realloc($null, $new));
     Expiration<Poolable> expiration = new Expiration<Poolable>() {
       @Override
       public boolean hasExpired(SlotInfo<? extends Poolable> info) throws Exception {
@@ -2286,16 +2189,9 @@ public class PoolTest {
   mustNotFrivolouslyReallocateNonPoisonedSlotsDuringEagerRecovery(
       PoolFixture fixture) throws Exception {
     final CountDownLatch allocationLatch = new CountDownLatch(3);
-    CountingAllocator allocator = new NullyAllocator(false, true) {
-      @Override
-      public GenericPoolable allocate(Slot slot) throws Exception {
-        try {
-          return super.allocate(slot);
-        } finally {
-          allocationLatch.countDown();
-        }
-      }
-    };
+    allocator = allocator(alloc(
+        $countDown(allocationLatch, $null),
+        $countDown(allocationLatch, $new)));
     config.setAllocator(allocator).setSize(2);
     createPool(fixture);
     allocationLatch.await();
@@ -2303,9 +2199,9 @@ public class PoolTest {
     GenericPoolable a = pool.claim(longTimeout);
     GenericPoolable b = pool.claim(longTimeout);
     try {
-      assertThat(allocator.allocations(), is(2));
-      assertThat(allocator.deallocations(), is(0)); // the allocation failed
-      assertThat(allocator.deallocationList(), not(contains(a, b)));
+      assertThat(allocator.countAllocations(), is(3));
+      assertThat(allocator.countDeallocations(), is(0)); // the allocation failed
+      assertThat(allocator.getDeallocations(), not(contains(a, b)));
     } finally {
       a.release();
       b.release();
@@ -2323,21 +2219,9 @@ public class PoolTest {
   @Theory public void
   mustCompleteShutdownEvenIfAllocatorEatsTheInterruptSignal(
       PoolFixture fixture) throws InterruptedException {
-    config.setAllocator(new CountingReallocator() {
-      @Override
-      public GenericPoolable allocate(Slot slot) throws Exception {
-        Thread.sleep(1000);
-        return super.allocate(slot);
-      }
-
-      @Override
-      public GenericPoolable reallocate(
-          Slot slot,
-          GenericPoolable poolable) throws Exception {
-        Thread.sleep(1000);
-        return super.reallocate(slot, poolable);
-      }
-    });
+    config.setAllocator(reallocator(
+        alloc($sleep(1000, $new)),
+        realloc($sleep(1000, $new))));
     // Give the allocation thread a head-start to get stuck sleeping in the
     // Allocator.allocate method:
     createPool(fixture);
@@ -2354,7 +2238,7 @@ public class PoolTest {
   poolMustTolerateInterruptedExceptionFromAllocatorWhenNotShutDown(
       PoolFixture fixture) throws InterruptedException {
     config.setAllocator(
-        new FallibleAllocator(new InterruptedException("boom"), false, true));
+        allocator(alloc($throw(new InterruptedException("boom")), $new)));
     AtomicBoolean hasExpired = new AtomicBoolean();
     config.setExpiration(new CountingExpiration(hasExpired));
     createPool(fixture);
@@ -2415,7 +2299,7 @@ public class PoolTest {
     AtomicBoolean hasExpired = new AtomicBoolean();
     CountingExpiration expiration = new CountingExpiration(hasExpired);
     config.setExpiration(expiration);
-    CountingReallocator reallocator = new CountingReallocator();
+    CountingReallocator reallocator = reallocator();
     config.setAllocator(reallocator);
     ManagedPool managedPool = assumeManagedPool(fixture);
 
@@ -2423,15 +2307,17 @@ public class PoolTest {
     pool.claim(longTimeout).release(); // expiration = false       ; allocations = 1
 
     hasExpired.set(true);
-    assertNull(pool.claim(zeroTimeout)); // expiration = true, false ; allocations = 2
+    assertNull(pool.claim(zeroTimeout)); // expiration = true, false ; allocations = 2+
+    // we're racing with how quickly the allocation thread can replenish the pool,
+    // so we might get more than one allocation out of this
     hasExpired.set(false);
 
-    pool.claim(longTimeout).release(); // expiration = false       ; allocations = 2
+    pool.claim(longTimeout).release(); // expiration = false       ; allocations = 2+
 
-    assertThat(managedPool.getAllocationCount(), is(2L));
-
-    assertThat(reallocator.allocations(), is(1)); // sanity check
-    assertThat(reallocator.reallocations(), is(1)); // sanity check
+    long allocationCount = managedPool.getAllocationCount();
+    long expectedCount =
+        reallocator.countAllocations() + reallocator.countReallocations();
+    assertThat(allocationCount, allOf(greaterThanOrEqualTo(2L), equalTo(expectedCount)));
   }
 
   @Test(timeout = 601)
@@ -2440,7 +2326,7 @@ public class PoolTest {
       throws InterruptedException {
     Exception exception = new Exception("boo");
     config.setSize(2).setAllocator(
-        new FallibleAllocator(exception, true, false, false, true));
+        allocator(alloc($new, $throw(exception), $throw(exception), $new)));
     ManagedPool managedPool = assumeManagedPool(fixture);
     GenericPoolable a = pool.claim(longTimeout);
     GenericPoolable b = null;
@@ -2460,7 +2346,7 @@ public class PoolTest {
   managedPoolMustCountAllocationsFailingByReturningNull(PoolFixture fixture)
       throws InterruptedException {
     config.setSize(2).setAllocator(
-        new NullyAllocator(true, false, false, true));
+        allocator(alloc($new, $null, $null, $new)));
     ManagedPool managedPool = assumeManagedPool(fixture);
     GenericPoolable a = null;
     GenericPoolable b = null;
@@ -2528,30 +2414,21 @@ public class PoolTest {
   @Theory public void
   managedPoolMustRecordObjectLifetimeOnDeallocateInConfiguredLatencyRecorder(
       PoolFixture fixture) throws InterruptedException {
+    CountDownLatch deallocLatch = new CountDownLatch(1);
     config.setLatencyRecorder(new LastSampleLatencyRecorder());
-    config.setAllocator(new FallibleReallocator(new Exception(), true, false, true));
-    AtomicBoolean hasExpired = new AtomicBoolean();
-    config.setExpiration(new CountingExpiration(hasExpired));
+    config.setSize(2);
+    config.setAllocator(reallocator(dealloc($countDown(deallocLatch, $null))));
     ManagedPool managedPool = assumeManagedPool(fixture);
-    GenericPoolable obj = pool.claim(longTimeout);
+    GenericPoolable a = pool.claim(longTimeout);
+    GenericPoolable b = pool.claim(longTimeout);
     spinwait(5);
-    obj.release();
-    hasExpired.set(true);
-    try {
-      // hit the reallocation failure
-      pool.claim(longTimeout);
-      fail("expected an exception to be thrown");
-    } catch (Exception ignore) {}
-    hasExpired.set(false);
-    // this should go through the normal deallocate-allocate cycle
-    obj = pool.claim(longTimeout); // wait for reallocation
-    try {
-      assertThat(
-          managedPool.getObjectLifetimePercentile(0.0),
-          allOf(greaterThanOrEqualTo(5.0), not(Double.NaN)));
-    } finally {
-      obj.release();
-    }
+    a.release();
+    b.release();
+    pool.setTargetSize(1);
+    deallocLatch.await();
+    assertThat(
+        managedPool.getObjectLifetimePercentile(0.0),
+        allOf(greaterThanOrEqualTo(5.0), not(Double.NaN)));
   }
 
   @Test(timeout = 601)
@@ -2573,7 +2450,7 @@ public class PoolTest {
   managedPoolMustRecordObjectLifetimeOnReallocateInConfiguredLatencyRecorder(
       PoolFixture fixture) throws InterruptedException {
     config.setLatencyRecorder(new LastSampleLatencyRecorder());
-    config.setAllocator(new CountingAllocator());
+    config.setAllocator(allocator());
     AtomicBoolean hasExpired = new AtomicBoolean();
     config.setExpiration(new CountingExpiration(hasExpired));
     ManagedPool managedPool = assumeManagedPool(fixture);

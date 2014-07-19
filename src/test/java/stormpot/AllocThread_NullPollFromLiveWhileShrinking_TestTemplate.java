@@ -23,6 +23,8 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 
+import static stormpot.AlloKit.allocator;
+
 /**
  * This is a rather esoteric case. It turned out that when a queue-based Pool
  * was resized to become smaller, and the pool was already depleted, then
@@ -76,7 +78,7 @@ public abstract class AllocThread_NullPollFromLiveWhileShrinking_TestTemplate<
 
   protected Config<Poolable> createConfig() {
     Config<Poolable> config = new Config<Poolable>();
-    config.setAllocator(new CountingAllocator());
+    config.setAllocator(allocator());
     config.setSize(2);
     return config;
   }

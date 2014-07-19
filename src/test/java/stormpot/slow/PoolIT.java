@@ -35,6 +35,7 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeThat;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
+import static stormpot.AlloKit.*;
 
 @SuppressWarnings("unchecked")
 @RunWith(Theories.class)
@@ -57,14 +58,14 @@ public class PoolIT {
 
   @Before public void
   setUp() {
-    allocator = new CountingAllocator();
+    allocator = allocator();
     config = new Config<GenericPoolable>().setSize(1).setAllocator(allocator);
     executor = executorTestRule.getExecutorService();
   }
 
   @After public void
   verifyObjectsAreNeverDeallocatedMoreThanOnce() {
-    List<GenericPoolable> deallocated = allocator.deallocationList();
+    List<GenericPoolable> deallocated = allocator.getDeallocations();
     Collections.sort(deallocated, new OrderByIdentityHashcode());
     Iterator<GenericPoolable> iter = deallocated.iterator();
     List<GenericPoolable> duplicates = new ArrayList<GenericPoolable>();
@@ -144,7 +145,7 @@ public class PoolIT {
     executorTestRule.printOnFailure(futures);
 
     // Wait for all the objects to be created
-    while (allocator.allocations() < size) {
+    while (allocator.countAllocations() < size) {
       Thread.sleep(10);
     }
 
@@ -162,36 +163,22 @@ public class PoolIT {
   highObjectChurnMustNotCausePoolLeakage(
       PoolFixture fixture) throws Exception {
     config.setSize(8);
-    allocator = new CountingReallocator() {
+    Action fallibleAction = new Action() {
       private final Random rnd = new Random();
 
       @Override
-      public GenericPoolable reallocate(Slot slot, GenericPoolable poolable) throws Exception {
-        // About 20% of reallocations will throw
+      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
+        // About 20% of allocations, deallocations and reallocations will throw
         if (rnd.nextInt(1024) < 201) {
           throw new SomeRandomException();
         }
-        return super.reallocate(slot, poolable);
-      }
-
-      @Override
-      public GenericPoolable allocate(Slot slot) throws Exception {
-        // About 20% of allocations will throw
-        if (rnd.nextInt(1024) < 204) {
-          throw new SomeRandomException();
-        }
-        return super.allocate(slot);
-      }
-
-      @Override
-      public void deallocate(GenericPoolable poolable) throws Exception {
-        // About 20% of deallocations will throw
-        if (rnd.nextInt(1024) < 204) {
-          throw new SomeRandomException();
-        }
-        super.deallocate(poolable);
+        return new GenericPoolable(slot);
       }
     };
+    allocator = reallocator(
+        alloc(fallibleAction),
+        dealloc(fallibleAction),
+        realloc(fallibleAction));
     config.setAllocator(allocator);
     config.setExpiration(new Expiration<GenericPoolable>() {
       @Override

@@ -22,6 +22,7 @@ import org.junit.Test;
 import static java.lang.Double.NaN;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
+import static stormpot.AlloKit.*;
 
 public class ConfigTest {
   private Config<Poolable> config;
@@ -49,7 +50,7 @@ public class ConfigTest {
 
   @Test public void
   mustAdaptAllocatorsToReallocators() {
-    Allocator<GenericPoolable> allocator = new CountingAllocator();
+    Allocator<GenericPoolable> allocator = allocator();
     Config<GenericPoolable> cfg = config.setAllocator(allocator);
     Reallocator<GenericPoolable> reallocator = cfg.getReallocator();
     ReallocatingAdaptor<GenericPoolable> adaptor =
@@ -67,7 +68,7 @@ public class ConfigTest {
 
   @Test public void
   allocatorMustBeSettable() {
-    Allocator<GenericPoolable> allocator = new CountingAllocator();
+    Allocator<GenericPoolable> allocator = allocator();
     Config<GenericPoolable> cfg = config.setAllocator(allocator);
     assertThat(cfg.getAllocator(), sameInstance(allocator));
   }
@@ -115,24 +116,24 @@ public class ConfigTest {
   @Test public void
   getAdaptedReallocatorMustAdaptConfiguredAllocatorIfNoLatencyRecorderConfigured()
       throws Exception {
-    CountingAllocator allocator = new CountingAllocator();
+    CountingAllocator allocator = allocator();
     config.setAllocator(allocator);
     config.getAdaptedReallocator().allocate(new NullSlot());
-    assertThat(allocator.allocations(), is(1));
+    assertThat(allocator.countAllocations(), is(1));
   }
 
   @Test public void
   getAdaptedReallocatorMustNotAdaptConfiguredReallocatorIfNoLatencyRecorderConfigured()
       throws Exception {
-    CountingReallocator reallocator = new CountingReallocator();
+    CountingReallocator reallocator = reallocator();
     config.setAllocator(reallocator);
     Slot slot = new NullSlot();
     Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
     Poolable obj = adaptedReallocator.allocate(slot);
     adaptedReallocator.reallocate(slot, obj);
 
-    assertThat(reallocator.allocations(), is(1));
-    assertThat(reallocator.reallocations(), is(1));
+    assertThat(reallocator.countAllocations(), is(1));
+    assertThat(reallocator.countReallocations(), is(1));
   }
 
   private void verifyLatencies(
@@ -152,7 +153,7 @@ public class ConfigTest {
       throws Exception {
     LatencyRecorder r = new LastSampleLatencyRecorder();
     config.setLatencyRecorder(r);
-    config.setAllocator(new FallibleAllocator(new Exception(), true, false));
+    config.setAllocator(allocator(alloc($new, $throw(new Exception()))));
     Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
     verifyLatencies(r, is(NaN), is(NaN), is(NaN), is(NaN), is(NaN));
     adaptedReallocator.allocate(new NullSlot());
@@ -169,7 +170,7 @@ public class ConfigTest {
       throws Exception {
     LatencyRecorder r = new LastSampleLatencyRecorder();
     config.setLatencyRecorder(r);
-    config.setAllocator(new FallibleReallocator(new Exception(), true, false));
+    config.setAllocator(reallocator(alloc($new, $throw(new Exception()))));
     Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
     verifyLatencies(r, is(NaN), is(NaN), is(NaN), is(NaN), is(NaN));
     adaptedReallocator.allocate(new NullSlot());
@@ -186,7 +187,7 @@ public class ConfigTest {
       throws Exception {
     LatencyRecorder r = new LastSampleLatencyRecorder();
     config.setLatencyRecorder(r);
-    config.setAllocator(new FallibleDeallocator(new Exception(), true));
+    config.setAllocator(allocator());
     Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
     verifyLatencies(r, is(NaN), is(NaN), is(NaN), is(NaN), is(NaN));
     Poolable obj = adaptedReallocator.allocate(new NullSlot());
@@ -200,7 +201,7 @@ public class ConfigTest {
       throws Exception {
     LatencyRecorder r = new LastSampleLatencyRecorder();
     config.setLatencyRecorder(r);
-    config.setAllocator(new FallibleDeallocator(new Exception(), false));
+    config.setAllocator(allocator(dealloc($throw(new Exception()))));
     Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
     verifyLatencies(r, is(NaN), is(NaN), is(NaN), is(NaN), is(NaN));
     Poolable obj = adaptedReallocator.allocate(new NullSlot());
@@ -219,7 +220,7 @@ public class ConfigTest {
       throws Exception {
     LatencyRecorder r = new LastSampleLatencyRecorder();
     config.setLatencyRecorder(r);
-    config.setAllocator(new FallibleDeReallocator(new Exception(), true));
+    config.setAllocator(reallocator());
     Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
     verifyLatencies(r, is(NaN), is(NaN), is(NaN), is(NaN), is(NaN));
     Poolable obj = adaptedReallocator.allocate(new NullSlot());
@@ -233,7 +234,7 @@ public class ConfigTest {
       throws Exception {
     LatencyRecorder r = new LastSampleLatencyRecorder();
     config.setLatencyRecorder(r);
-    config.setAllocator(new FallibleDeReallocator(new Exception(), false));
+    config.setAllocator(reallocator(dealloc($throw(new Exception()))));
     Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
     verifyLatencies(r, is(NaN), is(NaN), is(NaN), is(NaN), is(NaN));
     Poolable obj = adaptedReallocator.allocate(new NullSlot());
@@ -252,7 +253,7 @@ public class ConfigTest {
       throws Exception {
     LatencyRecorder r = new LastSampleLatencyRecorder();
     config.setLatencyRecorder(r);
-    config.setAllocator(new FallibleReallocator(new Exception(), true, true, false));
+    config.setAllocator(reallocator(realloc($new, $throw(new Exception()))));
     Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
     verifyLatencies(r, is(NaN), is(NaN), is(NaN), is(NaN), is(NaN));
     Poolable obj = adaptedReallocator.allocate(new NullSlot());

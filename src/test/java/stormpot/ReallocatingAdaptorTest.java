@@ -24,17 +24,17 @@ import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
+import static stormpot.AlloKit.*;
 
 public class ReallocatingAdaptorTest {
   private CountingAllocator allocator;
   private ReallocatingAdaptor<GenericPoolable> reallocator;
 
-
   @Rule public final TestRule failurePrinter = new FailurePrinterTestRule();
 
   @Before public void
   setUp() {
-    allocator = new CountingAllocator();
+    allocator = allocator();
     reallocator = new ReallocatingAdaptor<GenericPoolable>(allocator);
   }
 
@@ -50,18 +50,18 @@ public class ReallocatingAdaptorTest {
   @Test public void
   allocateMustDelegate() throws Exception {
     GenericPoolable obj = reallocator.allocate(new GenericSlot());
-    assertThat(allocator.allocationList(), is(asList(obj)));
-    assertThat(allocator.allocations(), is(1));
-    assertThat(allocator.deallocations(), is(0));
+    assertThat(allocator.getAllocations(), is(asList(obj)));
+    assertThat(allocator.countAllocations(), is(1));
+    assertThat(allocator.countDeallocations(), is(0));
   }
 
   @Test public void
   deallocateMustDelegate() throws Exception {
     GenericPoolable obj = reallocator.allocate(new GenericSlot());
     reallocator.deallocate(obj);
-    assertThat(allocator.deallocationList(), is(asList(obj)));
-    assertThat(allocator.allocations(), is(1));
-    assertThat(allocator.deallocations(), is(1));
+    assertThat(allocator.getDeallocations(), is(asList(obj)));
+    assertThat(allocator.countAllocations(), is(1));
+    assertThat(allocator.countDeallocations(), is(1));
   }
 
   @Test public void
@@ -69,21 +69,16 @@ public class ReallocatingAdaptorTest {
     Slot slot = new GenericSlot();
     GenericPoolable obj1 = reallocator.allocate(slot);
     GenericPoolable obj2 = reallocator.reallocate(slot, obj1);
-    assertThat(allocator.allocationList(), is(asList(obj1, obj2)));
-    assertThat(allocator.deallocationList(), is(asList(obj1)));
-    assertThat(allocator.allocations(), is(2));
-    assertThat(allocator.deallocations(), is(1));
+    assertThat(allocator.getAllocations(), is(asList(obj1, obj2)));
+    assertThat(allocator.getDeallocations(), is(asList(obj1)));
+    assertThat(allocator.countAllocations(), is(2));
+    assertThat(allocator.countDeallocations(), is(1));
   }
 
   @Test public void
   reallocateMustSwallowExceptionsThrownByDeallocate() throws Exception {
-    allocator = new CountingAllocator() {
-      @Override
-      public void deallocate(GenericPoolable poolable) throws Exception {
-        super.deallocate(poolable);
-        throw new AssertionError("Should have caught this");
-      }
-    };
+    allocator = allocator(
+        dealloc($throw(new AssertionError("Should have caught this"))));
     reallocator = new ReallocatingAdaptor<GenericPoolable>(allocator);
     Slot slot = new GenericSlot();
     GenericPoolable obj = reallocator.allocate(slot);
