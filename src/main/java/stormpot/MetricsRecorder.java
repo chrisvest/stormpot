@@ -15,31 +15,272 @@
  */
 package stormpot;
 
+/**
+ * A MetricsRecorder implementation supplies the pool with the ability to
+ * record and report operational metrics. Many of the methods of the
+ * {@link stormpot.ManagedPool} interface relies on a MetricsRecorder being
+ * configured for the given pool. Stormpot provides no default implementation
+ * of this interface, so by default many of the metrics reporting methods of
+ * the ManagedPool interfaces will return Double.NaN.
+ * <p>
+ * Note that implementations of this class must be thread-safe!
+ * <p>
+ * Here's an example implementation based on
+ * <a href="http://metrics.codahale.com/">Coda Hale's Metrics library</a>:
+ * <pre><code>
+ *   package stormpot.examples;
+ *
+ *   import com.codahale.metrics.Histogram;
+ *   import com.codahale.metrics.MetricRegistry;
+ *   import stormpot.MetricsRecorder;
+ *
+ *   public class CodaHaleMetricsRecorder implements MetricsRecorder {
+ *     private final Histogram allocationLatency;
+ *     private final Histogram allocationFailureLatency;
+ *     private final Histogram deallocationLatency;
+ *     private final Histogram reallocationLatency;
+ *     private final Histogram reallocationFailureLatency;
+ *     private final Histogram objectLifetime;
+ *
+ *     public CodaHaleMetricsRecorder(String baseName, MetricRegistry registry) {
+ *       allocationLatency = registry.histogram(baseName + ".allocationLatency");
+ *       allocationFailureLatency = registry.histogram(baseName + ".allocationFailureLatency");
+ *       deallocationLatency = registry.histogram(baseName + ".deallocationLatency");
+ *       reallocationLatency = registry.histogram(baseName + ".reallocationLatency");
+ *       reallocationFailureLatency = registry.histogram(baseName + ".reallocationFailureLatency");
+ *       objectLifetime = registry.histogram(baseName + ".objectLifetime");
+ *     }
+ *
+ *     public void recordAllocationLatencySampleMillis(long milliseconds) {
+ *       allocationLatency.update(milliseconds);
+ *     }
+ *
+ *     public void recordAllocationFailureLatencySampleMillis(long milliseconds) {
+ *       allocationFailureLatency.update(milliseconds);
+ *     }
+ *
+ *     public void recordDeallocationLatencySampleMillis(long milliseconds) {
+ *       deallocationLatency.update(milliseconds);
+ *     }
+ *
+ *     public void recordReallocationLatencySampleMillis(long milliseconds) {
+ *       reallocationLatency.update(milliseconds);
+ *     }
+ *
+ *     public void recordReallocationFailureLatencySampleMillis(long milliseconds) {
+ *       reallocationFailureLatency.update(milliseconds);
+ *     }
+ *
+ *     public void recordObjectLifetimeSampleMillis(long milliseconds) {
+ *       objectLifetime.update(milliseconds);
+ *     }
+ *
+ *     public double getAllocationLatencyPercentile(double percentile) {
+ *       return allocationLatency.getSnapshot().getValue(percentile);
+ *     }
+ *
+ *     public double getAllocationFailureLatencyPercentile(double percentile) {
+ *       return allocationFailureLatency.getSnapshot().getValue(percentile);
+ *     }
+ *
+ *     public double getDeallocationLatencyPercentile(double percentile) {
+ *       return deallocationLatency.getSnapshot().getValue(percentile);
+ *     }
+ *
+ *     public double getReallocationLatencyPercentile(double percentile) {
+ *       return reallocationLatency.getSnapshot().getValue(percentile);
+ *     }
+ *
+ *     public double getReallocationFailurePercentile(double percentile) {
+ *       return reallocationFailureLatency.getSnapshot().getValue(percentile);
+ *     }
+ *
+ *     public double getObjectLifetimePercentile(double percentile) {
+ *       return objectLifetime.getSnapshot().getValue(percentile);
+ *     }
+ *   }
+ * </code></pre>
+ * @since 2.3
+ */
 public interface MetricsRecorder {
 
+  /**
+   * Record a latency sample of a successful allocation, in milliseconds.
+   * This is the time it took for a call to {@link Allocator#allocate(Slot)}
+   * to return a useable object.
+   * @param milliseconds How many milliseconds it took to successfully
+   *                     allocate an object.
+   */
   void recordAllocationLatencySampleMillis(long milliseconds);
 
+  /**
+   * Record a latency sample of a failed allocation, in milliseconds. This is
+   * the time it took for a call to {@link Allocator#allocate(Slot)} to throw
+   * an exception or return null.
+   * @param milliseconds How many milliseconds transpired before the allocation
+   *                     failed.
+   */
   void recordAllocationFailureLatencySampleMillis(long milliseconds);
 
+  /**
+   * Record a latency sample of a deallocation, in milliseconds. This is the
+   * time it took to complete a call to {@link Allocator#deallocate(Poolable)}.
+   * @param milliseconds How many milliseconds to took to deallocate an object.
+   */
   void recordDeallocationLatencySampleMillis(long milliseconds);
 
+  /**
+   * Record a latency sample of a successful reallocation, in milliseconds.
+   * This is the time it took for a call to
+   * {@link Reallocator#reallocate(Slot, Poolable)} to return a useable object.
+   * @param milliseconds How many milliseconds it took to successfully
+   *                     reallocate an object.
+   */
   void recordReallocationLatencySampleMillis(long milliseconds);
 
+  /**
+   * Record a latency sample of a failed reallocation, in milliseconds. This is
+   * the time it took for a call to
+   * {@link Reallocator#reallocate(Slot, Poolable)} to throw an exception or
+   * return null.
+   * @param milliseconds How many milliseconds transpired before the
+   *                     reallocation failed.
+   */
   void recordReallocationFailureLatencySampleMillis(long milliseconds);
 
+  /**
+   * Record an object lifetime sample, in milliseconds. This is the time that
+   * transpired from an object was allocated with
+   * {@link Allocator#allocate(Slot)}, till it was deallocated with
+   * {@link Allocator#deallocate(Poolable)}.
+   * @param milliseconds How many milliseconds a Poolable object was in
+   *                     circulation; from it was created, till it was
+   *                     deallocated.
+   */
   void recordObjectLifetimeSampleMillis(long milliseconds);
 
+  /**
+   * Get the approximate Poolable object allocation latency value, in
+   * milliseconds, of the given percentile/quantile of the values recorded so
+   * far.
+   * <p>
+   * A percentile, or quantile, is a value between 0.0 and 1.0, both inclusive,
+   * which represents a percentage of the recorded samples. In other words,
+   * given a percentile, the returned value will be the latency in
+   * milliseconds, that the given percent of samples is less than or equal to.
+   * For instance, if given the percentile 0.9 returns 120, then 90% of all
+   * recorded latency samples will be less than or equal to 120 milliseconds.
+   * <p>
+   * Note: Implementors should strive to return Double.NaN as a sentinel value,
+   * if they do not support recording of the allocation latencies and/or
+   * returning a specific percentile of such recordings.
+   * @param percentile The percentile/quantile to get a value for.
+   * @return The latency value in milliseconds for the given
+   * percentile/quantile.
+   */
   public double getAllocationLatencyPercentile(double percentile);
 
+  /**
+   * Get the approximate latency value, in milliseconds, for failed allocation
+   * latencies within the given percentile/quantile of what has been recorded
+   * so far.
+   * <p>
+   * A percentile, or quantile, is a value between 0.0 and 1.0, both inclusive,
+   * which represents a percentage of the recorded samples. In other words,
+   * given a percentile, the returned value will be the latency in
+   * milliseconds, that the given percent of samples is less than or equal to.
+   * For instance, if given the percentile 0.9 returns 120, then 90% of all
+   * recorded latency samples will be less than or equal to 120 milliseconds.
+   * <p>
+   * Note: Implementors should strive to return Double.NaN as a sentinel value,
+   * if they do not support recording of the allocation latencies and/or
+   * returning a specific percentile of such recordings.
+   * @param percentile The percentile/quantile to get a value for.
+   * @return The latency value in milliseconds for the given
+   * percentile/quantile.
+   */
   public double getAllocationFailureLatencyPercentile(double percentile);
 
+  /**
+   * Get the approximate latency value, in milliseconds, for deallocation
+   * latencies within the given percentile/quantile of what has been recorded
+   * so far.
+   * <p>
+   * A percentile, or quantile, is a value between 0.0 and 1.0, both inclusive,
+   * which represents a percentage of the recorded samples. In other words,
+   * given a percentile, the returned value will be the latency in
+   * milliseconds, that the given percent of samples is less than or equal to.
+   * For instance, if given the percentile 0.9 returns 120, then 90% of all
+   * recorded latency samples will be less than or equal to 120 milliseconds.
+   * <p>
+   * Note: Implementors should strive to return Double.NaN as a sentinel value,
+   * if they do not support recording of the allocation latencies and/or
+   * returning a specific percentile of such recordings.
+   * @param percentile The percentile/quantile to get a value for.
+   * @return The latency value in milliseconds for the given
+   * percentile/quantile.
+   */
   public double getDeallocationLatencyPercentile(double percentile);
 
+  /**
+   * Get the approximate latency value, in milliseconds, for reallocation
+   * latencies within the given percentile/quantile of what has been recorded
+   * so far.
+   * <p>
+   * A percentile, or quantile, is a value between 0.0 and 1.0, both inclusive,
+   * which represents a percentage of the recorded samples. In other words,
+   * given a percentile, the returned value will be the latency in
+   * milliseconds, that the given percent of samples is less than or equal to.
+   * For instance, if given the percentile 0.9 returns 120, then 90% of all
+   * recorded latency samples will be less than or equal to 120 milliseconds.
+   * <p>
+   * Note: Implementors should strive to return Double.NaN as a sentinel value,
+   * if they do not support recording of the allocation latencies and/or
+   * returning a specific percentile of such recordings.
+   * @param percentile The percentile/quantile to get a value for.
+   * @return The latency value in milliseconds for the given
+   * percentile/quantile.
+   */
   public double getReallocationLatencyPercentile(double percentile);
 
+  /**
+   * Get the approximate latency value, in milliseconds, for failed
+   * reallocation latencies within the given percentile/quantile of what has
+   * been recorded so far.
+   * <p>
+   * A percentile, or quantile, is a value between 0.0 and 1.0, both inclusive,
+   * which represents a percentage of the recorded samples. In other words,
+   * given a percentile, the returned value will be the latency in
+   * milliseconds, that the given percent of samples is less than or equal to.
+   * For instance, if given the percentile 0.9 returns 120, then 90% of all
+   * recorded latency samples will be less than or equal to 120 milliseconds.
+   * <p>
+   * Note: Implementors should strive to return Double.NaN as a sentinel value,
+   * if they do not support recording of the allocation latencies and/or
+   * returning a specific percentile of such recordings.
+   * @param percentile The percentile/quantile to get a value for.
+   * @return The latency value in milliseconds for the given
+   * percentile/quantile.
+   */
   public double getReallocationFailurePercentile(double percentile);
 
+  /**
+   * Get the approximate object lifetime, in milliseconds, for the given
+   * percentile/quantile.
+   * <p>
+   * A percentile, or quantile, is a value between 0.0 and 1.0, both inclusive,
+   * which represents a percentage of the recorded samples. In other words,
+   * given a percentile, the returned value will be the latency in
+   * milliseconds, that the given percent of samples is less than or equal to.
+   * For instance, if given the percentile 0.9 returns 120, then 90% of all
+   * recorded latency samples will be less than or equal to 120 milliseconds.
+   * <p>
+   * Note: Implementors should strive to return Double.NaN as a sentinel value,
+   * if they do not support recording of the allocation latencies and/or
+   * returning a specific percentile of such recordings.
+   * @param percentile The percentile/quantile to get a value for.
+   * @return The latency value in milliseconds for the given
+   * percentile/quantile.
+   */
   public double getObjectLifetimePercentile(double percentile);
-
-  long getLeakedObjectsCount();
 }

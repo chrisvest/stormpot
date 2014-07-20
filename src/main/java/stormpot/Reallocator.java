@@ -20,7 +20,7 @@ package stormpot;
  * {@link Poolable}s that have expired. This is useful since the {@link Pool}
  * will typically keep the Poolables around for a relatively long time, with
  * respect to garbage collection. Because of this, there is a high chance that
- * the Poolables tenure to the old generation, during their life time. This
+ * the Poolables tenure to the old generation during their life time. This
  * way, pools often cause a slow, but steady accretion of old generation
  * garbage, ultimately helping to increase the frequency of expensive full
  * collections.

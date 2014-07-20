@@ -24,7 +24,6 @@ public class LastSampleMetricsRecorder implements MetricsRecorder {
   private double reallocationLatency = NaN;
   private double reallocationFailureLatency = NaN;
   private double objectLifetime = NaN;
-  private long leakedObjectsCount;
 
   @Override
   public synchronized void recordAllocationLatencySampleMillis(long milliseconds) {
@@ -84,10 +83,5 @@ public class LastSampleMetricsRecorder implements MetricsRecorder {
   @Override
   public synchronized double getObjectLifetimePercentile(double percentile) {
     return objectLifetime;
-  }
-
-  @Override
-  public long getLeakedObjectsCount() {
-    return leakedObjectsCount;
   }
 }

@@ -2398,7 +2398,7 @@ public class PoolTest {
   @Theory public void
   managedPoolMustGetLatencyPercentilesFromConfiguredMetricsRecorder(PoolFixture fixture) {
     config.setMetricsRecorder(
-        new FixedMeanMetricsRecorder(1.37, 2.37, 3.37, 4.37, 5.37, 6.37, 3L));
+        new FixedMeanMetricsRecorder(1.37, 2.37, 3.37, 4.37, 5.37, 6.37));
     ManagedPool managedPool = assumeManagedPool(fixture);
     assertThat(managedPool.getObjectLifetimePercentile(0.5), is(1.37));
     assertThat(managedPool.getAllocationLatencyPercentile(0.5), is(2.37));
@@ -2406,7 +2406,6 @@ public class PoolTest {
     assertThat(managedPool.getReallocationLatencyPercentile(0.5), is(4.37));
     assertThat(managedPool.getReallocationFailureLatencyPercentile(0.5), is(5.37));
     assertThat(managedPool.getDeallocationLatencyPercentile(0.5), is(6.37));
-    assertThat(managedPool.getLeakedObjectsCount(), is(3L));
   }
 
   @Test(timeout = 601)
@@ -2468,6 +2467,17 @@ public class PoolTest {
       obj.release();
     }
   }
+
+  @Test(timeout = 601)
+  @Theory public void
+  managedPoolThatDoesNotSupportPreciseObjectLeakDetectionMustReturnMinusOneForCount(
+      PoolFixture fixture) {
+    // TODO remove this test when precise leak detection is implemented
+    ManagedPool managedPool = assumeManagedPool(fixture);
+    assertThat(managedPool.getLeakedObjectsCount(), is(-1L));
+  }
+
+  // TODO managed pool should expose "contention level" from metrics recorder
 
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the Pool javadoc.

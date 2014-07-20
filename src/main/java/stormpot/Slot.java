@@ -27,7 +27,7 @@ package stormpot;
  */
 public interface Slot {
   /**
-   * Signal to the pool that the currently claimed object at this slot, has been
+   * Signal to the pool that the currently claimed object in this slot has been
    * released.
    * <p>
    * It is a user error to release a slot that is not currently claimed. It is

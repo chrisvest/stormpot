@@ -96,7 +96,7 @@ public class ConfigTest {
   @Test public void
   metricsRecorderMustBeSettable() {
     MetricsRecorder expected =
-        new FixedMeanMetricsRecorder(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0);
+        new FixedMeanMetricsRecorder(1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
     config.setMetricsRecorder(expected);
     MetricsRecorder actual = config.getMetricsRecorder();
     assertThat(actual, is(expected));

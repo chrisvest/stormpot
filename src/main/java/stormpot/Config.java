@@ -167,11 +167,22 @@ public class Config<T extends Poolable> {
     return expiration;
   }
 
+  /**
+   * Set the {@link MetricsRecorder} to use for the pools we want to configure.
+   * @param metricsRecorder The MetricsRecorder to use, or null if we don't
+   *                        want to use any.
+   * @return This Config instance.
+   */
   public synchronized Config<T> setMetricsRecorder(MetricsRecorder metricsRecorder) {
     this.metricsRecorder = metricsRecorder;
     return this;
   }
 
+  /**
+   * Get the configured {@link MetricsRecorder} instance, or null if none has
+   * been configured.
+   * @return The configured MetricsRecorder.
+   */
   public synchronized MetricsRecorder getMetricsRecorder() {
     return metricsRecorder;
   }

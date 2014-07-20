@@ -24,7 +24,6 @@ public class FixedMeanMetricsRecorder implements MetricsRecorder {
   private final double fixedReallocationLatencyPercentile;
   private final double fixedReallocationFailureLatencyPercentile;
   private final double fixedDeallocationLatencyPercentile;
-  private final long leakedObjectsCount;
 
   public FixedMeanMetricsRecorder(
       double fixedObjectLifetime,
@@ -32,15 +31,13 @@ public class FixedMeanMetricsRecorder implements MetricsRecorder {
       double fixedAllocationFailureLatency,
       double fixedReallocationLatencyPercentile,
       double fixedReallocationFailureLatencyPercentile,
-      double fixedDeallocationLatencyPercentile,
-      long leakedObjectsCount) {
+      double fixedDeallocationLatencyPercentile) {
     this.fixedObjectLifetime = fixedObjectLifetime;
     this.fixedAllocationLatency = fixedAllocationLatency;
     this.fixedAllocationFailureLatency = fixedAllocationFailureLatency;
     this.fixedReallocationLatencyPercentile = fixedReallocationLatencyPercentile;
     this.fixedReallocationFailureLatencyPercentile = fixedReallocationFailureLatencyPercentile;
     this.fixedDeallocationLatencyPercentile = fixedDeallocationLatencyPercentile;
-    this.leakedObjectsCount = leakedObjectsCount;
   }
 
   @Override
@@ -119,10 +116,5 @@ public class FixedMeanMetricsRecorder implements MetricsRecorder {
       return fixedReallocationFailureLatencyPercentile;
     }
     return NaN;
-  }
-
-  @Override
-  public long getLeakedObjectsCount() {
-    return leakedObjectsCount;
   }
 }

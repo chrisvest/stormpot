@@ -329,6 +329,6 @@ public class BlazePool<T extends Poolable>
 
   @Override
   public long getLeakedObjectsCount() {
-    return metricsRecorder.getLeakedObjectsCount();
+    return -1;
   }
 }
