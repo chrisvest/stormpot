@@ -2324,19 +2324,17 @@ public class PoolTest {
   @Theory public void
   managedPoolMustCountAllocationsFailingWithExceptions(PoolFixture fixture)
       throws InterruptedException {
+    CountDownLatch latch = new CountDownLatch(1);
     Exception exception = new Exception("boo");
-    config.setSize(2).setAllocator(
-        allocator(alloc($new, $throw(exception), $throw(exception), $new)));
+    config.setSize(2).setAllocator(allocator(alloc(
+        $new,
+        $throw(exception),
+        $throw(exception),
+        $countDown(latch, $new))));
     ManagedPool managedPool = assumeManagedPool(fixture);
-    GenericPoolable a = pool.claim(longTimeout);
-    GenericPoolable b = null;
-    do {
-      try {
-        b = pool.claim(longTimeout);
-      } catch (PoolException ignore) {}
-    } while (b == null);
-    a.release();
-    b.release();
+
+    // simply wait for the proactive healing to replace the failed allocations
+    latch.await();
 
     assertThat(managedPool.getFailedAllocationCount(), is(2L));
   }
