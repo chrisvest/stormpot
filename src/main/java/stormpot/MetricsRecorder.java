@@ -15,7 +15,7 @@
  */
 package stormpot;
 
-public interface LatencyRecorder {
+public interface MetricsRecorder {
 
   void recordAllocationLatencySampleMillis(long milliseconds);
 
@@ -40,4 +40,6 @@ public interface LatencyRecorder {
   public double getReallocationFailurePercentile(double percentile);
 
   public double getObjectLifetimePercentile(double percentile);
+
+  long getLeakedObjectsCount();
 }

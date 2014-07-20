@@ -83,4 +83,6 @@ public interface ManagedPool {
   double getReallocationFailureLatencyPercentile(double percentile);
 
   double getDeallocationLatencyPercentile(double percentile);
+
+  long getLeakedObjectsCount();
 }

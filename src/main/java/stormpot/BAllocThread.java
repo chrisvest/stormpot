@@ -35,7 +35,7 @@ class BAllocThread<T extends Poolable> extends Thread {
   private final BlockingQueue<BSlot<T>> dead;
   private final Reallocator<T> allocator;
   private final BSlot<T> poisonPill;
-  private final LatencyRecorder latencyRecorder;
+  private final MetricsRecorder metricsRecorder;
 
   // Single reader: this. Many writers.
   private volatile int targetSize;
@@ -55,7 +55,7 @@ class BAllocThread<T extends Poolable> extends Thread {
     this.targetSize = config.getSize();
     completionLatch = new CountDownLatch(1);
     this.allocator = config.getAdaptedReallocator();
-    this.latencyRecorder = config.getLatencyRecorder();
+    this.metricsRecorder = config.getMetricsRecorder();
     this.size = 0;
     this.live = live;
     this.dead = dead;
@@ -234,8 +234,8 @@ class BAllocThread<T extends Poolable> extends Thread {
   }
 
   private void recordObjectLifetimeSample(long milliseconds) {
-    if (latencyRecorder != null) {
-      latencyRecorder.recordObjectLifetimeSampleMillis(milliseconds);
+    if (metricsRecorder != null) {
+      metricsRecorder.recordObjectLifetimeSampleMillis(milliseconds);
     }
   }
 

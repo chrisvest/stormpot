@@ -17,27 +17,30 @@ package stormpot;
 
 import static java.lang.Double.NaN;
 
-public class FixedMeanLatencyRecorder implements LatencyRecorder {
+public class FixedMeanMetricsRecorder implements MetricsRecorder {
   private final double fixedAllocationLatency;
   private final double fixedObjectLifetime;
   private final double fixedAllocationFailureLatency;
   private final double fixedReallocationLatencyPercentile;
   private final double fixedReallocationFailureLatencyPercentile;
   private final double fixedDeallocationLatencyPercentile;
+  private final long leakedObjectsCount;
 
-  public FixedMeanLatencyRecorder(
+  public FixedMeanMetricsRecorder(
       double fixedObjectLifetime,
       double fixedAllocationLatency,
       double fixedAllocationFailureLatency,
       double fixedReallocationLatencyPercentile,
       double fixedReallocationFailureLatencyPercentile,
-      double fixedDeallocationLatencyPercentile) {
+      double fixedDeallocationLatencyPercentile,
+      long leakedObjectsCount) {
     this.fixedObjectLifetime = fixedObjectLifetime;
     this.fixedAllocationLatency = fixedAllocationLatency;
     this.fixedAllocationFailureLatency = fixedAllocationFailureLatency;
     this.fixedReallocationLatencyPercentile = fixedReallocationLatencyPercentile;
     this.fixedReallocationFailureLatencyPercentile = fixedReallocationFailureLatencyPercentile;
     this.fixedDeallocationLatencyPercentile = fixedDeallocationLatencyPercentile;
+    this.leakedObjectsCount = leakedObjectsCount;
   }
 
   @Override
@@ -116,5 +119,10 @@ public class FixedMeanLatencyRecorder implements LatencyRecorder {
       return fixedReallocationFailureLatencyPercentile;
     }
     return NaN;
+  }
+
+  @Override
+  public long getLeakedObjectsCount() {
+    return leakedObjectsCount;
   }
 }

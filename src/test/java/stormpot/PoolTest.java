@@ -2388,7 +2388,7 @@ public class PoolTest {
 
   @Test(timeout = 601)
   @Theory public void
-  managedPoolMustReturnNaNWhenNoLatencyRecordHasBeenConfigured(PoolFixture fixture) {
+  managedPoolMustReturnNaNWhenNoMetricsRecorderHasBeenConfigured(PoolFixture fixture) {
     ManagedPool managedPool = assumeManagedPool(fixture);
     assertThat(managedPool.getAllocationLatencyPercentile(0.5), is(Double.NaN));
     assertThat(managedPool.getObjectLifetimePercentile(0.5), is(Double.NaN));
@@ -2396,9 +2396,9 @@ public class PoolTest {
 
   @Test(timeout = 601)
   @Theory public void
-  managedPoolMustGetLatencyPercentilesFromConfiguredLatencyRecorder(PoolFixture fixture) {
-    config.setLatencyRecorder(
-        new FixedMeanLatencyRecorder(1.37, 2.37, 3.37, 4.37, 5.37, 6.37));
+  managedPoolMustGetLatencyPercentilesFromConfiguredMetricsRecorder(PoolFixture fixture) {
+    config.setMetricsRecorder(
+        new FixedMeanMetricsRecorder(1.37, 2.37, 3.37, 4.37, 5.37, 6.37, 3L));
     ManagedPool managedPool = assumeManagedPool(fixture);
     assertThat(managedPool.getObjectLifetimePercentile(0.5), is(1.37));
     assertThat(managedPool.getAllocationLatencyPercentile(0.5), is(2.37));
@@ -2406,14 +2406,15 @@ public class PoolTest {
     assertThat(managedPool.getReallocationLatencyPercentile(0.5), is(4.37));
     assertThat(managedPool.getReallocationFailureLatencyPercentile(0.5), is(5.37));
     assertThat(managedPool.getDeallocationLatencyPercentile(0.5), is(6.37));
+    assertThat(managedPool.getLeakedObjectsCount(), is(3L));
   }
 
   @Test(timeout = 601)
   @Theory public void
-  managedPoolMustRecordObjectLifetimeOnDeallocateInConfiguredLatencyRecorder(
+  managedPoolMustRecordObjectLifetimeOnDeallocateInConfiguredMetricsRecorder(
       PoolFixture fixture) throws InterruptedException {
     CountDownLatch deallocLatch = new CountDownLatch(1);
-    config.setLatencyRecorder(new LastSampleLatencyRecorder());
+    config.setMetricsRecorder(new LastSampleMetricsRecorder());
     config.setSize(2);
     config.setAllocator(reallocator(dealloc($countDown(deallocLatch, $null))));
     ManagedPool managedPool = assumeManagedPool(fixture);
@@ -2433,7 +2434,7 @@ public class PoolTest {
   @Theory public void
   managedPoolMustNotRecordObjectLifetimeLatencyBeforeFirstDeallocation(
       PoolFixture fixture) throws InterruptedException {
-    config.setLatencyRecorder(new LastSampleLatencyRecorder());
+    config.setMetricsRecorder(new LastSampleMetricsRecorder());
     ManagedPool managedPool = assumeManagedPool(fixture);
     GenericPoolable obj = pool.claim(longTimeout);
     try {
@@ -2445,9 +2446,9 @@ public class PoolTest {
 
   @Test(timeout = 601)
   @Theory public void
-  managedPoolMustRecordObjectLifetimeOnReallocateInConfiguredLatencyRecorder(
+  managedPoolMustRecordObjectLifetimeOnReallocateInConfiguredMetricsRecorder(
       PoolFixture fixture) throws InterruptedException {
-    config.setLatencyRecorder(new LastSampleLatencyRecorder());
+    config.setMetricsRecorder(new LastSampleMetricsRecorder());
     config.setAllocator(allocator());
     AtomicBoolean hasExpired = new AtomicBoolean();
     config.setExpiration(new CountingExpiration(hasExpired));

@@ -55,7 +55,7 @@ public class Config<T extends Poolable> {
   private Expiration<? super T> expiration =
       new TimeSpreadExpiration(480000, 600000, TimeUnit.MILLISECONDS); // 8 to 10 minutes
   private Allocator<?> allocator;
-  private LatencyRecorder latencyRecorder;
+  private MetricsRecorder metricsRecorder;
 
   /**
    * Build a new empty Config object. Most settings have reasonable default
@@ -167,13 +167,13 @@ public class Config<T extends Poolable> {
     return expiration;
   }
 
-  public synchronized Config<T> setLatencyRecorder(LatencyRecorder latencyRecorder) {
-    this.latencyRecorder = latencyRecorder;
+  public synchronized Config<T> setMetricsRecorder(MetricsRecorder metricsRecorder) {
+    this.metricsRecorder = metricsRecorder;
     return this;
   }
 
-  public synchronized LatencyRecorder getLatencyRecorder() {
-    return latencyRecorder;
+  public synchronized MetricsRecorder getMetricsRecorder() {
+    return metricsRecorder;
   }
 
   /**
@@ -202,7 +202,7 @@ public class Config<T extends Poolable> {
     if (allocator == null) {
       return null;
     }
-    if (latencyRecorder == null) {
+    if (metricsRecorder == null) {
       if (allocator instanceof Reallocator) {
         return (Reallocator<T>) allocator;
       }
@@ -210,10 +210,10 @@ public class Config<T extends Poolable> {
     } else {
       if (allocator instanceof Reallocator) {
         return new TimingReallocatorAdaptor<T>(
-            (Reallocator<T>) allocator, latencyRecorder);
+            (Reallocator<T>) allocator, metricsRecorder);
       }
       return new TimingReallocatingAdaptor<T>(
-          (Allocator<T>) allocator, latencyRecorder);
+          (Allocator<T>) allocator, metricsRecorder);
     }
   }
 }

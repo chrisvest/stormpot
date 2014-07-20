@@ -44,7 +44,7 @@ public class QueuePool<T extends Poolable>
   private final BlockingQueue<QSlot<T>> dead;
   private final QAllocThread<T> allocThread;
   private final Expiration<? super T> deallocRule;
-  private final LatencyRecorder latencyRecorder;
+  private final MetricsRecorder metricsRecorder;
   private volatile boolean shutdown = false;
 
   /**
@@ -61,9 +61,9 @@ public class QueuePool<T extends Poolable>
     dead = QueueFactory.createUnboundedBlockingQueue();
     synchronized (config) {
       config.validate();
-      latencyRecorder = config.getLatencyRecorder();
+      metricsRecorder = config.getMetricsRecorder();
       allocThread = new QAllocThread<T>(
-          live, dead, config, poisonPill, latencyRecorder);
+          live, dead, config, poisonPill, metricsRecorder);
       deallocRule = config.getExpiration();
     }
     allocThread.start();
@@ -166,49 +166,54 @@ public class QueuePool<T extends Poolable>
 
   @Override
   public double getObjectLifetimePercentile(double percentile) {
-    if (latencyRecorder == null) {
+    if (metricsRecorder == null) {
       return Double.NaN;
     }
-    return latencyRecorder.getObjectLifetimePercentile(percentile);
+    return metricsRecorder.getObjectLifetimePercentile(percentile);
   }
 
   @Override
   public double getAllocationLatencyPercentile(double percentile) {
-    if (latencyRecorder == null) {
+    if (metricsRecorder == null) {
       return Double.NaN;
     }
-    return latencyRecorder.getAllocationLatencyPercentile(percentile);
+    return metricsRecorder.getAllocationLatencyPercentile(percentile);
   }
 
   @Override
   public double getAllocationFailureLatencyPercentile(double percentile) {
-    if (latencyRecorder == null) {
+    if (metricsRecorder == null) {
       return Double.NaN;
     }
-    return latencyRecorder.getAllocationFailureLatencyPercentile(percentile);
+    return metricsRecorder.getAllocationFailureLatencyPercentile(percentile);
   }
 
   @Override
   public double getReallocationLatencyPercentile(double percentile) {
-    if (latencyRecorder == null) {
+    if (metricsRecorder == null) {
       return Double.NaN;
     }
-    return latencyRecorder.getReallocationLatencyPercentile(percentile);
+    return metricsRecorder.getReallocationLatencyPercentile(percentile);
   }
 
   @Override
   public double getReallocationFailureLatencyPercentile(double percentile) {
-    if (latencyRecorder == null) {
+    if (metricsRecorder == null) {
       return Double.NaN;
     }
-    return latencyRecorder.getReallocationFailurePercentile(percentile);
+    return metricsRecorder.getReallocationFailurePercentile(percentile);
   }
 
   @Override
   public double getDeallocationLatencyPercentile(double percentile) {
-    if (latencyRecorder == null) {
+    if (metricsRecorder == null) {
       return Double.NaN;
     }
-    return latencyRecorder.getDeallocationLatencyPercentile(percentile);
+    return metricsRecorder.getDeallocationLatencyPercentile(percentile);
+  }
+
+  @Override
+  public long getLeakedObjectsCount() {
+    return metricsRecorder.getLeakedObjectsCount();
   }
 }

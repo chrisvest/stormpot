@@ -34,7 +34,7 @@ class QAllocThread<T extends Poolable> extends Thread {
   private final BlockingQueue<QSlot<T>> dead;
   private final Reallocator<T> allocator;
   private final QSlot<T> poisonPill;
-  private final LatencyRecorder latencyRecorder;
+  private final MetricsRecorder metricsRecorder;
 
   // Single reader: this. Many writers.
   private volatile int targetSize;
@@ -52,8 +52,8 @@ class QAllocThread<T extends Poolable> extends Thread {
       BlockingQueue<QSlot<T>> dead,
       Config<T> config,
       QSlot<T> poisonPill,
-      LatencyRecorder latencyRecorder) {
-    this.latencyRecorder = latencyRecorder;
+      MetricsRecorder metricsRecorder) {
+    this.metricsRecorder = metricsRecorder;
     this.targetSize = config.getSize();
     completionLatch = new CountDownLatch(1);
     this.allocator = config.getAdaptedReallocator();
@@ -201,8 +201,8 @@ class QAllocThread<T extends Poolable> extends Thread {
   }
 
   private void recordObjectLifetimeSample(long milliseconds) {
-    if (latencyRecorder != null) {
-      latencyRecorder.recordObjectLifetimeSampleMillis(milliseconds);
+    if (metricsRecorder != null) {
+      metricsRecorder.recordObjectLifetimeSampleMillis(milliseconds);
     }
   }
 

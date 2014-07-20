@@ -19,13 +19,13 @@ class TimingReallocatingAdaptor<T extends Poolable>
     extends ReallocatingAdaptor<T>
     implements Reallocator<T> {
 
-  protected final LatencyRecorder latencyRecorder;
+  protected final MetricsRecorder metricsRecorder;
 
   public TimingReallocatingAdaptor(
       Allocator<T> allocator,
-      LatencyRecorder latencyRecorder) {
+      MetricsRecorder metricsRecorder) {
     super(allocator);
-    this.latencyRecorder = latencyRecorder;
+    this.metricsRecorder = metricsRecorder;
   }
 
   @Override
@@ -34,11 +34,11 @@ class TimingReallocatingAdaptor<T extends Poolable>
     try {
       T obj = super.allocate(slot);
       long elapsed = System.currentTimeMillis() - start;
-      latencyRecorder.recordAllocationLatencySampleMillis(elapsed);
+      metricsRecorder.recordAllocationLatencySampleMillis(elapsed);
       return obj;
     } catch (Exception e) {
       long elapsed = System.currentTimeMillis() - start;
-      latencyRecorder.recordAllocationFailureLatencySampleMillis(elapsed);
+      metricsRecorder.recordAllocationFailureLatencySampleMillis(elapsed);
       throw e;
     }
   }
@@ -50,7 +50,7 @@ class TimingReallocatingAdaptor<T extends Poolable>
       super.deallocate(poolable);
     } finally {
       long elapsed = System.currentTimeMillis() - start;
-      latencyRecorder.recordDeallocationLatencySampleMillis(elapsed);
+      metricsRecorder.recordDeallocationLatencySampleMillis(elapsed);
     }
   }
 }

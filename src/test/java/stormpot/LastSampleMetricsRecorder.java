@@ -17,13 +17,14 @@ package stormpot;
 
 import static java.lang.Double.NaN;
 
-public class LastSampleLatencyRecorder implements LatencyRecorder {
+public class LastSampleMetricsRecorder implements MetricsRecorder {
   private double allocationLatency = NaN;
   private double allocationFailureLatency = NaN;
   private double deallocationLatency = NaN;
   private double reallocationLatency = NaN;
   private double reallocationFailureLatency = NaN;
   private double objectLifetime = NaN;
+  private long leakedObjectsCount;
 
   @Override
   public synchronized void recordAllocationLatencySampleMillis(long milliseconds) {
@@ -83,5 +84,10 @@ public class LastSampleLatencyRecorder implements LatencyRecorder {
   @Override
   public synchronized double getObjectLifetimePercentile(double percentile) {
     return objectLifetime;
+  }
+
+  @Override
+  public long getLeakedObjectsCount() {
+    return leakedObjectsCount;
   }
 }

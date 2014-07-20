@@ -94,11 +94,11 @@ public class ConfigTest {
   }
 
   @Test public void
-  latencyRecorderMustBeSettable() {
-    LatencyRecorder expected =
-        new FixedMeanLatencyRecorder(1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
-    config.setLatencyRecorder(expected);
-    LatencyRecorder actual = config.getLatencyRecorder();
+  metricsRecorderMustBeSettable() {
+    MetricsRecorder expected =
+        new FixedMeanMetricsRecorder(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0);
+    config.setMetricsRecorder(expected);
+    MetricsRecorder actual = config.getMetricsRecorder();
     assertThat(actual, is(expected));
   }
 
@@ -108,13 +108,13 @@ public class ConfigTest {
   }
 
   @Test public void
-  getAdaptedReallocatorMustReturnNullWhenNoAllocatorConfiguredEvenIfLatencyRecorderIsConfigured() {
-    config.setLatencyRecorder(new LastSampleLatencyRecorder());
+  getAdaptedReallocatorMustReturnNullWhenNoAllocatorConfiguredEvenIfMetricsRecorderIsConfigured() {
+    config.setMetricsRecorder(new LastSampleMetricsRecorder());
     assertNull(config.getAdaptedReallocator());
   }
 
   @Test public void
-  getAdaptedReallocatorMustAdaptConfiguredAllocatorIfNoLatencyRecorderConfigured()
+  getAdaptedReallocatorMustAdaptConfiguredAllocatorIfNoMetricsRecorderConfigured()
       throws Exception {
     CountingAllocator allocator = allocator();
     config.setAllocator(allocator);
@@ -123,7 +123,7 @@ public class ConfigTest {
   }
 
   @Test public void
-  getAdaptedReallocatorMustNotAdaptConfiguredReallocatorIfNoLatencyRecorderConfigured()
+  getAdaptedReallocatorMustNotAdaptConfiguredReallocatorIfNoMetricsRecorderConfigured()
       throws Exception {
     CountingReallocator reallocator = reallocator();
     config.setAllocator(reallocator);
@@ -137,7 +137,7 @@ public class ConfigTest {
   }
 
   private void verifyLatencies(
-      LatencyRecorder recorder,
+      MetricsRecorder recorder,
       Matcher<Double> alloc, Matcher<Double> allocFail,
       Matcher<Double> dealloc,
       Matcher<Double> realloc, Matcher<Double> reallocFail) {
@@ -149,10 +149,10 @@ public class ConfigTest {
   }
 
   @Test public void
-  getAdaptedReallocatorMustInstrumentAllocateMethodOnAllocatorIfLatencyRecorderConfigured()
+  getAdaptedReallocatorMustInstrumentAllocateMethodOnAllocatorIfMetricsRecorderConfigured()
       throws Exception {
-    LatencyRecorder r = new LastSampleLatencyRecorder();
-    config.setLatencyRecorder(r);
+    MetricsRecorder r = new LastSampleMetricsRecorder();
+    config.setMetricsRecorder(r);
     config.setAllocator(allocator(alloc($new, $throw(new Exception()))));
     Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
     verifyLatencies(r, is(NaN), is(NaN), is(NaN), is(NaN), is(NaN));
@@ -166,10 +166,10 @@ public class ConfigTest {
   }
 
   @Test public void
-  getAdaptedReallocatorMustInstrumentAllocateMethodOnReallocatorIfLatencyRecorderConfigured()
+  getAdaptedReallocatorMustInstrumentAllocateMethodOnReallocatorIfMetricsRecorderConfigured()
       throws Exception {
-    LatencyRecorder r = new LastSampleLatencyRecorder();
-    config.setLatencyRecorder(r);
+    MetricsRecorder r = new LastSampleMetricsRecorder();
+    config.setMetricsRecorder(r);
     config.setAllocator(reallocator(alloc($new, $throw(new Exception()))));
     Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
     verifyLatencies(r, is(NaN), is(NaN), is(NaN), is(NaN), is(NaN));
@@ -183,10 +183,10 @@ public class ConfigTest {
   }
 
   @Test public void
-  getAdaptedReallocatorMustInstrumentDeallocateMethodOnAllocatorIfLatencyRecorderConfigured()
+  getAdaptedReallocatorMustInstrumentDeallocateMethodOnAllocatorIfMetricsRecorderConfigured()
       throws Exception {
-    LatencyRecorder r = new LastSampleLatencyRecorder();
-    config.setLatencyRecorder(r);
+    MetricsRecorder r = new LastSampleMetricsRecorder();
+    config.setMetricsRecorder(r);
     config.setAllocator(allocator());
     Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
     verifyLatencies(r, is(NaN), is(NaN), is(NaN), is(NaN), is(NaN));
@@ -197,10 +197,10 @@ public class ConfigTest {
   }
 
   @Test public void
-  getAdaptedReallocatorMustInstrumentThrowingDeallocateMethodOnAllocatorIfLatencyRecorderConfigured()
+  getAdaptedReallocatorMustInstrumentThrowingDeallocateMethodOnAllocatorIfMetricsRecorderConfigured()
       throws Exception {
-    LatencyRecorder r = new LastSampleLatencyRecorder();
-    config.setLatencyRecorder(r);
+    MetricsRecorder r = new LastSampleMetricsRecorder();
+    config.setMetricsRecorder(r);
     config.setAllocator(allocator(dealloc($throw(new Exception()))));
     Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
     verifyLatencies(r, is(NaN), is(NaN), is(NaN), is(NaN), is(NaN));
@@ -216,10 +216,10 @@ public class ConfigTest {
   }
 
   @Test public void
-  getAdaptedReallocatorMustInstrumentDeallocateMethodOnRellocatorIfLatencyRecorderConfigured()
+  getAdaptedReallocatorMustInstrumentDeallocateMethodOnRellocatorIfMetricsRecorderConfigured()
       throws Exception {
-    LatencyRecorder r = new LastSampleLatencyRecorder();
-    config.setLatencyRecorder(r);
+    MetricsRecorder r = new LastSampleMetricsRecorder();
+    config.setMetricsRecorder(r);
     config.setAllocator(reallocator());
     Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
     verifyLatencies(r, is(NaN), is(NaN), is(NaN), is(NaN), is(NaN));
@@ -230,10 +230,10 @@ public class ConfigTest {
   }
 
   @Test public void
-  getAdaptedReallocatorMustInstrumentThrowingDeallocateMethodOnRellocatorIfLatencyRecorderConfigured()
+  getAdaptedReallocatorMustInstrumentThrowingDeallocateMethodOnRellocatorIfMetricsRecorderConfigured()
       throws Exception {
-    LatencyRecorder r = new LastSampleLatencyRecorder();
-    config.setLatencyRecorder(r);
+    MetricsRecorder r = new LastSampleMetricsRecorder();
+    config.setMetricsRecorder(r);
     config.setAllocator(reallocator(dealloc($throw(new Exception()))));
     Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
     verifyLatencies(r, is(NaN), is(NaN), is(NaN), is(NaN), is(NaN));
@@ -249,10 +249,10 @@ public class ConfigTest {
   }
 
   @Test public void
-  getAdaptedReallocatorMustInstrumentReallocateMethodOnReallocatorIfLatencyRecorderConfigured()
+  getAdaptedReallocatorMustInstrumentReallocateMethodOnReallocatorIfMetricsRecorderConfigured()
       throws Exception {
-    LatencyRecorder r = new LastSampleLatencyRecorder();
-    config.setLatencyRecorder(r);
+    MetricsRecorder r = new LastSampleMetricsRecorder();
+    config.setMetricsRecorder(r);
     config.setAllocator(reallocator(realloc($new, $throw(new Exception()))));
     Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
     verifyLatencies(r, is(NaN), is(NaN), is(NaN), is(NaN), is(NaN));
