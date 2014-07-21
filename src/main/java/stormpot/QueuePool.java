@@ -16,6 +16,7 @@
 package stormpot;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadFactory;
 
 /**
  * QueuePool is a fairly simple {@link LifecycledResizablePool} implementation
@@ -42,7 +43,8 @@ public class QueuePool<T extends Poolable>
     implements LifecycledResizablePool<T>, ManagedPool {
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;
-  private final QAllocThread<T> allocThread;
+  private final QAllocThread<T> allocator;
+  private final Thread allocatorThread;
   private final Expiration<? super T> deallocRule;
   private final MetricsRecorder metricsRecorder;
   private volatile boolean shutdown = false;
@@ -61,12 +63,14 @@ public class QueuePool<T extends Poolable>
     dead = QueueFactory.createUnboundedBlockingQueue();
     synchronized (config) {
       config.validate();
+      ThreadFactory factory = config.getThreadFactory();
       metricsRecorder = config.getMetricsRecorder();
-      allocThread = new QAllocThread<T>(
+      allocator = new QAllocThread<T>(
           live, dead, config, poisonPill, metricsRecorder);
+      allocatorThread = factory.newThread(allocator);
       deallocRule = config.getExpiration();
     }
-    allocThread.start();
+    allocatorThread.start();
   }
 
   private void checkForPoison(QSlot<T> slot) {
@@ -130,7 +134,7 @@ public class QueuePool<T extends Poolable>
   @Override
   public Completion shutdown() {
     shutdown = true;
-    return allocThread.shutdown();
+    return allocator.shutdown(allocatorThread);
   }
 
   @Override
@@ -141,22 +145,22 @@ public class QueuePool<T extends Poolable>
     if (shutdown) {
       return;
     }
-    allocThread.setTargetSize(size);
+    allocator.setTargetSize(size);
   }
 
   @Override
   public int getTargetSize() {
-    return allocThread.getTargetSize();
+    return allocator.getTargetSize();
   }
 
   @Override
   public long getAllocationCount() {
-    return allocThread.getAllocationCount();
+    return allocator.getAllocationCount();
   }
 
   @Override
   public long getFailedAllocationCount() {
-    return allocThread.getFailedAllocationCount();
+    return allocator.getFailedAllocationCount();
   }
 
   @Override

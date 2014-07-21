@@ -15,6 +15,7 @@
  */
 package stormpot;
 
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -56,6 +57,7 @@ public class Config<T extends Poolable> {
       new TimeSpreadExpiration(480000, 600000, TimeUnit.MILLISECONDS); // 8 to 10 minutes
   private Allocator<?> allocator;
   private MetricsRecorder metricsRecorder;
+  private ThreadFactory threadFactory = StormpotThreadFactory.INSTANCE;
 
   /**
    * Build a new empty Config object. Most settings have reasonable default
@@ -188,12 +190,36 @@ public class Config<T extends Poolable> {
   }
 
   /**
+   * Get the ThreadFactory that has been configured, and will be used to create
+   * the background allocation threads for the pools. The default is similar to
+   * the {@link java.util.concurrent.Executors#defaultThreadFactory()}, except
+   * the string "Stormpot-" is prepended to the thread name.
+   * @return The configured thread factory.
+   */
+  public synchronized ThreadFactory getThreadFactory() {
+    return threadFactory;
+  }
+
+  /**
+   * Set the ThreadFactory that the pools will use to create its background
+   * threads with. The ThreadFactory is not allowed to be null, and creating
+   * a pool with a null ThreadFactory will throw an IllegalArgumentException.
+   * @param factory The ThreadFactory the pool should use to create their
+   *                background threads.
+   * @return This Config instance.
+   */
+  public synchronized Config<T> setThreadFactory(ThreadFactory factory) {
+    threadFactory = factory;
+    return this;
+  }
+
+  /**
    * Check that the configuration is valid in terms of the <em>standard
    * configuration</em>. This method is useful in the
    * Pool implementation constructors.
    * @throws IllegalArgumentException If the size is less than one, if the
-   * {@link Expiration} is <code>null</code>, or if the {@link Allocator} is
-   * <code>null</code>.
+   * {@link Expiration} is <code>null</code>, if the {@link Allocator} is
+   * <code>null</code>, or if the ThreadFactory is <code>null</code>.
    */
   public synchronized void validate() throws IllegalArgumentException {
     if (size < 1) {
@@ -201,11 +227,13 @@ public class Config<T extends Poolable> {
           "size must be at least 1, but was " + size);
     }
     if (allocator == null) {
-      throw new IllegalArgumentException(
-          "Allocator cannot be null");
+      throw new IllegalArgumentException("Allocator cannot be null");
     }
     if (expiration == null) {
       throw new IllegalArgumentException("Expiration cannot be null");
+    }
+    if (threadFactory == null) {
+      throw new IllegalArgumentException("ThreadFactory cannot be null");
     }
   }
 

@@ -20,7 +20,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
-class BAllocThread<T extends Poolable> extends Thread {
+class BAllocThread<T extends Poolable> implements Runnable {
   /**
    * The amount of time, in nanoseconds, to wait for more work when the
    * shutdown process has deallocated all the dead and live slots it could
@@ -29,7 +29,6 @@ class BAllocThread<T extends Poolable> extends Thread {
   private final static long shutdownPauseNanos =
       TimeUnit.MILLISECONDS.toNanos(10);
 
-  
   private final CountDownLatch completionLatch;
   private final BlockingQueue<BSlot<T>> live;
   private final BlockingQueue<BSlot<T>> dead;
@@ -247,9 +246,9 @@ class BAllocThread<T extends Poolable> extends Thread {
     return targetSize;
   }
 
-  Completion shutdown() {
+  Completion shutdown(Thread allocatorThread) {
     shutdown = true;
-    interrupt();
+    allocatorThread.interrupt();
     return new LatchCompletion(completionLatch);
   }
 

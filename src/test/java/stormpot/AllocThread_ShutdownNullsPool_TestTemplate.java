@@ -32,7 +32,7 @@ import static stormpot.AlloKit.allocator;
  */
 public abstract class AllocThread_ShutdownNullsPool_TestTemplate<
   SLOT,
-  ALLOC_THREAD extends Thread> {
+  ALLOC_THREAD extends Runnable> {
   @Rule public final TestRule failurePrinter = new FailurePrinterTestRule();
   
   protected Config<Poolable> config;
@@ -53,8 +53,8 @@ public abstract class AllocThread_ShutdownNullsPool_TestTemplate<
   mustHandleDeadNullsInShutdown() throws InterruptedException {
     BlockingQueue<SLOT> live = createInterruptingBlockingQueue();
     BlockingQueue<SLOT> dead = new LinkedBlockingQueue<SLOT>();
-    Thread thread = createAllocThread(live, dead);
-    thread.run();
+    Runnable allocator = createAllocThread(live, dead);
+    allocator.run();
     // must complete before test times out, and not throw NPE
   }
 
@@ -63,8 +63,8 @@ public abstract class AllocThread_ShutdownNullsPool_TestTemplate<
     BlockingQueue<SLOT> live = createInterruptingBlockingQueue();
     BlockingQueue<SLOT> dead = new LinkedBlockingQueue<SLOT>();
     dead.add(createSlot(live));
-    Thread thread = createAllocThread(live, dead);
-    thread.run();
+    Runnable allocator = createAllocThread(live, dead);
+    allocator.run();
     // must complete before test times out, and not throw NPE
   }
 

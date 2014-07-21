@@ -19,6 +19,8 @@ import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.concurrent.ThreadFactory;
+
 import static java.lang.Double.NaN;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
@@ -265,5 +267,24 @@ public class ConfigTest {
       fail("reallocation did not throw as expected");
     } catch (Exception ignore) {}
     verifyLatencies(r, is(not(NaN)), is(NaN), is(NaN), is(not(NaN)), is(not(NaN)));
+  }
+
+  @Test public void
+  defaultThreadFactoryMustCreateThreadsWithStormpotNameSignature() {
+    ThreadFactory factory = config.getThreadFactory();
+    Thread thread = factory.newThread(null);
+    assertThat(thread.getName(), containsString("Stormpot"));
+  }
+
+  @Test public void
+  threadFactoryMustBeSettable() {
+    ThreadFactory factory = new ThreadFactory() {
+      @Override
+      public Thread newThread(Runnable r) {
+        return null;
+      }
+    };
+    config.setThreadFactory(factory);
+    assertThat(config.getThreadFactory(), sameInstance(factory));
   }
 }

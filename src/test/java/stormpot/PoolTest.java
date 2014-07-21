@@ -32,10 +32,7 @@ import javax.management.ObjectName;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -303,6 +300,29 @@ public class PoolTest {
   @Theory public void
   constructorMustThrowOnNullAllocator(PoolFixture fixture) {
     fixture.initPool(config.setAllocator(null));
+  }
+
+  /**
+   * Prevent the creationg of pools with a null ThreadFactory.
+   * @see Config#setThreadFactory(java.util.concurrent.ThreadFactory)
+   */
+  @Test(timeout = 601, expected = IllegalArgumentException.class)
+  @Theory public void
+  constructorMustThrowOnNullThreadFactory(PoolFixture fixture) {
+    fixture.initPool(config.setThreadFactory(null));
+  }
+
+  @Test(timeout = 601, expected = NullPointerException.class)
+  @Theory public void
+  constructorMustThrowIfConfiguredThreadFactoryReturnsNull(PoolFixture fixture) {
+    ThreadFactory factory = new ThreadFactory() {
+      @Override
+      public Thread newThread(Runnable r) {
+        return null;
+      }
+    };
+    config.setThreadFactory(factory);
+    createPool(fixture);
   }
   
   /**
@@ -2262,6 +2282,28 @@ public class PoolTest {
     pool.claim(longTimeout).release();
     pool.claim(longTimeout).release();
     shutPoolDown();
+  }
+
+  @Test
+  @Theory public void
+  poolMustUseConfiguredThreadFactoryWhenCreatingBackgroundThreads(
+      PoolFixture fixture) throws InterruptedException {
+    final List<Thread> createdThreads = new ArrayList<Thread>();
+    ThreadFactory factory = new ThreadFactory() {
+      @Override
+      public Thread newThread(Runnable r) {
+        Thread thread = new Thread(r);
+        createdThreads.add(thread);
+        return thread;
+      }
+    };
+    config.setThreadFactory(factory);
+    createPool(fixture);
+    assertThat(createdThreads.size(), is(1));
+    assertTrue(createdThreads.get(0).isAlive());
+    pool.shutdown().await(longTimeout);
+    assertThat(createdThreads.size(), is(1));
+    assertFalse(createdThreads.get(0).isAlive());
   }
 
   @Test public void

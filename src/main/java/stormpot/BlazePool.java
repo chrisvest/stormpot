@@ -16,6 +16,7 @@
 package stormpot;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -49,7 +50,8 @@ public class BlazePool<T extends Poolable>
 
   private final BlockingQueue<BSlot<T>> live;
   private final BlockingQueue<BSlot<T>> dead;
-  private final BAllocThread<T> allocThread;
+  private final BAllocThread<T> allocator;
+  private final Thread allocatorThread;
   private final Expiration<? super T> deallocRule;
   private final MetricsRecorder metricsRecorder;
 
@@ -74,11 +76,13 @@ public class BlazePool<T extends Poolable>
 
     synchronized (config) {
       config.validate();
-      allocThread = new BAllocThread<T>(live, dead, config, poisonPill);
+      ThreadFactory factory = config.getThreadFactory();
+      allocator = new BAllocThread<T>(live, dead, config, poisonPill);
+      allocatorThread = factory.newThread(allocator);
       deallocRule = config.getExpiration();
       metricsRecorder = config.getMetricsRecorder();
     }
-    allocThread.start();
+    allocatorThread.start();
   }
 
   @Override
@@ -245,7 +249,7 @@ public class BlazePool<T extends Poolable>
   @Override
   public Completion shutdown() {
     shutdown = true;
-    return allocThread.shutdown();
+    return allocator.shutdown(allocatorThread);
   }
 
   @Override
@@ -256,22 +260,22 @@ public class BlazePool<T extends Poolable>
     if (shutdown) {
       return;
     }
-    allocThread.setTargetSize(size);
+    allocator.setTargetSize(size);
   }
 
   @Override
   public int getTargetSize() {
-    return allocThread.getTargetSize();
+    return allocator.getTargetSize();
   }
 
   @Override
   public long getAllocationCount() {
-    return allocThread.getAllocationCount();
+    return allocator.getAllocationCount();
   }
 
   @Override
   public long getFailedAllocationCount() {
-    return allocThread.getFailedAllocationCount();
+    return allocator.getFailedAllocationCount();
   }
 
   @Override

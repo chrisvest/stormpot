@@ -47,8 +47,8 @@ extends AllocThread_ShutdownNullsPool_TestTemplate<BSlot<Poolable>, BAllocThread
     slot.dead2live();
     slot.live2claim();
     dead.add(slot);
-    Thread thread = createAllocThread(live, dead);
-    thread.run();
+    Runnable allocator = createAllocThread(live, dead);
+    allocator.run();
     assertThat(live, hasItem(slot));
     // must complete before test times out, and not throw NPE
   }

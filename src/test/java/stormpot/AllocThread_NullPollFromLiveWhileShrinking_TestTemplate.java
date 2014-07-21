@@ -37,7 +37,7 @@ import static stormpot.AlloKit.allocator;
  */
 public abstract class AllocThread_NullPollFromLiveWhileShrinking_TestTemplate<
   SLOT,
-  ALLOC_THREAD extends Thread> {
+  ALLOC_THREAD extends Runnable> {
   @Rule public final TestRule failurePrinter = new FailurePrinterTestRule();
   
   @SuppressWarnings("serial")

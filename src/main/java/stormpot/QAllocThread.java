@@ -20,7 +20,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
-class QAllocThread<T extends Poolable> extends Thread {
+class QAllocThread<T extends Poolable> implements Runnable {
   /**
    * The amount of time, in nanoseconds, to wait for more work when the
    * shutdown process has deallocated all the dead and live slots it could
@@ -214,9 +214,9 @@ class QAllocThread<T extends Poolable> extends Thread {
     return targetSize;
   }
 
-  LatchCompletion shutdown() {
+  LatchCompletion shutdown(Thread allocatorThread) {
     shutdown = true;
-    interrupt();
+    allocatorThread.interrupt();
     return new LatchCompletion(completionLatch);
   }
 
