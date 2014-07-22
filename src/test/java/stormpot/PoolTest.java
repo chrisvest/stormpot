@@ -303,7 +303,7 @@ public class PoolTest {
   }
 
   /**
-   * Prevent the creationg of pools with a null ThreadFactory.
+   * Prevent the creation of pools with a null ThreadFactory.
    * @see Config#setThreadFactory(java.util.concurrent.ThreadFactory)
    */
   @Test(timeout = 601, expected = IllegalArgumentException.class)
