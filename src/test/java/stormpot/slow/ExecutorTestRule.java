@@ -19,9 +19,7 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.*;
 
 import static org.hamcrest.Matchers.is;
@@ -139,15 +137,33 @@ public class ExecutorTestRule implements TestRule {
       synchronized (threads) {
         System.err.println(
             "\n===[ Dumping stack traces for all created threads ]===\n");
-        for (final Thread thread : threads) {
-          Exception printer = new Exception(
-              "Stack trace for " + thread + " (id " + thread.getId() + "), state = " + thread.getState());
-          printer.setStackTrace(thread.getStackTrace());
-          printer.printStackTrace();
+        for (Thread thread : threads) {
+          StackTraceElement[] stackTrace = thread.getStackTrace();
+          printStackTrace(thread, stackTrace);
         }
         System.err.println(
             "\n===[ End stack traces for all created threads ]===\n");
+
+        System.err.println(
+            "\n===[ Dumping stack traces for all other threads ]===\n");
+        Set<Map.Entry<Thread, StackTraceElement[]>> entries =
+            Thread.getAllStackTraces().entrySet();
+        for (Map.Entry<Thread,StackTraceElement[]> entry : entries) {
+          printStackTrace(entry.getKey(), entry.getValue());
+        }
+        System.err.println(
+            "\n===[ End stack traces for all other threads ]===\n");
       }
+    }
+
+    private void printStackTrace(
+        Thread thread,
+        StackTraceElement[] stackTrace) {
+      Exception printer = new Exception(
+          "Stack trace for " + thread + " (id " + thread.getId() +
+              "), state = " + thread.getState());
+      printer.setStackTrace(stackTrace);
+      printer.printStackTrace();
     }
   }
 }

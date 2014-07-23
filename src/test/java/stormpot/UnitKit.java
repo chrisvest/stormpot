@@ -195,6 +195,19 @@ class UnitKit {
     }
   }
 
+  public static void claimRelease(
+      int count,
+      Pool<? extends Poolable> pool,
+      Timeout timeout) throws InterruptedException {
+    Poolable[] objs = new Poolable[count];
+    for (int i = 0; i < count; i++) {
+      objs[i] = pool.claim(timeout);
+    }
+    for (int i = 0; i < count; i++) {
+      objs[i].release();
+    }
+  }
+
   public static void sneakyThrow(Throwable throwable) {
     UnitKit.<RuntimeException>_sneakyThrow(throwable);
   }

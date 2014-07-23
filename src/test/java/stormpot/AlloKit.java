@@ -34,6 +34,7 @@ public class AlloKit {
     int countDeallocations();
     List<GenericPoolable> getAllocations();
     List<GenericPoolable> getDeallocations();
+    void clearLists();
   }
 
   public interface CountingReallocator
@@ -113,6 +114,12 @@ public class AlloKit {
     }
 
     @Override
+    public void clearLists() {
+      allocations.clear();
+      deallocations.clear();
+    }
+
+    @Override
     public GenericPoolable allocate(Slot slot) throws Exception {
       assert slot != null : "Slot cannot be null in allocate";
       GenericPoolable obj = onAllocation.applyNext(slot, null);
@@ -152,6 +159,12 @@ public class AlloKit {
     @Override
     public List<GenericPoolable> getReallocations() {
       return reallocations;
+    }
+
+    @Override
+    public void clearLists() {
+      super.clearLists();
+      reallocations.clear();
     }
 
     @Override

@@ -218,6 +218,6 @@ public class QueuePool<T extends Poolable>
 
   @Override
   public long getLeakedObjectsCount() {
-    return -1;
+    return allocator.countLeakedObjects();
   }
 }

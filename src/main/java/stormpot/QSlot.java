@@ -26,7 +26,7 @@ class QSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   long created;
   long claims;
   long stamp;
-  
+
   public QSlot(BlockingQueue<QSlot<T>> live) {
     this.live = live;
     this.claimed = new AtomicBoolean(true);

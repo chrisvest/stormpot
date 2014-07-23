@@ -35,6 +35,7 @@ class QAllocThread<T extends Poolable> implements Runnable {
   private final Reallocator<T> allocator;
   private final QSlot<T> poisonPill;
   private final MetricsRecorder metricsRecorder;
+  private final PreciseLeakDetector leakDetector;
 
   // Single reader: this. Many writers.
   private volatile int targetSize;
@@ -54,6 +55,8 @@ class QAllocThread<T extends Poolable> implements Runnable {
       QSlot<T> poisonPill,
       MetricsRecorder metricsRecorder) {
     this.metricsRecorder = metricsRecorder;
+    this.leakDetector = config.isPreciseLeakDetectionEnabled() ?
+        new PreciseLeakDetector() : null;
     this.targetSize = config.getSize();
     completionLatch = new CountDownLatch(1);
     this.allocator = config.getAdaptedReallocator();
@@ -79,12 +82,14 @@ class QAllocThread<T extends Poolable> implements Runnable {
         if (size < targetSize) {
           QSlot<T> slot = new QSlot<T>(live);
           alloc(slot);
+          registerWithLeakDetector(slot);
         }
         QSlot<T> slot = dead.poll(deadPollTimeout, TimeUnit.MILLISECONDS);
         if (size > targetSize) {
           slot = slot == null? live.poll() : slot;
           if (slot != null) {
             dealloc(slot);
+            unregisterWithLeakDetector(slot);
           }
         } else if (slot != null) {
           realloc(slot);
@@ -115,6 +120,18 @@ class QAllocThread<T extends Poolable> implements Runnable {
     live.offer(poisonPill);
   }
 
+  private void registerWithLeakDetector(QSlot<T> slot) {
+    if (leakDetector != null) {
+      leakDetector.register(slot);
+    }
+  }
+
+  private void unregisterWithLeakDetector(QSlot<T> slot) {
+    if (leakDetector != null) {
+      leakDetector.unregister(slot);
+    }
+  }
+
   private void shutPoolDown() {
     while (size > 0) {
       QSlot<T> slot = dead.poll();
@@ -129,6 +146,7 @@ class QAllocThread<T extends Poolable> implements Runnable {
         LockSupport.parkNanos(shutdownPauseNanos);
       } else {
         dealloc(slot);
+        unregisterWithLeakDetector(slot);
       }
     }
   }
@@ -226,5 +244,12 @@ class QAllocThread<T extends Poolable> implements Runnable {
 
   public long getFailedAllocationCount() {
     return failedAllocationCount;
+  }
+
+  public long countLeakedObjects() {
+    if (leakDetector !=null) {
+      return leakDetector.countLeakedObjects();
+    }
+    return -1;
   }
 }

@@ -59,6 +59,7 @@ public class Config<T extends Poolable> {
   private Allocator<?> allocator;
   private MetricsRecorder metricsRecorder;
   private ThreadFactory threadFactory = StormpotThreadFactory.INSTANCE;
+  private boolean preciseLeakDetectionEnabled = true;
 
   /**
    * Build a new empty Config object. Most settings have reasonable default
@@ -210,6 +211,41 @@ public class Config<T extends Poolable> {
    */
   public synchronized Config<T> setThreadFactory(ThreadFactory factory) {
     threadFactory = factory;
+    return this;
+  }
+
+  /**
+   * Return whether or not precise object leak detection is enabled, which is
+   * the case by default.
+   * @return +true+ if precise object leak detection is enabled.
+   * @see #setPreciseLeakDetectionEnabled(boolean)
+   */
+  public synchronized boolean isPreciseLeakDetectionEnabled() {
+    return preciseLeakDetectionEnabled;
+  }
+
+  /**
+   * Enable or disable precise object leak detection. It is enabled by default.
+   * Precise object leak detection makes the pool keep an eye on the allocated
+   * Poolables, such that it notices if they get garbage collected without
+   * first being deallocated. Using the garbage collector for this purpose,
+   * means that no false positives (counting objects as leaked, even though
+   * they are not) are ever reported.
+   *
+   * NOTE: While the pool is able to detect object leaks, it cannot prevent
+   * them. All leaks are a sign that there is a bug in the system; most likely
+   * a bug in your code, or in the way the pool is used.
+   *
+   * Precise object leak detection incurs virtually no overhead, and is safe to
+   * leave enabled at all times – even in the most demanding production
+   * environments.
+   *
+   * @param enabled +true+ to turn on precise object leak detection (the
+   *                default) +false+ to turn it off.
+   * @return This Config instance.
+   */
+  public synchronized Config<T> setPreciseLeakDetectionEnabled(boolean enabled) {
+    this.preciseLeakDetectionEnabled = enabled;
     return this;
   }
 

@@ -42,6 +42,7 @@ public abstract class AllocThread_ShutdownNullsPool_TestTemplate<
     config = new Config<Poolable>();
     config.setAllocator(allocator());
     config.setSize(2);
+    config.setPreciseLeakDetectionEnabled(false);
   }
 
   protected abstract ALLOC_THREAD createAllocThread(

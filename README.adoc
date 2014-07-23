@@ -14,7 +14,6 @@ of those cycles.] claim-release cycles in testing.
  * Simple versioning: X.Y where Y\++ is backwards compatible, and X++ is
    backwards incompatible.
 
-image::https://travis-ci.org/chrisvest/stormpot.png[Build Status, link="https://travis-ci.org/chrisvest/stormpot"]
 
 == Why choose Stormpot?
 
@@ -85,7 +84,8 @@ try {
    environment, what you observe, and what you think should happen instead.
  * *Improve the documentation* by all means! Just fork the project and start.
    If you have questions about implementation or behavioural details, then start
-   a discussion about it by opening a pull-request or an issue.
+   a discussion about it by opening a pull-request or an issue. Documentation
+   and javadoc is formatted with http://asciidoctor.org/[AsciiDoctor].
  * *Fix bugs or implement features* by forking the project, but please start an
    issue about the bug or feature you want to work on (or find the existing
    issue) and describe the approach and design you have in mind. Keep in mind
@@ -97,4 +97,8 @@ try {
    +PoolIT+ suite, or in a new +*IT+ suite.
    Use +mvn clean test+ to run only the fast tests. Use +mvn clean verify+ to
    also run the slow tests. Javadoc comments are formatted with
-   http://www.methods.co.nz/asciidoc/[AsciiDoc].
+   http://asciidoctor.org/[AsciiDoctor].
+   Get test coverage with +mvn clean test site+ and
+   +open target/site/jacoco/index.html+. Get mutation test coverage with
+   +mvn clean test-compile org.pitest:pitest-maven:mutationCoverage+ and
+   +open target/pit-reports/*/index.html+.

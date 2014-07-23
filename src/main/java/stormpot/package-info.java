@@ -17,6 +17,7 @@
 /**
  * = Stormpot
  * :toc:
+ * :examples: stormpot/examples
  *
  * Stormpot is a generic, thread-safe and fast object pooling library.
  *
@@ -173,7 +174,7 @@
  *
  * [source,java]
  * --
- * include::stormpot/examples/DaoPoolExample.java[tag=defineClass]
+ * include::{examples}/DaoPoolExample.java[tag=defineClass]
  * --
  *
  * Since +MyDao+ is the class of the objects we want to pool, it must implement
@@ -184,7 +185,7 @@
  *
  * [source,java]
  * --
- * include::stormpot/examples/DaoPoolExample.java[tag=mydaoStart]
+ * include::{examples}/DaoPoolExample.java[tag=mydaoStart]
  * --
  *
  * The contract of the {@link stormpot.Poolable#release()} method is to call
@@ -199,7 +200,7 @@
  *
  * [source,java]
  * --
- * include::stormpot/examples/DaoPoolExample.java[tag=mydaoRelease]
+ * include::{examples}/DaoPoolExample.java[tag=mydaoRelease]
  * --
  *
  * When +release()+ is called, the object returns to the pool. When the object is
@@ -211,7 +212,7 @@
  *
  * [source,java]
  * --
- * include::stormpot/examples/DaoPoolExample.java[tag=mydaoClose]
+ * include::{examples}/DaoPoolExample.java[tag=mydaoClose]
  * --
  *
  * Private visibility is fine in this case, because we are keeping everything
@@ -225,7 +226,7 @@
  *
  * [source,java]
  * --
- * include::stormpot/examples/DaoPoolExample.java[tag=mydaoGetFirstname]
+ * include::{examples}/DaoPoolExample.java[tag=mydaoGetFirstname]
  * --
  *
  * And that concludes the +MyDao+ class and the +Poolable+ implementation. Next, we
@@ -240,7 +241,7 @@
  *
  * [source,java]
  * --
- * include::stormpot/examples/DaoPoolExample.java[tag=allocatorStart]
+ * include::{examples}/DaoPoolExample.java[tag=allocatorStart]
  * --
  *
  * The +Allocator+ needs an allocate method. It is specified in the API that the
@@ -252,7 +253,7 @@
  *
  * [source,java]
  * --
- * include::stormpot/examples/DaoPoolExample.java[tag=allocatorAllocate]
+ * include::{examples}/DaoPoolExample.java[tag=allocatorAllocate]
  * --
  *
  * Our +Allocator+ also needs a {@link stormpot.Allocator#deallocate(Poolable)}
@@ -261,7 +262,7 @@
  *
  * [source,java]
  * --
- * include::stormpot/examples/DaoPoolExample.java[tag=allocatorClose]
+ * include::{examples}/DaoPoolExample.java[tag=allocatorClose]
  * --
  *
  * And that concludes our +Allocator+ implementation. We now have the parts
@@ -281,7 +282,7 @@
  *
  * [source,java]
  * --
- * include::stormpot/examples/DaoPoolExample.java[tag=poolStart]
+ * include::{examples}/DaoPoolExample.java[tag=poolStart]
  * --
  *
  * The set-up is simple: The +DataSource+ goes into our +Allocator+, the +Allocator+
@@ -299,7 +300,7 @@
  *
  * [source,java]
  * --
- * include::stormpot/examples/DaoPoolExample.java[tag=poolClose]
+ * include::{examples}/DaoPoolExample.java[tag=poolClose]
  * --
  *
  * Next, we need a way to interact with the +MyDao+ instances that are managed by
@@ -319,7 +320,7 @@
  *
  * [source,java]
  * --
- * include::stormpot/examples/DaoPoolExample.java[tag=poolDoWithDao]
+ * include::{examples}/DaoPoolExample.java[tag=poolDoWithDao]
  * --
  *
  * And that concludes our +MyDaoPool+ class. Our use of Stormpot has been hidden
@@ -327,7 +328,7 @@
  *
  * [source,java]
  * --
- * include::stormpot/examples/DaoPoolExample.java[tag=main]
+ * include::{examples}/DaoPoolExample.java[tag=main]
  * --
  *
  * The implementation of the +configureDataSource+ method is left as an

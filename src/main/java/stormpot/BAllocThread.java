@@ -35,6 +35,7 @@ class BAllocThread<T extends Poolable> implements Runnable {
   private final Reallocator<T> allocator;
   private final BSlot<T> poisonPill;
   private final MetricsRecorder metricsRecorder;
+  private final PreciseLeakDetector leakDetector;
 
   // Single reader: this. Many writers.
   private volatile int targetSize;
@@ -59,6 +60,8 @@ class BAllocThread<T extends Poolable> implements Runnable {
     this.live = live;
     this.dead = dead;
     this.poisonPill = poisonPill;
+    this.leakDetector = config.isPreciseLeakDetectionEnabled() ?
+        new PreciseLeakDetector() : null;
   }
 
   @Override
@@ -111,6 +114,7 @@ class BAllocThread<T extends Poolable> implements Runnable {
   private void increaseSizeByAllocating() {
     BSlot<T> slot = new BSlot<T>(live);
     alloc(slot);
+    registerWithLeakDetector(slot);
   }
 
   private void reduceSizeByDeallocating(BSlot<T> slot) {
@@ -118,9 +122,22 @@ class BAllocThread<T extends Poolable> implements Runnable {
     if (slot != null) {
       if (slot.isDead() || slot.live2dead()) {
         dealloc(slot);
+        unregisterWithLeakDetector(slot);
       } else {
         live.offer(slot);
       }
+    }
+  }
+
+  private void registerWithLeakDetector(BSlot<T> slot) {
+    if (leakDetector != null) {
+      leakDetector.register(slot);
+    }
+  }
+
+  private void unregisterWithLeakDetector(BSlot<T> slot) {
+    if (leakDetector != null) {
+      leakDetector.unregister(slot);
     }
   }
 
@@ -155,6 +172,7 @@ class BAllocThread<T extends Poolable> implements Runnable {
       } else {
         if (slot.isDead() || slot.live2dead()) {
           dealloc(slot);
+          unregisterWithLeakDetector(slot);
         } else {
           live.offer(slot);
         }
@@ -258,5 +276,12 @@ class BAllocThread<T extends Poolable> implements Runnable {
 
   public long getFailedAllocationCount() {
     return failedAllocationCount;
+  }
+
+  public long countLeakedObjects() {
+    if (leakDetector != null) {
+      return leakDetector.countLeakedObjects();
+    }
+    return -1;
   }
 }

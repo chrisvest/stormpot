@@ -287,4 +287,15 @@ public class ConfigTest {
     config.setThreadFactory(factory);
     assertThat(config.getThreadFactory(), sameInstance(factory));
   }
+
+  @Test public void
+  preciseLeakDetectionMustBeEnabledByDefault() {
+    assertTrue(config.isPreciseLeakDetectionEnabled());
+  }
+
+  @Test public void
+  preciseLeakDetectionMustBeSettable() {
+    config.setPreciseLeakDetectionEnabled(false);
+    assertFalse(config.isPreciseLeakDetectionEnabled());
+  }
 }

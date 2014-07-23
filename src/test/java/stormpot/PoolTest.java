@@ -2518,14 +2518,82 @@ public class PoolTest {
 
   @Test(timeout = 601)
   @Theory public void
-  managedPoolThatDoesNotSupportPreciseObjectLeakDetectionMustReturnMinusOneForCount(
+  managedPoolLeakedObjectCountMustStartAtZero(PoolFixture fixture) {
+    ManagedPool managedPool = assumeManagedPool(fixture);
+    // Pools that don't support this feature return -1L.
+    assertThat(managedPool.getLeakedObjectsCount(), is(0L));
+  }
+
+  @Test(timeout = 601)
+  @Theory public void
+  managedPoolMustCountLeakedObjects(PoolFixture fixture) throws Exception {
+    config.setSize(2);
+    ManagedPool managedPool = assumeManagedPool(fixture);
+    pool.claim(longTimeout); // leak!
+    // Clear any thread-local reference to the leaked object:
+    pool.claim(longTimeout).release();
+    // Clear any references held by our particular allocator:
+    allocator.clearLists();
+
+    // A run of the GC will null out the weak-refs:
+    System.gc();
+
+    pool = null; // null out the pool because we can no longer shut it down.
+    assertThat(managedPool.getLeakedObjectsCount(), is(1L));
+  }
+
+  @Test(timeout = 601)
+  @Theory public void
+  managedPoolMustNotCountShutDownAsLeak(PoolFixture fixture) throws Exception {
+    config.setSize(2);
+    ManagedPool managedPool = assumeManagedPool(fixture);
+    claimRelease(2, pool, longTimeout);
+    pool.shutdown().await(longTimeout);
+    allocator.clearLists();
+    System.gc();
+    assertThat(managedPool.getLeakedObjectsCount(), is(0L));
+  }
+
+  @Test(timeout = 601)
+  @Theory public void
+  managedPoolMustNotCountResizeAsLeak(PoolFixture fixture) throws Exception {
+    config.setSize(2);
+    ManagedPool managedPool = assumeManagedPool(fixture);
+    claimRelease(2, pool, longTimeout);
+    managedPool.setTargetSize(4);
+    claimRelease(4, pool, longTimeout);
+    managedPool.setTargetSize(1);
+    while (allocator.countDeallocations() < 3) {
+      spinwait(1);
+    }
+    System.gc();
+    assertThat(managedPool.getLeakedObjectsCount(), is(0L));
+  }
+
+  @Test(timeout = 601)
+  @Theory public void
+  managedPoolMustReturnMinusOneForLeakedObjectCountWhenDetectionIsDisabled(
       PoolFixture fixture) {
-    // TODO remove this test when precise leak detection is implemented
+    config.setPreciseLeakDetectionEnabled(false);
     ManagedPool managedPool = assumeManagedPool(fixture);
     assertThat(managedPool.getLeakedObjectsCount(), is(-1L));
   }
 
-  // TODO managed pool should expose "contention level" from metrics recorder
+  @Test(timeout = 601)
+  @Theory public void
+  disabledLeakDetectionMustNotBreakResize(PoolFixture fixture) throws Exception {
+    config.setPreciseLeakDetectionEnabled(false);
+    config.setSize(2);
+    ManagedPool managedPool = assumeManagedPool(fixture);
+    claimRelease(2, pool, longTimeout);
+    pool.setTargetSize(6);
+    claimRelease(6, pool, longTimeout);
+    pool.setTargetSize(2);
+    while (allocator.countDeallocations() < 4) {
+      spinwait(1);
+    }
+    assertThat(managedPool.getLeakedObjectsCount(), is(-1L));
+  }
 
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the Pool javadoc.
