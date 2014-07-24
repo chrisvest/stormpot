@@ -22,12 +22,14 @@ There are a number of options out there, when it comes to object pools on the
 JVM. Stormpot has been carefully designed for high performance, and robust
 operation. Some of the things that sets Stormpot apart include:
 
+ * Business friendly http://www.apache.org/licenses/LICENSE-2.0.html[Apache 2
+   license].
  * Very high http://chrisvest.github.io/stormpot/site/jacoco/index.html[test
    coverage].
  * The http://chrisvest.name/released-stormpot-21.html[highest throughput and
    lowest latency] in its class.
  * http://chrisvest.name/released-stormpot-22.html[Automatic recovery] from
-   sporadic backend failures.
+   sporadic backend (Allocator) failures.
  * And other features that makes for a smooth runtime behaviour.
 
 == Installing
