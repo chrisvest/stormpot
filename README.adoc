@@ -5,14 +5,30 @@ are expensive to create. The library will take care of creating and destroying
 your objects in the background. Stormpot is very mature, is used in production,
 and has done over a trillion footnote:[Fermi estimate. The benchmark that
 produced the charts for the 2.1 release blog post accounts for about 400 billion
-of those cycles.] claim-release cycles during testing.
+of those cycles.] claim-release cycles in testing.
 
  * Home page: http://chrisvest.github.io/stormpot/
  * API docs: http://chrisvest.github.io/stormpot/site/apidocs/index.html
  * Mailing list: http://groups.google.com/d/forum/stormpot
  * License: http://www.apache.org/licenses/LICENSE-2.0.html[The Apache Software License 2.0]
+ * Simple versioning: X.Y where Y\++ is backwards compatible, and X++ is
+   backwards incompatible.
 
 image::https://travis-ci.org/chrisvest/stormpot.png[Build Status, link="https://travis-ci.org/chrisvest/stormpot"]
+
+== Why choose Stormpot?
+
+There are a number of options out there, when it comes to object pools on the
+JVM. Stormpot has been carefully designed for high performance, and robust
+operation. Some of the things that sets Stormpot apart include:
+
+ * Very high http://chrisvest.github.io/stormpot/site/jacoco/index.html[test
+   coverage].
+ * The http://chrisvest.name/released-stormpot-21.html[highest throughput and
+   lowest latency] in its class.
+ * http://chrisvest.name/released-stormpot-22.html[Automatic recovery] from
+   sporadic backend failures.
+ * And other features that makes for a smooth runtime behaviour.
 
 == Installing
 
@@ -30,19 +46,32 @@ projects:
 
 You can also build the latest snapshot from source with +mvn clean install+.
 
-== Why choose Stormpot?
+== Getting started
 
-There are a number of options out there, when it comes to object pools on the
-JVM. Stormpot has been carefully designed for high performance, and robust
-operation. Some of the things that sets Stormpot apart include:
+Stormpot needs 3 things before it can pool objects for you:
 
- * Very high http://chrisvest.github.io/stormpot/site/jacoco/index.html[test
-   coverage].
- * The http://chrisvest.name/released-stormpot-21.html[highest throughput and
-   lowest latency] in its class.
- * http://chrisvest.name/released-stormpot-22.html[Automatic recovery] from
-   sporadic backend failures.
- * And other features that makes for a smooth runtime behaviour.
+ . A http://chrisvest.github.io/stormpot/site/apidocs/stormpot/Poolable.html[Poolable] type of objects it can pool. You have to implement this yourself.
+ . An http://chrisvest.github.io/stormpot/site/apidocs/stormpot/Allocator.html[Allocator] to allocate and deallocate the Poolable objects. You have to implement this
+   yourself.
+ . And a place where it all comes together:
+
+[source,java]
+--
+MyAllocator allocator = new MyAllocator();
+Config<MyPoolable> config = new Config<MyPoolable>().setAllocator(allocator);
+Pool<MyPoolable> pool = new BlazePool<MyPoolable>(config);
+Timeout timeout = new Timeout(1, TimeUnit.SECONDS);
+
+MyPoolable object = pool.claim(timeout);
+try {
+  // Do stuff with 'object'.
+  // Note: 'claim' returns 'null' if it timed out.
+} finally {
+  if (object != null) {
+    object.release();
+  }
+}
+--
 
 == Contributing
 
@@ -61,3 +90,8 @@ operation. Some of the things that sets Stormpot apart include:
    that Stormpot is implemented with a very
    http://chrisvest.name/contract-coverage.html[strict adherence to TDD].
    Finally, make sure to respect the existing indentation and formatting.
+   If you are writing a test that takes more than a few hundred milliseconds to
+   run, then put it in the +stormpot.slow+ test package; either in the existing
+   +PoolIT+ suite, or in a new +*IT+ suite.
+   Use +mvn clean test+ to run only the fast tests. Use +mvn clean verify+ to
+   also run the slow tests.
