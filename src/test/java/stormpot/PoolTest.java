@@ -2284,21 +2284,23 @@ public class PoolTest {
     shutPoolDown();
   }
 
-  @Test
+  @Test(timeout = 601)
   @Theory public void
   poolMustUseConfiguredThreadFactoryWhenCreatingBackgroundThreads(
       PoolFixture fixture) throws InterruptedException {
+    final ThreadFactory delegateThreadFactory = config.getThreadFactory();
     final List<Thread> createdThreads = new ArrayList<Thread>();
     ThreadFactory factory = new ThreadFactory() {
       @Override
       public Thread newThread(Runnable r) {
-        Thread thread = new Thread(r);
+        Thread thread = delegateThreadFactory.newThread(r);
         createdThreads.add(thread);
         return thread;
       }
     };
     config.setThreadFactory(factory);
     createPool(fixture);
+    pool.claim(longTimeout).release();
     assertThat(createdThreads.size(), is(1));
     assertTrue(createdThreads.get(0).isAlive());
     pool.shutdown().await(longTimeout);
