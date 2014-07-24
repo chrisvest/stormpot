@@ -1,0 +1,59 @@
+= Stormpot
+
+Stormpot is an object pooling library for Java. Use it to recycle objects that
+are expensive to create. The library will take care of creating and destroying
+your objects in the background.
+
+ * Home page: http://chrisvest.github.io/stormpot/
+ * API docs: http://chrisvest.github.io/stormpot/site/apidocs/index.html
+ * Mailing list: http://groups.google.com/d/forum/stormpot
+ * License: http://www.apache.org/licenses/LICENSE-2.0.html[The Apache Software License 2.0]
+
+image::https://travis-ci.org/chrisvest/stormpot.png[Build Status, link="https://travis-ci.org/chrisvest/stormpot"]
+
+== Installing
+
+Add it as a Maven dependency to your projects:
+
+[source,xml]
+--
+<dependency>
+  <groupId>com.github.chrisvest</groupId>
+  <artifactId>stormpot</artifactId>
+  <version>2.2</version>
+</dependency>
+--
+
+You can also build the latest snapshot from source with +mvn clean install+.
+
+== Why choose Stormpot?
+
+There are a number of options out there, when it comes to object pools on the
+JVM. Stormpot has been carefully designed for high performance, and robust
+operation. Some of the things that sets Stormpot apart include:
+
+ * Very high http://chrisvest.github.io/stormpot/site/jacoco/index.html[test
+   coverage].
+ * The http://chrisvest.name/released-stormpot-21.html[highest throughput and
+   lowest latency] in its class.
+ * http://chrisvest.name/released-stormpot-22.html[Automatic recovery] from
+   sporadic backend failures.
+ * And other features that makes for a smooth runtime behaviour.
+
+== Contributing
+
+ * *Report bugs* preferably with a failing test. You can submit a pull-request
+   that adds a failing test that demonstrates the behaviour you think is wrong
+   or missing. Travis-CI will build it, report the failure and shorten the
+   feedback cycle. If you don't know how to write a test for something, then
+   that's fine too. Just open an issue describing your configuration and
+   environment, what you observe, and what you think should happen instead.
+ * *Improve the documentation* by all means! Just fork the project and start.
+   If you have questions about implementation or behavioural details, then start
+   a discussion about it by opening a pull-request or an issue.
+ * *Fix bugs or implement features* by forking the project, but please start an
+   issue about the bug or feature you want to work on (or find the existing
+   issue) and describe the approach and design you have in mind. Keep in mind
+   that Stormpot is implemented with a very
+   http://chrisvest.name/contract-coverage.html[strict adherence to TDD].
+   Finally, make sure to respect the existing indentation and formatting.

@@ -15,24 +15,18 @@
  */
 package stormpot.examples;
 
+import stormpot.*;
+
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
 
-import javax.sql.DataSource;
-
-import stormpot.Allocator;
-import stormpot.Config;
-import stormpot.Expiration;
-import stormpot.LifecycledPool;
-import stormpot.Poolable;
-import stormpot.Slot;
-import stormpot.SlotInfo;
-import stormpot.Timeout;
-import stormpot.QueuePool;
-
+// tag::defineClass[]
 public class DaoPoolExample {
+  // end::defineClass[]
+  // tag::mydaoStart[]
   static class MyDao implements Poolable {
     final Slot slot;
     final Connection connection;
@@ -41,43 +35,54 @@ public class DaoPoolExample {
       this.slot = slot;
       this.connection = connection;
     }
-
+    // end::mydaoStart[]
+    // tag::mydaoRelease[]
     public void release() {
       slot.release(this);
     }
-
+    // end::mydaoRelease[]
+    // tag::mydaoClose[]
     private void close() throws SQLException {
       connection.close();
     }
-    
+    // end::mydaoClose[]
+
     // ...
     // public DAO-type methods
     // ...
-    
+
+    // tag::mydaoGetFirstname[]
     public String getFirstName() {
       // Stub: get the name from the database using the connection.
       // But for now, just always return "freddy"
       return "freddy";
     }
   }
-  
+  // end::mydaoGetFirstname[]
+
+  // tag::allocatorStart[]
   static class MyDaoAllocator implements Allocator<MyDao> {
     private final DataSource dataSource;
     
     public MyDaoAllocator(DataSource dataSource) {
       this.dataSource = dataSource;
     }
+    // end::allocatorStart[]
 
+    // tag::allocatorAllocate[]
     public MyDao allocate(Slot slot) throws Exception {
       synchronized (dataSource) {
         return new MyDao(slot, dataSource.getConnection());
       }
     }
+    // end::allocatorAllocate[]
 
+    // tag::allocatorClose[]
     public void deallocate(MyDao poolable) throws Exception {
       poolable.close();
     }
   }
+  // end::allocatorClose[]
   
   static class TestQueryExpiration implements Expiration<MyDao> {
     @Override
@@ -102,21 +107,36 @@ public class DaoPoolExample {
       }
     }
   }
-  
+
+  // tag::poolStart[]
   static class MyDaoPool {
     private final LifecycledPool<MyDao> pool;
     
     public MyDaoPool(DataSource dataSource) {
       MyDaoAllocator allocator = new MyDaoAllocator(dataSource);
       Config<MyDao> config = new Config<MyDao>().setAllocator(allocator);
-      config.setExpiration(new TestQueryExpiration());
+      pool = new QueuePool<MyDao>(config);
+    }
+    // end::poolStart[]
+
+    public MyDaoPool(DataSource dataSource, boolean verifyConnections) {
+      MyDaoAllocator allocator = new MyDaoAllocator(dataSource);
+      Config<MyDao> config = new Config<MyDao>().setAllocator(allocator);
+
+      if (verifyConnections) {
+        config.setExpiration(new TestQueryExpiration());
+      }
+
       pool = new QueuePool<MyDao>(config);
     }
 
+    // tag::poolClose[]
     public void close() throws InterruptedException {
       pool.shutdown().await(new Timeout(1, TimeUnit.MINUTES));
     }
-    
+    // end::poolClose[]
+
+    // tag::poolDoWithDao[]
     public <T> T doWithDao(WithMyDaoDo<T> action)
         throws InterruptedException {
       MyDao dao = pool.claim(new Timeout(1, TimeUnit.SECONDS));
@@ -131,7 +151,9 @@ public class DaoPoolExample {
   static interface WithMyDaoDo<T> {
     public T doWithDao(MyDao dao);
   }
-  
+  // end::poolDoWithDao[]
+
+  // tag::main[]
   public static void main(String[] args) throws InterruptedException {
     DataSource dataSource = configureDataSource();
     MyDaoPool pool = new MyDaoPool(dataSource);
@@ -146,6 +168,7 @@ public class DaoPoolExample {
       pool.close();
     }
   }
+  // end::main[]
 
   private static DataSource configureDataSource() {
     // Stub: configure and return some kind of DataSource object.

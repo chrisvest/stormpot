@@ -22,7 +22,7 @@ package stormpot;
  * cancellation or returning a result. Indeed, you cannot even precisely tell
  * if the task has already completed, but the await methods will return
  * immediately if that is the case.
- * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
+ * @author Chris Vest <mr.chrisvest@gmail.com>
  * @see LifecycledPool#shutdown()
  */
 public interface Completion {
@@ -31,28 +31,27 @@ public interface Completion {
    * Causes the current thread to wait until the completion is finished,
    * or the thread is {@link Thread#interrupt() interrupted}, or the specified
    * waiting time elapses.
-   * <p>
+   *
    * If the task represented by this completion has already completed,
-   * the method immediately returns <code>true</code>.
-   * <p>
+   * the method immediately returns +true+.
+   *
    * If the current thread already has its interrupted status set upon entry
    * to this method, or the thread is interrupted while waiting, then an
    * {@link InterruptedException} is thrown and the current threads interrupted
    * status is cleared.
-   * <p>
-   * If the specified waiting time elapses, then the method returns
-   * <code>false</code>.
+   *
+   * If the specified waiting time elapses, then the method returns +false+.
    * @param timeout The timeout delimiting the maximum time to wait for the
    * task to complete. Timeouts with zero or negative values will cause the
    * method to return immediately.
-   * @return <code>true</code> if the task represented by this completion
+   * @return +true+ if the task represented by this completion
    * completed within the specified waiting time, or was already complete upon
-   * entry to this method; or <code>false</code> if the specified Timeout
+   * entry to this method; or +false+ if the specified Timeout
    * elapsed before the task could finished.
    * @throws InterruptedException if the current thread is interrupted while
    * waiting.
-   * @throws IllegalArgumentException if the provided <code>timeout</code>
-   * parameter is <code>null</code>.
+   * @throws IllegalArgumentException if the provided +timeout+ parameter is
+   * +null+.
    */
   boolean await(Timeout timeout) throws InterruptedException;
 }

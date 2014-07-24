@@ -13,15 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot;
+package docs;
 
-/**
- * An interface for {@link Pool}s that are both
- * {@link LifecycledPool life-cycled} and {@link ResizablePool resizable}.
- * 
- * @author Chris Vest <mr.chrisvest@gmail.com>
- * @param <T> The type of {@link Poolable} contained in this pool.
- */
-public interface LifecycledResizablePool<T extends Poolable>
-extends LifecycledPool<T>, ResizablePool<T> {
+// tag::mypoolable[]
+// MyPoolable.java - minimum Poolable implementation
+import stormpot.Poolable;
+import stormpot.Slot;
+
+public class MyPoolable implements Poolable {
+  private final Slot slot;
+  public MyPoolable(Slot slot) {
+    this.slot = slot;
+  }
+
+  public void release() {
+    slot.release(this);
+  }
 }
+// end::mypoolable[]

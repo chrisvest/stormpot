@@ -19,7 +19,7 @@ import stormpot.Config;
 import stormpot.Poolable;
 
 /**
- * @deprecated This class has been moved to the <code>stormpot</code> package.
+ * @deprecated This class has been moved to the +stormpot+ package.
  * @see stormpot.QueuePool
  */
 @Deprecated

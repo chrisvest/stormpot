@@ -13,15 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot;
+package docs;
 
-/**
- * An interface for {@link Pool}s that are both
- * {@link LifecycledPool life-cycled} and {@link ResizablePool resizable}.
- * 
- * @author Chris Vest <mr.chrisvest@gmail.com>
- * @param <T> The type of {@link Poolable} contained in this pool.
- */
-public interface LifecycledResizablePool<T extends Poolable>
-extends LifecycledPool<T>, ResizablePool<T> {
+// tag::myallocator[]
+// MyAllocator.java - minimum Allocator implementation
+import stormpot.Allocator;
+import stormpot.Slot;
+
+public class MyAllocator implements Allocator<MyPoolable> {
+  public MyPoolable allocate(Slot slot) throws Exception {
+    return new MyPoolable(slot);
+  }
+
+  public void deallocate(MyPoolable poolable) throws Exception {
+    // Nothing to do here
+    // But it's a perfect place to close sockets, files, etc.
+  }
 }
+// end::myallocator[]

@@ -23,19 +23,19 @@ import java.util.concurrent.TimeUnit;
  * BlazePool is a highly optimised {@link LifecycledResizablePool}
  * implementation that consists of a queues of Poolable instances, the access
  * to which is made faster with clever use of ThreadLocals.
- * <p>
- * Object allocation always happens in a dedicated thread, off-loading the 
+ *
+ * Object allocation always happens in a dedicated thread, off-loading the
  * cost of allocating the pooled objects. This should lead to reduced deviation
  * in the times it takes claim method to complete, provided the pool is not
  * depleted.
- * <p>
+ *
  * BlazePool optimises for the case where the same threads need to claim and
  * release objects over and over again. On the other hand, if the releasing
  * thread tends to differ from the claiming thread, then the major optimisation
  * in BlazePool is defeated, and performance regresses to a slow-path that is
  * a tad slower than {@link stormpot.QueuePool}.
  *
- * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
+ * @author Chris Vest <mr.chrisvest@gmail.com>
  * @param <T> The type of {@link Poolable} managed by this pool.
  */
 public class BlazePool<T extends Poolable>

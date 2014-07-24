@@ -1,15 +1,4 @@
-#!/usr/bin/env python
-
-from codecs import open
-from markdown2 import Markdown
-
-markdown_options = {
-  'code-color':{'classprefix':'cc'},
-  'footnotes':'',
-  'toc':'toc'
-}
-
-template = """/*
+/*
  * Copyright (C) 2011-2014 Chris Vest (mr.chrisvest@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,18 +13,9 @@ template = """/*
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// GENERATED FILE!
-// Look at package-info.md in project root, and gen-package-info.py
-/**
-%s
-*/
-package stormpot;
-"""
 
-with open("package-info.md", "r", "utf-8") as f:
-  md = f.read()
-markdown = Markdown(extras=markdown_options)
-html = markdown.convert(md)
-java = template % html.replace(u'<p>{toc}</p>', html.toc_html)
-with open("src/main/java/stormpot/package-info.java", "w", "utf-8") as f:
-  f.write(java)
+/**
+ * The files in this package are used for including into the generated javadoc
+ * and documentation.
+ */
+package docs;

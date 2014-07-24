@@ -47,6 +47,8 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <java.version>1.6</java.version>
     <jacoco.version>0.7.0.201403182114</jacoco.version>
+    <javadoc.version>2.9.1</javadoc.version>
+    <asciidoclet.version>0.1.4</asciidoclet.version>
   </properties>
 
   <build>
@@ -163,6 +165,20 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>${javadoc.version}</version>
+        <configuration>
+          <doclet>org.asciidoctor.Asciidoclet</doclet>
+          <docletArtifact>
+            <groupId>org.asciidoctor</groupId>
+            <artifactId>asciidoclet</artifactId>
+            <version>${asciidoclet.version}</version>
+          </docletArtifact>
+          <additionalparam>-include-basedir ${project.build.testSourceDirectory}</additionalparam>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 
@@ -203,7 +219,16 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.9.1</version>
+        <version>${javadoc.version}</version>
+        <configuration>
+          <doclet>org.asciidoctor.Asciidoclet</doclet>
+          <docletArtifact>
+            <groupId>org.asciidoctor</groupId>
+            <artifactId>asciidoclet</artifactId>
+            <version>${asciidoclet.version}</version>
+          </docletArtifact>
+          <additionalparam>-include-basedir ${project.build.testSourceDirectory}</additionalparam>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

@@ -19,20 +19,21 @@ import javax.management.MXBean;
 
 /**
  * This is the JMX management interface for Stormpot object pools.
- * <p>
+ *
  * Using this interface, pools can be exposed to external management as an
  * MXBean. Since its an MXBean, and not just an MBean, it imposes no
  * requirement that external parties knows about the Stormpot types.
- * <p>
+ *
  * Once you have created your pool, it is easy to expose it through the platform
  * MBeanServer, or any MBeanServer you like:
  *
- * <pre><code>
- *   BlazePool&lt;MyPoolable&gt; pool = new BlazePool&lt;MyPoolable&gt;(...);
- *   MBeanServer server = ManagementFactory.getPlatformMBeanServer();
- *   ObjectName name = new ObjectName("com.myapp:objectpool=stormpot");
- *   server.registerMBean(pool, name);
- * </code></pre>
+ * [source,java]
+ * --
+ * BlazePool<MyPoolable> pool = new BlazePool<MyPoolable>(...);
+ * MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+ * ObjectName name = new ObjectName("com.myapp:objectpool=stormpot");
+ * server.registerMBean(pool, name);
+ * --
  *
  * Using the platform MBeanServer will make the pool visible to tools like
  * JConsole and VisualVM.

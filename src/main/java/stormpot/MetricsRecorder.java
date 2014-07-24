@@ -163,15 +163,15 @@ public interface MetricsRecorder {
    * Get the approximate Poolable object allocation latency value, in
    * milliseconds, of the given percentile/quantile of the values recorded so
    * far.
-   * <p>
+   *
    * A percentile, or quantile, is a value between 0.0 and 1.0, both inclusive,
    * which represents a percentage of the recorded samples. In other words,
    * given a percentile, the returned value will be the latency in
    * milliseconds, that the given percent of samples is less than or equal to.
    * For instance, if given the percentile 0.9 returns 120, then 90% of all
    * recorded latency samples will be less than or equal to 120 milliseconds.
-   * <p>
-   * Note: Implementors should strive to return Double.NaN as a sentinel value,
+   *
+   * Note: Implementers should strive to return Double.NaN as a sentinel value,
    * if they do not support recording of the allocation latencies and/or
    * returning a specific percentile of such recordings.
    * @param percentile The percentile/quantile to get a value for.
@@ -184,15 +184,15 @@ public interface MetricsRecorder {
    * Get the approximate latency value, in milliseconds, for failed allocation
    * latencies within the given percentile/quantile of what has been recorded
    * so far.
-   * <p>
+   *
    * A percentile, or quantile, is a value between 0.0 and 1.0, both inclusive,
    * which represents a percentage of the recorded samples. In other words,
    * given a percentile, the returned value will be the latency in
    * milliseconds, that the given percent of samples is less than or equal to.
    * For instance, if given the percentile 0.9 returns 120, then 90% of all
    * recorded latency samples will be less than or equal to 120 milliseconds.
-   * <p>
-   * Note: Implementors should strive to return Double.NaN as a sentinel value,
+   *
+   * Note: Implementers should strive to return Double.NaN as a sentinel value,
    * if they do not support recording of the allocation latencies and/or
    * returning a specific percentile of such recordings.
    * @param percentile The percentile/quantile to get a value for.
@@ -205,15 +205,15 @@ public interface MetricsRecorder {
    * Get the approximate latency value, in milliseconds, for deallocation
    * latencies within the given percentile/quantile of what has been recorded
    * so far.
-   * <p>
+   *
    * A percentile, or quantile, is a value between 0.0 and 1.0, both inclusive,
    * which represents a percentage of the recorded samples. In other words,
    * given a percentile, the returned value will be the latency in
    * milliseconds, that the given percent of samples is less than or equal to.
    * For instance, if given the percentile 0.9 returns 120, then 90% of all
    * recorded latency samples will be less than or equal to 120 milliseconds.
-   * <p>
-   * Note: Implementors should strive to return Double.NaN as a sentinel value,
+   *
+   * Note: Implementers should strive to return Double.NaN as a sentinel value,
    * if they do not support recording of the allocation latencies and/or
    * returning a specific percentile of such recordings.
    * @param percentile The percentile/quantile to get a value for.
@@ -226,15 +226,15 @@ public interface MetricsRecorder {
    * Get the approximate latency value, in milliseconds, for reallocation
    * latencies within the given percentile/quantile of what has been recorded
    * so far.
-   * <p>
+   *
    * A percentile, or quantile, is a value between 0.0 and 1.0, both inclusive,
    * which represents a percentage of the recorded samples. In other words,
    * given a percentile, the returned value will be the latency in
    * milliseconds, that the given percent of samples is less than or equal to.
    * For instance, if given the percentile 0.9 returns 120, then 90% of all
    * recorded latency samples will be less than or equal to 120 milliseconds.
-   * <p>
-   * Note: Implementors should strive to return Double.NaN as a sentinel value,
+   *
+   * Note: Implementers should strive to return Double.NaN as a sentinel value,
    * if they do not support recording of the allocation latencies and/or
    * returning a specific percentile of such recordings.
    * @param percentile The percentile/quantile to get a value for.
@@ -247,15 +247,15 @@ public interface MetricsRecorder {
    * Get the approximate latency value, in milliseconds, for failed
    * reallocation latencies within the given percentile/quantile of what has
    * been recorded so far.
-   * <p>
+   *
    * A percentile, or quantile, is a value between 0.0 and 1.0, both inclusive,
    * which represents a percentage of the recorded samples. In other words,
    * given a percentile, the returned value will be the latency in
    * milliseconds, that the given percent of samples is less than or equal to.
    * For instance, if given the percentile 0.9 returns 120, then 90% of all
    * recorded latency samples will be less than or equal to 120 milliseconds.
-   * <p>
-   * Note: Implementors should strive to return Double.NaN as a sentinel value,
+   *
+   * Note: Implementers should strive to return Double.NaN as a sentinel value,
    * if they do not support recording of the allocation latencies and/or
    * returning a specific percentile of such recordings.
    * @param percentile The percentile/quantile to get a value for.
@@ -267,15 +267,15 @@ public interface MetricsRecorder {
   /**
    * Get the approximate object lifetime, in milliseconds, for the given
    * percentile/quantile.
-   * <p>
+   *
    * A percentile, or quantile, is a value between 0.0 and 1.0, both inclusive,
    * which represents a percentage of the recorded samples. In other words,
    * given a percentile, the returned value will be the latency in
    * milliseconds, that the given percent of samples is less than or equal to.
    * For instance, if given the percentile 0.9 returns 120, then 90% of all
    * recorded latency samples will be less than or equal to 120 milliseconds.
-   * <p>
-   * Note: Implementors should strive to return Double.NaN as a sentinel value,
+   *
+   * Note: Implementers should strive to return Double.NaN as a sentinel value,
    * if they do not support recording of the allocation latencies and/or
    * returning a specific percentile of such recordings.
    * @param percentile The percentile/quantile to get a value for.

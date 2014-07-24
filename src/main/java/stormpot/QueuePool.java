@@ -22,13 +22,13 @@ import java.util.concurrent.ThreadFactory;
  * QueuePool is a fairly simple {@link LifecycledResizablePool} implementation
  * that basically consists of a queue of Poolable instances, and a Thread to
  * allocate them.
- * <p>
+ *
  * This means that the object allocation always happens in a dedicated thread.
  * This means that no thread that calls any of the claim methods, will incur
  * the overhead of allocating Poolables. This should lead to reduced deviation
  * in the times it takes claim method to complete, provided the pool is not
  * depleted.
- * <p>
+ *
  * The design is simple and straight forward, and exhibits a reasonable
  * base-line performance in all cases. If, however, the same threads are going
  * to claim and release objects from the pool over and over again — for
@@ -36,7 +36,7 @@ import java.util.concurrent.ThreadFactory;
  * {@link stormpot.BlazePool} is likely going to yield better
  * performance.
  *
- * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
+ * @author Chris Vest <mr.chrisvest@gmail.com>
  * @param <T> The type of {@link Poolable} managed by this pool.
  */
 public class QueuePool<T extends Poolable>

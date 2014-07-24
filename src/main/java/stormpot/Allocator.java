@@ -18,10 +18,10 @@ package stormpot;
 /**
  * An Allocator is responsible for the creation and destruction of
  * {@link Poolable} objects.
- * <p>
+ *
  * This is where the objects in the Pool comes from. Clients of the Stormpot
  * library needs to provide their own Allocator implementations.
- * <p>
+ *
  * Implementations of this interface must be thread-safe, because there is no
  * knowing whether pools will try to access it concurrently or not. The easiest
  * way to achieve this is to just make the
@@ -32,11 +32,11 @@ package stormpot;
  * very slow allocations by allocating in more than one thread, but
  * synchronizing the {@link #allocate(Slot)} method will render that strategy
  * ineffective.
- * <p>
+ *
  * A better approach to thread-safety is to not have any shared mutable state
  * in the allocator, if at all possible.
  * 
- * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
+ * @author Chris Vest <mr.chrisvest@gmail.com>
  * @see stormpot.Reallocator
  * @param <T> any type that implements Poolable.
  */
@@ -44,22 +44,22 @@ public interface Allocator<T extends Poolable> {
 
   /**
    * Create a fresh new instance of T for the given slot.
-   * <p>
+   *
    * The returned {@link Poolable} must obey the contract that, when
    * {@link Poolable#release()} is called on it, it must delegate
    * the call onto the {@link Slot#release(Poolable)} method of the here
    * given slot object.
-   * <p>
+   *
    * Exceptions thrown by this method may propagate out through the
    * {@link Pool#claim(Timeout) claim} method of a pool, in the form of being
    * wrapped inside a {@link PoolException}. Pools must be able to handle these
    * exceptions in a sane manner, and are guaranteed to return to a working
    * state if an Allocator stops throwing exceptions from its allocate method.
    * @param slot The slot the pool wish to allocate an object for.
-   * Implementors do not need to concern themselves with the details of a
+   * Implementers do not need to concern themselves with the details of a
    * pools slot objects. They just have to call release on them as the
    * protocol demands.
-   * @return A newly created instance of T. Never <code>null</code>.
+   * @return A newly created instance of T. Never +null+.
    * @throws Exception If the allocation fails.
    */
   T allocate(Slot slot) throws Exception;
@@ -67,32 +67,32 @@ public interface Allocator<T extends Poolable> {
   /**
    * Deallocate, if applicable, the given Poolable and free any resources
    * associated with it.
-   * <p>
+   *
    * This is an opportunity to close any connections or files, flush buffers,
    * empty caches or what ever might need to be done to completely free any
    * resources represented by this Poolable.
-   * <p>
+   *
    * Note that a Poolable must never touch its slot object after it has been
    * deallocated.
-   * <p>
+   *
    * Pools, on the other hand, will guarantee that the same object is never
    * deallocated more than once.
-   * <p>
+   *
    * Note that pools will always silently swallow exceptions thrown by the
    * deallocate method. They do this because there is no knowing whether the
    * deallocation of an object will be done synchronously by a thread calling
    * {@link Poolable#release() release} on a Poolable, or asynchronously by
    * a clean-up thread inside the pool.
-   * <p>
+   *
    * Deallocation from the release of an expired object, and deallocation from
    * the shut down procedure of a {@link LifecycledPool} behave the same way
    * in this regard. They will both silently swallow any exception thrown.
-   * <p>
+   *
    * On the other hand, pools are guaranteed to otherwise correctly deal with
    * any exception that might be thrown. The shut down procedure will still
    * complete, and release will still maintain the internal data structures of
    * the pool to make the slot available for new allocations.
-   * <p>
+   *
    * If you need to somehow specially deal with the exceptions thrown by the
    * deallocation of objects, then you should do this in the allocator itself,
    * or in a wrapper around your allocator.

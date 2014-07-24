@@ -18,7 +18,8 @@ package stormpot;
 /**
  * An informative little interface, used by {@link Expiration} instances to
  * determine if a slot has expired or is still invalid for claiming.
- * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
+ *
+ * @author Chris Vest <mr.chrisvest@gmail.com>
  * @param <T> The type of Poolables that this Expiration is able to examine.
  */
 public interface SlotInfo<T extends Poolable> {
@@ -39,14 +40,14 @@ public interface SlotInfo<T extends Poolable> {
 
   /**
    * Get the Poolable object represented by this SlotInfo instance.
-   * <p>
-   * <strong>Warning:</strong> Do not {@link Poolable#release() release()}
+   *
+   * WARNING: Do not {@link Poolable#release() release()}
    * Poolables from within an {@link Expiration} &mdash; doing so is a user
    * error, and the behaviour of the pool in such a situation is unspecified
    * and implementation specific. This means that dead-locks and infinite
    * loops are possible outcomes as well.
-   * <p>
-   * <strong>Warning:</strong> Also note that accessing the Poolable through
+   *
+   * WARNING: Also note that accessing the Poolable through
    * this method, from your {@link Expiration} implementation, is a
    * potentially concurrent access. This means that you need to take
    * thread-safety issues into consideration - especially if you intend on
@@ -54,7 +55,8 @@ public interface SlotInfo<T extends Poolable> {
    * threads that are checking if this Poolable is expired or not, and they
    * might even have claimed the Poolable and put it to use, by the time it
    * is returned from this method.
-   * @return The Poolable being examined for validity. Never <code>null</code>.
+   *
+   * @return The Poolable being examined for validity. Never +null+.
    */
   T getPoolable();
 
@@ -63,10 +65,11 @@ public interface SlotInfo<T extends Poolable> {
    * Expiration would otherwise have a tendency to cluster expirations close
    * together in time, thereby causing the pool to suddenly have very few
    * objects because of mass expirations.
-   * <p>
+   *
    * Putting this method on SlotInfo might seem weird at first, but it allows
    * the implementation to have very little contention. This is important on
    * Java versions that don't have ThreadLocalRandom.
+   *
    * @return A pseudo-random 32 bit integer.
    */
   int randomInt();
@@ -74,7 +77,7 @@ public interface SlotInfo<T extends Poolable> {
   /**
    * Get the stamp value that has been set on this SlotInfo, or 0 if none has
    * been set since the Poolable was allocated.
-   * <p>
+   *
    * Apart from the zero-value, the actual meaning of this value is completely
    * up to the {@link Expiration} that sets it.
    * @return The current stamp value.
@@ -83,10 +86,10 @@ public interface SlotInfo<T extends Poolable> {
 
   /**
    * Set the stamp value on this SlotInfo.
-   * <p>
+   *
    * This method is only thread-safe to call from within the scope of the
    * {@link Expiration#hasExpired(SlotInfo)} method.
-   * <p>
+   *
    * The stamp value is 0 by default, if it has not been set after the Poolable
    * has been allocated. Its meaning is otherwise up to the particular
    * Expiration that might use it.

@@ -19,25 +19,26 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 /**
- * The basic configuration "bean" class.
- * <p>
+ * = The basic configuration "bean" class.
+ *
  * Instances of this class is passed to the constructors of {@link Pool pools}
  * so that they know how big they should be, how to allocate objects and when
  * to deallocate objects.
- * <p>
+ *
  * This class is made thread-safe by having the fields be protected by the
  * intrinsic object lock on the Config object itself. This way, pools can
- * <code>synchronize</code> on the config object to read the values out
+ * +synchronize+ on the config object to read the values out
  * atomically.
- * <p>
+ *
  * The various set* methods are made to return the Config instance itself, so
  * that the method calls may be chained if so desired.
  * 
- * <h3>Standardised configuration</h3>
+ * = Standardised configuration
+ *
  * The contract of the Config class, and how Pools will interpret it, is within
  * the context of a so-called standardised configuration. All pool and Config
  * implementations must behave similarly in a standardised configuration.
- * <p>
+ *
  * It is conceivable that some pool implementations will come with their own
  * sub-classes of Config, that allow greater control over the pools behaviour.
  * It is even permissible that these pool implementations may
@@ -45,7 +46,7 @@ import java.util.concurrent.TimeUnit;
  * allowed to do so in a non-standard configuration. That is, any deviation
  * from the specified contracts must be explicitly enabled.
  * 
- * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
+ * @author Chris Vest <mr.chrisvest@gmail.com>
  * @param <T> The type of {@link Poolable} objects that a {@link Pool} based
  * on this Config will produce.
  */
@@ -71,10 +72,10 @@ public class Config<T extends Poolable> {
    * Set the size of the pools we want to configure them with. Pools are
    * required to control the allocations and deallocations, such that no more
    * than this number of objects are allocated at any time.
-   * <p>
+   *
    * This means that a pool of size 1, whose single object have expired, will
    * deallocate that one object before allocating a replacement.
-   * <p>
+   *
    * The size must be at least one for standard pool configurations. A Pool
    * will throw an {@link IllegalArgumentException} from their constructor if
    * this is not the case.
@@ -98,15 +99,14 @@ public class Config<T extends Poolable> {
    * Set the {@link Allocator} or {@link Reallocator} to use for the pools we
    * want to configure. This will change the type-parameter of the Config
    * object to match that of the new Allocator.
-   * <p>
-   * The allocator is initially <code>null</code> in a new Config object, and
-   * can be set to <code>null</code> any time. However, in a standard
-   * configuration, it must be non-null when the Config is passed to a Pool
-   * constructor. Otherwise the constructor will throw an
-   * {@link IllegalArgumentException}.
+   *
+   * The allocator is initially +null+ in a new Config object, and can be set
+   * to +null+ any time. However, in a standard configuration, it must be
+   * non-null when the Config is passed to a Pool constructor. Otherwise the
+   * constructor will throw an {@link IllegalArgumentException}.
+   * @param allocator The allocator we want our pools to use.
    * @param <X> The type of {@link Poolable} that is created by the allocator,
    * and the type of objects that the configured pools will contain.
-   * @param allocator The allocator we want our pools to use.
    * @return This Config instance, but with a generic type parameter that
    * matches that of the allocator.
    */
@@ -147,7 +147,7 @@ public class Config<T extends Poolable> {
    * Set the {@link Expiration} to use for the pools we want to
    * configure. The Expiration determines when a pooled object is valid
    * for claiming, or when the objects are invalid and should be deallocated.
-   * <p>
+   *
    * The default Expiration is a {@link TimeSpreadExpiration} that
    * invalidates the objects after they have been active for somewhere between
    * 8 to 10 minutes.
@@ -214,12 +214,12 @@ public class Config<T extends Poolable> {
   }
 
   /**
-   * Check that the configuration is valid in terms of the <em>standard
-   * configuration</em>. This method is useful in the
+   * Check that the configuration is valid in terms of the *standard
+   * configuration*. This method is useful in the
    * Pool implementation constructors.
    * @throws IllegalArgumentException If the size is less than one, if the
-   * {@link Expiration} is <code>null</code>, if the {@link Allocator} is
-   * <code>null</code>, or if the ThreadFactory is <code>null</code>.
+   * {@link Expiration} is +null+, if the {@link Allocator} is +null+, or if
+   * the ThreadFactory is +null+.
    */
   public synchronized void validate() throws IllegalArgumentException {
     if (size < 1) {
