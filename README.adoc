@@ -96,4 +96,5 @@ try {
    run, then put it in the +stormpot.slow+ test package; either in the existing
    +PoolIT+ suite, or in a new +*IT+ suite.
    Use +mvn clean test+ to run only the fast tests. Use +mvn clean verify+ to
-   also run the slow tests.
+   also run the slow tests. Javadoc comments are formatted with
+   http://www.methods.co.nz/asciidoc/[AsciiDoc].
