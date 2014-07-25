@@ -2315,7 +2315,7 @@ public class PoolTest {
     assertTrue(JMX.isMXBeanInterface(ManagedPool.class));
   }
 
-  @Test(timeout = 1601)
+  @Test(timeout = 3601)
   @Theory public void
   managedPoolMustBeExposableThroughAnMBeanServerAsAnMXBean(PoolFixture fixture)
       throws Exception {
