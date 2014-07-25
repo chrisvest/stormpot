@@ -2494,7 +2494,8 @@ public class PoolTest {
   managedPoolMustRecordObjectLifetimeOnReallocateInConfiguredMetricsRecorder(
       PoolFixture fixture) throws InterruptedException {
     config.setMetricsRecorder(new LastSampleMetricsRecorder());
-    config.setAllocator(allocator());
+    Semaphore semaphore = new Semaphore(0);
+    config.setAllocator(reallocator(realloc($acquire(semaphore, $new), $new)));
     AtomicBoolean hasExpired = new AtomicBoolean();
     config.setExpiration(new CountingExpiration(hasExpired));
     ManagedPool managedPool = assumeManagedPool(fixture);
@@ -2504,6 +2505,7 @@ public class PoolTest {
     hasExpired.set(true);
     assertNull(pool.claim(zeroTimeout));
     hasExpired.set(false);
+    semaphore.release(1);
     obj = pool.claim(longTimeout); // wait for reallocation
     try {
       assertThat(
