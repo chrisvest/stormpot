@@ -2305,7 +2305,9 @@ public class PoolTest {
     assertTrue(createdThreads.get(0).isAlive());
     pool.shutdown().await(longTimeout);
     assertThat(createdThreads.size(), is(1));
-    assertFalse(createdThreads.get(0).isAlive());
+    Thread thread = createdThreads.get(0);
+    thread.join();
+    assertFalse(thread.isAlive());
   }
 
   @Test public void
