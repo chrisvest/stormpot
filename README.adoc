@@ -29,6 +29,7 @@ operation. Some of the things that sets Stormpot apart include:
    lowest latency] in its class.
  * http://chrisvest.name/released-stormpot-22.html[Automatic recovery] from
    sporadic backend (Allocator) failures.
+ * Precise object leak detection with virtually no overhead.
  * And other features that makes for a smooth runtime behaviour.
 
 == Installing
