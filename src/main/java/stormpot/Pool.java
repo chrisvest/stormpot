@@ -29,16 +29,14 @@ package stormpot;
  * Timeout timeout = new Timeout(1, TimeUnit.SECONDS);
  * SomePoolable obj = pool.claim(timeout);
  * try {
- *   // do useful things with 'obj'
+ *   // Do useful things with 'obj'.
+ *   // Note that 'obj' will be 'null' if 'claim' timed out.
  * } finally {
  *   if (obj != null) {
  *     obj.release();
  *   }
  * }
  * --
- *
- * See also package-summary.html#memory-effects-and-threading[Memory Effects
- * and Threading] for details of the behaviour in concurrent programs.
  *
  * @author Chris Vest <mr.chrisvest@gmail.com>
  * @param <T> the type of {@link Poolable} contained in the pool, as determined

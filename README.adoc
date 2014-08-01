@@ -1,13 +1,14 @@
 = Stormpot
 
-Stormpot is an object pooling library for Java. Use it to recycle objects that
-are expensive to create. The library will take care of creating and destroying
-your objects in the background. Stormpot is very mature, is used in production,
-and has done over a trillion footnote:[Fermi estimate. The benchmark that
-produced the charts for the 2.1 release blog post accounts for about 400 billion
-of those cycles.] claim-release cycles in testing.
+Stormpot is an object pooling library for Java.
+Use it to recycle objects that are expensive to create.
+The library will take care of creating and destroying your objects in the background.
+
+Stormpot is very mature, is used in production, and has done over a trillion footnote:[Fermi estimate. The benchmark that produced the charts for the 2.1 release blog post accounts for about 400 billion of those cycles.] claim-release cycles in testing.
+It is faster and scales better than any competing pool.
 
  * Home page: http://chrisvest.github.io/stormpot/
+ * Source code: https://github.com/chrisvest/stormpot/
  * API docs: http://chrisvest.github.io/stormpot/site/apidocs/index.html
  * Mailing list: http://groups.google.com/d/forum/stormpot
  * License: http://www.apache.org/licenses/LICENSE-2.0.html[The Apache Software License 2.0]
@@ -17,8 +18,7 @@ of those cycles.] claim-release cycles in testing.
 
 == Why choose Stormpot?
 
-There are a number of options out there, when it comes to object pools on the
-JVM. Stormpot has been carefully designed for high performance, and robust
+There are a number of options out there, when it comes to object pools on the JVM. Stormpot has been carefully designed for high performance, and robust
 operation. Some of the things that sets Stormpot apart include:
 
  * Business friendly http://www.apache.org/licenses/LICENSE-2.0.html[Apache 2
@@ -34,8 +34,7 @@ operation. Some of the things that sets Stormpot apart include:
 
 == Installing
 
-Stormpot only depends on Java 6 or newer. Add it as a Maven dependency to your
-projects:
+Stormpot only depends on Java 6 or newer. Add it as a Maven dependency to your projects:
 
 [source,xml]
 --
@@ -48,7 +47,7 @@ projects:
 
 You can also build the latest snapshot from source with +mvn clean install+.
 
-== Getting started
+== Getting Started
 
 Stormpot needs 3 things before it can pool objects for you:
 
@@ -87,6 +86,7 @@ try {
    If you have questions about implementation or behavioural details, then start
    a discussion about it by opening a pull-request or an issue. Documentation
    and javadoc is formatted with http://asciidoctor.org/[AsciiDoctor].
+   The website and javadocs can be generated with +mvn generate-resources javadoc:javadoc+.
  * *Fix bugs or implement features* by forking the project, but please start an
    issue about the bug or feature you want to work on (or find the existing
    issue) and describe the approach and design you have in mind. Keep in mind
@@ -95,7 +95,7 @@ try {
    Finally, make sure to respect the existing indentation and formatting.
    If you are writing a test that takes more than a few hundred milliseconds to
    run, then put it in the +stormpot.slow+ test package; either in the existing
-   +PoolIT+ suite, or in a new +*IT+ suite.
+   +PoolIT+ suite, or in a new +\*IT+ suite.
    Use +mvn clean test+ to run only the fast tests. Use +mvn clean verify+ to
    also run the slow tests. Javadoc comments are formatted with
    http://asciidoctor.org/[AsciiDoctor].

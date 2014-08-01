@@ -32,7 +32,8 @@ public class MyApp {
 
     MyPoolable object = pool.claim(timeout);
     try {
-      // do stuff with 'object'
+      // Do stuff with 'object'.
+      // Note that 'claim' will return 'null' if it times out!
     } finally {
       if (object != null) {
         object.release();

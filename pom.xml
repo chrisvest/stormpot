@@ -176,7 +176,27 @@
             <artifactId>asciidoclet</artifactId>
             <version>${asciidoclet.version}</version>
           </docletArtifact>
-          <additionalparam>-include-basedir ${project.build.testSourceDirectory}</additionalparam>
+          <additionalparam>-include-basedir ${basedir}</additionalparam>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.asciidoctor</groupId>
+        <artifactId>asciidoctor-maven-plugin</artifactId>
+        <version>0.1.4</version>
+        <executions>
+          <execution>
+            <id>output-html</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>process-asciidoc</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <sourceDirectory>docs</sourceDirectory>
+          <outputDirectory>target/docs</outputDirectory>
+          <backend>html</backend>
+          <sourceHighlighter>coderay</sourceHighlighter>
         </configuration>
       </plugin>
     </plugins>
@@ -227,7 +247,7 @@
             <artifactId>asciidoclet</artifactId>
             <version>${asciidoclet.version}</version>
           </docletArtifact>
-          <additionalparam>-include-basedir ${project.build.testSourceDirectory}</additionalparam>
+          <additionalparam>-include-basedir ${basedir}</additionalparam>
         </configuration>
       </plugin>
       <plugin>
