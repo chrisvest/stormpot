@@ -646,7 +646,7 @@ public class PoolTest {
     pool.claim(longTimeout).release();
     long secondAge = age.get(); // age should be less than age of prev. obj.
     assertThat(secondAge, lessThan(firstAge));
-  }
+  } // TODO racy because we're not sure to be able to claim the second object in less than 5 ms, given preemptive SMP
 
   @Test(timeout = 601)
   @Theory public void
@@ -672,7 +672,7 @@ public class PoolTest {
     pool.claim(longTimeout).release(); // new object, new age
     long secondAge = age.get();
     assertThat(secondAge, lessThan(firstAge));
-  }
+  } // TODO racy because we're not sure to be able to claim the second object in less than 5 ms, given preemptive SMP
 
   /**
    * It is not possible to claim from a pool that has been shut down. Doing
