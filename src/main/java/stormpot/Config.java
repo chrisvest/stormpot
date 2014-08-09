@@ -273,6 +273,13 @@ public class Config<T extends Poolable> {
     }
   }
 
+  /**
+   * Returns +null+ if no allocator has been configured.
+   * Otherwise returns a +Reallocator+, possibly by adapting the configured
+   * +Allocator+ if need be.
+   * If a +MetricsRecorder+ has been configured, the return +Reallocator+ will
+   * automatically record allocation, reallocation and deallocation latencies.
+   */
   Reallocator<T> getAdaptedReallocator() {
     if (allocator == null) {
       return null;

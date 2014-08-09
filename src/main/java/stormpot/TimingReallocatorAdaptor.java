@@ -15,7 +15,7 @@
  */
 package stormpot;
 
-class TimingReallocatorAdaptor<T extends Poolable>
+final class TimingReallocatorAdaptor<T extends Poolable>
     extends TimingReallocatingAdaptor<T>
     implements Reallocator<T> {
   public TimingReallocatorAdaptor(

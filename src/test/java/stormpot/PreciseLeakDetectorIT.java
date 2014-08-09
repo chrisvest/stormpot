@@ -32,6 +32,8 @@ public class PreciseLeakDetectorIT {
   @Test
   public void
   mustCountCorrectlyAfterRandomAddRemoveLeakAndCounts() {
+    System.out.println("NOTE: this test takes about 3 to 5 minutes to run...");
+
     // This particular seed seems to give pretty good coverage:
     Random rng = new Random(-6406176578229504295L);
     Set<Object> objs = new HashSet<Object>();

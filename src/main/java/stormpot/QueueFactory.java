@@ -19,7 +19,7 @@ import java.lang.reflect.Constructor;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-class QueueFactory {
+final class QueueFactory {
   interface Factory {
     <T> BlockingQueue<T> createUnboundedBlockingQueue();
   }

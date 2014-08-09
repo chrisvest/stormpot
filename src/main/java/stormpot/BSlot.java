@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
  * the effect of even the tiniest changes!
  * False-sharing is a fickle and vengeful mistress.
  */
-class BSlot<T extends Poolable>
+final class BSlot<T extends Poolable>
     extends BSlotColdFields<T>
     implements Slot, SlotInfo<T> {
   static final int LIVING = 1;

@@ -2,6 +2,11 @@
 
 == Tutorial
 
+NOTE: This entire piece needs to be rewritten.
+The example is not very good, and the material should be _taught_ rather than described.
+Perhaps as a sequence of _lessons_, implicitly or otherwise.
+See http://stevelosh.com/blog/2013/09/teach-dont-tell/
+
 As mentioned in the sections above, Stormpot has an invasive API.
 This means that there are things you have to do, before you can make use of its pooling capabilities.
 In this section, we will take a look at these things, and see what it takes to implement pooling of some DAOs.

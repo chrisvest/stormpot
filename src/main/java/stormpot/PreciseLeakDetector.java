@@ -17,7 +17,7 @@ package stormpot;
 
 import java.lang.ref.WeakReference;
 
-class PreciseLeakDetector {
+final class PreciseLeakDetector {
   private static class WeakRef extends WeakReference<Object> {
     WeakRef next;
 

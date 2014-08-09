@@ -18,7 +18,7 @@ package stormpot;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-class QSlot<T extends Poolable> implements Slot, SlotInfo<T> {
+final class QSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   final BlockingQueue<QSlot<T>> live;
   final AtomicBoolean claimed;
   T obj;
