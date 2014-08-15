@@ -6,6 +6,12 @@ NOTE: This entire piece needs to be rewritten.
 The example is not very good, and the material should be _taught_ rather than described.
 Perhaps as a sequence of _lessons_, implicitly or otherwise.
 See http://stevelosh.com/blog/2013/09/teach-dont-tell/
+What lessons?
+Basic concepts of pooling.
+The idea of claiming and releasing resources.
+How Pool, Poolable and Allocator fit together.
+How claim and expiration fit together.
+The concurrency in Stormpot: The dedicated allocator thread, and the concurrent access of the pool.
 
 As mentioned in the sections above, Stormpot has an invasive API.
 This means that there are things you have to do, before you can make use of its pooling capabilities.
