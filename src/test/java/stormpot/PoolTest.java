@@ -2596,5 +2596,5 @@ public class PoolTest {
   }
 
   // NOTE: When adding, removing or modifying tests, also remember to update
-  //       the Pool javadoc.
+  //       the javadocs and docs pages.
 }

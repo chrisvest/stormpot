@@ -22,84 +22,17 @@ package stormpot;
  * configured for the given pool. Stormpot provides no default implementation
  * of this interface, so by default many of the metrics reporting methods of
  * the ManagedPool interfaces will return Double.NaN.
- * <p>
- * Note that implementations of this class must be thread-safe!
- * <p>
+ *
+ * NOTE: that implementations of this class must be thread-safe!
+ *
  * Here's an example implementation based on
- * <a href="http://metrics.codahale.com/">Coda Hale's Metrics library</a>:
- * <pre><code>
- *   package stormpot.examples;
+ * http://metrics.codahale.com/[Coda Hale's Metrics library]:
  *
- *   import com.codahale.metrics.Histogram;
- *   import com.codahale.metrics.MetricRegistry;
- *   import stormpot.MetricsRecorder;
+ * [source,java]
+ * --
+ * include::src/test/java/stormpot/examples/CodaHaleMetricsRecorder.java[lines=16..-1]
+ * --
  *
- *   public class CodaHaleMetricsRecorder implements MetricsRecorder {
- *     private final Histogram allocationLatency;
- *     private final Histogram allocationFailureLatency;
- *     private final Histogram deallocationLatency;
- *     private final Histogram reallocationLatency;
- *     private final Histogram reallocationFailureLatency;
- *     private final Histogram objectLifetime;
- *
- *     public CodaHaleMetricsRecorder(String baseName, MetricRegistry registry) {
- *       allocationLatency = registry.histogram(baseName + ".allocationLatency");
- *       allocationFailureLatency = registry.histogram(baseName + ".allocationFailureLatency");
- *       deallocationLatency = registry.histogram(baseName + ".deallocationLatency");
- *       reallocationLatency = registry.histogram(baseName + ".reallocationLatency");
- *       reallocationFailureLatency = registry.histogram(baseName + ".reallocationFailureLatency");
- *       objectLifetime = registry.histogram(baseName + ".objectLifetime");
- *     }
- *
- *     public void recordAllocationLatencySampleMillis(long milliseconds) {
- *       allocationLatency.update(milliseconds);
- *     }
- *
- *     public void recordAllocationFailureLatencySampleMillis(long milliseconds) {
- *       allocationFailureLatency.update(milliseconds);
- *     }
- *
- *     public void recordDeallocationLatencySampleMillis(long milliseconds) {
- *       deallocationLatency.update(milliseconds);
- *     }
- *
- *     public void recordReallocationLatencySampleMillis(long milliseconds) {
- *       reallocationLatency.update(milliseconds);
- *     }
- *
- *     public void recordReallocationFailureLatencySampleMillis(long milliseconds) {
- *       reallocationFailureLatency.update(milliseconds);
- *     }
- *
- *     public void recordObjectLifetimeSampleMillis(long milliseconds) {
- *       objectLifetime.update(milliseconds);
- *     }
- *
- *     public double getAllocationLatencyPercentile(double percentile) {
- *       return allocationLatency.getSnapshot().getValue(percentile);
- *     }
- *
- *     public double getAllocationFailureLatencyPercentile(double percentile) {
- *       return allocationFailureLatency.getSnapshot().getValue(percentile);
- *     }
- *
- *     public double getDeallocationLatencyPercentile(double percentile) {
- *       return deallocationLatency.getSnapshot().getValue(percentile);
- *     }
- *
- *     public double getReallocationLatencyPercentile(double percentile) {
- *       return reallocationLatency.getSnapshot().getValue(percentile);
- *     }
- *
- *     public double getReallocationFailurePercentile(double percentile) {
- *       return reallocationFailureLatency.getSnapshot().getValue(percentile);
- *     }
- *
- *     public double getObjectLifetimePercentile(double percentile) {
- *       return objectLifetime.getSnapshot().getValue(percentile);
- *     }
- *   }
- * </code></pre>
  * @since 2.3
  */
 public interface MetricsRecorder {
