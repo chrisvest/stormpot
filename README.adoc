@@ -16,7 +16,7 @@ It is faster and scales better than any competing pool.
  * API docs: http://chrisvest.github.io/stormpot/site/apidocs/index.html
  * Mailing list: http://groups.google.com/d/forum/stormpot
  * License: http://www.apache.org/licenses/LICENSE-2.0.html[The Apache Software License 2.0]
- * Simple versioning: X.Y where Y\++ is backwards compatible, and X++ is
+ * Simple versioning: X.Y where Y{plus}{plus} is backwards compatible, and X{plus}{plus} is
    backwards incompatible.
 
 
