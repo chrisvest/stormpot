@@ -90,6 +90,62 @@ In essence, the central parts of the pool fit together like this:
                                                    +------------------------+
 ----
 
+=== More Elements of Stormpot
+
+When it comes to object pooling with Stormpot specifically, there is more to it than the three central elements of the pool, the poolable objects and the allocator.
+We have already seen the slot object, and how it is used to inform the pool when an object is released.
+And we have seen the dedicated allocator thread, that uses the allocator to keep the pool filled with objects.
+We have also have also seen hints at the life cycle of the pooled objects: first they are allocated, then they are claimed and released a number of times, and finally they are deallocated.
+
+There are three reasons an object can get deallocated: the object expired, the pool was resized to be smaller, or the pool was shut down.
+These three situations are particular to how Stormpot works.
+
+==== Object Expiration
+
+Whether or not an object has expired is decided by the configured +Expiration+ strategy on every call to the claim method, for each candidate that is checked.
+The +hasExpired+ method of the configured expiration is therefor very performance critical, as it may be called more than once for every call to the claim method.
+
+You can implement and configure your own +Expiration+ implementation if you want, but Stormpot also comes with a couple of implementations of its own.
+The default expiration implementation is a +TimeSpreadExpiration+ that is configured to expire objects after they have been live for somewhere between 8 and 10 minutes.
+This implementation chooses the expiration age randomly on a per object bases, and thereby avoids expiring all objects at the same time.
+
+==== Pool Resizing
+
+A pool is configured with an initial size, through the the size property of the +Config+ object given to the pool upon construction.
+However, this size is not fixed.
+Both the +QueuePool+ and the +BlazePool+ implementations support dynamic resizing by implementing the +ResizablePool+ interface.
+This means that their target size can be set and queried whenever desired.
+Changing the size on the +Config+ object has no effect on pools that have already been constructed.
+
+The +ResizablePool+ interface allows anyone with access to the pool instance, to grow or shrink it as they see fit.
+This works by immediately setting the target pool size to the new value.
+There is no way to tell when the pool will actually reach the new target size.
+Once a new target size has been set, the pool will work towards it at its own pace.
+The reason is that when the pool is shrunk, it cannot force objects that are currently claimed, to suddenly be released to that they can be deallocated.
+Likewise, it takes time to allocate the new objects when the pool is grown.
+The pool is otherwise designed to never have more objects than its target size, allocated at any one point in time.
+Obviously this isn't so when the pool is in the process of shrinking towards a new smaller size.
+The resizing process itself works by simply allocating more objects than are deallocated, when the pool is growing, or by deallocating more objects than are allocated, when the pool is shrinking.
+
+==== Shutting the Pool Down
+
+Calling the +shutdown+ method on a +LifecycledPool+ only initiates the shutdown process.
+Both +QueuePool+ and +BlazePool+ implements the +LifecycledPool+ interface.
+The pool is not fully shut down until all the objects in it have been deallocated.
+This can take a while, since objects that are claimed and in use cannot be deallocated until they are released back to the pool, and how long this takes depends entirely on the user code.
+It also means that if an object has leaked – that is, it has been claimed and then forgotten, never to be released back to the pool – then the shut down process will never complete.
+
+The +shutdown+ method returns a +Completion+ object, that allow you to +await+ the completion of the shut down process.
+The +await+ method takes a +Timeout+ object, so it doesn't wait forever, and returns boolean +true+ if the shut down process completed within the given timeout period.
+This is the only way to tell whether or not the shut down process has completed.
+
+==== Timeouts
+
+
+
+
+=== Configuring Stormpot
+
 
 ---
 
