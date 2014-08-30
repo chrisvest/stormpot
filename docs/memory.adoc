@@ -12,13 +12,13 @@ If you do that, the pool will take care of the rest in a sensible manner.
 
 The _happens-before_ edges the pool introduces, are these:
 
-1. The allocation, through +Allocator#allocate+, of an object *happens-before* any claim, through +Pool#claim+, of that object.
+1. The allocation, through `Allocator#allocate`, of an object *happens-before* any claim, through `Pool#claim`, of that object.
 2. The claim of an object *happens-before* any subsequent release of the object.
-3. The release, through +Poolable#release+, of an object *happens-before* any subsequent claim of that object.
-4. The release of an object *happens-before* the deallocation, through +Allocator#deallocate+, of that object.
-5. For life-cycled pools, those that implement the +LifecycledPool+ interface, the deallocation of all objects *happens-before* the +Completion#await+ method returns.
+3. The release, through `Poolable#release`, of an object *happens-before* any subsequent claim of that object.
+4. The release of an object *happens-before* the deallocation, through `Allocator#deallocate`, of that object.
+5. For life-cycled pools, those that implement the `LifecycledPool` interface, the deallocation of all objects *happens-before* the `Completion#await` method returns.
 
 === Interruption
 
-The (only two) blocking methods, +Pool#claim+ and +Completion#await+, behave correctly with respect to interruption:
-If a thread is interrupted when it calls one of these methods, or the thread is interrupted while waiting in one these methods, then an +java.lang.InterruptedException+ will be thrown, and the threads interruption flag will be cleared.
+The (only two) blocking methods, `Pool#claim` and `Completion#await`, behave correctly with respect to interruption:
+If a thread is interrupted when it calls one of these methods, or the thread is interrupted while waiting in one these methods, then an `java.lang.InterruptedException` will be thrown, and the threads interruption flag will be cleared.

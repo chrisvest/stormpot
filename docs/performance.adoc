@@ -20,7 +20,7 @@ This means that if the releasing thread can release the object before the claime
 === Considerations for Custom Expiration Implementations
 
 The Expiration is one of the most performance critical components of the pool.
-The +hasExpired+ method is called at least once for every call to the +claim+ method, and may be called several times if objects turn out to have expired.
+The `hasExpired` method is called at least once for every call to the `claim` method, and may be called several times if objects turn out to have expired.
 It is therefore important for the performance of the pool, that the expiration check is as fast as possible.
 
 This can be a challenge if, for instance, you are pooling database connections, and you are checking their validity by running a query.
@@ -29,15 +29,15 @@ One way to take this to heart, is by not doing the expensive part of the check â
 Essentially, we want to amortise the cost of the expensive check.
 
 One way we can accomplish this, is by pessimistically expiring objects after they have been live for only a short while, like a few seconds, for instance, depending on how much activity the pool is exposed to.
-Then have the pool be configured with a +Reallocator+ that does the expensive check in its +reallocate+ method, and returns the object back into the pool if it hadn't expired after all.
+Then have the pool be configured with a `Reallocator` that does the expensive check in its `reallocate` method, and returns the object back into the pool if it hadn't expired after all.
 
 === Overriding the Default Queue Implementation
 
-Stormpot uses +BlockingQueue+ objects under the hood, to transfer objects between the user threads and the dedicated allocation thread, and to implement its blocking behaviour.
-By default, it uses +j.u.c.LinkedTransferQueue+ if it is available on the classpath, e.g. with Java 7 and beyond, but otherwise falls back to the +j.u.c.LinkedBlockingQueue+.
+Stormpot uses `BlockingQueue` objects under the hood, to transfer objects between the user threads and the dedicated allocation thread, and to implement its blocking behaviour.
+By default, it uses `j.u.c.LinkedTransferQueue` if it is available on the classpath, e.g. with Java 7 and beyond, but otherwise falls back to the `j.u.c.LinkedBlockingQueue`.
 LTQ is often faster that LBQ, but not always.
 Figuring out which one is most optimal requires careful measurement of their behaviour for your particular load and use case.
 
-If you want to override the BlockingQueue implementation that Stormpot uses, can be done globally for all pool instances, by setting the +stormpot.blocking.queue.impl+ system property on JVM startup.
-For instance, to make Stormpot always use the LBQ implementation, you can add an +-Dstormpot.blocking.queue.impl=java.util.concurrent.LinkedBlockingQueue+ argument to the +java+ command invokation.
-Note that Stormpot expects the configured class to have a no-arguments constructor, and implement the +BlockingQueue+ interface.
+If you want to override the BlockingQueue implementation that Stormpot uses, can be done globally for all pool instances, by setting the `stormpot.blocking.queue.impl` system property on JVM startup.
+For instance, to make Stormpot always use the LBQ implementation, you can add an `-Dstormpot.blocking.queue.impl=java.util.concurrent.LinkedBlockingQueue` argument to the `java` command invocation.
+Note that Stormpot expects the configured class to have a no-arguments constructor, and implement the `BlockingQueue` interface.
