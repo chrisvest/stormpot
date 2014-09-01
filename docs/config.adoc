@@ -76,12 +76,13 @@ This way, a `Reallocator` has the potential to produce old-gen garbage at a much
 
 Care must be taken with implementing the `Reallocator`, though, since the returned object is assumed to be as fresh as any that would have been returned from the `allocate` method.
 
+[[metrics-recorder]]
 === MetricsRecorder
 
 Stormpot has the ability to expose metrics and management handles through JMX.
 This is done by registering the pool with an `MBeanServer`.
 Both `QueuePool` and `BlazePool` implement the `ManagedPool` interface for this purpose.
-You can read more about how Stormpot through JMX in the link:jmx.html[JMX Guide].
+You can read more about how to expose Stormpot through JMX in the link:jmx.html[JMX Guide].
 
 To expose the metrics, you first have to configure a `MetricsRecorder`.
 No such implementation is configured by default, and in fact, Stormpot doesn't even provide a default implementation to begin with.
