@@ -1,17 +1,22 @@
 = Stormpot
 
-Stormpot is an object pooling library for Java. Use it to recycle objects that
-are expensive to create. The library will take care of creating and destroying
-your objects in the background. Stormpot is very mature, is used in production,
-and has done over a trillion footnote:[Fermi estimate. The benchmark that
-produced the charts for the 2.1 release blog post accounts for about 400 billion
-of those cycles.] claim-release cycles in testing.
+Stormpot is an object pooling library for Java.
+Use it to recycle objects that are expensive to create.
+The library will take care of creating and destroying your objects in the
+background.
+
+Stormpot is very mature, is used in production, and has done over a trillion
+footnote:[Fermi estimate. The benchmark that produced the charts for the 2.1
+release blog post accounts for about 400 billion of those cycles.]
+claim-release cycles in testing.
+It is faster and scales better than any competing pool.
 
  * Home page: http://chrisvest.github.io/stormpot/
+ * Source code: https://github.com/chrisvest/stormpot/
  * API docs: http://chrisvest.github.io/stormpot/site/apidocs/index.html
  * Mailing list: http://groups.google.com/d/forum/stormpot
  * License: http://www.apache.org/licenses/LICENSE-2.0.html[The Apache Software License 2.0]
- * Simple versioning: X.Y where Y\++ is backwards compatible, and X++ is
+ * Simple versioning: X.Y where Y{plus}{plus} is backwards compatible, and X{plus}{plus} is
    backwards incompatible.
 
 
@@ -27,15 +32,18 @@ operation. Some of the things that sets Stormpot apart include:
    coverage].
  * The http://chrisvest.name/released-stormpot-21.html[highest throughput and
    lowest latency] in its class.
+   (since 2.1)
  * http://chrisvest.name/released-stormpot-22.html[Automatic recovery] from
    sporadic backend (Allocator) failures.
+   (since 2.2)
  * Precise object leak detection with virtually no overhead.
+   (being added in upcoming 2.3)
  * And other features that makes for a smooth runtime behaviour.
 
 == Installing
 
-Stormpot only depends on Java 6 or newer. Add it as a Maven dependency to your
-projects:
+Stormpot only depends on Java 6 or newer.
+Add it as a Maven dependency to your projects:
 
 [source,xml]
 --
@@ -46,9 +54,9 @@ projects:
 </dependency>
 --
 
-You can also build the latest snapshot from source with +mvn clean install+.
+You can also build the latest snapshot from source with `mvn clean install`.
 
-== Getting started
+== Getting Started
 
 Stormpot needs 3 things before it can pool objects for you:
 
@@ -67,7 +75,7 @@ Timeout timeout = new Timeout(1, TimeUnit.SECONDS);
 MyPoolable object = pool.claim(timeout);
 try {
   // Do stuff with 'object'.
-  // Note: 'claim' returns 'null' if it timed out.
+  // Note: 'claim' returns 'null' if it times out.
 } finally {
   if (object != null) {
     object.release();
@@ -87,6 +95,8 @@ try {
    If you have questions about implementation or behavioural details, then start
    a discussion about it by opening a pull-request or an issue. Documentation
    and javadoc is formatted with http://asciidoctor.org/[AsciiDoctor].
+   The website and javadocs can be generated with
+   `mvn generate-resources javadoc:javadoc`.
  * *Fix bugs or implement features* by forking the project, but please start an
    issue about the bug or feature you want to work on (or find the existing
    issue) and describe the approach and design you have in mind. Keep in mind
@@ -94,12 +104,35 @@ try {
    http://chrisvest.name/contract-coverage.html[strict adherence to TDD].
    Finally, make sure to respect the existing indentation and formatting.
    If you are writing a test that takes more than a few hundred milliseconds to
-   run, then put it in the +stormpot.slow+ test package; either in the existing
-   +PoolIT+ suite, or in a new +*IT+ suite.
-   Use +mvn clean test+ to run only the fast tests. Use +mvn clean verify+ to
+   run, then put it in the `stormpot.slow` test package; either in the existing
+   `PoolIT` suite, or in a new `\*IT` suite.
+   Use `mvn clean test` to run only the fast tests. Use `mvn clean verify` to
    also run the slow tests. Javadoc comments are formatted with
    http://asciidoctor.org/[AsciiDoctor].
-   Get test coverage with +mvn clean test site+ and
-   +open target/site/jacoco/index.html+. Get mutation test coverage with
-   +mvn clean test-compile org.pitest:pitest-maven:mutationCoverage+ and
-   +open target/pit-reports/*/index.html+.
+   Get test coverage with `mvn clean test site` and
+   `open target/site/jacoco/index.html`. Get mutation test coverage with
+   `mvn clean test-compile org.pitest:pitest-maven:mutationCoverage` and
+   `open target/pit-reports/*/index.html`.
+ * *Add to the ecosystem* and make Stormpot more than just an object pool.
+   This is a good thing to take on if you'd like to contribute code, but you
+   find the Stormpot code base itself to be intimidating (which, by the way, I
+   completely understand).
+   ** There is a repository for
+      https://github.com/chrisvest/object-pool-benchmarks[object pool benchmarks]
+      that is being maintained along side Stormpot.
+      Adding more benchmarks and cases; analysing results; trying out
+      optimisations.
+      These are all useful things to do.
+   ** I started working on a
+      https://github.com/chrisvest/stormpot-jdbc[JDBC connection pool]
+      based on Stormpot, but the project has stagnated.
+      It is no doubt a useful thing to have, though.
+      If you want to take on that problem, either with offset in the existing
+      code or by starting over from scratch, then please go ahead.
+   ** I'm sure there are other interesting related problems out there to take
+      on.
+      There are many database drivers for various NoSQL databases, that have
+      object pooling needs.
+
+Whatever you decide to do, don't hesitate to ask questions on the mailing list
+or on github if you have doubts or get stuck.

@@ -38,6 +38,7 @@ import java.util.concurrent.TimeUnit;
  * @author Chris Vest <mr.chrisvest@gmail.com>
  * @param <T> The type of {@link Poolable} managed by this pool.
  */
+// TODO 3.0 make class final
 public class BlazePool<T extends Poolable>
     implements LifecycledResizablePool<T>, ManagedPool {
   private static final Exception SHUTDOWN_POISON = new Exception() {

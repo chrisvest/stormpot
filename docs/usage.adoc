@@ -1,0 +1,41 @@
+== Simplest Possible Usage
+
+Stormpot has an invasive API which means that there is a minimum of things your
+code needs to do to use it.
+However, the requirements are quite benign, as this section is all about showing you.
+The objects that you store in a Stormpot pool needs to implement the `Poolable` interface. The absolute minimum amount of code required for its implementation is this:
+
+[source,java]
+--
+include::../src/test/java/docs/MyPoolable.java[tag=mypoolable]
+--
+
+The object in essence just needs to keep its `Slot` instance around, and give itself as a parameter to the `Slot#release` method.
+Now that we have a class of objects to pool, we need some way to tell Stormpot how to create them.
+We do this by implementing the `Allocator` interface:
+
+[source,java]
+--
+include::../src/test/java/docs/MyAllocator.java[tag=myallocator]
+--
+
+That's it.
+Given a slot, create a `MyPoolable`.
+Or given a `MyPoolable`, deallocate it.
+And that is actually all the parts we need to start using Stormpot.
+All that is left is a little bit of configuration:
+
+[source,java]
+--
+include::../src/test/java/docs/MyApp.java[tag=usageMyApp]
+--
+
+Create a `Config` object and set the allocator, then create a pool with the configuration and off we go!
+The blocking methods `Pool#claim` and `Completion#await` both take `Timeout` objects as arguments.
+These are immutable, and can easily be put in `static final` constants.
+Note that `claim` returns `null` if the timeout elapses before an object can be claimed.
+Also, using `try-finally` is a great way to make sure that you don't forget to release the objects back into the pool.
+Stormpot cannot prevent objects from leaking in user code, so if you lose the reference to an object that hasn't been released back into the pool, it will not come back on its own.
+Leaked objects can also cause problems with shutting the pool down, because the shut down procedure does not complete until all allocated objects are deallocated.
+So if you have leaked objects, shutting the pool down will never complete normally.
+You can still just halt the JVM, though.

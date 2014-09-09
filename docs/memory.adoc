@@ -1,0 +1,26 @@
+== Memory Effects and Threading
+
+The Stormpot pooling library exhibits and guarantees a number of memory effects, that can be relied upon in concurrent and multi-threaded programs.
+
+=== _Happens-Before_ Edges
+
+Stormpot inserts a number of _happens-before_ edges into the flow-graph of the program.
+These help ensure that the thread-safety properties of any code using the pool, is pretty much what one would reasonably and intuitively expect.
+Basically, if you follow recommended coding practices, where you don't share claimed objects between threads, but leave the concurrency to the pool, then you won't have any problems.
+As you implement Stormpot interfaces, and call methods on the Stormpot API, make sure that you read the associated javadoc, and pay attention to any notes and warnings about concurrency and thread-safety.
+If you do that, the pool will take care of the rest in a sensible manner.
+
+The _happens-before_ edges the pool introduces, are these:
+
+. The allocation, through `Allocator#allocate`, of an object *happens-before* any claim, through `Pool#claim`, of that object.
+. The claim of an object *happens-before* any subsequent release of the object.
+. The release, through `Poolable#release`, of an object *happens-before* any subsequent claim of that object.
+. The release of an object *happens-before* the deallocation, through `Allocator#deallocate`, of that object.
+. The reallocation, through `Reallocator#reallocate`, of an object *happens-before* any claim of that object.
+. The release of an object *happens-before* any reallocation, through `Reallocator#reallocate`, of that object.
+. For life-cycled pools, those that implement the `LifecycledPool` interface, the deallocation of all objects *happens-before* the `Completion#await` method successfully returns `true`.
+
+=== Interruption
+
+The (only two) blocking methods, `Pool#claim` and `Completion#await`, behave correctly with respect to interruption:
+If a thread is interrupted when it calls one of these methods, or the thread is interrupted while waiting in one these methods, then an `java.lang.InterruptedException` will be thrown, and the threads interruption flag will be cleared.

@@ -1,0 +1,29 @@
+== JMX
+
+Stormpot has support for Java Management Extensions, and can be monitored and managed both remotely and within process, using the JMX framework.
+
+This guide assumes that the reader has basic familiarity with JMX.
+If you don't know what JMX is, then you can read about it on Oracles JMX web site:
+http://www.oracle.com/technetwork/java/javase/tech/javamanagement-140525.html
+
+Both the `QueuePool` and the `BlazePool` implement the `ManagedPool` interface, which is annotated with the `@MXBean` annotation, thus marking it as a so-called MXBean-interface.
+
+MXBeans differ from MBeans, in that they do not make use of any types that are not already part of the JRE.
+This makes it easier for tools to integrate with MXBeans.
+For instance, if you expose a Stormpot pool through the so-called platform `MBeanServer`, then you will be able to monitor and manage it with tools such as VisualVM.
+Here is an example how you could a pool through the platform `MBeanServer`:
+
+[source,java]
+--
+BlazePool<MyPoolable> pool = new BlazePool<MyPoolable>(...);
+MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+ObjectName name = new ObjectName("com.myapp:objectpool=stormpot");
+server.registerMBean(pool, name);
+--
+
+Any `MBeanServer` can be used, though.
+Once the pool has been registered with the server, it can be managed through a JMX connection to that server.
+For instance, the size of the pool can be queried and changed dynamically.
+If a `MetricsRecorder` has been configured, the recorded metrics can also be queried through JMX.
+
+See the link:config.html#metrics-recorder[configuration page] on how to configure a `MetricsRecorder` for the pool.

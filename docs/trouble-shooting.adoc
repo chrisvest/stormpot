@@ -1,0 +1,31 @@
+== Troubleshooting
+
+[qanda]
+Why does `Config.setSize(...)` not take effect?::
+  The configuration state of a `Config` object is only read in the constructor of the pool, so changing the configuration after the pool has been created has no effect.
+  Look at the `ResizablePool` interface for changing the size of an existing pool.
+
+Why am I getting an `stormpot.PoolException: Slot release from bad state: 1` exception?::
+  The slot has already been released.
+  Either you are calling the `release` method twice, or you are sharing the `Poolable` instances without the consent of the pool.
+
+My program won't stop running, or Stormpot leaves a thread running!::
+  Stormpot creates a background thread that is non-daemon by default.
+  This thread will run until the pool has been shut down with `LifecycledPool#shutdown`, and all the `Poolable` instances in it has been deallocated.
+  If you have started the shut down process but it never finishes, then you have probably leaked an object.
+  All objects in the pool must be released back to the pool before the shut down can complete.
+
+How do I find out if I have leaked an object?::
+  There are two kinds of leaks: one where the program forgets to `release` an object back to the pool, and one where the program both forgets to `release`, and also forgets the reference to the object, so it becomes garbage collected.
+  You can diagnose the first case by taking a heap dump of the running program – possibly after you have initiated the shut down process and waited for it to complete for a little while – and look for any lingering `stormpot.BSlot`, `stormpot.QSlot` objects, or instances of your `Poolable` implementation, and see where they are referenced.
+  The precise leak detector will notice the last case, but cannot tell you where in the code the problem is.
+
+Why are there so many "Stormpot" threads in my program?::
+  Stormpot starts a thread for every pool instance you create.
+  It does not share threads across pool instances.
+
+I'm not allowed to start threads in my environment, or I get an exception about not being able to start a thread when I try to create an pool instance!::
+  Some environments restrict the ability to create threads.
+  These environments often have a way to get around that restriction, for instance by creating threads with a particular `ThreadGroup` or creating the thread in a particular privileged part of the code.
+  Stormpot can be configured to use a specific `ThreadFactory` for creating its threads.
+  So giving it a `ThreadFactory` that knows how to create threads in your particular environment, is the way to get around these restrictions.

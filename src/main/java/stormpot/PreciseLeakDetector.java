@@ -17,7 +17,12 @@ package stormpot;
 
 import java.lang.ref.WeakReference;
 
-class PreciseLeakDetector {
+final class PreciseLeakDetector {
+  private static final int branchPower =
+      Integer.getInteger("stormpot.PreciseLeakDetector.branchPower", 5);
+  private static final int branchFactor = 1 << branchPower;
+  private static final int branchMask = branchFactor - 1;
+
   private static class WeakRef extends WeakReference<Object> {
     WeakRef next;
 
@@ -44,11 +49,11 @@ class PreciseLeakDetector {
     // WeakRefs together like a daisy-chain. This way, we create at most 33
     // arrays, with room for 1024 objects. Most pools probably won't need to
     // have more than that many objects registered at a time.
-    probes = new Object[32];
+    probes = new Object[branchFactor];
   }
 
   synchronized void register(Object obj) {
-    int hash1 = System.identityHashCode(obj) & 31;
+    int hash1 = System.identityHashCode(obj) & branchMask;
 
     Object current = probes[hash1];
 
@@ -64,7 +69,7 @@ class PreciseLeakDetector {
         ref.next = currentRef;
         probes[hash1] = ref;
       } else {
-        WeakRef[] level2 = new WeakRef[32];
+        WeakRef[] level2 = new WeakRef[branchFactor];
         WeakRef ref = new WeakRef(obj);
         ref.next = currentRef;
         assocLevel2(level2, ref);
@@ -85,7 +90,7 @@ class PreciseLeakDetector {
       obj = chain.get();
 
       if (obj != null) {
-        int hash2 = (System.identityHashCode(obj) >> 5) & 31;
+        int hash2 = (System.identityHashCode(obj) >> branchPower) & branchMask;
         chain.next = level2[hash2];
         level2[hash2] = chain;
       } else {
@@ -111,7 +116,7 @@ class PreciseLeakDetector {
 
   synchronized void unregister(Object obj) {
     int hash0 = System.identityHashCode(obj);
-    int hash1 = hash0 & 31;
+    int hash1 = hash0 & branchMask;
 
     Object current = probes[hash1];
 
@@ -121,7 +126,7 @@ class PreciseLeakDetector {
       return;
     }
 
-    int hash2 = (hash0 >> 5) & 31;
+    int hash2 = (hash0 >> branchPower) & branchMask;
     WeakRef[] level2 = (WeakRef[]) current;
     level2[hash2] = removeFromChain(level2[hash2], obj);
   }

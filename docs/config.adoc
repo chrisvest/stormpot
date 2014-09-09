@@ -1,0 +1,162 @@
+:toc: left
+
+== Configuration
+
+Stormpot has many configuration options, but only one is required:
+You have to specify what `Allocator`, or `Reallocator`, implementation to use.
+The rest of the configuration options are optional, though there are a couple you most likely want to tweak.
+
+=== Pool Size
+
+The size of the pool is configured with `setSize`.
+This configuration determines the maximum number of objects the pool should keep in circulation, at any given time.
+The default size is 10 objects.
+Note that this is a maximum.
+The pool will _never_ have more than this many objects allocated at any given time.
+
+As it happens, the current implementations will allocate objects until the pool is full, and then stop until objects expire and needs reallocating.
+This effectively means that there's no such thing as a low-water-mark in Stormpot.
+It also means that, if you've done your capacity planning right, you will have fairly predictable latencies in claiming objects from the pool, since the given size is exactly the number of objects the pool will contain at any time.
+On the other hand, it also means that if an object has expired, it will have to be deallocated before a replacement can be allocated.
+
+=== Object Expiration
+
+Prior to claiming an object, Stormpot always checks if the object in question has expired.
+What it means for an object to be "expired" depends on what objects we are talking about, what they are used for and what it means to pool them.
+For instance, you might be pooling network connections that are closed by a firewall if they have been idle for too long, in which case it makes sense to have them reconnect before that happens.
+
+It is the `Expiration` policy that decides whether or not an object has expired, and it is configured with `setExpiration`.
+The default expiration policy is a `TimeSpreadExpiration` that expires objects after they've been circulating for somewhere between 8 to 10 minutes.
+The `TimeSpreadExpiration` is pretty handy, because it spreads the expirations out over time.
+This means that the objects in the pool don't all expire at the same time.
+This is an improvement over the simple `TimeExpiration`, because an object cannot be claimed once it has expired.
+
+If all objects expire at the same time, it could temporarily leave the pool completely empty, until all the expired objects have been reallocated.
+Such periods of "object drought" can lead to long stalls, aka. latencies in claiming objects from the pool, as the demand for objects is suddenly much higher than the availability.
+
+It might also be the case that there is no reason for objects to expire.
+In that case, a custom `Expiration` policy can be configured, that simply always returns `false` from its `hasExpired` method.
+
+==== Custom Object Expiration
+
+You can do more advanced stuff with object expiration, though, than just choosing between `TimeSpreadExpiration` and `TimeExpiration`.
+You can implement your own policy by implementing the `Expiration` interface.
+Then return `true` from the `hasExpired` method, whenever you deem the given object needs to be reallocated.
+The `hasExpired` method gets a `SlotInfo` object, that represents the `Poolable` being validated, and its `Slot`.
+
+NOTE: Your `Expiration` implementation needs to be thread-safe, since it will be used concurrently by many threads, to validate whatever objects they happen to be trying to claim at any given point in time.
+However, only a single thread will be validating any given `SlotInfo`, and by extension, any given `Poolable`, at a time.
+This means that access to the associated `Poolable` instance is thread-safe.
+
+The `SlotInfo` has a number of useful methods for implementing `Expiration` policies:
+
+* For instance, the `getAgeMillis` is used by the `TimeExpiration` to determine if an object has expired.
+* The `setStamp` and `getStamp` methods can store any long your expiration desires.
+  The stamp of a `SlotInfo` is always zero for newly allocated objects.
+  Its value means whatever the expiration policy wants it to mean.
+  For instance, the `TimeSpreadExpiration` uses the stamp to store the deadline for when an object will expire.
+  This way, the number and frequency of claims does not influence the distribution of when objects expire.
+* The `randomInt` does what it says on the tin.
+  It returns a random, uniformly distributed int value.
+  The point of it is, that the random number generator is local to the given `SlotInfo` instance, and since only a single thread will be accessing a `SlotInfo` at any given time, the random number generator will be completely free of contention, and therefor very fast.
+* The `getClaimCount` simply returns the number of times an object has been claimed.
+
+NOTE: The `hasExpired` method may be called several times during every call to `claim`.
+It is therefor _very_ critical to the performance of the pool, and you should take great care to make sure that it is fast.
+In fact, it is so performance sensitive, that reading the time from the system clock, e.g. with `System#currentTimeMillis`, can be a significant drag on the performance of the pool.
+
+=== Allocator vs Reallocator
+
+An `Allocator` does two things:
+It allocates objects.
+An object that has been allocated is assumed to have a unique identity among its peers in the pool.
+An object that has been deallocated is assumed to be gone forever.
+
+Since objects in the pool tend to live for a relatively long time, but crucially, not forever, it means that the normal operation of the pool will most likely lead to a slow accretion of garbage in the old generation of the heap.
+Such garbage can lead to fragmentation and, eventually, an expensive old-generation garbage collection.
+
+The `Reallocator` interface gives integrators an opportunity to counter this.
+The `Reallocator` has a `reallocate` method, in addition to what it inherits from the `Allocator` interface.
+The `reallocate` method is a combined deallocate and allocate method.
+Since it's combined, it can make decisions about whether or not to take the object that it's supposed to deallocate, and reuse it for the subsequent allocation.
+This way, a `Reallocator` has the potential to produce old-gen garbage at a much slower rate than an `Allocator` would.
+
+Care must be taken with implementing the `Reallocator`, though, since the returned object is assumed to be as fresh as any that would have been returned from the `allocate` method.
+
+[[metrics-recorder]]
+=== MetricsRecorder
+
+Stormpot has the ability to expose metrics and management handles through JMX.
+This is done by registering the pool with an `MBeanServer`.
+Both `QueuePool` and `BlazePool` implement the `ManagedPool` interface for this purpose.
+You can read more about how to expose Stormpot through JMX in the link:jmx.html[JMX Guide].
+
+To expose the metrics, you first have to configure a `MetricsRecorder`.
+No such implementation is configured by default, and in fact, Stormpot doesn't even provide a default implementation to begin with.
+In other words, you have to implement and integrate a `MetricsRecorder` yourself.
+I recommend that you use Coda Hale's http://metrics.codahale.com/[Metrics] library to do this.
+Obviously you need to first add this library to your projects list of dependencies, but once you've done that, integrating it is pretty easy.
+
+NOTE: The `MetricsRecorder` instance you build and configure _must_ be thread-safe.
+
+Here's an example of what such an integration could look like:
+
+[source,java]
+--
+include::../src/test/java/stormpot/examples/CodaHaleMetricsRecorder.java[lines=16..-1]
+--
+
+Once you have your `MetricsRecorder` implementation, you just set an instance of it on your `Config` object with the `setMetricsRecorder` method.
+
+=== ThreadFactory
+
+Stormpot creates a background thread per pool instance.
+This thread is in charge of allocating and deallocating objects for the pool.
+This means that the threads that access the pool to claim objects, don't have to pay the overhead of allocating any of the objects themselves.
+The latency for claiming objects is thereby reduced, and made more predictable.
+
+However, not all platforms and environments let user code create threads willy-nilly.
+There might be a `SecurityManager` that has to approve every thread that is created.
+There might be particular contexts, that every new thread needs to be associated with, or bound to, for security purposes.
+It might be that you can only create threads if they get associated with a particular `ThreadGroup`.
+
+Whatever the case, if the background thread needs to be created in a particular way for your particular environment, then you can provide a `ThreadFactory` implementation via the `setThreadFactory` method, and make sure that the background thread is created in a way that observes the law of the land in your particular circumstances.
+
+The default `ThreadFactory` is based on the `Executors.defaultThreadFactory`, but also assigns the thread a name, that makes it recognisable as a Stormpot background thread.
+
+=== Precise Leak Detection
+
+Stormpot has precise leak detection enabled by default, because the CPU overhead is very low.
+There is, however, a bit of memory overhead.
+Therefor, it may make sense to disable this in use cases where memory is very constrained, and/or the pool contains a very large number of objects.
+
+The precise leak detection feature, lets Stormpot keep track of when objects that were meant to circulate in the pool, suddenly leak out and never come back.
+The number of leaks detected is reported via the `getLeakedObjectsCount` method of the `ManagedPool` interface.
+
+This feature uses the garbage collector to determine whether or not an object has any chance of ever returning to the pool.
+This is why it's called _precise_ leak detection:
+It never reports any false positives.
+That is, it never counts an object as leaked, unless there is a 100% certainty, that it will never, ever return to the pool.
+On the other hand, it might not detect all leaks.
+For instance, if you claim an object, and then put it in a `static final` variable and never release it back, then that object will have a strong reference pointing to it, for the lifetime of the class that the `static final` field.
+In this case, there is still a chance that the object may be returned, but if no code actually does this, then it has effectively leaked.
+Such a case will not be detected by the precise leak detector.
+
+While precise leak detection is able to detect leaks – and a leak is always a bug in user code – it is not able to _prevent_ the leaks.
+This means that if a leak has been observed, you know for sure that the shut down process will not terminate.
+The shut down process won't finish until all allocated objects has been deallocated; which will never happen because leaked objects will remain logically claimed for perpetuity.
+In such a case it's nice that the API for awaiting on the completion of the shut down process, requires one to provide a timeout, so there's no waiting forever.
+
+=== Complete Config Source
+
+For reference, the complete source for the `Config` class is listed bellow.
+When you instantiate a `Pool` instance, be it `QueuePool` or `BlazePool`, they will take the monitor-lock on the `Config` instance, thereby preventing it from being modified while they are looking at it.
+The pools will then call the `validate` method to make sure that they have a `Config` instance that can be used.
+Then, they will grab the data they need.
+As for the `Allocator`, the pool instances will get that from the `getAdaptedReallocator` method.
+This helps ensure a uniform recording of some of the metrics, across `Pool` implementations.
+
+[source,java]
+--
+include::../src/main/java/stormpot/Config.java[]
+--

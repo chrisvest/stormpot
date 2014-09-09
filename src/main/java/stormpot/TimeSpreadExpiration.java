@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
  * @author Chris Vest <mr.chrisvest@gmail.com>
  * @since 2.2
  */
+// TODO 3.0 make class final
 public class TimeSpreadExpiration implements Expiration<Poolable> {
 
   private final long lowerBoundMillis;

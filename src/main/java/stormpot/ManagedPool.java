@@ -61,6 +61,14 @@ public interface ManagedPool {
    * return the number of object leaks that have been detected, and prevented,
    * since the pool was created. If the pool does not support precise object
    * leak detection, then this method returns -1.
+   *
+   * There are two kinds of leaks: One where the application forgets to release
+   * an object back to the pool, but keeps a strong reference to the object,
+   * and another where the application not only forgets to release the object,
+   * but also looses the reference to the object, making it eligible for
+   * garbage collection. The precise leak detector will only count leaks of the
+   * latter kind, where the leaked object has been garbage collected.
+   *
    * @return The number of objects leaked from the users of this pool, since
    * the pool was created, or -1 if the pool does not implement precise leak
    * detection.

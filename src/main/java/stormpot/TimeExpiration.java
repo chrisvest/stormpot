@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
  * 
  * @author Chris Vest <mr.chrisvest@gmail.com>
  */
+// TODO 3.0 make class final
 public class TimeExpiration implements Expiration<Poolable> {
 
   private final long maxPermittedAgeMillis;

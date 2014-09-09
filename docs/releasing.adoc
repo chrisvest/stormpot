@@ -1,0 +1,17 @@
+= The Stormpot Release Process
+
+This is not really documentation, but rather an "internal" document detailing the release process, so that I don't forget any steps.
+
+* [ ] Create an issue tracking the release.
+      See for instance https://github.com/chrisvest/stormpot/issues/70
+* [ ] Fix all the issues
+* [ ] Update & review the javadoc & documentation
+* [ ] Create a branch for the new version
+* [ ] Remove any existing tag for upcoming version (locally: `git tag -d stormpot-2.2`, remotely: `git push origin :refs/tags/stormpot-2.2`)
+* [ ] `mvn release:clean`
+* [ ] `mvn release:prepare` (If rollback is needed: `git reset --hard HEAD^`, `git push -f` and check `git log`)
+* [ ] `mvn release:perform`
+* [ ] "Close" staged release in the staging repo: https://oss.sonatype.org/
+* [ ] "Release" staged release
+* [ ] Check out the release tag and run `./docupdate.sh`
+* [ ] Announce on mailing list & write blog post

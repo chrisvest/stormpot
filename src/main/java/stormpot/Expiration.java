@@ -38,6 +38,17 @@ package stormpot;
  * Expiration is fast. It can easily be the dominating factor in the
  * performance of the pool.
  *
+ * TIP: If the expiration is too slow, you can alternatively use a time-based
+ * expiration, such as {@link stormpot.TimeExpiration}, that has been
+ * configured with a very low expiration time, like a few seconds. Then you can
+ * configure the pool to use a {@link stormpot.Reallocator}, where you do the
+ * expensive expiration check in the
+ * {@link stormpot.Reallocator#reallocate(Slot, Poolable) reallocate} method,
+ * returning the same Poolable back if it hasn't expired.
+ * Be aware, though, that such a scheme has to be tuned to the load of the
+ * application, such that the objects in the pool don't all expire at the same
+ * time, leaving the pool empty.
+ *
  * @author Chris Vest <mr.chrisvest@gmail.com>
  */
 public interface Expiration<T extends Poolable> {

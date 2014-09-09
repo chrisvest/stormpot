@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
  * work exactly the same.
  * @author Chris Vest <mr.chrisvest@gmail.com>
  */
+// TODO 3.0 make class final
 public class Timeout {
   private final long timeout;
   private final TimeUnit unit;
