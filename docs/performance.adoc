@@ -14,7 +14,7 @@ The BlazePool implementation is faster in most cases, but not in all.
 In particular, if the thread that claims an object is always different from the thread that releases it – a use case that is allowed, though discouraged – then the QueuePool will probably perform better than BlazePool.
 I say probably, because it is not guaranteed to be the case.
 BlazePool has a single-element thread-local cache, where it stores the object most recently claimed by the given thread.
-If this object happens to be available, then it will be claim in preference to all the other objects in the pool.
+If this object happens to be available, then it will be claimed in preference to all the other objects in the pool.
 This means that if the releasing thread can release the object before the claimer thread wants to claim another object, then the magic of the thread-local cache will apply, and BlazePool will most likely perform better than QueuePool.
 
 === Considerations for Custom Expiration Implementations
@@ -35,7 +35,7 @@ Then have the pool be configured with a `Reallocator` that does the expensive ch
 
 Stormpot uses `BlockingQueue` objects under the hood, to transfer objects between the user threads and the dedicated allocation thread, and to implement its blocking behaviour.
 By default, it uses `j.u.c.LinkedTransferQueue` if it is available on the classpath, e.g. with Java 7 and beyond, but otherwise falls back to the `j.u.c.LinkedBlockingQueue`.
-LTQ is often faster that LBQ, but not always.
+LTQ is often faster than LBQ, but not always.
 Figuring out which one is most optimal requires careful measurement of their behaviour for your particular load and use case.
 
 If you want to override the BlockingQueue implementation that Stormpot uses, can be done globally for all pool instances, by setting the `stormpot.blocking.queue.impl` system property on JVM startup.

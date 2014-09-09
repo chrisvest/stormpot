@@ -23,7 +23,7 @@ server.registerMBean(pool, name);
 
 Any `MBeanServer` can be used, though.
 Once the pool has been registered with the server, it can be managed through a JMX connection to that server.
-For instance, the size of the pool can be queried and chanced dynamically.
+For instance, the size of the pool can be queried and changed dynamically.
 If a `MetricsRecorder` has been configured, the recorded metrics can also be queried through JMX.
 
 See the link:config.html#metrics-recorder[configuration page] on how to configure a `MetricsRecorder` for the pool.

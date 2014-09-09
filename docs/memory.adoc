@@ -1,6 +1,6 @@
 == Memory Effects and Threading
 
-The Stormpot pooling library exhibits and guarantee a number of memory effects, that can be relied upon in concurrent and multi-threaded programs.
+The Stormpot pooling library exhibits and guarantees a number of memory effects, that can be relied upon in concurrent and multi-threaded programs.
 
 === _Happens-Before_ Edges
 
@@ -12,11 +12,13 @@ If you do that, the pool will take care of the rest in a sensible manner.
 
 The _happens-before_ edges the pool introduces, are these:
 
-1. The allocation, through `Allocator#allocate`, of an object *happens-before* any claim, through `Pool#claim`, of that object.
-2. The claim of an object *happens-before* any subsequent release of the object.
-3. The release, through `Poolable#release`, of an object *happens-before* any subsequent claim of that object.
-4. The release of an object *happens-before* the deallocation, through `Allocator#deallocate`, of that object.
-5. For life-cycled pools, those that implement the `LifecycledPool` interface, the deallocation of all objects *happens-before* the `Completion#await` method returns.
+. The allocation, through `Allocator#allocate`, of an object *happens-before* any claim, through `Pool#claim`, of that object.
+. The claim of an object *happens-before* any subsequent release of the object.
+. The release, through `Poolable#release`, of an object *happens-before* any subsequent claim of that object.
+. The release of an object *happens-before* the deallocation, through `Allocator#deallocate`, of that object.
+. The reallocation, through `Reallocator#reallocate`, of an object *happens-before* any claim of that object.
+. The release of an object *happens-before* any reallocation, through `Reallocator#reallocate`, of that object.
+. For life-cycled pools, those that implement the `LifecycledPool` interface, the deallocation of all objects *happens-before* the `Completion#await` method successfully returns `true`.
 
 === Interruption
 

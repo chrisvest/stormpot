@@ -32,10 +32,10 @@ include::../src/test/java/docs/MyApp.java[tag=usageMyApp]
 
 Create a `Config` object and set the allocator, then create a pool with the configuration and off we go!
 The blocking methods `Pool#claim` and `Completion#await` both take `Timeout` objects as arguments.
-These are thread-safe, and can easily be put in `static final` constants.
+These are immutable, and can easily be put in `static final` constants.
 Note that `claim` returns `null` if the timeout elapses before an object can be claimed.
 Also, using `try-finally` is a great way to make sure that you don't forget to release the objects back into the pool.
-Stormpot does no leak detection, so if you loose the reference to an object that hasn't been released back into the pool, it will not come back on its own.
+Stormpot cannot prevent objects from leaking in user code, so if you lose the reference to an object that hasn't been released back into the pool, it will not come back on its own.
 Leaked objects can also cause problems with shutting the pool down, because the shut down procedure does not complete until all allocated objects are deallocated.
 So if you have leaked objects, shutting the pool down will never complete normally.
 You can still just halt the JVM, though.

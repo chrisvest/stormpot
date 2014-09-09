@@ -21,7 +21,11 @@ On the other hand, it also means that if an object has expired, it will have to 
 
 === Object Expiration
 
-The `Expiration` policy is configured with `setExpiration`.
+Prior to claiming an object, Stormpot always checks if the object in question has expired.
+What it means for an object to be "expired" depends on what objects we are talking about, what they are used for and what it means to pool them.
+For instance, you might be pooling network connections that are closed by a firewall if they have been idle for too long, in which case it makes sense to have them reconnect before that happens.
+
+It is the `Expiration` policy that decides whether or not an object has expired, and it is configured with `setExpiration`.
 The default expiration policy is a `TimeSpreadExpiration` that expires objects after they've been circulating for somewhere between 8 to 10 minutes.
 The `TimeSpreadExpiration` is pretty handy, because it spreads the expirations out over time.
 This means that the objects in the pool don't all expire at the same time.
@@ -29,6 +33,9 @@ This is an improvement over the simple `TimeExpiration`, because an object canno
 
 If all objects expire at the same time, it could temporarily leave the pool completely empty, until all the expired objects have been reallocated.
 Such periods of "object drought" can lead to long stalls, aka. latencies in claiming objects from the pool, as the demand for objects is suddenly much higher than the availability.
+
+It might also be the case that there is no reason for objects to expire.
+In that case, a custom `Expiration` policy can be configured, that simply always returns `false` from its `hasExpired` method.
 
 ==== Custom Object Expiration
 
@@ -147,7 +154,7 @@ When you instantiate a `Pool` instance, be it `QueuePool` or `BlazePool`, they w
 The pools will then call the `validate` method to make sure that they have a `Config` instance that can be used.
 Then, they will grab the data they need.
 As for the `Allocator`, the pool instances will get that from the `getAdaptedReallocator` method.
-This help ensure a uniform recording of some of the metrics, across `Pool` implementations.
+This helps ensure a uniform recording of some of the metrics, across `Pool` implementations.
 
 [source,java]
 --
