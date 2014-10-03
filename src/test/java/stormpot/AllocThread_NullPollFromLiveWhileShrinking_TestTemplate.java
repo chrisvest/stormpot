@@ -22,6 +22,7 @@ import org.junit.rules.TestRule;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
 
 import static stormpot.AlloKit.allocator;
 

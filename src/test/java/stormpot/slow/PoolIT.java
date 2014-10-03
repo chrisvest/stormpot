@@ -82,7 +82,8 @@ public class PoolIT {
     assertThat(duplicates, is(emptyIterableOf(GenericPoolable.class)));
   }
 
-  private LifecycledResizablePool<GenericPoolable> lifecycledResizable(PoolFixture fixture) {
+  private LifecycledResizablePool<GenericPoolable> lifecycledResizable(
+      PoolFixture fixture) {
     Pool<GenericPoolable> pool = fixture.initPool(config);
     assumeThat(pool, instanceOf(LifecycledResizablePool.class));
     return (LifecycledResizablePool<GenericPoolable>) pool;

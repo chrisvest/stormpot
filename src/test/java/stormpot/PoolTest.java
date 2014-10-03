@@ -2375,6 +2375,10 @@ public class PoolTest {
     ManagedPool managedPool = assumeManagedPool(fixture);
     assertThat(managedPool.getAllocationLatencyPercentile(0.5), is(Double.NaN));
     assertThat(managedPool.getObjectLifetimePercentile(0.5), is(Double.NaN));
+    assertThat(managedPool.getAllocationFailureLatencyPercentile(0.5), is(Double.NaN));
+    assertThat(managedPool.getReallocationLatencyPercentile(0.5), is(Double.NaN));
+    assertThat(managedPool.getReallocationFailureLatencyPercentile(0.5), is(Double.NaN));
+    assertThat(managedPool.getDeallocationLatencyPercentile(0.5), is(Double.NaN));
   }
 
   @Test(timeout = 601)
@@ -2556,14 +2560,14 @@ public class PoolTest {
   @Theory public void
   objectMustBeClaimableAfterBackgroundReallocation(
       PoolFixture fixture) throws Exception {
-    CountingExpiration expiration = expire($expired, $fresh);
+    CountDownLatch latch = new CountDownLatch(1);
+    CountingExpiration expiration =
+        expire($countDown(latch, $expired), $fresh);
     config.setExpiration(expiration);
     config.setBackgroundExpirationEnabled(true);
     createPool(fixture);
 
-    while (expiration.countExpirations() < 1) {
-      Thread.sleep(1);
-    }
+    latch.await();
 
     pool.claim(longTimeout).release();
   }
@@ -2572,15 +2576,14 @@ public class PoolTest {
   @Theory public void
   mustNotReallocateObjectsThatAreNotExpiredByTheBackgroundCheck(
       PoolFixture fixture) throws Exception {
-    CountingExpiration expiration = expire($fresh);
+    CountDownLatch latch = new CountDownLatch(2);
+    CountingExpiration expiration = expire($countDown(latch, $fresh));
     CountingReallocator reallocator = reallocator();
     config.setExpiration(expiration);
     config.setBackgroundExpirationEnabled(true);
     createPool(fixture);
 
-    while (expiration.countExpirations() < 2) {
-      Thread.sleep(1);
-    }
+    latch.await();
 
     assertThat(reallocator.countReallocations(), is(0));
     assertThat(reallocator.countDeallocations(), is(0));

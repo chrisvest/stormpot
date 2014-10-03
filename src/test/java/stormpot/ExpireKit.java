@@ -15,6 +15,7 @@
  */
 package stormpot;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -125,6 +126,18 @@ public class ExpireKit {
       public boolean hasExpired(SlotInfo<? extends Poolable> info) throws Exception {
         UnitKit.sneakyThrow(throwable);
         return false;
+      }
+    };
+  }
+
+  public static Expire $countDown(
+      final CountDownLatch latch,
+      final Expire then) {
+    return new Expire() {
+      @Override
+      public boolean hasExpired(SlotInfo<? extends Poolable> info) throws Exception {
+        latch.countDown();
+        return then.hasExpired(info);
       }
     };
   }

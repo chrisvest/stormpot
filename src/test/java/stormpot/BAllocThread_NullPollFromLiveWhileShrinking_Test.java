@@ -20,6 +20,7 @@ import org.junit.Test;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
 
 public class BAllocThread_NullPollFromLiveWhileShrinking_Test
 extends AllocThread_NullPollFromLiveWhileShrinking_TestTemplate<BSlot<Poolable>, BAllocThread<Poolable>> {

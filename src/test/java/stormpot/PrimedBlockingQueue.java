@@ -18,6 +18,7 @@ package stormpot;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Callable;
 
 final class PrimedBlockingQueue<T> extends LinkedBlockingQueue<T> {
   private static final long serialVersionUID = -2138789305960877995L;
@@ -37,7 +38,13 @@ final class PrimedBlockingQueue<T> extends LinkedBlockingQueue<T> {
   public T poll() {
     Callable<T> callable = calls.poll();
     if (callable != null) {
-      lastValue = callable.call();
+      try {
+        lastValue = callable.call();
+      } catch (RuntimeException runtimeException) {
+        throw runtimeException;
+      } catch (Exception exception) {
+        throw new AssertionError(exception);
+      }
     }
     return lastValue;
   }
