@@ -35,6 +35,8 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   private final Reallocator<T> allocator;
   private final BSlot<T> poisonPill;
   private final MetricsRecorder metricsRecorder;
+  private final Expiration<? super T> expiration;
+  private final boolean backgroundExpirationEnabled;
   private final PreciseLeakDetector leakDetector;
 
   // Single reader: this. Many writers.
@@ -60,6 +62,8 @@ final class BAllocThread<T extends Poolable> implements Runnable {
     this.live = live;
     this.dead = dead;
     this.poisonPill = poisonPill;
+    this.expiration = config.getExpiration();
+    this.backgroundExpirationEnabled = config.isBackgroundExpirationEnabled();
     this.leakDetector = config.isPreciseLeakDetectionEnabled() ?
         new PreciseLeakDetector() : null;
   }
@@ -108,6 +112,8 @@ final class BAllocThread<T extends Poolable> implements Runnable {
     if (poisonedSlots > 0) {
       // Proactively seek out and try to heal poisoned slots
       proactivelyHealPoison();
+    } else if (backgroundExpirationEnabled && !weHaveWorkToDo) {
+      backgroundExpirationCheck();
     }
   }
 
@@ -146,11 +152,33 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   }
 
   private void proactivelyHealPoison() {
-    BSlot<T> slot;
-    slot = live.poll();
+    BSlot<T> slot = live.poll();
     if (slot != null) {
       if (slot.poison != null && (slot.isDead() || slot.live2dead())) {
         realloc(slot);
+      } else {
+        live.offer(slot);
+      }
+    }
+  }
+
+  private void backgroundExpirationCheck() {
+    BSlot<T> slot = live.poll();
+    if (slot != null) {
+      if (slot.isLive() && slot.live2claim()) {
+        boolean expired;
+        try {
+          expired = expiration.hasExpired(slot);
+        } catch (Exception ignore) {
+          expired = true;
+        }
+        if (expired) {
+          slot.claim2dead(); // Not strictly necessary
+          dead.offer(slot);
+        } else {
+          slot.claim2live();
+          live.offer(slot);
+        }
       } else {
         live.offer(slot);
       }

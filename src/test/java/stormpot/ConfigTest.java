@@ -298,4 +298,15 @@ public class ConfigTest {
     config.setPreciseLeakDetectionEnabled(false);
     assertFalse(config.isPreciseLeakDetectionEnabled());
   }
+
+  @Test public void
+  backgroundExpirationIsDisabledByDefault() {
+    assertFalse(config.isBackgroundExpirationEnabled());
+  }
+
+  @Test public void
+  backgroundExpirationMystBeSettable() {
+    config.setBackgroundExpirationEnabled(true);
+    assertTrue(config.isBackgroundExpirationEnabled());
+  }
 }

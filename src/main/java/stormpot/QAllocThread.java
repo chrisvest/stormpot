@@ -35,6 +35,8 @@ final class QAllocThread<T extends Poolable> implements Runnable {
   private final Reallocator<T> allocator;
   private final QSlot<T> poisonPill;
   private final MetricsRecorder metricsRecorder;
+  private final boolean backgroundExpirationEnabled;
+  private final Expiration<? super T> expiration;
   private final PreciseLeakDetector leakDetector;
 
   // Single reader: this. Many writers.
@@ -52,11 +54,7 @@ final class QAllocThread<T extends Poolable> implements Runnable {
       BlockingQueue<QSlot<T>> live,
       BlockingQueue<QSlot<T>> dead,
       Config<T> config,
-      QSlot<T> poisonPill,
-      MetricsRecorder metricsRecorder) {
-    this.metricsRecorder = metricsRecorder;
-    this.leakDetector = config.isPreciseLeakDetectionEnabled() ?
-        new PreciseLeakDetector() : null;
+      QSlot<T> poisonPill) {
     this.targetSize = config.getSize();
     completionLatch = new CountDownLatch(1);
     this.allocator = config.getAdaptedReallocator();
@@ -64,6 +62,11 @@ final class QAllocThread<T extends Poolable> implements Runnable {
     this.live = live;
     this.dead = dead;
     this.poisonPill = poisonPill;
+    this.metricsRecorder = config.getMetricsRecorder();
+    this.backgroundExpirationEnabled = config.isBackgroundExpirationEnabled();
+    this.expiration = config.getExpiration();
+    this.leakDetector = config.isPreciseLeakDetectionEnabled() ?
+        new PreciseLeakDetector() : null;
   }
 
   @Override
@@ -108,6 +111,19 @@ final class QAllocThread<T extends Poolable> implements Runnable {
             } else {
               realloc(slot);
             }
+          }
+        } else if (backgroundExpirationEnabled && !weHaveWorkToDo) {
+          slot = live.poll();
+          try {
+            if (slot != null) {
+              if (expiration.hasExpired(slot)) {
+                dead.offer(slot);
+              } else {
+                live.offer(slot);
+              }
+            }
+          } catch (Exception e) {
+            dead.offer(slot);
           }
         }
       }

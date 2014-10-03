@@ -114,6 +114,10 @@ final class BSlot<T extends Poolable>
   public boolean isDead() {
     return get() == DEAD;
   }
+
+  public boolean isLive() {
+    return get() == LIVING;
+  }
   
   public int getState() {
     return get();

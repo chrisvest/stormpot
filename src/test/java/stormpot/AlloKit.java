@@ -47,7 +47,6 @@ public class AlloKit {
     private final Action[] actions;
     private int counter;
 
-
     ActionSeq(Action... actions) {
       this.actions = actions;
       counter = 0;

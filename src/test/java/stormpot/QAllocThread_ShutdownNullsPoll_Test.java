@@ -23,7 +23,8 @@ extends AllocThread_ShutdownNullsPool_TestTemplate<QSlot<Poolable>, QAllocThread
   @Override
   protected QAllocThread<Poolable> createAllocThread(
       BlockingQueue<QSlot<Poolable>> live, BlockingQueue<QSlot<Poolable>> dead) {
-    return new QAllocThread<Poolable>(live, dead, config, new QSlot<Poolable>(live), null);
+    return new QAllocThread<Poolable>(
+        live, dead, config, new QSlot<Poolable>(live));
   }
 
   @Override

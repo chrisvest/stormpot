@@ -46,7 +46,7 @@ public class QueuePool<T extends Poolable>
   private final BlockingQueue<QSlot<T>> dead;
   private final QAllocThread<T> allocator;
   private final Thread allocatorThread;
-  private final Expiration<? super T> deallocRule;
+  private final Expiration<? super T> expiration;
   private final MetricsRecorder metricsRecorder;
   private volatile boolean shutdown = false;
 
@@ -66,10 +66,10 @@ public class QueuePool<T extends Poolable>
       config.validate();
       ThreadFactory factory = config.getThreadFactory();
       metricsRecorder = config.getMetricsRecorder();
+      expiration = config.getExpiration();
       allocator = new QAllocThread<T>(
-          live, dead, config, poisonPill, metricsRecorder);
+          live, dead, config, poisonPill);
       allocatorThread = factory.newThread(allocator);
-      deallocRule = config.getExpiration();
     }
     allocatorThread.start();
   }
@@ -94,7 +94,7 @@ public class QueuePool<T extends Poolable>
     boolean invalid = true;
     RuntimeException exception = null;
     try {
-      invalid = deallocRule.hasExpired(slot);
+      invalid = expiration.hasExpired(slot);
     } catch (Throwable ex) {
       exception = new PoolException(
           "Got exception when checking whether an object had expired", ex);

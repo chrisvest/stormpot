@@ -60,6 +60,7 @@ public class Config<T extends Poolable> {
   private MetricsRecorder metricsRecorder;
   private ThreadFactory threadFactory = StormpotThreadFactory.INSTANCE;
   private boolean preciseLeakDetectionEnabled = true;
+  private boolean backgroundExpirationEnabled = false;
 
   /**
    * Build a new empty Config object. Most settings have reasonable default
@@ -300,5 +301,13 @@ public class Config<T extends Poolable> {
       return new TimingReallocatingAdaptor<T>(
           (Allocator<T>) allocator, metricsRecorder);
     }
+  }
+
+  public synchronized boolean isBackgroundExpirationEnabled() {
+    return backgroundExpirationEnabled;
+  }
+
+  public synchronized void setBackgroundExpirationEnabled(boolean enabled) {
+    backgroundExpirationEnabled = enabled;
   }
 }
