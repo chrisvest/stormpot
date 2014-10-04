@@ -2589,6 +2589,54 @@ public class PoolTest {
     assertThat(reallocator.countDeallocations(), is(0));
   }
 
+  @Test(timeout = 6010)
+  @Theory public void
+  backgroundExpirationMustExpireObjectsWhenExpirationThrows(
+      PoolFixture fixture) throws Exception {
+    CountDownLatch latch = new CountDownLatch(1);
+    CountingExpiration expiration = expire(
+        $throwExpire(new Exception()),
+        $countDown(latch, $fresh));
+    config.setExpiration(expiration);
+    config.setBackgroundExpirationEnabled(true);
+    createPool(fixture);
+
+    latch.await();
+
+    assertThat(allocator.countAllocations(), is(2));
+    assertThat(allocator.countDeallocations(), is(1));
+  }
+
+  @Test(timeout = 6010)
+  @Theory public void
+  backgroundExpirationMustNotExpireObjectsThatAreClaimed(
+      PoolFixture fixture) throws Exception {
+    AtomicBoolean hasExpired = new AtomicBoolean();
+    CountDownLatch latch = new CountDownLatch(4);
+    CountingExpiration expiration = expire(
+        $countDown(latch, $expiredIf(hasExpired)));
+    config.setExpiration(expiration);
+    config.setBackgroundExpirationEnabled(true);
+    config.setSize(2);
+    createPool(fixture);
+
+    // If applicable, do a thread-local reclaim
+    pool.claim(longTimeout).release();
+    GenericPoolable obj = pool.claim(longTimeout);
+    hasExpired.set(true);
+
+    latch.await();
+    hasExpired.set(false);
+
+
+    List<GenericPoolable> deallocations = allocator.getDeallocations();
+    // Synchronized to guard against concurrent modification from the allocator
+    synchronized (deallocations) {
+      assertThat(deallocations, not(hasItem(obj)));
+    }
+    obj.release();
+  }
+
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the javadocs and docs pages.
 }

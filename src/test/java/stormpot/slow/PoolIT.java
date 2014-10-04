@@ -30,12 +30,14 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeThat;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static stormpot.AlloKit.*;
+import static stormpot.ExpireKit.*;
 
 @SuppressWarnings("unchecked")
 @RunWith(Theories.class)
@@ -66,20 +68,23 @@ public class PoolIT {
   @After public void
   verifyObjectsAreNeverDeallocatedMoreThanOnce() {
     List<GenericPoolable> deallocated = allocator.getDeallocations();
-    Collections.sort(deallocated, new OrderByIdentityHashcode());
-    Iterator<GenericPoolable> iter = deallocated.iterator();
-    List<GenericPoolable> duplicates = new ArrayList<GenericPoolable>();
-    if (iter.hasNext()) {
-      GenericPoolable a = iter.next();
-      while (iter.hasNext()) {
-        GenericPoolable b = iter.next();
-        if (a == b) {
-          duplicates.add(b);
+    // Synchronize to avoid ConcurrentModification with background thread
+    synchronized (deallocated) {
+      Collections.sort(deallocated, new OrderByIdentityHashcode());
+      Iterator<GenericPoolable> iter = deallocated.iterator();
+      List<GenericPoolable> duplicates = new ArrayList<GenericPoolable>();
+      if (iter.hasNext()) {
+        GenericPoolable a = iter.next();
+        while (iter.hasNext()) {
+          GenericPoolable b = iter.next();
+          if (a == b) {
+            duplicates.add(b);
+          }
+          a = b;
         }
-        a = b;
       }
+      assertThat(duplicates, is(emptyIterableOf(GenericPoolable.class)));
     }
-    assertThat(duplicates, is(emptyIterableOf(GenericPoolable.class)));
   }
 
   private LifecycledResizablePool<GenericPoolable> lifecycledResizable(
@@ -215,5 +220,54 @@ public class PoolIT {
       // Also verify that no unexpected exceptions were thrown
       future.get();
     }
+  }
+
+  @Test(timeout = 16010)
+  @Theory public void
+  backgroundExpirationMustDoNothingWhenPoolIsDepleted(
+      PoolFixture fixture) throws Exception {
+    AtomicBoolean hasExpired = new AtomicBoolean();
+    CountingExpiration expiration = expire($expiredIf(hasExpired));
+    config.setExpiration(expiration);
+    config.setBackgroundExpirationEnabled(true);
+
+    pool = lifecycledResizable(fixture);
+
+    // Do a thread-local reclaim, if applicable, to keep the object in
+    // circulation
+    pool.claim(longTimeout).release();
+    GenericPoolable obj = pool.claim(longTimeout);
+    int expirationsCount = expiration.countExpirations();
+
+    hasExpired.set(true);
+
+    Thread.sleep(1000);
+
+    assertThat(allocator.countDeallocations(), is(0));
+    assertThat(expiration.countExpirations(), is(expirationsCount));
+    obj.release();
+  }
+
+  @Test(timeout = 16010)
+  @Theory public void
+  backgroundExpirationMustNotFailWhenThereAreNoObjectsInCirculation(
+      PoolFixture fixture) throws Exception {
+    AtomicBoolean hasExpired = new AtomicBoolean();
+    CountingExpiration expiration = expire($expiredIf(hasExpired));
+    config.setExpiration(expiration);
+    config.setBackgroundExpirationEnabled(true);
+
+    pool = lifecycledResizable(fixture);
+
+    GenericPoolable obj = pool.claim(longTimeout);
+    int expirationsCount = expiration.countExpirations();
+
+    hasExpired.set(true);
+
+    Thread.sleep(1000);
+
+    assertThat(allocator.countDeallocations(), is(0));
+    assertThat(expiration.countExpirations(), is(expirationsCount));
+    obj.release();
   }
 }
