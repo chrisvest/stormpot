@@ -46,7 +46,7 @@
     <outputEncoding>UTF-8</outputEncoding>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <java.version>1.6</java.version>
-    <jacoco.version>0.7.1.201405082137</jacoco.version>
+    <jacoco.version>0.7.2.201409121644</jacoco.version>
     <javadoc.version>2.9.1</javadoc.version>
     <asciidoclet.version>0.1.4</asciidoclet.version>
   </properties>
