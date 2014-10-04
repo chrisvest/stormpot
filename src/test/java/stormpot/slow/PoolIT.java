@@ -120,7 +120,7 @@ public class PoolIT {
           } catch (InterruptedException ignore) {
             // This is okay
           } catch (IllegalStateException e) {
-            assertThat(e, hasMessage(equalTo("pool is shut down")));
+            assertThat(e, hasMessage(equalTo("Pool has been shut down")));
             break;
           } catch (PoolException e) {
             assertThat(e.getCause().getClass(), isOneOf(acceptableExceptions));

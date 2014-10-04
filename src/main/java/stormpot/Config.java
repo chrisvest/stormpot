@@ -264,7 +264,7 @@ public class Config<T extends Poolable> {
   public synchronized void validate() throws IllegalArgumentException {
     if (size < 1) {
       throw new IllegalArgumentException(
-          "size must be at least 1, but was " + size);
+          "Size must be at least 1, but was " + size);
     }
     if (allocator == null) {
       throw new IllegalArgumentException("Allocator cannot be null");

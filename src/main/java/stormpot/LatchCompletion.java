@@ -27,7 +27,7 @@ final class LatchCompletion implements Completion {
   public boolean await(Timeout timeout)
       throws InterruptedException {
     if (timeout == null) {
-      throw new IllegalArgumentException("timeout cannot be null");
+      throw new IllegalArgumentException("Timeout cannot be null");
     }
     return completionLatch.await(timeout.getTimeout(), timeout.getUnit());
   }

@@ -43,10 +43,10 @@ public class TimeExpiration implements Expiration<Poolable> {
   public TimeExpiration(long maxPermittedAge, TimeUnit unit) {
     if (maxPermittedAge < 1) {
       throw new IllegalArgumentException(
-          "max permitted age cannot be less than 1");
+          "Max permitted age cannot be less than 1");
     }
     if (unit == null) {
-      throw new IllegalArgumentException("unit cannot be null");
+      throw new IllegalArgumentException("The TimeUnit cannot be null");
     }
     maxPermittedAgeMillis = unit.toMillis(maxPermittedAge);
   }

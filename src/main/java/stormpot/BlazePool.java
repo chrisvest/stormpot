@@ -90,7 +90,7 @@ public class BlazePool<T extends Poolable>
   public T claim(Timeout timeout)
       throws PoolException, InterruptedException {
     if (timeout == null) {
-      throw new IllegalArgumentException("timeout cannot be null");
+      throw new IllegalArgumentException("Timeout cannot be null");
     }
     BSlot<T> slot = tlr.get();
     // Note that the TLR slot at this point might have been tried by another
@@ -195,19 +195,19 @@ public class BlazePool<T extends Poolable>
         // tlr-claimed to live.
         slot.claim2live();
         live.offer(poisonPill);
-        throw new IllegalStateException("pool is shut down");
+        throw new IllegalStateException("Pool has been shut down");
       } else {
         kill(slot);
         if (isTlr) {
           return true;
         } else {
-          throw new PoolException("allocation failed", poison);
+          throw new PoolException("Allocation failed", poison);
         }
       }
     }
     if (shutdown) {
       kill(slot);
-      throw new IllegalStateException("pool is shut down");
+      throw new IllegalStateException("Pool has been shut down");
     }
     boolean invalid = true;
     RuntimeException exception = null;
@@ -256,7 +256,8 @@ public class BlazePool<T extends Poolable>
   @Override
   public void setTargetSize(int size) {
     if (size < 1) {
-      throw new IllegalArgumentException("target size must be at least 1");
+      throw new IllegalArgumentException(
+          "Target pool size must be at least 1");
     }
     if (shutdown) {
       return;

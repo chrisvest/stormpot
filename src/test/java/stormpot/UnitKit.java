@@ -60,7 +60,7 @@ class UnitKit {
         try {
           return pool.claim(timeout);
         } catch (InterruptedException e) {
-          throw new PoolException("claim interrupted", e);
+          throw new PoolException("Claim interrupted", e);
         }
       }
     };

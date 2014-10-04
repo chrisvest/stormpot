@@ -77,16 +77,16 @@ public class QueuePool<T extends Poolable>
   private void checkForPoison(QSlot<T> slot) {
     if (slot == poisonPill) {
       live.offer(poisonPill);
-      throw new IllegalStateException("pool is shut down");
+      throw new IllegalStateException("Pool has been shut down");
     }
     if (slot.poison != null) {
       Exception poison = slot.poison;
       dead.offer(slot);
-      throw new PoolException("allocation failed", poison);
+      throw new PoolException("Allocation failed", poison);
     }
     if (shutdown) {
       dead.offer(slot);
-      throw new IllegalStateException("pool is shut down");
+      throw new IllegalStateException("Pool has been shut down");
     }
   }
 
@@ -116,7 +116,7 @@ public class QueuePool<T extends Poolable>
   public T claim(Timeout timeout) throws PoolException,
       InterruptedException {
     if (timeout == null) {
-      throw new IllegalArgumentException("timeout cannot be null");
+      throw new IllegalArgumentException("Timeout cannot be null");
     }
     QSlot<T> slot;
     long deadline = timeout.getDeadline();
@@ -141,7 +141,7 @@ public class QueuePool<T extends Poolable>
   @Override
   public void setTargetSize(int size) {
     if (size < 1) {
-      throw new IllegalArgumentException("target size must be at least 1");
+      throw new IllegalArgumentException("Target pool size must be at least 1");
     }
     if (shutdown) {
       return;

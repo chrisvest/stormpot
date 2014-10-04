@@ -214,7 +214,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
       if (slot.obj == null) {
         poisonedSlots++;
         failedAllocationCount++;
-        slot.poison = new NullPointerException("allocation returned null");
+        slot.poison = new NullPointerException("Allocation returned null");
       } else {
         allocationCount++;
       }
@@ -259,7 +259,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
         if (slot.obj == null) {
           poisonedSlots++;
           failedAllocationCount++;
-          slot.poison = new NullPointerException("reallocation returned null");
+          slot.poison = new NullPointerException("Reallocation returned null");
         } else {
           allocationCount++;
         }

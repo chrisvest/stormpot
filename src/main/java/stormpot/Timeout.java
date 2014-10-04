@@ -43,7 +43,7 @@ public class Timeout {
    */
   public Timeout(long timeout, TimeUnit unit) {
     if (unit == null) {
-      throw new IllegalArgumentException("unit cannot be null");
+      throw new IllegalArgumentException("The TimeUnit cannot be null");
     }
     this.timeout = timeout;
     this.unit = unit;
