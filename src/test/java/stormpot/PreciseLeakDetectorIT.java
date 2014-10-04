@@ -16,6 +16,8 @@
 package stormpot;
 
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
+import stormpot.slow.SlowTest;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -25,6 +27,7 @@ import java.util.Set;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+@Category(SlowTest.class)
 public class PreciseLeakDetectorIT {
   private PreciseLeakDetector detector = new PreciseLeakDetector();
 

@@ -19,6 +19,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
@@ -40,6 +41,7 @@ import static stormpot.AlloKit.*;
 import static stormpot.ExpireKit.*;
 
 @SuppressWarnings("unchecked")
+@Category(SlowTest.class)
 @RunWith(Theories.class)
 public class PoolIT {
   @Rule public final TestRule failurePrinter = new FailurePrinterTestRule();
