@@ -26,6 +26,7 @@ import javax.management.JMX;
 import javax.management.MBeanServer;
 import javax.management.MBeanServerFactory;
 import javax.management.ObjectName;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -2465,7 +2466,7 @@ public class PoolTest {
     assertThat(managedPool.getLeakedObjectsCount(), is(0L));
   }
 
-  @Test(timeout = 601)
+  @Test(timeout = 6010)
   @Theory public void
   managedPoolMustCountLeakedObjects(PoolFixture fixture) throws Exception {
     config.setSize(2);
@@ -2478,12 +2479,62 @@ public class PoolTest {
 
     // A run of the GC will null out the weak-refs:
     System.gc();
+    System.gc();
+    System.gc();
 
     pool = null; // null out the pool because we can no longer shut it down.
     assertThat(managedPool.getLeakedObjectsCount(), is(1L));
   }
 
-  @Test(timeout = 601)
+  @Test(timeout = 6010)
+  @Theory public void
+  mustNotHoldOnToDeallocatedObjectsWhenLeakDetectionIsEnabled(
+      PoolFixture fixture) throws Exception {
+    // It's enabled by default
+    AtomicBoolean hasExpired = new AtomicBoolean();
+    config.setExpiration(expire($expiredIf(hasExpired)));
+    createPool(fixture);
+
+    // Allocate an object
+    GenericPoolable obj = pool.claim(longTimeout);
+    WeakReference<GenericPoolable> weakReference =
+        new WeakReference<GenericPoolable>(obj);
+    obj.release();
+    obj = null;
+
+    // Send it back for reallocation
+    hasExpired.set(true);
+    obj = pool.claim(zeroTimeout);
+    if (obj != null) {
+      obj.release();
+    }
+    // Wait for the reallocation to complete
+    hasExpired.set(false);
+    pool.claim(longTimeout).release();
+
+    // Clear the allocator lists to remove the last references
+    allocator.clearLists();
+
+    // GC to force the object through finalization life cycle
+    System.gc();
+    System.gc();
+    System.gc();
+
+    // Now our weakReference must have been cleared
+    assertNull(weakReference.get());
+  }
+
+  @Test(timeout = 6010)
+  @Theory public void
+  mustNotHoldOnToDeallocatedObjectsWhenLeakDetectionIsDisabled(
+      PoolFixture fixture) throws Exception {
+    // It's enabled by default, so just change that setting and run the same
+    // test as above
+    config.setPreciseLeakDetectionEnabled(false);
+    mustNotHoldOnToDeallocatedObjectsWhenLeakDetectionIsEnabled(fixture);
+  }
+
+  @Test(timeout = 6010)
   @Theory public void
   managedPoolMustNotCountShutDownAsLeak(PoolFixture fixture) throws Exception {
     config.setSize(2);
@@ -2492,10 +2543,12 @@ public class PoolTest {
     pool.shutdown().await(longTimeout);
     allocator.clearLists();
     System.gc();
+    System.gc();
+    System.gc();
     assertThat(managedPool.getLeakedObjectsCount(), is(0L));
   }
 
-  @Test(timeout = 601)
+  @Test(timeout = 6010)
   @Theory public void
   managedPoolMustNotCountResizeAsLeak(PoolFixture fixture) throws Exception {
     config.setSize(2);
@@ -2507,6 +2560,9 @@ public class PoolTest {
     while (allocator.countDeallocations() < 3) {
       spinwait(1);
     }
+    allocator.clearLists();
+    System.gc();
+    System.gc();
     System.gc();
     assertThat(managedPool.getLeakedObjectsCount(), is(0L));
   }
