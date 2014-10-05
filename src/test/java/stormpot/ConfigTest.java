@@ -19,6 +19,9 @@ import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ThreadFactory;
 
 import static java.lang.Double.NaN;
@@ -218,7 +221,7 @@ public class ConfigTest {
   }
 
   @Test public void
-  getAdaptedReallocatorMustInstrumentDeallocateMethodOnRellocatorIfMetricsRecorderConfigured()
+  getAdaptedReallocatorMustInstrumentDeallocateMethodOnReallocatorIfMetricsRecorderConfigured()
       throws Exception {
     MetricsRecorder r = new LastSampleMetricsRecorder();
     config.setMetricsRecorder(r);
@@ -232,7 +235,7 @@ public class ConfigTest {
   }
 
   @Test public void
-  getAdaptedReallocatorMustInstrumentThrowingDeallocateMethodOnRellocatorIfMetricsRecorderConfigured()
+  getAdaptedReallocatorMustInstrumentThrowingDeallocateMethodOnReallocatorIfMetricsRecorderConfigured()
       throws Exception {
     MetricsRecorder r = new LastSampleMetricsRecorder();
     config.setMetricsRecorder(r);
@@ -308,5 +311,26 @@ public class ConfigTest {
   backgroundExpirationMystBeSettable() {
     config.setBackgroundExpirationEnabled(true);
     assertTrue(config.isBackgroundExpirationEnabled());
+  }
+
+  @Test public void
+  allSetterMethodsMustReturnTheSameConfigInstance() throws Exception {
+    Method[] methods = Config.class.getDeclaredMethods();
+    List<Method> setterMethods = new ArrayList<Method>();
+    for (Method method : methods) {
+      if (method.getName().startsWith("set")) {
+        setterMethods.add(method);
+      }
+    }
+
+    for (Method setter : setterMethods) {
+      Class<?> parameterType = setter.getParameterTypes()[0];
+      Object arg =
+          parameterType == Boolean.TYPE? true :
+          parameterType == Integer.TYPE? 1 : null;
+      Object result = setter.invoke(config, arg);
+      assertThat("return value of setter " + setter,
+          result, sameInstance((Object) config));
+    }
   }
 }

@@ -15,12 +15,15 @@
  */
 package stormpot;
 
-import static org.junit.Assert.*;
-import static org.hamcrest.Matchers.*;
+import org.junit.Test;
 
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Test;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.*;
 
 public class TimeoutTest {
   @Test(expected = IllegalArgumentException.class) public void
@@ -33,6 +36,13 @@ public class TimeoutTest {
     // because it means we don't want to do any waiting at all.
     new Timeout(0, TimeUnit.DAYS);
     new Timeout(-1, TimeUnit.DAYS);
+  }
+
+  @Test public void
+  nonBaseValuesMustBeReproducible() {
+    Timeout timeout = new Timeout(13, TimeUnit.MILLISECONDS);
+    assertThat(timeout.getTimeout(), is(13L));
+    assertThat(timeout.getUnit(), is(TimeUnit.MILLISECONDS));
   }
   
   @Test public void
@@ -110,5 +120,25 @@ public class TimeoutTest {
     long timeoutBaseA = a.getTimeoutInBaseUnit();
     long timeoutBaseB = b.getTimeoutInBaseUnit();
     assertTrue(timeoutBaseA == timeoutBaseB);
+  }
+
+  @Test public void
+  equalTimeoutsMustHaveSameHashCode() {
+    Random rng = new Random();
+    TimeUnit[] units = TimeUnit.values();
+    int[] magnitudes = new int[] {1, 24, 60, 1000};
+
+    for (int i = 0; i < 1000000; i++) {
+      TimeUnit unitA = units[rng.nextInt(units.length)];
+      TimeUnit unitB = units[rng.nextInt(units.length)];
+      int magnitudeA = magnitudes[rng.nextInt(magnitudes.length)];
+      int magnitudeB = magnitudes[rng.nextInt(magnitudes.length)];
+      Timeout timeoutA = new Timeout(magnitudeA, unitA);
+      Timeout timeoutB = new Timeout(magnitudeB, unitB);
+
+      if (timeoutA.equals(timeoutB)) {
+        assertThat(timeoutA + " = " + timeoutB, timeoutA, equalTo(timeoutB));
+      }
+    }
   }
 }

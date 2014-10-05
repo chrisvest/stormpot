@@ -307,7 +307,8 @@ public class Config<T extends Poolable> {
     return backgroundExpirationEnabled;
   }
 
-  public synchronized void setBackgroundExpirationEnabled(boolean enabled) {
+  public synchronized Config<T> setBackgroundExpirationEnabled(boolean enabled) {
     backgroundExpirationEnabled = enabled;
+    return this;
   }
 }

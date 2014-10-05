@@ -2456,9 +2456,10 @@ public class PoolTest {
     b.release();
     pool.setTargetSize(1);
     deallocLatch.await();
-    assertThat(
-        managedPool.getObjectLifetimePercentile(0.0),
-        allOf(greaterThanOrEqualTo(5.0), not(Double.NaN)));
+    assertThat(managedPool.getObjectLifetimePercentile(0.0), allOf(
+        greaterThanOrEqualTo(5.0),
+        not(Double.NaN),
+        lessThan(50000.0)));
   }
 
   @Test(timeout = 601)
@@ -2641,16 +2642,15 @@ public class PoolTest {
   @Theory public void
   mustCheckObjectExpirationInBackgroundWhenEnabled(
       PoolFixture fixture) throws Exception {
+    CountDownLatch latch = new CountDownLatch(1);
     CountingReallocator reallocator = reallocator();
-    CountingExpiration expiration = expire($expired, $fresh);
+    CountingExpiration expiration = expire($expired, $countDown(latch, $fresh));
     config.setExpiration(expiration);
     config.setAllocator(reallocator);
     config.setBackgroundExpirationEnabled(true);
     createPool(fixture);
 
-    while (expiration.countExpirations() < 1) {
-      Thread.sleep(1);
-    }
+    latch.await();
 
     assertThat(reallocator.countAllocations(), is(1));
     assertThat(reallocator.countDeallocations(), is(0));
