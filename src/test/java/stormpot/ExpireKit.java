@@ -77,7 +77,7 @@ public class ExpireKit {
     return new CountingExpirationImpl(checks);
   }
 
-  public static Expire $fresh = new Expire() {
+  public static final Expire $fresh = new Expire() {
     @Override
     public boolean hasExpired(
         SlotInfo<? extends Poolable> info) throws Exception {
@@ -85,7 +85,7 @@ public class ExpireKit {
     }
   };
 
-  public static Expire $expired = new Expire() {
+  public static final Expire $expired = new Expire() {
     @Override
     public boolean hasExpired(
         SlotInfo<? extends Poolable> info) throws Exception {

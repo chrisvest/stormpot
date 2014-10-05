@@ -419,8 +419,11 @@ public class PoolTest {
     pool.claim(longTimeout).release();
     pool.claim(longTimeout).release();
     pool.claim(longTimeout).release();
-    // we have made claims, and the expiration ought to have noted this
-    assertThat(claims.get(), greaterThan(1L));
+    // We have made claims, and the expiration ought to have noted this.
+    // We should observe a claim-count of 2, rather than 3, because the
+    // expiration only gets to see past claims, not the one that is being
+    // processed at the time the expiration check happens.
+    assertThat(claims.get(), is(2L));
   }
   
   /**
@@ -2354,6 +2357,47 @@ public class PoolTest {
 
   @Test(timeout = 601)
   @Theory public void
+  managedPoolMustCountReallocationsFailingWithExceptions(
+      PoolFixture fixture) throws Exception {
+    config.setSize(1);
+    Exception exception = new Exception("boo");
+    config.setAllocator(reallocator(realloc($throw(exception), $new)));
+    config.setExpiration(expire($expired, $fresh));
+    ManagedPool managedPool = assumeManagedPool(fixture);
+
+    GenericPoolable obj = null;
+    do {
+      try {
+        obj = pool.claim(longTimeout);
+      } catch (PoolException ignore) {}
+    } while (obj == null);
+    obj.release();
+
+    assertThat(managedPool.getFailedAllocationCount(), is(1L));
+  }
+
+  @Test(timeout = 601)
+  @Theory public void
+  managedPoolMustCountReallocationsFailingByReturningNull(
+      PoolFixture fixture) throws Exception {
+    config.setSize(1);
+    config.setAllocator(reallocator(realloc($null, $new)));
+    config.setExpiration(expire($expired, $fresh));
+    ManagedPool managedPool = assumeManagedPool(fixture);
+
+    GenericPoolable obj = null;
+    do {
+      try {
+        obj = pool.claim(longTimeout);
+      } catch (PoolException ignore) {}
+    } while (obj == null);
+    obj.release();
+
+    assertThat(managedPool.getFailedAllocationCount(), is(1L));
+  }
+
+  @Test(timeout = 601)
+  @Theory public void
   managedPoolMustAllowGettingAndSettingPoolTargetSize(PoolFixture fixture) {
     config.setSize(2);
     ManagedPool managedPool = assumeManagedPool(fixture);
@@ -2450,9 +2494,10 @@ public class PoolTest {
     semaphore.release(1);
     obj = pool.claim(longTimeout); // wait for reallocation
     try {
-      assertThat(
-          managedPool.getObjectLifetimePercentile(0.0),
-          allOf(greaterThanOrEqualTo(5.0), not(Double.NaN)));
+      assertThat(managedPool.getObjectLifetimePercentile(0.0), allOf(
+          greaterThanOrEqualTo(5.0),
+          not(Double.NaN),
+          lessThan(50000.0)));
     } finally {
       obj.release();
     }
