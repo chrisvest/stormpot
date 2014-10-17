@@ -132,9 +132,9 @@
           <targetClasses>
             <param>stormpot.*</param>
           </targetClasses>
-          <excludeGroups>
-            <excludeGroup>stormpot.slow.SlowTest</excludeGroup>
-          </excludeGroups>
+          <excludedGroups>
+            <excludedGroup>stormpot.slow.SlowTest</excludedGroup>
+          </excludedGroups>
           <threads>4</threads>
           <jvmArgs>
             <value>-ea</value>
