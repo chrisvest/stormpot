@@ -10,7 +10,7 @@ Both the `QueuePool` and the `BlazePool` implement the `ManagedPool` interface, 
 
 MXBeans differ from MBeans, in that they do not make use of any types that are not already part of the JRE.
 This makes it easier for tools to integrate with MXBeans.
-For instance, if you expose a Stormpot pool through the so-called platform `MBeanServer`, then you will be able to monitor and manage it with tools such as VisualVM.
+For instance, if you expose a Stormpot pool through the so-called platform `MBeanServer`, then you will be able to monitor and manage it with tools such as VisualVM and Java Mission Control.
 Here is an example how you could a pool through the platform `MBeanServer`:
 
 [source,java]

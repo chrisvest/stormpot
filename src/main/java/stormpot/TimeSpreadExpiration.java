@@ -35,8 +35,8 @@ public class TimeSpreadExpiration implements Expiration<Poolable> {
    * than the given lower bound, before they get older than the upper bound,
    * in the given time unit.
    *
-   * If the +lowerBound+ is less than 1, the +upperBound+ is less than the
-   * +lowerBound+, or the +unit+ is +null+, then an
+   * If the `lowerBound` is less than 1, the `upperBound` is less than the
+   * `lowerBound`, or the `unit` is `null`, then an
    * {@link java.lang.IllegalArgumentException} will be thrown.
    *
    * @param lowerBound Poolables younger than this, in the given unit, are not
@@ -44,7 +44,7 @@ public class TimeSpreadExpiration implements Expiration<Poolable> {
    * @param upperBound Poolables older than this, in the given unit, are always
    *                   considered expired. This value must be greater than the
    *                   lowerBound.
-   * @param unit The {@link TimeUnit} of the bounds values. Never +null+.
+   * @param unit The {@link TimeUnit} of the bounds values. Never `null`.
    */
   public TimeSpreadExpiration(
       long lowerBound,
@@ -66,9 +66,9 @@ public class TimeSpreadExpiration implements Expiration<Poolable> {
   }
 
   /**
-   * Returns +true+, with uniformly increasing probability, if the
+   * Returns `true`, with uniformly increasing probability, if the
    * {@link stormpot.Poolable} represented by the given {@link SlotInfo} is
-   * older than the lower bound, eventually returning +true+ with
+   * older than the lower bound, eventually returning `true` with
    * 100% certainty when the age of the Poolable is equal to or greater than
    * the upper bound.
    *

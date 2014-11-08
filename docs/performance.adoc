@@ -31,7 +31,13 @@ Essentially, we want to amortise the cost of the expensive check.
 One way we can accomplish this, is by pessimistically expiring objects after they have been live for only a short while, like a few seconds, for instance, depending on how much activity the pool is exposed to.
 Then have the pool be configured with a `Reallocator` that does the expensive check in its `reallocate` method, and returns the object back into the pool if it hadn't expired after all.
 
+A less elaborate amortisation mechanism can be built, by storing a re-check deadline in the `stamp` of the `SlotInfo`.
+Then you just have to check if the current time is greater than the stamp, and if so, do the expensive check and put a new deadline in the stamp.
+
 === Overriding the Default Queue Implementation
+
+NOTE: The internals of how Stormpot implements blocking behaviour, and the fact that it uses queues under the hood, is implementation and version specific, and by no means guaranteed to work the same way in future versions.
+This description is for version 2.3.
 
 Stormpot uses `BlockingQueue` objects under the hood, to transfer objects between the user threads and the dedicated allocation thread, and to implement its blocking behaviour.
 By default, it uses `j.u.c.LinkedTransferQueue` if it is available on the classpath, e.g. with Java 7 and beyond, but otherwise falls back to the `j.u.c.LinkedBlockingQueue`.

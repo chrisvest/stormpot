@@ -3,7 +3,7 @@
 Stormpot has an invasive API which means that there is a minimum of things your
 code needs to do to use it.
 However, the requirements are quite benign, as this section is all about showing you.
-The objects that you store in a Stormpot pool needs to implement the `Poolable` interface. The absolute minimum amount of code required for its implementation is this:
+The objects that you manage with a Stormpot pool needs to implement the `Poolable` interface. The absolute minimum amount of code required for its implementation is this:
 
 [source,java]
 --

@@ -59,7 +59,7 @@ public interface Allocator<T extends Poolable> {
    * Implementers do not need to concern themselves with the details of a
    * pools slot objects. They just have to call release on them as the
    * protocol demands.
-   * @return A newly created instance of T. Never +null+.
+   * @return A newly created instance of T. Never `null`.
    * @throws Exception If the allocation fails.
    */
   T allocate(Slot slot) throws Exception;

@@ -34,12 +34,12 @@ public class Timeout {
   
   /**
    * Construct a new timeout with the given value and unit. The unit cannot be
-   * +null+, but the timeout value is unrestricted. The meaning of a
+   * `null`, but the timeout value is unrestricted. The meaning of a
    * negative timeout value is specific to the implementation of the use site,
    * but typically means that no amount of blocking or waiting is tolerated.
    * @param timeout A numerical value for the timeout. Can be zero or negative,
    * though the meaning is implementation specific.
-   * @param unit The unit of the timeout value. Never +null+.
+   * @param unit The unit of the timeout value. Never `null`.
    */
   public Timeout(long timeout, TimeUnit unit) {
     if (unit == null) {
@@ -60,7 +60,7 @@ public class Timeout {
 
   /**
    * Get the unit for the {@link #getTimeout() timeout value}.
-   * @return The {@link TimeUnit} of the timeout value. Never +null+.
+   * @return The {@link TimeUnit} of the timeout value. Never `null`.
    */
   public TimeUnit getUnit() {
     return unit;
@@ -123,8 +123,8 @@ public class Timeout {
   /**
    * Timeouts of equivalent duration are equal, even if they were constructed
    * with different units.
-   * @return +true+ if this Timeout value is equal to the given
-   * Timeout value, +false+ otherwise.
+   * @return `true` if this Timeout value is equal to the given
+   * Timeout value, `false` otherwise.
    */
   @Override
   public boolean equals(Object obj) {

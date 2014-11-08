@@ -32,13 +32,13 @@ public class TimeExpiration implements Expiration<Poolable> {
    * Construct a new Expiration that will invalidate objects that are older
    * than the provided span of time in the given unit.
    *
-   * If the +maxPermittedAge+ is less than one, or the +unit+ is +null+, then
+   * If the `maxPermittedAge` is less than one, or the `unit` is `null`, then
    * an {@link IllegalArgumentException} will be thrown.
    * 
    * @param maxPermittedAge Poolables older than this, in the given unit, will
    * be considered expired. This value must be at least 1.
    * @param unit The {@link TimeUnit} of the maximum permitted age. Never
-   * +null+.
+   * `null`.
    */
   public TimeExpiration(long maxPermittedAge, TimeUnit unit) {
     if (maxPermittedAge < 1) {
@@ -52,7 +52,7 @@ public class TimeExpiration implements Expiration<Poolable> {
   }
 
   /**
-   * Returns +true+ if the {@link Poolable} represented by the given
+   * Returns `true` if the {@link Poolable} represented by the given
    * {@link SlotInfo} is older than the maximum age permitted by this
    * TimeExpiration.
    */

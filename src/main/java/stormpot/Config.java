@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
  *
  * This class is made thread-safe by having the fields be protected by the
  * intrinsic object lock on the Config object itself. This way, pools can
- * +synchronize+ on the config object to read the values out
+ * `synchronize` on the config object to read the values out
  * atomically.
  *
  * The various set* methods are made to return the Config instance itself, so
@@ -102,8 +102,8 @@ public class Config<T extends Poolable> {
    * want to configure. This will change the type-parameter of the Config
    * object to match that of the new Allocator.
    *
-   * The allocator is initially +null+ in a new Config object, and can be set
-   * to +null+ any time. However, in a standard configuration, it must be
+   * The allocator is initially `null` in a new Config object, and can be set
+   * to `null` any time. However, in a standard configuration, it must be
    * non-null when the Config is passed to a Pool constructor. Otherwise the
    * constructor will throw an {@link IllegalArgumentException}.
    * @param allocator The allocator we want our pools to use.
@@ -218,7 +218,7 @@ public class Config<T extends Poolable> {
   /**
    * Return whether or not precise object leak detection is enabled, which is
    * the case by default.
-   * @return +true+ if precise object leak detection is enabled.
+   * @return `true` if precise object leak detection is enabled.
    * @see #setPreciseLeakDetectionEnabled(boolean)
    */
   public synchronized boolean isPreciseLeakDetectionEnabled() {
@@ -241,8 +241,8 @@ public class Config<T extends Poolable> {
    * leave enabled at all times – even in the most demanding production
    * environments.
    *
-   * @param enabled +true+ to turn on precise object leak detection (the
-   *                default) +false+ to turn it off.
+   * @param enabled `true` to turn on precise object leak detection (the
+   *                default) `false` to turn it off.
    * @return This Config instance.
    */
   public synchronized Config<T> setPreciseLeakDetectionEnabled(boolean enabled) {
@@ -251,12 +251,39 @@ public class Config<T extends Poolable> {
   }
 
   /**
+   * Return whether or not background expiration is enabled, which it is not by
+   * default.
+   * @return `true` if background expiration has been enabled.
+   * @see #setBackgroundExpirationEnabled(boolean)
+   */
+  public synchronized boolean isBackgroundExpirationEnabled() {
+    return backgroundExpirationEnabled;
+  }
+
+  /**
+   * Enable or disable background object expiration checking. This is disabled
+   * by default, because the pool does not know how expensive this check is.
+   * The cost of the check matters because it might end up taking resources
+   * away from the background thread and hinder its ability to keep up with the
+   * demand for allocations and deallocations, even though these tasks always
+   * take priority over any expiration checking.
+   *
+   * @param enabled `true` to turn background expiration checking on, `false`
+   *                (the default) to turn it off.
+   * @return This Config instance.
+   */
+  public synchronized Config<T> setBackgroundExpirationEnabled(boolean enabled) {
+    backgroundExpirationEnabled = enabled;
+    return this;
+  }
+
+  /**
    * Check that the configuration is valid in terms of the *standard
    * configuration*. This method is useful in the
    * Pool implementation constructors.
    * @throws IllegalArgumentException If the size is less than one, if the
-   * {@link Expiration} is +null+, if the {@link Allocator} is +null+, or if
-   * the ThreadFactory is +null+.
+   * {@link Expiration} is `null`, if the {@link Allocator} is `null`, or if
+   * the ThreadFactory is `null`.
    * @deprecated This method will be removed in version 3.0. No alternative is
    * provided, because it is really an internal API.
    */
@@ -278,10 +305,10 @@ public class Config<T extends Poolable> {
   }
 
   /**
-   * Returns +null+ if no allocator has been configured.
-   * Otherwise returns a +Reallocator+, possibly by adapting the configured
-   * +Allocator+ if need be.
-   * If a +MetricsRecorder+ has been configured, the return +Reallocator+ will
+   * Returns `null` if no allocator has been configured.
+   * Otherwise returns a `Reallocator`, possibly by adapting the configured
+   * `Allocator` if need be.
+   * If a `MetricsRecorder` has been configured, the return `Reallocator` will
    * automatically record allocation, reallocation and deallocation latencies.
    */
   Reallocator<T> getAdaptedReallocator() {
@@ -301,14 +328,5 @@ public class Config<T extends Poolable> {
       return new TimingReallocatingAdaptor<T>(
           (Allocator<T>) allocator, metricsRecorder);
     }
-  }
-
-  public synchronized boolean isBackgroundExpirationEnabled() {
-    return backgroundExpirationEnabled;
-  }
-
-  public synchronized Config<T> setBackgroundExpirationEnabled(boolean enabled) {
-    backgroundExpirationEnabled = enabled;
-    return this;
   }
 }

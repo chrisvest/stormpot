@@ -68,9 +68,9 @@ public interface Expiration<T extends Poolable> {
    * has a big influence on the perceived performance of the pool.
    *
    * @param info An informative representative of the slot being tested.
-   * Never +null+.
-   * @return +true+ if the Slot and Poolable in question should be
-   * deallocated, +false+ if it is valid and eligible for claiming.
+   * Never `null`.
+   * @return `true` if the Slot and Poolable in question should be
+   * deallocated, `false` if it is valid and eligible for claiming.
    * @throws Exception If checking the validity of the Slot or Poolable somehow
    * went wrong. In this case, the Poolable will be assumed to be expired.
    */

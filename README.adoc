@@ -19,7 +19,6 @@ It is faster and scales better than any competing pool.
  * Simple versioning: X.Y where Y{plus}{plus} is backwards compatible, and X{plus}{plus} is
    backwards incompatible.
 
-
 == Why choose Stormpot?
 
 There are a number of options out there, when it comes to object pools on the
@@ -37,6 +36,8 @@ operation. Some of the things that sets Stormpot apart include:
    sporadic backend (Allocator) failures.
    (since 2.2)
  * Precise object leak detection with virtually no overhead.
+   (being added in upcoming 2.3)
+ * Optional background object expiration checking.
    (being added in upcoming 2.3)
  * And other features that makes for a smooth runtime behaviour.
 
@@ -96,7 +97,7 @@ try {
    a discussion about it by opening a pull-request or an issue. Documentation
    and javadoc is formatted with http://asciidoctor.org/[AsciiDoctor].
    The website and javadocs can be generated with
-   `mvn generate-resources javadoc:javadoc`.
+   `mvn clean pre-site javadoc:javadoc`.
  * *Fix bugs or implement features* by forking the project, but please start an
    issue about the bug or feature you want to work on (or find the existing
    issue) and describe the approach and design you have in mind. Keep in mind

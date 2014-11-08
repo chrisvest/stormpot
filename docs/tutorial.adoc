@@ -11,8 +11,8 @@ An object pool is a homogenous collection of objects.
 Whenever one such object is needed for something, it is taken from the pool, instead of being allocated anew.
 Once an object has served its purpose, it returns to the pool so that it can later be reused.
 We say the collection of pooled objects is homogenous, because it does not matter which of the objects are picked to be used in a given case.
-This is where pools differs from caches: in a cache, the elements are distinct, and have some identity by which they are looked up when needed.
-In a pool, there is nothing to look up by, and any element will do.
+This is where pools differs from caches: in a cache, the objects are distinct, and have some identity by which they are looked up when needed.
+In a pool, there is nothing to look up by, and any object will do.
 
 The purpose of the pool, is to prevent as many allocations of the pooled objects as possible, with as little overhead as possible.
 If the objects being pooled represent a limited resource, a secondary purpose of the pool, is to enforce an upper bound on the number of these objects that are in use, at any given time.
@@ -49,7 +49,6 @@ This leaves us with only two good cases for object pooling:
 
 Java already does thread pooling with the `Executors` framework, so this use case is solved.
 This leaves network connections -- for instance to a database, or some other kind of remote service -- as the archetypical example of something you want to pool.
-All other cases are better handled by the garbage collector.
 
 === The Elements of an Object Pool
 
@@ -141,7 +140,7 @@ Failed allocations may bubble out of `claim` calls, as the cause a `PoolExceptio
 They might also not bubble out, because the pool keeps track of how many allocations have failed, and will automatically retry the allocations until they succeed.
 If that happens, the exception is simply discarded.
 This is called proactive reallocation.
-Meanwhile, failed allocations still count towards the size of the pool, so there are only so many exceptions that the pool can contain.
+Meanwhile, failed allocations still count towards the size of the pool, so there are only so many exceptions that the pool can contain at a time.
 
 This combination of bubbling exceptions out through `claim`, and proactive reallocation, means that the pool copes well with failure.
 If there are periods where the allocator cannot create new objects – for instance if the objects need some kind of network connection, but the network has been disconnected – then the user code that calls `claim` will not wait for the entire duration of the timeout, to be notified of the failure condition, but instead immediately get an exception.
@@ -176,7 +175,7 @@ Whether or not an object has expired is decided by the configured `Expiration` s
 The `hasExpired` method of the configured expiration is therefor very performance critical, as it may be called more than once for every call to the claim method.
 
 You can implement and configure your own `Expiration` implementation if you want, but Stormpot also comes with a couple of implementations of its own.
-The default expiration implementation is a `TimeSpreadExpiration` that is configured to expire objects after they have been live for somewhere between 8 and 10 minutes.
+The default expiration implementation is a `TimeSpreadExpiration` that is configured to expire objects after they have been live for somewhere between 8 to 10 minutes.
 This implementation chooses the expiration age randomly on a per object bases, and thereby avoids expiring all objects at the same time.
 
 ==== Pool Resizing

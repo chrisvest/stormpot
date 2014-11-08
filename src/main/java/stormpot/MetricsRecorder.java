@@ -49,7 +49,7 @@ public interface MetricsRecorder {
   /**
    * Record a latency sample of a failed allocation, in milliseconds. This is
    * the time it took for a call to {@link Allocator#allocate(Slot)} to throw
-   * an exception or return null.
+   * an exception or return `null`.
    * @param milliseconds How many milliseconds transpired before the allocation
    *                     failed.
    */
@@ -75,7 +75,7 @@ public interface MetricsRecorder {
    * Record a latency sample of a failed reallocation, in milliseconds. This is
    * the time it took for a call to
    * {@link Reallocator#reallocate(Slot, Poolable)} to throw an exception or
-   * return null.
+   * return `null`.
    * @param milliseconds How many milliseconds transpired before the
    *                     reallocation failed.
    */
@@ -104,8 +104,8 @@ public interface MetricsRecorder {
    * For instance, if given the percentile 0.9 returns 120, then 90% of all
    * recorded latency samples will be less than or equal to 120 milliseconds.
    *
-   * Note: Implementers should strive to return Double.NaN as a sentinel value,
-   * if they do not support recording of the allocation latencies and/or
+   * Note: Implementers should strive to return `Double.NaN` as a sentinel
+   * value, if they do not support recording of the allocation latencies and/or
    * returning a specific percentile of such recordings.
    * @param percentile The percentile/quantile to get a value for.
    * @return The latency value in milliseconds for the given
@@ -125,8 +125,8 @@ public interface MetricsRecorder {
    * For instance, if given the percentile 0.9 returns 120, then 90% of all
    * recorded latency samples will be less than or equal to 120 milliseconds.
    *
-   * Note: Implementers should strive to return Double.NaN as a sentinel value,
-   * if they do not support recording of the allocation latencies and/or
+   * Note: Implementers should strive to return `Double.NaN` as a sentinel
+   * value, if they do not support recording of the allocation latencies and/or
    * returning a specific percentile of such recordings.
    * @param percentile The percentile/quantile to get a value for.
    * @return The latency value in milliseconds for the given
@@ -146,8 +146,8 @@ public interface MetricsRecorder {
    * For instance, if given the percentile 0.9 returns 120, then 90% of all
    * recorded latency samples will be less than or equal to 120 milliseconds.
    *
-   * Note: Implementers should strive to return Double.NaN as a sentinel value,
-   * if they do not support recording of the allocation latencies and/or
+   * Note: Implementers should strive to return `Double.NaN` as a sentinel
+   * value, if they do not support recording of the allocation latencies and/or
    * returning a specific percentile of such recordings.
    * @param percentile The percentile/quantile to get a value for.
    * @return The latency value in milliseconds for the given
@@ -167,8 +167,8 @@ public interface MetricsRecorder {
    * For instance, if given the percentile 0.9 returns 120, then 90% of all
    * recorded latency samples will be less than or equal to 120 milliseconds.
    *
-   * Note: Implementers should strive to return Double.NaN as a sentinel value,
-   * if they do not support recording of the allocation latencies and/or
+   * Note: Implementers should strive to return `Double.NaN` as a sentinel
+   * value, if they do not support recording of the allocation latencies and/or
    * returning a specific percentile of such recordings.
    * @param percentile The percentile/quantile to get a value for.
    * @return The latency value in milliseconds for the given
@@ -188,8 +188,8 @@ public interface MetricsRecorder {
    * For instance, if given the percentile 0.9 returns 120, then 90% of all
    * recorded latency samples will be less than or equal to 120 milliseconds.
    *
-   * Note: Implementers should strive to return Double.NaN as a sentinel value,
-   * if they do not support recording of the allocation latencies and/or
+   * Note: Implementers should strive to return `Double.NaN` as a sentinel
+   * value, if they do not support recording of the allocation latencies and/or
    * returning a specific percentile of such recordings.
    * @param percentile The percentile/quantile to get a value for.
    * @return The latency value in milliseconds for the given
@@ -208,8 +208,8 @@ public interface MetricsRecorder {
    * For instance, if given the percentile 0.9 returns 120, then 90% of all
    * recorded latency samples will be less than or equal to 120 milliseconds.
    *
-   * Note: Implementers should strive to return Double.NaN as a sentinel value,
-   * if they do not support recording of the allocation latencies and/or
+   * Note: Implementers should strive to return `Double.NaN` as a sentinel
+   * value, if they do not support recording of the allocation latencies and/or
    * returning a specific percentile of such recordings.
    * @param percentile The percentile/quantile to get a value for.
    * @return The latency value in milliseconds for the given

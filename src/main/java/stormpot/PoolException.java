@@ -21,9 +21,9 @@ package stormpot;
  *
  * * If claim is called and the pool needs to
  *   {@link Allocator#allocate(Slot) allocate} a new object, but the allocation
- *   fails by returning +null+ or throwing an exception.
+ *   fails by returning `null` or throwing an exception.
  * * Likewise if the {@link Reallocator#reallocate(Slot, Poolable)} method
- *   return +null+ or throw an exception.
+ *   return `null` or throw an exception.
  * * If the {@link Slot#release(Poolable)} method is misused, and the pool is
  *   able to detect this.
  * * If the {@link Expiration#hasExpired(SlotInfo) expiration check} throws an

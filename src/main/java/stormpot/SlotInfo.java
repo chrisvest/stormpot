@@ -56,7 +56,7 @@ public interface SlotInfo<T extends Poolable> {
    * might even have claimed the Poolable and put it to use, by the time it
    * is returned from this method.
    *
-   * @return The Poolable being examined for validity. Never +null+.
+   * @return The Poolable being examined for validity. Never `null`.
    */
   T getPoolable();
 

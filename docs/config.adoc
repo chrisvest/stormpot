@@ -3,13 +3,13 @@
 == Configuration
 
 Stormpot has many configuration options, but only one is required:
-You have to specify what `Allocator`, or `Reallocator`, implementation to use.
+You have to specify what `Allocator` or `Reallocator` implementation to use.
 The rest of the configuration options are optional, though there are a couple you most likely want to tweak.
 
 === Pool Size
 
 The size of the pool is configured with `setSize`.
-This configuration determines the maximum number of objects the pool should keep in circulation, at any given time.
+This configuration determines the maximum number of objects the pool should keep in circulation at any given time.
 The default size is 10 objects.
 Note that this is a maximum.
 The pool will _never_ have more than this many objects allocated at any given time.
@@ -18,6 +18,11 @@ As it happens, the current implementations will allocate objects until the pool 
 This effectively means that there's no such thing as a low-water-mark in Stormpot.
 It also means that, if you've done your capacity planning right, you will have fairly predictable latencies in claiming objects from the pool, since the given size is exactly the number of objects the pool will contain at any time.
 On the other hand, it also means that if an object has expired, it will have to be deallocated before a replacement can be allocated.
+
+It also means that you can't mindlessly set this to some arbitrary high value and consider it done.
+The pool will really allocate this many objects, expecting them to be in demand.
+The upside to this is that if your application develops a fault where it claims objects uncontrollably, it will be prevented from allocating more objects than the system can handle.
+For instance, if the pooled objects represent connections to a database, that database will be sheltered from such a rogue application.
 
 === Object Expiration
 
@@ -65,12 +70,24 @@ NOTE: The `hasExpired` method may be called several times during every call to `
 It is therefor _very_ critical to the performance of the pool, and you should take great care to make sure that it is fast.
 In fact, it is so performance sensitive, that reading the time from the system clock, e.g. with `System#currentTimeMillis`, can be a significant drag on the performance of the pool.
 
+=== Background Expiration Checking
+
+Every Stormpot pool starts a background thread to take care of all the allocation and deallocation that needs to happen.
+This background thread can also perform expiration checks on the objects in the pool, when it has nothing better to do.
+This is off by default, however, since the time it takes to do those checks might interfere with the pools ability to keep up with the demand for allocations and deallocations.
+The pool does not know how expensive those expiration checks are.
+
+On the other hand, background expiration checks are very useful for applications that may experience periods of low activity, so the objects in the pool don't get checked for expiration through the natural traffic to the pool.
+The background expiration checks will then make sure that all the objects in the pool are kept fresh, for when the traffic picks up again.
+The application would otherwise have found itself with a pool full of expired objects, causing a reallocation storm, and high latencies to claim objects.
+
+While background expiration checking is turned off by default, it is recommended to turn it on when the check is something simple, like a `TimeExpiration` or a `TimeSpreadExpiration`, or when you are otherwise confident that it won't interfere with the pools ability to keep the pool saturated with fresh objects.
+
 === Allocator vs Reallocator
 
 An `Allocator` does two things:
-It allocates objects.
-An object that has been allocated is assumed to have a unique identity among its peers in the pool.
-An object that has been deallocated is assumed to be gone forever.
+It allocates and deallocates objects.
+A freshly allocated object is assumed to have a unique object identity among its peers, and once deallocated, is assumed to never appear again.
 
 Since objects in the pool tend to live for a relatively long time, but crucially, not forever, it means that the normal operation of the pool will most likely lead to a slow accretion of garbage in the old generation of the heap.
 Such garbage can lead to fragmentation and, eventually, an expensive old-generation garbage collection.
@@ -130,7 +147,7 @@ Stormpot has precise leak detection enabled by default, because the CPU overhead
 There is, however, a bit of memory overhead.
 Therefor, it may make sense to disable this in use cases where memory is very constrained, and/or the pool contains a very large number of objects.
 
-The precise leak detection feature, lets Stormpot keep track of when objects that were meant to circulate in the pool, suddenly leak out and never come back.
+The precise leak detection feature lets Stormpot keep track of when objects that were meant to circulate in the pool, suddenly leak out and never come back.
 The number of leaks detected is reported via the `getLeakedObjectsCount` method of the `ManagedPool` interface.
 
 This feature uses the garbage collector to determine whether or not an object has any chance of ever returning to the pool.
@@ -145,7 +162,7 @@ Such a case will not be detected by the precise leak detector.
 While precise leak detection is able to detect leaks – and a leak is always a bug in user code – it is not able to _prevent_ the leaks.
 This means that if a leak has been observed, you know for sure that the shut down process will not terminate.
 The shut down process won't finish until all allocated objects has been deallocated; which will never happen because leaked objects will remain logically claimed for perpetuity.
-In such a case it's nice that the API for awaiting on the completion of the shut down process, requires one to provide a timeout, so there's no waiting forever.
+In such a case it's nice that the API for awaiting on the completion of the shut down process mandates a timeout, so there's no waiting forever.
 
 === Complete Config Source
 

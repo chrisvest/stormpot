@@ -67,7 +67,7 @@ public interface Poolable {
    * permitting releases from threads other than the claiming thread might be
    * useful in message-passing architectures and the like, but it is not
    * generally recommendable because it makes it more complicated to keep track
-   * of object lifecycles.
+   * of object life-cycles.
    *
    * Great care must be taken, to ensure that Poolables are not used after they
    * are released!

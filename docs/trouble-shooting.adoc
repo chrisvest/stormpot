@@ -14,6 +14,8 @@ My program won't stop running, or Stormpot leaves a thread running!::
   This thread will run until the pool has been shut down with `LifecycledPool#shutdown`, and all the `Poolable` instances in it has been deallocated.
   If you have started the shut down process but it never finishes, then you have probably leaked an object.
   All objects in the pool must be released back to the pool before the shut down can complete.
+  You can configure your own `ThreadFactory` for the pool, if you want the background thread to be a daemon thread.
+  This will prevent a running pool from keeping the JVM alive after your program has otherwise finished.
 
 How do I find out if I have leaked an object?::
   There are two kinds of leaks: one where the program forgets to `release` an object back to the pool, and one where the program both forgets to `release`, and also forgets the reference to the object, so it becomes garbage collected.

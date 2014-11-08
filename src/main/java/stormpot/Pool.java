@@ -22,7 +22,7 @@ package stormpot;
  * Pools contain {@link Poolable} objects. When you claim an object in a pool,
  * you also take upon yourself the responsibility of eventually
  * {@link Poolable#release() releasing} that object again. By far the most
- * common idiom to achieve this is with a +try-finally+ clause:
+ * common idiom to achieve this is with a `try-finally` clause:
  *
  * [source,java]
  * --
@@ -48,7 +48,7 @@ public interface Pool<T extends Poolable> {
    * Possibly waiting up to the specified amount of time, as given by the
    * provided {@link Timeout} instance, for one to become available if the
    * pool has been depleted. If the timeout elapses before an object can be
-   * claimed, then +null+ is returned instead. The timeout will be
+   * claimed, then `null` is returned instead. The timeout will be
    * honoured even if the Allocators {@link Allocator#allocate(Slot) allocate}
    * methods blocks forever. If the given timeout has a zero or negative value,
    * then the method will not wait.
@@ -60,7 +60,7 @@ public interface Pool<T extends Poolable> {
    *
    * This method may throw a PoolException if the pool have trouble allocating
    * objects. That is, if its assigned Allocator throws exceptions from its
-   * allocate method, or returns +null+.
+   * allocate method, or returns `null`.
    *
    * An {@link InterruptedException} will be thrown if the thread has its
    * interrupted flag set upon entry to this method, or is interrupted while
@@ -85,17 +85,17 @@ public interface Pool<T extends Poolable> {
    * means that the call will do no waiting, preferring instead to return early
    * if no objects are available.
    * @return An object of the Poolable subtype T to which the exclusive rights
-   * have been claimed, or +null+ if the timeout period elapsed
+   * have been claimed, or `null` if the timeout period elapsed
    * before an object became available.
    * @throws PoolException If an object allocation failed because the Allocator
    * threw an exception from its allocate method, or returned
-   * +null+, or the
+   * `null`, or the
    * {@link Expiration#hasExpired(SlotInfo) expiration check} threw an
    * exception.
    * @throws InterruptedException if the current thread is
    * {@link Thread#interrupt() interrupted} upon entry, or becomes interrupted
    * while waiting.
-   * @throws IllegalArgumentException if the +timeout+ argument is +null+.
+   * @throws IllegalArgumentException if the `timeout` argument is `null`.
    */
   T claim(Timeout timeout) throws PoolException, InterruptedException;
 }

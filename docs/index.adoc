@@ -4,7 +4,7 @@ include::../README.adoc[]
 
 == Learn More
 
-There is more learn about Stormpot, than what is presented on this page.
+There is more to learn about Stormpot, than what is presented on this page.
 Bellow are some additional resources that go more in depth.
 There are two introductory texts, aimed at different levels of patience, and familiarity with object pooling concepts:
 

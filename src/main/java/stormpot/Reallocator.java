@@ -72,7 +72,7 @@ public interface Reallocator<T extends Poolable> extends Allocator<T> {
    * pools slot objects. They just have to call release on them as the
    * protocol demands.
    * @param poolable The non-null Poolable instance to be reallocated.
-   * @return A fresh or rejuvenated instance of T. Never +null+.
+   * @return A fresh or rejuvenated instance of T. Never `null`.
    * @throws Exception If the allocation fails.
    * @see #allocate(Slot)
    * @see #deallocate(Poolable)
