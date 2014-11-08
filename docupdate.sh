@@ -1,3 +1,4 @@
+#!/bin/sh
 
 mvn clean verify site
 git co gh-pages
