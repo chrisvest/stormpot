@@ -51,7 +51,7 @@ import java.util.concurrent.TimeUnit;
  * on this Config will produce.
  */
 @SuppressWarnings("unchecked")
-public class Config<T extends Poolable> {
+public class Config<T extends Poolable> implements Cloneable {
 
   private int size = 10;
   private Expiration<? super T> expiration =
@@ -275,6 +275,20 @@ public class Config<T extends Poolable> {
   public synchronized Config<T> setBackgroundExpirationEnabled(boolean enabled) {
     backgroundExpirationEnabled = enabled;
     return this;
+  }
+
+  /**
+   * Returns a shallow copy of this Config object.
+   * @return A new Config object of the exact same type as this one, with
+   * identical values in all its fields.
+   */
+  @Override
+  public final synchronized Config<T> clone() {
+    try {
+      return (Config<T>) super.clone();
+    } catch (CloneNotSupportedException e) {
+      throw new AssertionError(e);
+    }
   }
 
   /**

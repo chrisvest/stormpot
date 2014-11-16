@@ -20,6 +20,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadFactory;
@@ -30,11 +31,11 @@ import static org.junit.Assert.*;
 import static stormpot.AlloKit.*;
 
 public class ConfigTest {
-  private Config<Poolable> config;
+  private Config<GenericPoolable> config;
   
   @Before public void
   setUp() {
-    config = new Config<Poolable>();
+    config = new Config<GenericPoolable>();
   }
   
   @Test public void
@@ -65,9 +66,10 @@ public class ConfigTest {
 
   @Test public void
   mustNotReAdaptConfiguredReallocators() {
-    Reallocator<Poolable> expected = new ReallocatingAdaptor<Poolable>(null);
+    Reallocator<GenericPoolable> expected =
+        new ReallocatingAdaptor<GenericPoolable>(null);
     config.setAllocator(expected);
-    Reallocator<Poolable> actual = config.getReallocator();
+    Reallocator<GenericPoolable> actual = config.getReallocator();
     assertThat(actual, sameInstance(expected));
   }
 
@@ -133,8 +135,8 @@ public class ConfigTest {
     CountingReallocator reallocator = reallocator();
     config.setAllocator(reallocator);
     Slot slot = new NullSlot();
-    Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
-    Poolable obj = adaptedReallocator.allocate(slot);
+    Reallocator<GenericPoolable> adaptedReallocator = config.getAdaptedReallocator();
+    GenericPoolable obj = adaptedReallocator.allocate(slot);
     adaptedReallocator.reallocate(slot, obj);
 
     assertThat(reallocator.countAllocations(), is(1));
@@ -159,7 +161,7 @@ public class ConfigTest {
     MetricsRecorder r = new LastSampleMetricsRecorder();
     config.setMetricsRecorder(r);
     config.setAllocator(allocator(alloc($new, $throw(new Exception()))));
-    Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
+    Reallocator<GenericPoolable> adaptedReallocator = config.getAdaptedReallocator();
     verifyLatencies(r, is(NaN), is(NaN), is(NaN), is(NaN), is(NaN));
     adaptedReallocator.allocate(new NullSlot());
     verifyLatencies(r, is(not(NaN)), is(NaN), is(NaN), is(NaN), is(NaN));
@@ -176,7 +178,7 @@ public class ConfigTest {
     MetricsRecorder r = new LastSampleMetricsRecorder();
     config.setMetricsRecorder(r);
     config.setAllocator(reallocator(alloc($new, $throw(new Exception()))));
-    Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
+    Reallocator<GenericPoolable> adaptedReallocator = config.getAdaptedReallocator();
     verifyLatencies(r, is(NaN), is(NaN), is(NaN), is(NaN), is(NaN));
     adaptedReallocator.allocate(new NullSlot());
     verifyLatencies(r, is(not(NaN)), is(NaN), is(NaN), is(NaN), is(NaN));
@@ -193,9 +195,9 @@ public class ConfigTest {
     MetricsRecorder r = new LastSampleMetricsRecorder();
     config.setMetricsRecorder(r);
     config.setAllocator(allocator());
-    Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
+    Reallocator<GenericPoolable> adaptedReallocator = config.getAdaptedReallocator();
     verifyLatencies(r, is(NaN), is(NaN), is(NaN), is(NaN), is(NaN));
-    Poolable obj = adaptedReallocator.allocate(new NullSlot());
+    GenericPoolable obj = adaptedReallocator.allocate(new NullSlot());
     verifyLatencies(r, is(not(NaN)), is(NaN), is(NaN), is(NaN), is(NaN));
     adaptedReallocator.deallocate(obj);
     verifyLatencies(r, is(not(NaN)), is(NaN), is(not(NaN)), is(NaN), is(NaN));
@@ -207,9 +209,9 @@ public class ConfigTest {
     MetricsRecorder r = new LastSampleMetricsRecorder();
     config.setMetricsRecorder(r);
     config.setAllocator(allocator(dealloc($throw(new Exception()))));
-    Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
+    Reallocator<GenericPoolable> adaptedReallocator = config.getAdaptedReallocator();
     verifyLatencies(r, is(NaN), is(NaN), is(NaN), is(NaN), is(NaN));
-    Poolable obj = adaptedReallocator.allocate(new NullSlot());
+    GenericPoolable obj = adaptedReallocator.allocate(new NullSlot());
     verifyLatencies(r, is(not(NaN)), is(NaN), is(NaN), is(NaN), is(NaN));
     try {
       adaptedReallocator.deallocate(obj);
@@ -226,9 +228,9 @@ public class ConfigTest {
     MetricsRecorder r = new LastSampleMetricsRecorder();
     config.setMetricsRecorder(r);
     config.setAllocator(reallocator());
-    Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
+    Reallocator<GenericPoolable> adaptedReallocator = config.getAdaptedReallocator();
     verifyLatencies(r, is(NaN), is(NaN), is(NaN), is(NaN), is(NaN));
-    Poolable obj = adaptedReallocator.allocate(new NullSlot());
+    GenericPoolable obj = adaptedReallocator.allocate(new NullSlot());
     verifyLatencies(r, is(not(NaN)), is(NaN), is(NaN), is(NaN), is(NaN));
     adaptedReallocator.deallocate(obj);
     verifyLatencies(r, is(not(NaN)), is(NaN), is(not(NaN)), is(NaN), is(NaN));
@@ -240,9 +242,9 @@ public class ConfigTest {
     MetricsRecorder r = new LastSampleMetricsRecorder();
     config.setMetricsRecorder(r);
     config.setAllocator(reallocator(dealloc($throw(new Exception()))));
-    Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
+    Reallocator<GenericPoolable> adaptedReallocator = config.getAdaptedReallocator();
     verifyLatencies(r, is(NaN), is(NaN), is(NaN), is(NaN), is(NaN));
-    Poolable obj = adaptedReallocator.allocate(new NullSlot());
+    GenericPoolable obj = adaptedReallocator.allocate(new NullSlot());
     verifyLatencies(r, is(not(NaN)), is(NaN), is(NaN), is(NaN), is(NaN));
     try {
       adaptedReallocator.deallocate(obj);
@@ -259,9 +261,9 @@ public class ConfigTest {
     MetricsRecorder r = new LastSampleMetricsRecorder();
     config.setMetricsRecorder(r);
     config.setAllocator(reallocator(realloc($new, $throw(new Exception()))));
-    Reallocator<Poolable> adaptedReallocator = config.getAdaptedReallocator();
+    Reallocator<GenericPoolable> adaptedReallocator = config.getAdaptedReallocator();
     verifyLatencies(r, is(NaN), is(NaN), is(NaN), is(NaN), is(NaN));
-    Poolable obj = adaptedReallocator.allocate(new NullSlot());
+    GenericPoolable obj = adaptedReallocator.allocate(new NullSlot());
     verifyLatencies(r, is(not(NaN)), is(NaN), is(NaN), is(NaN), is(NaN));
     adaptedReallocator.reallocate(new NullSlot(), obj);
     verifyLatencies(r, is(not(NaN)), is(NaN), is(NaN), is(not(NaN)), is(NaN));
@@ -332,5 +334,57 @@ public class ConfigTest {
       assertThat("return value of setter " + setter,
           result, sameInstance((Object) config));
     }
+  }
+
+  @Test public void
+  allPublicDeclaredMethodsMustBeSynchronized() {
+    // We don't care about non-overridden public methods of the super-class
+    // (Object) because they don't operate on the state of the Config object
+    // anyway.
+    Method[] methods = Config.class.getDeclaredMethods();
+    for (Method method : methods) {
+      int modifiers = method.getModifiers();
+      int IS_SYNTHETIC = 0x00001000;
+      if (Modifier.isPublic(modifiers) && (modifiers & IS_SYNTHETIC) == 0) {
+        // That is, this method is both public AND NOT synthetic.
+        // We have to exclude synthetic methods because javac generates one for
+        // bridging the covariant override of clone().
+        assertTrue("Method '" + method + "' should be synchronized.",
+            Modifier.isSynchronized(modifiers));
+      }
+    }
+  }
+
+  @Test public void
+  configMustBeCloneable() {
+    CountingAllocator allocator = AlloKit.allocator();
+    ExpireKit.CountingExpiration expiration = ExpireKit.expire();
+    MetricsRecorder metricsRecorder = new LastSampleMetricsRecorder();
+    ThreadFactory factory = new ThreadFactory() {
+      @Override
+      public Thread newThread(Runnable r) {
+        return null;
+      }
+    };
+
+    config.setExpiration(expiration);
+    config.setAllocator(allocator);
+    config.setBackgroundExpirationEnabled(true);
+    config.setMetricsRecorder(metricsRecorder);
+    config.setPreciseLeakDetectionEnabled(false);
+    config.setSize(42);
+    config.setThreadFactory(factory);
+
+    Config<GenericPoolable> clone = config.clone();
+
+    assertThat((ExpireKit.CountingExpiration) clone.getExpiration(),
+        sameInstance(expiration));
+    assertThat((CountingAllocator) clone.getAllocator(),
+        sameInstance(allocator));
+    assertTrue(clone.isBackgroundExpirationEnabled());
+    assertThat(clone.getMetricsRecorder(), sameInstance(metricsRecorder));
+    assertFalse(clone.isPreciseLeakDetectionEnabled());
+    assertThat(clone.getSize(), is(42));
+    assertThat(clone.getThreadFactory(), sameInstance(factory));
   }
 }
