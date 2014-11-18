@@ -15,15 +15,16 @@
  */
 package stormpot;
 
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import org.junit.Test;
 
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
+import static org.junit.Assert.assertThat;
 
 public class TimeSpreadExpirationTest {
 
@@ -83,6 +84,15 @@ public class TimeSpreadExpirationTest {
         new TimeSpreadExpiration(1, 2, TimeUnit.SECONDS);
     int percentage = expirationPercentage(expiration, 1750);
     assertThat(Math.abs(percentage - 75), lessThan(2));
+  }
+
+  @Test public void
+  mustHaveNiceToString() {
+    TimeSpreadExpiration expiration =
+        new TimeSpreadExpiration(8, 10, TimeUnit.MINUTES);
+    assertThat(expiration.toString(), is("TimeSpreadExpiration(8 to 10 MINUTES)"));
+    expiration = new TimeSpreadExpiration(60, 160, TimeUnit.MILLISECONDS);
+    assertThat(expiration.toString(), is("TimeSpreadExpiration(60 to 160 MILLISECONDS)"));
   }
   
   @Test public void

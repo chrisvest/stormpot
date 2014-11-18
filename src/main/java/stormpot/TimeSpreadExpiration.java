@@ -29,6 +29,7 @@ public class TimeSpreadExpiration implements Expiration<Poolable> {
 
   private final long lowerBoundMillis;
   private final long upperBoundMillis;
+  private final TimeUnit unit;
 
   /**
    * Construct a new Expiration that will invalidate objects that are older
@@ -63,6 +64,7 @@ public class TimeSpreadExpiration implements Expiration<Poolable> {
     }
     this.lowerBoundMillis = unit.toMillis(lowerBound);
     this.upperBoundMillis = unit.toMillis(upperBound);
+    this.unit = unit;
   }
 
   /**
@@ -87,5 +89,15 @@ public class TimeSpreadExpiration implements Expiration<Poolable> {
     }
     long age = info.getAgeMillis();
     return age >= expirationAge;
+  }
+
+  /**
+   * Produces a String representation of this TimeSpreadExpiration.
+   */
+  @Override
+  public String toString() {
+    long lower = unit.convert(lowerBoundMillis, TimeUnit.MILLISECONDS);
+    long upper = unit.convert(upperBoundMillis, TimeUnit.MILLISECONDS);
+    return "TimeSpreadExpiration(" + lower + " to " + upper + " " + unit + ")";
   }
 }
