@@ -15,11 +15,14 @@
  */
 package stormpot;
 
-import static org.junit.Assert.*;
+import org.junit.Test;
 
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class TimeExpirationTest {
 
@@ -88,5 +91,14 @@ public class TimeExpirationTest {
   @Test(expected = IllegalArgumentException.class) public void
   maxPermittedAgeCannotBeLessThanOne() {
     createExpiration(0);
+  }
+
+  @Test public void
+  mustHaveNiceToString() {
+    TimeExpiration a = new TimeExpiration(42, TimeUnit.DAYS);
+    assertThat(a.toString(), is("TimeExpiration(42 DAYS)"));
+
+    TimeExpiration b = new TimeExpiration(21, TimeUnit.MILLISECONDS);
+    assertThat(b.toString(), is("TimeExpiration(21 MILLISECONDS)"));
   }
 }

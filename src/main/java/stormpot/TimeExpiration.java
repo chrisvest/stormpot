@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 public class TimeExpiration implements Expiration<Poolable> {
 
   private final long maxPermittedAgeMillis;
+  private final TimeUnit unit;
 
   /**
    * Construct a new Expiration that will invalidate objects that are older
@@ -49,6 +50,7 @@ public class TimeExpiration implements Expiration<Poolable> {
       throw new IllegalArgumentException("The TimeUnit cannot be null");
     }
     maxPermittedAgeMillis = unit.toMillis(maxPermittedAge);
+    this.unit = unit;
   }
 
   /**
@@ -59,5 +61,11 @@ public class TimeExpiration implements Expiration<Poolable> {
   @Override
   public boolean hasExpired(SlotInfo<? extends Poolable> info) {
     return info.getAgeMillis() > maxPermittedAgeMillis;
+  }
+
+  @Override
+  public String toString() {
+    long time = unit.convert(maxPermittedAgeMillis, TimeUnit.MILLISECONDS);
+    return "TimeExpiration(" + time + " " + unit + ")";
   }
 }
