@@ -1,0 +1,612 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<title>Sim xref</title>
+<link type="text/css" rel="stylesheet" href="../../stylesheet.css" />
+</head>
+<body>
+<div id="overview"><a href="../../../testapidocs/stormpot/simulations/Sim.html">View Javadoc</a></div><pre>
+
+<a class="jxr_linenumber" name="1" href="#1">1</a>   <em class="jxr_comment">/*</em>
+<a class="jxr_linenumber" name="2" href="#2">2</a>   <em class="jxr_comment"> * Copyright (C) 2011-2014 Chris Vest (mr.chrisvest@gmail.com)</em>
+<a class="jxr_linenumber" name="3" href="#3">3</a>   <em class="jxr_comment"> *</em>
+<a class="jxr_linenumber" name="4" href="#4">4</a>   <em class="jxr_comment"> * Licensed under the Apache License, Version 2.0 (the "License");</em>
+<a class="jxr_linenumber" name="5" href="#5">5</a>   <em class="jxr_comment"> * you may not use this file except in compliance with the License.</em>
+<a class="jxr_linenumber" name="6" href="#6">6</a>   <em class="jxr_comment"> * You may obtain a copy of the License at</em>
+<a class="jxr_linenumber" name="7" href="#7">7</a>   <em class="jxr_comment"> *</em>
+<a class="jxr_linenumber" name="8" href="#8">8</a>   <em class="jxr_comment"> *         <a href="http://www.apache.org/licenses/LICENSE-2.0" target="alexandria_uri">http://www.apache.org/licenses/LICENSE-2.0</a></em>
+<a class="jxr_linenumber" name="9" href="#9">9</a>   <em class="jxr_comment"> *</em>
+<a class="jxr_linenumber" name="10" href="#10">10</a>  <em class="jxr_comment"> * Unless required by applicable law or agreed to in writing, software</em>
+<a class="jxr_linenumber" name="11" href="#11">11</a>  <em class="jxr_comment"> * distributed under the License is distributed on an "AS IS" BASIS,</em>
+<a class="jxr_linenumber" name="12" href="#12">12</a>  <em class="jxr_comment"> * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</em>
+<a class="jxr_linenumber" name="13" href="#13">13</a>  <em class="jxr_comment"> * See the License for the specific language governing permissions and</em>
+<a class="jxr_linenumber" name="14" href="#14">14</a>  <em class="jxr_comment"> * limitations under the License.</em>
+<a class="jxr_linenumber" name="15" href="#15">15</a>  <em class="jxr_comment"> */</em>
+<a class="jxr_linenumber" name="16" href="#16">16</a>  <strong class="jxr_keyword">package</strong> stormpot.simulations;
+<a class="jxr_linenumber" name="17" href="#17">17</a>  
+<a class="jxr_linenumber" name="18" href="#18">18</a>  <strong class="jxr_keyword">import</strong> org.HdrHistogram.Histogram;
+<a class="jxr_linenumber" name="19" href="#19">19</a>  <strong class="jxr_keyword">import</strong> stormpot.*;
+<a class="jxr_linenumber" name="20" href="#20">20</a>  
+<a class="jxr_linenumber" name="21" href="#21">21</a>  <strong class="jxr_keyword">import</strong> java.lang.annotation.ElementType;
+<a class="jxr_linenumber" name="22" href="#22">22</a>  <strong class="jxr_keyword">import</strong> java.lang.annotation.Retention;
+<a class="jxr_linenumber" name="23" href="#23">23</a>  <strong class="jxr_keyword">import</strong> java.lang.annotation.RetentionPolicy;
+<a class="jxr_linenumber" name="24" href="#24">24</a>  <strong class="jxr_keyword">import</strong> java.lang.annotation.Target;
+<a class="jxr_linenumber" name="25" href="#25">25</a>  <strong class="jxr_keyword">import</strong> java.lang.reflect.Array;
+<a class="jxr_linenumber" name="26" href="#26">26</a>  <strong class="jxr_keyword">import</strong> java.lang.reflect.Constructor;
+<a class="jxr_linenumber" name="27" href="#27">27</a>  <strong class="jxr_keyword">import</strong> java.lang.reflect.Field;
+<a class="jxr_linenumber" name="28" href="#28">28</a>  <strong class="jxr_keyword">import</strong> java.lang.reflect.Method;
+<a class="jxr_linenumber" name="29" href="#29">29</a>  <strong class="jxr_keyword">import</strong> java.util.*;
+<a class="jxr_linenumber" name="30" href="#30">30</a>  <strong class="jxr_keyword">import</strong> java.util.concurrent.CountDownLatch;
+<a class="jxr_linenumber" name="31" href="#31">31</a>  <strong class="jxr_keyword">import</strong> java.util.concurrent.Semaphore;
+<a class="jxr_linenumber" name="32" href="#32">32</a>  <strong class="jxr_keyword">import</strong> java.util.concurrent.ThreadFactory;
+<a class="jxr_linenumber" name="33" href="#33">33</a>  <strong class="jxr_keyword">import</strong> java.util.concurrent.TimeUnit;
+<a class="jxr_linenumber" name="34" href="#34">34</a>  <strong class="jxr_keyword">import</strong> java.util.concurrent.atomic.AtomicBoolean;
+<a class="jxr_linenumber" name="35" href="#35">35</a>  
+<a class="jxr_linenumber" name="36" href="#36">36</a>  <strong class="jxr_keyword">import</strong> <strong class="jxr_keyword">static</strong> stormpot.AlloKit.*;
+<a class="jxr_linenumber" name="37" href="#37">37</a>  
+<a class="jxr_linenumber" name="38" href="#38">38</a>  <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">abstract</strong> <strong class="jxr_keyword">class</strong> <a href="../../stormpot/simulations/Sim.html">Sim</a> {
+<a class="jxr_linenumber" name="39" href="#39">39</a>  
+<a class="jxr_linenumber" name="40" href="#40">40</a>    <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">final</strong> Timeout SHUTDOWN_TIMEOUT = <strong class="jxr_keyword">new</strong> Timeout(10, TimeUnit.SECONDS);
+<a class="jxr_linenumber" name="41" href="#41">41</a>  
+<a class="jxr_linenumber" name="42" href="#42">42</a>    <strong class="jxr_keyword">protected</strong> <strong class="jxr_keyword">static</strong> enum <a href="../../stormpot/simulations/Sim.html">Param</a> {
+<a class="jxr_linenumber" name="43" href="#43">43</a>      size(Integer.TYPE),
+<a class="jxr_linenumber" name="44" href="#44">44</a>      expiration(Expiration.<strong class="jxr_keyword">class</strong>),
+<a class="jxr_linenumber" name="45" href="#45">45</a>      backgroundExpirationEnabled(Boolean.TYPE),
+<a class="jxr_linenumber" name="46" href="#46">46</a>      preciseLeakDetectionEnabled(Boolean.TYPE),
+<a class="jxr_linenumber" name="47" href="#47">47</a>      metricsRecorder(MetricsRecorder.<strong class="jxr_keyword">class</strong>),
+<a class="jxr_linenumber" name="48" href="#48">48</a>      threadFactory(ThreadFactory.<strong class="jxr_keyword">class</strong>);
+<a class="jxr_linenumber" name="49" href="#49">49</a>  
+<a class="jxr_linenumber" name="50" href="#50">50</a>      <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> Class&lt;?&gt; type;
+<a class="jxr_linenumber" name="51" href="#51">51</a>  
+<a class="jxr_linenumber" name="52" href="#52">52</a>      <a href="../../stormpot/simulations/Sim.html">Param</a>(Class&lt;?&gt; type) {
+<a class="jxr_linenumber" name="53" href="#53">53</a>        <strong class="jxr_keyword">this</strong>.type = type;
+<a class="jxr_linenumber" name="54" href="#54">54</a>      }
+<a class="jxr_linenumber" name="55" href="#55">55</a>  
+<a class="jxr_linenumber" name="56" href="#56">56</a>      <strong class="jxr_keyword">void</strong> set(Config&lt;GenericPoolable&gt; config, Object value) <strong class="jxr_keyword">throws</strong> Exception {
+<a class="jxr_linenumber" name="57" href="#57">57</a>        String firstNameChar = name().substring(0, 1);
+<a class="jxr_linenumber" name="58" href="#58">58</a>        String restNameChars = name().substring(1);
+<a class="jxr_linenumber" name="59" href="#59">59</a>        String setterName = <span class="jxr_string">"set"</span> + firstNameChar.toUpperCase() + restNameChars;
+<a class="jxr_linenumber" name="60" href="#60">60</a>        Method setter = Config.<strong class="jxr_keyword">class</strong>.getMethod(setterName, type);
+<a class="jxr_linenumber" name="61" href="#61">61</a>        setter.invoke(config, value);
+<a class="jxr_linenumber" name="62" href="#62">62</a>      }
+<a class="jxr_linenumber" name="63" href="#63">63</a>    }
+<a class="jxr_linenumber" name="64" href="#64">64</a>  
+<a class="jxr_linenumber" name="65" href="#65">65</a>    <strong class="jxr_keyword">protected</strong> <strong class="jxr_keyword">static</strong> enum <a href="../../stormpot/simulations/Sim.html">Output</a> {
+<a class="jxr_linenumber" name="66" href="#66">66</a>      none,
+<a class="jxr_linenumber" name="67" href="#67">67</a>      summary,
+<a class="jxr_linenumber" name="68" href="#68">68</a>      detailed
+<a class="jxr_linenumber" name="69" href="#69">69</a>    }
+<a class="jxr_linenumber" name="70" href="#70">70</a>  
+<a class="jxr_linenumber" name="71" href="#71">71</a>    @Retention(RetentionPolicy.RUNTIME)
+<a class="jxr_linenumber" name="72" href="#72">72</a>    @Target(ElementType.TYPE)
+<a class="jxr_linenumber" name="73" href="#73">73</a>    <strong class="jxr_keyword">protected</strong> <strong class="jxr_keyword">static</strong> @<strong class="jxr_keyword">interface</strong> <a href="../../stormpot/simulations/Sim.html">Simulation</a> {
+<a class="jxr_linenumber" name="74" href="#74">74</a>      <strong class="jxr_keyword">long</strong> measurementTime() <strong class="jxr_keyword">default</strong> 10;
+<a class="jxr_linenumber" name="75" href="#75">75</a>      TimeUnit measurementTimeUnit() <strong class="jxr_keyword">default</strong> TimeUnit.SECONDS;
+<a class="jxr_linenumber" name="76" href="#76">76</a>      Class&lt;? <strong class="jxr_keyword">extends</strong> LifecycledPool&gt;[] pools() <strong class="jxr_keyword">default</strong> {QueuePool.<strong class="jxr_keyword">class</strong>, BlazePool.<strong class="jxr_keyword">class</strong>};
+<a class="jxr_linenumber" name="77" href="#77">77</a>      <a href="../../stormpot/simulations/Sim.html">Output</a> output() <strong class="jxr_keyword">default</strong> Output.detailed;
+<a class="jxr_linenumber" name="78" href="#78">78</a>    }
+<a class="jxr_linenumber" name="79" href="#79">79</a>  
+<a class="jxr_linenumber" name="80" href="#80">80</a>    @Retention(RetentionPolicy.RUNTIME)
+<a class="jxr_linenumber" name="81" href="#81">81</a>    @Target(ElementType.FIELD)
+<a class="jxr_linenumber" name="82" href="#82">82</a>    <strong class="jxr_keyword">protected</strong> <strong class="jxr_keyword">static</strong> @<strong class="jxr_keyword">interface</strong> <a href="../../stormpot/simulations/Sim.html">Conf</a> {
+<a class="jxr_linenumber" name="83" href="#83">83</a>      <a href="../../stormpot/simulations/Sim.html">Param</a> value();
+<a class="jxr_linenumber" name="84" href="#84">84</a>    }
+<a class="jxr_linenumber" name="85" href="#85">85</a>  
+<a class="jxr_linenumber" name="86" href="#86">86</a>    @Retention(RetentionPolicy.RUNTIME)
+<a class="jxr_linenumber" name="87" href="#87">87</a>    @Target(ElementType.METHOD)
+<a class="jxr_linenumber" name="88" href="#88">88</a>    <strong class="jxr_keyword">protected</strong> <strong class="jxr_keyword">static</strong> @<strong class="jxr_keyword">interface</strong> <a href="../../stormpot/simulations/Sim.html">Agent</a> {
+<a class="jxr_linenumber" name="89" href="#89">89</a>      String name() <strong class="jxr_keyword">default</strong> <span class="jxr_string">""</span>;
+<a class="jxr_linenumber" name="90" href="#90">90</a>      <strong class="jxr_keyword">long</strong> initialDelay() <strong class="jxr_keyword">default</strong> 0;
+<a class="jxr_linenumber" name="91" href="#91">91</a>      TimeUnit initialDelayUnit() <strong class="jxr_keyword">default</strong> TimeUnit.MILLISECONDS;
+<a class="jxr_linenumber" name="92" href="#92">92</a>    }
+<a class="jxr_linenumber" name="93" href="#93">93</a>  
+<a class="jxr_linenumber" name="94" href="#94">94</a>    @Retention(RetentionPolicy.RUNTIME)
+<a class="jxr_linenumber" name="95" href="#95">95</a>    @Target(ElementType.METHOD)
+<a class="jxr_linenumber" name="96" href="#96">96</a>    <strong class="jxr_keyword">protected</strong> <strong class="jxr_keyword">static</strong> @<strong class="jxr_keyword">interface</strong> <a href="../../stormpot/simulations/Sim.html">Agents</a> {
+<a class="jxr_linenumber" name="97" href="#97">97</a>      <a href="../../stormpot/simulations/Sim.html">Agent</a>[] value();
+<a class="jxr_linenumber" name="98" href="#98">98</a>    }
+<a class="jxr_linenumber" name="99" href="#99">99</a>  
+<a class="jxr_linenumber" name="100" href="#100">100</a>   @Retention(RetentionPolicy.RUNTIME)
+<a class="jxr_linenumber" name="101" href="#101">101</a>   @Target(ElementType.METHOD)
+<a class="jxr_linenumber" name="102" href="#102">102</a>   <strong class="jxr_keyword">protected</strong> <strong class="jxr_keyword">static</strong> @<strong class="jxr_keyword">interface</strong> <a href="../../stormpot/simulations/Sim.html">AgentPause</a> {
+<a class="jxr_linenumber" name="103" href="#103">103</a>     String name() <strong class="jxr_keyword">default</strong> <span class="jxr_string">""</span>;
+<a class="jxr_linenumber" name="104" href="#104">104</a>     TimeUnit unit() <strong class="jxr_keyword">default</strong> TimeUnit.MILLISECONDS;
+<a class="jxr_linenumber" name="105" href="#105">105</a>   }
+<a class="jxr_linenumber" name="106" href="#106">106</a> 
+<a class="jxr_linenumber" name="107" href="#107">107</a>   @Retention(RetentionPolicy.RUNTIME)
+<a class="jxr_linenumber" name="108" href="#108">108</a>   @Target(ElementType.METHOD)
+<a class="jxr_linenumber" name="109" href="#109">109</a>   <strong class="jxr_keyword">protected</strong> <strong class="jxr_keyword">static</strong> @<strong class="jxr_keyword">interface</strong> <a href="../../stormpot/simulations/Sim.html">AllocationCost</a> {
+<a class="jxr_linenumber" name="110" href="#110">110</a>     TimeUnit value() <strong class="jxr_keyword">default</strong> TimeUnit.MILLISECONDS;
+<a class="jxr_linenumber" name="111" href="#111">111</a>   }
+<a class="jxr_linenumber" name="112" href="#112">112</a> 
+<a class="jxr_linenumber" name="113" href="#113">113</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">class</strong> Link&lt;T&gt; {
+<a class="jxr_linenumber" name="114" href="#114">114</a>     <strong class="jxr_keyword">final</strong> Link&lt;T&gt; tail;
+<a class="jxr_linenumber" name="115" href="#115">115</a>     <strong class="jxr_keyword">final</strong> T value;
+<a class="jxr_linenumber" name="116" href="#116">116</a> 
+<a class="jxr_linenumber" name="117" href="#117">117</a>     <strong class="jxr_keyword">private</strong> <a href="../../stormpot/simulations/Sim.html">Link</a>(Link&lt;T&gt; tail, T value) {
+<a class="jxr_linenumber" name="118" href="#118">118</a>       <strong class="jxr_keyword">this</strong>.tail = tail;
+<a class="jxr_linenumber" name="119" href="#119">119</a>       <strong class="jxr_keyword">this</strong>.value = value;
+<a class="jxr_linenumber" name="120" href="#120">120</a>     }
+<a class="jxr_linenumber" name="121" href="#121">121</a>   }
+<a class="jxr_linenumber" name="122" href="#122">122</a> 
+<a class="jxr_linenumber" name="123" href="#123">123</a>   <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">void</strong> main(String[] args) <strong class="jxr_keyword">throws</strong> Exception {
+<a class="jxr_linenumber" name="124" href="#124">124</a>     <strong class="jxr_keyword">long</strong> start = System.currentTimeMillis();
+<a class="jxr_linenumber" name="125" href="#125">125</a>     String cmdClass = System.getProperty(<span class="jxr_string">"sun.java.command"</span>).replaceFirst(<span class="jxr_string">"^.*&#92;&#92;s+"</span>, <span class="jxr_string">""</span>);
+<a class="jxr_linenumber" name="126" href="#126">126</a>     Class&lt;?&gt; klass = Class.forName(cmdClass);
+<a class="jxr_linenumber" name="127" href="#127">127</a>     <a href="../../stormpot/simulations/Sim.html">Sim</a> sim = (Sim) klass.newInstance();
+<a class="jxr_linenumber" name="128" href="#128">128</a> 
+<a class="jxr_linenumber" name="129" href="#129">129</a>     <em class="jxr_comment">// Find all the pool implementation constructors.</em>
+<a class="jxr_linenumber" name="130" href="#130">130</a>     List&lt;Constructor&lt;LifecycledPool&lt;GenericPoolable&gt;&gt;&gt; ctors =
+<a class="jxr_linenumber" name="131" href="#131">131</a>         <strong class="jxr_keyword">new</strong> ArrayList&lt;Constructor&lt;LifecycledPool&lt;GenericPoolable&gt;&gt;&gt;();
+<a class="jxr_linenumber" name="132" href="#132">132</a>     <a href="../../stormpot/simulations/Sim.html">Simulation</a> simulation = klass.getAnnotation(Simulation.<strong class="jxr_keyword">class</strong>);
+<a class="jxr_linenumber" name="133" href="#133">133</a>     <strong class="jxr_keyword">if</strong> (simulation != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="134" href="#134">134</a>       <strong class="jxr_keyword">for</strong> (Class&lt;? <strong class="jxr_keyword">extends</strong> LifecycledPool&gt; type : simulation.pools()) {
+<a class="jxr_linenumber" name="135" href="#135">135</a>         Constructor&lt;?&gt; constructor = type.getConstructor(Config.<strong class="jxr_keyword">class</strong>);
+<a class="jxr_linenumber" name="136" href="#136">136</a>         ctors.add((Constructor&lt;LifecycledPool&lt;GenericPoolable&gt;&gt;) constructor);
+<a class="jxr_linenumber" name="137" href="#137">137</a>       }
+<a class="jxr_linenumber" name="138" href="#138">138</a>     } <strong class="jxr_keyword">else</strong> {
+<a class="jxr_linenumber" name="139" href="#139">139</a>       Constructor&lt;?&gt; constructor = QueuePool.<strong class="jxr_keyword">class</strong>.getConstructor(Config.<strong class="jxr_keyword">class</strong>);
+<a class="jxr_linenumber" name="140" href="#140">140</a>       ctors.add((Constructor&lt;LifecycledPool&lt;GenericPoolable&gt;&gt;) constructor);
+<a class="jxr_linenumber" name="141" href="#141">141</a>       constructor = BlazePool.<strong class="jxr_keyword">class</strong>.getConstructor(Config.<strong class="jxr_keyword">class</strong>);
+<a class="jxr_linenumber" name="142" href="#142">142</a>       ctors.add((Constructor&lt;LifecycledPool&lt;GenericPoolable&gt;&gt;) constructor);
+<a class="jxr_linenumber" name="143" href="#143">143</a>     }
+<a class="jxr_linenumber" name="144" href="#144">144</a> 
+<a class="jxr_linenumber" name="145" href="#145">145</a>     <em class="jxr_comment">// Go through all fields, constructing a set of configurations.</em>
+<a class="jxr_linenumber" name="146" href="#146">146</a>     <em class="jxr_comment">// Run each configuration for each pool implementation.</em>
+<a class="jxr_linenumber" name="147" href="#147">147</a> 
+<a class="jxr_linenumber" name="148" href="#148">148</a>     AtomicBoolean enableAllocationCost = <strong class="jxr_keyword">new</strong> AtomicBoolean();
+<a class="jxr_linenumber" name="149" href="#149">149</a>     Collection&lt;Config&lt;GenericPoolable&gt;&gt; configurations =
+<a class="jxr_linenumber" name="150" href="#150">150</a>         buildConfigurations(klass, sim, enableAllocationCost);
+<a class="jxr_linenumber" name="151" href="#151">151</a>     <strong class="jxr_keyword">for</strong> (Config&lt;GenericPoolable&gt; config : configurations) {
+<a class="jxr_linenumber" name="152" href="#152">152</a>       <strong class="jxr_keyword">for</strong> (Constructor&lt;LifecycledPool&lt;GenericPoolable&gt;&gt; ctor : ctors) {
+<a class="jxr_linenumber" name="153" href="#153">153</a>         <a href="../../stormpot/simulations/Sim.html">Output</a> output = simulation == <strong class="jxr_keyword">null</strong>? Output.detailed : simulation.output();
+<a class="jxr_linenumber" name="154" href="#154">154</a>         simulate(sim, ctor, config, enableAllocationCost, output);
+<a class="jxr_linenumber" name="155" href="#155">155</a>       }
+<a class="jxr_linenumber" name="156" href="#156">156</a>     }
+<a class="jxr_linenumber" name="157" href="#157">157</a>     <strong class="jxr_keyword">long</strong> elapsedMillis = System.currentTimeMillis() - start;
+<a class="jxr_linenumber" name="158" href="#158">158</a>     System.out.printf(<span class="jxr_string">"Done, %.3f seconds.%n"</span>, elapsedMillis / 1000.0);
+<a class="jxr_linenumber" name="159" href="#159">159</a>     System.exit(0);
+<a class="jxr_linenumber" name="160" href="#160">160</a>   }
+<a class="jxr_linenumber" name="161" href="#161">161</a> 
+<a class="jxr_linenumber" name="162" href="#162">162</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> Collection&lt;Config&lt;GenericPoolable&gt;&gt; buildConfigurations(
+<a class="jxr_linenumber" name="163" href="#163">163</a>       Class&lt;?&gt; klass, <a href="../../stormpot/simulations/Sim.html">Sim</a> sim, AtomicBoolean enableAllocationCost) <strong class="jxr_keyword">throws</strong> Exception {
+<a class="jxr_linenumber" name="164" href="#164">164</a>     <em class="jxr_comment">// Find all fields annotated with @Conf</em>
+<a class="jxr_linenumber" name="165" href="#165">165</a>     <em class="jxr_comment">// Group them by their Param category</em>
+<a class="jxr_linenumber" name="166" href="#166">166</a>     <em class="jxr_comment">// Produce a Config for every permutation of each group</em>
+<a class="jxr_linenumber" name="167" href="#167">167</a> 
+<a class="jxr_linenumber" name="168" href="#168">168</a>     <em class="jxr_comment">// Building the groups</em>
+<a class="jxr_linenumber" name="169" href="#169">169</a>     EnumMap&lt;Param, List&lt;Object&gt;&gt; groups = <strong class="jxr_keyword">new</strong> EnumMap&lt;Param, List&lt;Object&gt;&gt;(Param.<strong class="jxr_keyword">class</strong>);
+<a class="jxr_linenumber" name="170" href="#170">170</a>     <strong class="jxr_keyword">for</strong> (Field field : klass.getDeclaredFields()) {
+<a class="jxr_linenumber" name="171" href="#171">171</a>       <a href="../../stormpot/simulations/Sim.html">Conf</a> conf = field.getAnnotation(Conf.<strong class="jxr_keyword">class</strong>);
+<a class="jxr_linenumber" name="172" href="#172">172</a>       <strong class="jxr_keyword">if</strong> (conf != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="173" href="#173">173</a>         <a href="../../stormpot/simulations/Sim.html">Param</a> param = conf.value();
+<a class="jxr_linenumber" name="174" href="#174">174</a>         Object value = field.get(sim);
+<a class="jxr_linenumber" name="175" href="#175">175</a>         List&lt;Object&gt; values = groups.get(param);
+<a class="jxr_linenumber" name="176" href="#176">176</a>         <strong class="jxr_keyword">if</strong> (values == <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="177" href="#177">177</a>           values = <strong class="jxr_keyword">new</strong> LinkedList&lt;Object&gt;();
+<a class="jxr_linenumber" name="178" href="#178">178</a>           groups.put(param, values);
+<a class="jxr_linenumber" name="179" href="#179">179</a>         }
+<a class="jxr_linenumber" name="180" href="#180">180</a>         values.add(value);
+<a class="jxr_linenumber" name="181" href="#181">181</a>       }
+<a class="jxr_linenumber" name="182" href="#182">182</a>     }
+<a class="jxr_linenumber" name="183" href="#183">183</a> 
+<a class="jxr_linenumber" name="184" href="#184">184</a>     <em class="jxr_comment">// Sequence the groups</em>
+<a class="jxr_linenumber" name="185" href="#185">185</a>     Link&lt;Map.Entry&lt;Param, List&lt;Object&gt;&gt;&gt; head = <strong class="jxr_keyword">null</strong>;
+<a class="jxr_linenumber" name="186" href="#186">186</a>     <strong class="jxr_keyword">for</strong> (Map.Entry&lt;Param, List&lt;Object&gt;&gt; entry : groups.entrySet()) {
+<a class="jxr_linenumber" name="187" href="#187">187</a>       head = <strong class="jxr_keyword">new</strong> Link&lt;Map.Entry&lt;Param, List&lt;Object&gt;&gt;&gt;(head, entry);
+<a class="jxr_linenumber" name="188" href="#188">188</a>     }
+<a class="jxr_linenumber" name="189" href="#189">189</a> 
+<a class="jxr_linenumber" name="190" href="#190">190</a>     <em class="jxr_comment">// Building Config permutations</em>
+<a class="jxr_linenumber" name="191" href="#191">191</a>     Config&lt;GenericPoolable&gt; baseConfig = <strong class="jxr_keyword">new</strong> Config&lt;GenericPoolable&gt;();
+<a class="jxr_linenumber" name="192" href="#192">192</a>     <a href="../../stormpot/AlloKit.html">CountingAllocator</a> allocator = buildAllocator(sim, enableAllocationCost);
+<a class="jxr_linenumber" name="193" href="#193">193</a>     baseConfig.setAllocator(allocator);
+<a class="jxr_linenumber" name="194" href="#194">194</a>     List&lt;Config&lt;GenericPoolable&gt;&gt; result = <strong class="jxr_keyword">new</strong> LinkedList&lt;Config&lt;GenericPoolable&gt;&gt;();
+<a class="jxr_linenumber" name="195" href="#195">195</a>     addConfigPermutations(head, baseConfig, result);
+<a class="jxr_linenumber" name="196" href="#196">196</a>     <strong class="jxr_keyword">return</strong> result;
+<a class="jxr_linenumber" name="197" href="#197">197</a>   }
+<a class="jxr_linenumber" name="198" href="#198">198</a> 
+<a class="jxr_linenumber" name="199" href="#199">199</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <a href="../../stormpot/AlloKit.html">CountingAllocator</a> buildAllocator(
+<a class="jxr_linenumber" name="200" href="#200">200</a>       <strong class="jxr_keyword">final</strong> <a href="../../stormpot/simulations/Sim.html">Sim</a> sim,
+<a class="jxr_linenumber" name="201" href="#201">201</a>       <strong class="jxr_keyword">final</strong> AtomicBoolean enableAllocationCost) {
+<a class="jxr_linenumber" name="202" href="#202">202</a>     Class&lt;?&gt; klass = sim.getClass();
+<a class="jxr_linenumber" name="203" href="#203">203</a>     TimeUnit allocationTimeUnit = <strong class="jxr_keyword">null</strong>;
+<a class="jxr_linenumber" name="204" href="#204">204</a>     Method allocationTimeMethod = <strong class="jxr_keyword">null</strong>;
+<a class="jxr_linenumber" name="205" href="#205">205</a>     <strong class="jxr_keyword">for</strong> (Method method : klass.getDeclaredMethods()) {
+<a class="jxr_linenumber" name="206" href="#206">206</a>       <a href="../../stormpot/simulations/Sim.html">AllocationCost</a> allocationCost = method.getAnnotation(AllocationCost.<strong class="jxr_keyword">class</strong>);
+<a class="jxr_linenumber" name="207" href="#207">207</a>       <strong class="jxr_keyword">if</strong> (allocationCost != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="208" href="#208">208</a>         assert allocationTimeUnit == <strong class="jxr_keyword">null</strong>: <span class="jxr_string">"Found more than one @AllocationCost method"</span>;
+<a class="jxr_linenumber" name="209" href="#209">209</a>         allocationTimeUnit = allocationCost.value();
+<a class="jxr_linenumber" name="210" href="#210">210</a>         allocationTimeMethod = method;
+<a class="jxr_linenumber" name="211" href="#211">211</a>       }
+<a class="jxr_linenumber" name="212" href="#212">212</a>     }
+<a class="jxr_linenumber" name="213" href="#213">213</a> 
+<a class="jxr_linenumber" name="214" href="#214">214</a>     <strong class="jxr_keyword">if</strong> (allocationTimeMethod == <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="215" href="#215">215</a>       <strong class="jxr_keyword">return</strong> allocator();
+<a class="jxr_linenumber" name="216" href="#216">216</a>     }
+<a class="jxr_linenumber" name="217" href="#217">217</a> 
+<a class="jxr_linenumber" name="218" href="#218">218</a>     <strong class="jxr_keyword">final</strong> TimeUnit unit = allocationTimeUnit;
+<a class="jxr_linenumber" name="219" href="#219">219</a>     <strong class="jxr_keyword">final</strong> Method method = allocationTimeMethod;
+<a class="jxr_linenumber" name="220" href="#220">220</a>     <strong class="jxr_keyword">return</strong> allocator(alloc(<strong class="jxr_keyword">new</strong> <a href="../../stormpot/AlloKit.html">Action</a>() {
+<a class="jxr_linenumber" name="221" href="#221">221</a>       @Override
+<a class="jxr_linenumber" name="222" href="#222">222</a>       <strong class="jxr_keyword">public</strong> <a href="../../stormpot/GenericPoolable.html">GenericPoolable</a> apply(Slot slot, <a href="../../stormpot/GenericPoolable.html">GenericPoolable</a> obj) <strong class="jxr_keyword">throws</strong> Exception {
+<a class="jxr_linenumber" name="223" href="#223">223</a>         <strong class="jxr_keyword">if</strong> (enableAllocationCost.get()) {
+<a class="jxr_linenumber" name="224" href="#224">224</a>           Number time = (Number) method.invoke(sim);
+<a class="jxr_linenumber" name="225" href="#225">225</a>           unit.sleep(time.longValue());
+<a class="jxr_linenumber" name="226" href="#226">226</a>         }
+<a class="jxr_linenumber" name="227" href="#227">227</a>         <strong class="jxr_keyword">return</strong> $<strong class="jxr_keyword">new</strong>.apply(slot, obj);
+<a class="jxr_linenumber" name="228" href="#228">228</a>       }
+<a class="jxr_linenumber" name="229" href="#229">229</a>     }));
+<a class="jxr_linenumber" name="230" href="#230">230</a>   }
+<a class="jxr_linenumber" name="231" href="#231">231</a> 
+<a class="jxr_linenumber" name="232" href="#232">232</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">void</strong> addConfigPermutations(
+<a class="jxr_linenumber" name="233" href="#233">233</a>       Link&lt;Map.Entry&lt;Param, List&lt;Object&gt;&gt;&gt; head,
+<a class="jxr_linenumber" name="234" href="#234">234</a>       Config&lt;GenericPoolable&gt; baseConfig,
+<a class="jxr_linenumber" name="235" href="#235">235</a>       List&lt;Config&lt;GenericPoolable&gt;&gt; result) <strong class="jxr_keyword">throws</strong> Exception {
+<a class="jxr_linenumber" name="236" href="#236">236</a>     <strong class="jxr_keyword">if</strong> (head == <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="237" href="#237">237</a>       <em class="jxr_comment">// Base case</em>
+<a class="jxr_linenumber" name="238" href="#238">238</a>       result.add(baseConfig);
+<a class="jxr_linenumber" name="239" href="#239">239</a>     } <strong class="jxr_keyword">else</strong> {
+<a class="jxr_linenumber" name="240" href="#240">240</a>       <em class="jxr_comment">// Reduction</em>
+<a class="jxr_linenumber" name="241" href="#241">241</a>       <a href="../../stormpot/simulations/Sim.html">Param</a> param = head.value.getKey();
+<a class="jxr_linenumber" name="242" href="#242">242</a>       List&lt;Object&gt; values = head.value.getValue();
+<a class="jxr_linenumber" name="243" href="#243">243</a> 
+<a class="jxr_linenumber" name="244" href="#244">244</a>       <strong class="jxr_keyword">for</strong> (Object value : values) {
+<a class="jxr_linenumber" name="245" href="#245">245</a>         <strong class="jxr_keyword">if</strong> (value.getClass().isArray()) {
+<a class="jxr_linenumber" name="246" href="#246">246</a>           <strong class="jxr_keyword">int</strong> length = Array.getLength(value);
+<a class="jxr_linenumber" name="247" href="#247">247</a>           <strong class="jxr_keyword">for</strong> (<strong class="jxr_keyword">int</strong> i = 0; i &lt; length; i++) {
+<a class="jxr_linenumber" name="248" href="#248">248</a>             Config&lt;GenericPoolable&gt; mutation = baseConfig.clone();
+<a class="jxr_linenumber" name="249" href="#249">249</a>             param.set(mutation, Array.get(value, i));
+<a class="jxr_linenumber" name="250" href="#250">250</a>             addConfigPermutations(head.tail, mutation, result);
+<a class="jxr_linenumber" name="251" href="#251">251</a>           }
+<a class="jxr_linenumber" name="252" href="#252">252</a>         } <strong class="jxr_keyword">else</strong> {
+<a class="jxr_linenumber" name="253" href="#253">253</a>           Config&lt;GenericPoolable&gt; mutation = baseConfig.clone();
+<a class="jxr_linenumber" name="254" href="#254">254</a>           param.set(mutation, value);
+<a class="jxr_linenumber" name="255" href="#255">255</a>           addConfigPermutations(head.tail, mutation, result);
+<a class="jxr_linenumber" name="256" href="#256">256</a>         }
+<a class="jxr_linenumber" name="257" href="#257">257</a>       }
+<a class="jxr_linenumber" name="258" href="#258">258</a>     }
+<a class="jxr_linenumber" name="259" href="#259">259</a>   }
+<a class="jxr_linenumber" name="260" href="#260">260</a> 
+<a class="jxr_linenumber" name="261" href="#261">261</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">void</strong> simulate(
+<a class="jxr_linenumber" name="262" href="#262">262</a>       <a href="../../stormpot/simulations/Sim.html">Sim</a> sim,
+<a class="jxr_linenumber" name="263" href="#263">263</a>       Constructor&lt;LifecycledPool&lt;GenericPoolable&gt;&gt; ctor,
+<a class="jxr_linenumber" name="264" href="#264">264</a>       Config&lt;GenericPoolable&gt; config,
+<a class="jxr_linenumber" name="265" href="#265">265</a>       AtomicBoolean enableAllocationCost,
+<a class="jxr_linenumber" name="266" href="#266">266</a>       <a href="../../stormpot/simulations/Sim.html">Output</a> output) <strong class="jxr_keyword">throws</strong> Exception {
+<a class="jxr_linenumber" name="267" href="#267">267</a>     <a href="../../stormpot/simulations/Sim.html">DependencyResolver</a> deps = <strong class="jxr_keyword">new</strong> <a href="../../stormpot/simulations/Sim.html">DependencyResolver</a>();
+<a class="jxr_linenumber" name="268" href="#268">268</a>     deps.add(config);
+<a class="jxr_linenumber" name="269" href="#269">269</a>     deps.add(config.getAllocator());
+<a class="jxr_linenumber" name="270" href="#270">270</a>     deps.add(config.getExpiration());
+<a class="jxr_linenumber" name="271" href="#271">271</a>     deps.add(config.getMetricsRecorder());
+<a class="jxr_linenumber" name="272" href="#272">272</a>     deps.add(config.getThreadFactory());
+<a class="jxr_linenumber" name="273" href="#273">273</a>     deps.add(output);
+<a class="jxr_linenumber" name="274" href="#274">274</a> 
+<a class="jxr_linenumber" name="275" href="#275">275</a>     String poolTypeName = ctor.getDeclaringClass().getSimpleName();
+<a class="jxr_linenumber" name="276" href="#276">276</a>     System.out.printf(<span class="jxr_string">"Simulating %s %s for %s%n"</span>,
+<a class="jxr_linenumber" name="277" href="#277">277</a>         sim.getClass().getSimpleName(), describe(config), poolTypeName);
+<a class="jxr_linenumber" name="278" href="#278">278</a> 
+<a class="jxr_linenumber" name="279" href="#279">279</a>     <strong class="jxr_keyword">long</strong> measurementTimeMillis = getMeasurementTimeMillis(sim);
+<a class="jxr_linenumber" name="280" href="#280">280</a>     <strong class="jxr_keyword">int</strong> iterations = 100;
+<a class="jxr_linenumber" name="281" href="#281">281</a>     <strong class="jxr_keyword">long</strong> warmupTimeMillis = measurementTimeMillis / iterations;
+<a class="jxr_linenumber" name="282" href="#282">282</a>     <strong class="jxr_keyword">for</strong> (<strong class="jxr_keyword">int</strong> i = 1; i &lt;= iterations; i++) {
+<a class="jxr_linenumber" name="283" href="#283">283</a>       <strong class="jxr_keyword">boolean</strong> isWarmup = i &lt; iterations;
+<a class="jxr_linenumber" name="284" href="#284">284</a>       <strong class="jxr_keyword">long</strong> runTime = isWarmup? warmupTimeMillis : measurementTimeMillis;
+<a class="jxr_linenumber" name="285" href="#285">285</a> 
+<a class="jxr_linenumber" name="286" href="#286">286</a>       <em class="jxr_comment">// Reset internal state.</em>
+<a class="jxr_linenumber" name="287" href="#287">287</a>       enableAllocationCost.set(false);
+<a class="jxr_linenumber" name="288" href="#288">288</a>       LifecycledPool&lt;GenericPoolable&gt; pool = ctor.newInstance(config);
+<a class="jxr_linenumber" name="289" href="#289">289</a>       sim = sim.getClass().newInstance();
+<a class="jxr_linenumber" name="290" href="#290">290</a>       deps.replace(pool);
+<a class="jxr_linenumber" name="291" href="#291">291</a> 
+<a class="jxr_linenumber" name="292" href="#292">292</a>       <em class="jxr_comment">// Wait for the pool to boot up.</em>
+<a class="jxr_linenumber" name="293" href="#293">293</a>       <strong class="jxr_keyword">int</strong> size = config.getSize();
+<a class="jxr_linenumber" name="294" href="#294">294</a>       List&lt;GenericPoolable&gt; objs = <strong class="jxr_keyword">new</strong> ArrayList&lt;GenericPoolable&gt;();
+<a class="jxr_linenumber" name="295" href="#295">295</a>       <strong class="jxr_keyword">for</strong> (<strong class="jxr_keyword">int</strong> j = 0; j &lt; size; j++) {
+<a class="jxr_linenumber" name="296" href="#296">296</a>         objs.add(pool.claim(<strong class="jxr_keyword">new</strong> Timeout(30, TimeUnit.MINUTES)));
+<a class="jxr_linenumber" name="297" href="#297">297</a>       }
+<a class="jxr_linenumber" name="298" href="#298">298</a>       <strong class="jxr_keyword">for</strong> (GenericPoolable obj : objs) {
+<a class="jxr_linenumber" name="299" href="#299">299</a>         obj.release();
+<a class="jxr_linenumber" name="300" href="#300">300</a>       }
+<a class="jxr_linenumber" name="301" href="#301">301</a> 
+<a class="jxr_linenumber" name="302" href="#302">302</a>       <em class="jxr_comment">// Then run.</em>
+<a class="jxr_linenumber" name="303" href="#303">303</a>       enableAllocationCost.set(<strong class="jxr_keyword">true</strong>);
+<a class="jxr_linenumber" name="304" href="#304">304</a>       sim.run(deps, runTime, isWarmup? Output.none : output);
+<a class="jxr_linenumber" name="305" href="#305">305</a> 
+<a class="jxr_linenumber" name="306" href="#306">306</a>       <em class="jxr_comment">// Finally clean up a bit.</em>
+<a class="jxr_linenumber" name="307" href="#307">307</a>       <strong class="jxr_keyword">if</strong> (!pool.shutdown().await(SHUTDOWN_TIMEOUT)) {
+<a class="jxr_linenumber" name="308" href="#308">308</a>         ManagedPool managedPool = (ManagedPool) pool;
+<a class="jxr_linenumber" name="309" href="#309">309</a>         System.err.printf(
+<a class="jxr_linenumber" name="310" href="#310">310</a>             <span class="jxr_string">"Shutdown timed out! Pool type = %s, config = %s, "</span> +
+<a class="jxr_linenumber" name="311" href="#311">311</a>                 <span class="jxr_string">"object leaks detected = %s%n"</span>,
+<a class="jxr_linenumber" name="312" href="#312">312</a>             poolTypeName, describe(config), managedPool.getLeakedObjectsCount());
+<a class="jxr_linenumber" name="313" href="#313">313</a>       }
+<a class="jxr_linenumber" name="314" href="#314">314</a>     }
+<a class="jxr_linenumber" name="315" href="#315">315</a>   }
+<a class="jxr_linenumber" name="316" href="#316">316</a> 
+<a class="jxr_linenumber" name="317" href="#317">317</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">long</strong> getMeasurementTimeMillis(<a href="../../stormpot/simulations/Sim.html">Sim</a> sim) {
+<a class="jxr_linenumber" name="318" href="#318">318</a>     Class&lt;?&gt; klass = sim.getClass();
+<a class="jxr_linenumber" name="319" href="#319">319</a>     <a href="../../stormpot/simulations/Sim.html">Simulation</a> simulation = klass.getAnnotation(Simulation.<strong class="jxr_keyword">class</strong>);
+<a class="jxr_linenumber" name="320" href="#320">320</a>     <strong class="jxr_keyword">if</strong> (simulation != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="321" href="#321">321</a>       <strong class="jxr_keyword">long</strong> time = simulation.measurementTime();
+<a class="jxr_linenumber" name="322" href="#322">322</a>       TimeUnit unit = simulation.measurementTimeUnit();
+<a class="jxr_linenumber" name="323" href="#323">323</a>       <strong class="jxr_keyword">return</strong> unit.toMillis(time);
+<a class="jxr_linenumber" name="324" href="#324">324</a>     }
+<a class="jxr_linenumber" name="325" href="#325">325</a>     <strong class="jxr_keyword">return</strong> 10000;
+<a class="jxr_linenumber" name="326" href="#326">326</a>   }
+<a class="jxr_linenumber" name="327" href="#327">327</a> 
+<a class="jxr_linenumber" name="328" href="#328">328</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> String describe(Config&lt;GenericPoolable&gt; config) {
+<a class="jxr_linenumber" name="329" href="#329">329</a>     <strong class="jxr_keyword">int</strong> size = config.getSize();
+<a class="jxr_linenumber" name="330" href="#330">330</a>     Expiration&lt;? <strong class="jxr_keyword">super</strong> GenericPoolable&gt; expiration = config.getExpiration();
+<a class="jxr_linenumber" name="331" href="#331">331</a>     <strong class="jxr_keyword">boolean</strong> backgroundExpirationEnabled = config.isBackgroundExpirationEnabled();
+<a class="jxr_linenumber" name="332" href="#332">332</a>     <strong class="jxr_keyword">boolean</strong> preciseLeakDetectionEnabled = config.isPreciseLeakDetectionEnabled();
+<a class="jxr_linenumber" name="333" href="#333">333</a>     MetricsRecorder metricsRecorder = config.getMetricsRecorder();
+<a class="jxr_linenumber" name="334" href="#334">334</a>     ThreadFactory threadFactory = config.getThreadFactory();
+<a class="jxr_linenumber" name="335" href="#335">335</a>     <strong class="jxr_keyword">return</strong> String.format(
+<a class="jxr_linenumber" name="336" href="#336">336</a>         <span class="jxr_string">"{%n\tsize = %s"</span> +
+<a class="jxr_linenumber" name="337" href="#337">337</a>             <span class="jxr_string">"%n\texpiration = %s%n\t"</span> +
+<a class="jxr_linenumber" name="338" href="#338">338</a>             <span class="jxr_string">"backgroundExpirationEnabled = %s%n\t"</span> +
+<a class="jxr_linenumber" name="339" href="#339">339</a>             <span class="jxr_string">"preciseLeakDetectionEnabled = %s%n\t"</span> +
+<a class="jxr_linenumber" name="340" href="#340">340</a>             <span class="jxr_string">"metricsRecorder = %s%n\t"</span> +
+<a class="jxr_linenumber" name="341" href="#341">341</a>             <span class="jxr_string">"threadFactory = %s%n}"</span>,
+<a class="jxr_linenumber" name="342" href="#342">342</a>         size, expiration, backgroundExpirationEnabled,
+<a class="jxr_linenumber" name="343" href="#343">343</a>         preciseLeakDetectionEnabled, metricsRecorder, threadFactory);
+<a class="jxr_linenumber" name="344" href="#344">344</a>   }
+<a class="jxr_linenumber" name="345" href="#345">345</a> 
+<a class="jxr_linenumber" name="346" href="#346">346</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">void</strong> run(
+<a class="jxr_linenumber" name="347" href="#347">347</a>       <a href="../../stormpot/simulations/Sim.html">DependencyResolver</a> deps,
+<a class="jxr_linenumber" name="348" href="#348">348</a>       <strong class="jxr_keyword">long</strong> runTimeMillis,
+<a class="jxr_linenumber" name="349" href="#349">349</a>       <a href="../../stormpot/simulations/Sim.html">Output</a> output) <strong class="jxr_keyword">throws</strong> InterruptedException {
+<a class="jxr_linenumber" name="350" href="#350">350</a>     <em class="jxr_comment">// Find all agents and their corresponding configuration fields, and create</em>
+<a class="jxr_linenumber" name="351" href="#351">351</a>     <em class="jxr_comment">// a thread for each.</em>
+<a class="jxr_linenumber" name="352" href="#352">352</a>     <a href="../../stormpot/simulations/Sim.html">ControlSignal</a> controlSignal = <strong class="jxr_keyword">new</strong> <a href="../../stormpot/simulations/Sim.html">ControlSignal</a>();
+<a class="jxr_linenumber" name="353" href="#353">353</a> 
+<a class="jxr_linenumber" name="354" href="#354">354</a>     <em class="jxr_comment">// Agents are defined by the @Agent or @Agents annotations.</em>
+<a class="jxr_linenumber" name="355" href="#355">355</a>     <em class="jxr_comment">// Their timings are defined by the @AgentPause annotation, linked by their name.</em>
+<a class="jxr_linenumber" name="356" href="#356">356</a>     Method[] methods = getClass().getMethods();
+<a class="jxr_linenumber" name="357" href="#357">357</a>     List&lt;AgentRunner&gt; agents = <strong class="jxr_keyword">new</strong> ArrayList&lt;AgentRunner&gt;();
+<a class="jxr_linenumber" name="358" href="#358">358</a>     Map&lt;String, IterationPause&gt; iterationPauseIndex = <strong class="jxr_keyword">new</strong> HashMap&lt;String, IterationPause&gt;();
+<a class="jxr_linenumber" name="359" href="#359">359</a>     <strong class="jxr_keyword">for</strong> (Method method : methods) {
+<a class="jxr_linenumber" name="360" href="#360">360</a>       <a href="../../stormpot/simulations/Sim.html">AgentPause</a> agentPause = method.getAnnotation(AgentPause.<strong class="jxr_keyword">class</strong>);
+<a class="jxr_linenumber" name="361" href="#361">361</a>       <strong class="jxr_keyword">if</strong> (agentPause != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="362" href="#362">362</a>         <a href="../../stormpot/simulations/Sim.html">IterationPause</a> pause = <strong class="jxr_keyword">new</strong> <a href="../../stormpot/simulations/Sim.html">IterationPause</a>(agentPause, <strong class="jxr_keyword">this</strong>, method);
+<a class="jxr_linenumber" name="363" href="#363">363</a>         iterationPauseIndex.put(agentPause.name(), pause);
+<a class="jxr_linenumber" name="364" href="#364">364</a>       }
+<a class="jxr_linenumber" name="365" href="#365">365</a>     }
+<a class="jxr_linenumber" name="366" href="#366">366</a> 
+<a class="jxr_linenumber" name="367" href="#367">367</a>     <strong class="jxr_keyword">for</strong> (Method method : methods) {
+<a class="jxr_linenumber" name="368" href="#368">368</a>       <a href="../../stormpot/simulations/Sim.html">Agent</a> agent = method.getAnnotation(Agent.<strong class="jxr_keyword">class</strong>);
+<a class="jxr_linenumber" name="369" href="#369">369</a>       <strong class="jxr_keyword">if</strong> (agent != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="370" href="#370">370</a>         startAgent(deps, controlSignal, agents, iterationPauseIndex, method, agent);
+<a class="jxr_linenumber" name="371" href="#371">371</a>       }
+<a class="jxr_linenumber" name="372" href="#372">372</a>       <a href="../../stormpot/simulations/Sim.html">Agents</a> agentsAnnotation = method.getAnnotation(Agents.<strong class="jxr_keyword">class</strong>);
+<a class="jxr_linenumber" name="373" href="#373">373</a>       <strong class="jxr_keyword">if</strong> (agentsAnnotation != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="374" href="#374">374</a>         <strong class="jxr_keyword">for</strong> (Agent subAgent : agentsAnnotation.value()) {
+<a class="jxr_linenumber" name="375" href="#375">375</a>           startAgent(deps, controlSignal, agents, iterationPauseIndex, method, subAgent);
+<a class="jxr_linenumber" name="376" href="#376">376</a>         }
+<a class="jxr_linenumber" name="377" href="#377">377</a>       }
+<a class="jxr_linenumber" name="378" href="#378">378</a>     }
+<a class="jxr_linenumber" name="379" href="#379">379</a> 
+<a class="jxr_linenumber" name="380" href="#380">380</a>     <strong class="jxr_keyword">if</strong> (agents.isEmpty()) {
+<a class="jxr_linenumber" name="381" href="#381">381</a>       System.err.println(<span class="jxr_string">"No public @Agent or @Agents annotated methods found!"</span>);
+<a class="jxr_linenumber" name="382" href="#382">382</a>       <strong class="jxr_keyword">return</strong>;
+<a class="jxr_linenumber" name="383" href="#383">383</a>     }
+<a class="jxr_linenumber" name="384" href="#384">384</a> 
+<a class="jxr_linenumber" name="385" href="#385">385</a>     <em class="jxr_comment">// Then start them all, and run them for as long as need be.</em>
+<a class="jxr_linenumber" name="386" href="#386">386</a>     controlSignal.start();
+<a class="jxr_linenumber" name="387" href="#387">387</a>     Thread.sleep(runTimeMillis);
+<a class="jxr_linenumber" name="388" href="#388">388</a>     controlSignal.stop();
+<a class="jxr_linenumber" name="389" href="#389">389</a>     controlSignal.awaitDone(agents.size());
+<a class="jxr_linenumber" name="390" href="#390">390</a> 
+<a class="jxr_linenumber" name="391" href="#391">391</a>     <em class="jxr_comment">// Finally print their results, if need be.</em>
+<a class="jxr_linenumber" name="392" href="#392">392</a>     <strong class="jxr_keyword">if</strong> (output != Output.none) {
+<a class="jxr_linenumber" name="393" href="#393">393</a>       Histogram sum = newHistogram();
+<a class="jxr_linenumber" name="394" href="#394">394</a>       <strong class="jxr_keyword">for</strong> (AgentRunner agent : agents) {
+<a class="jxr_linenumber" name="395" href="#395">395</a>         sum.add(agent.histogram);
+<a class="jxr_linenumber" name="396" href="#396">396</a>         <strong class="jxr_keyword">if</strong> (output == Output.detailed) {
+<a class="jxr_linenumber" name="397" href="#397">397</a>           agent.printResults();
+<a class="jxr_linenumber" name="398" href="#398">398</a>         }
+<a class="jxr_linenumber" name="399" href="#399">399</a>       }
+<a class="jxr_linenumber" name="400" href="#400">400</a>       <strong class="jxr_keyword">if</strong> (agents.size() &gt; 1 || output == Output.summary) {
+<a class="jxr_linenumber" name="401" href="#401">401</a>         System.out.println(<span class="jxr_string">"Latency results sum:"</span>);
+<a class="jxr_linenumber" name="402" href="#402">402</a>         printHistogram(sum);
+<a class="jxr_linenumber" name="403" href="#403">403</a>         System.out.println();
+<a class="jxr_linenumber" name="404" href="#404">404</a>       }
+<a class="jxr_linenumber" name="405" href="#405">405</a>     }
+<a class="jxr_linenumber" name="406" href="#406">406</a>   }
+<a class="jxr_linenumber" name="407" href="#407">407</a> 
+<a class="jxr_linenumber" name="408" href="#408">408</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">void</strong> startAgent(
+<a class="jxr_linenumber" name="409" href="#409">409</a>       <a href="../../stormpot/simulations/Sim.html">DependencyResolver</a> deps,
+<a class="jxr_linenumber" name="410" href="#410">410</a>       <a href="../../stormpot/simulations/Sim.html">ControlSignal</a> controlSignal,
+<a class="jxr_linenumber" name="411" href="#411">411</a>       List&lt;AgentRunner&gt; agents,
+<a class="jxr_linenumber" name="412" href="#412">412</a>       Map&lt;String, IterationPause&gt; iterationPauseIndex,
+<a class="jxr_linenumber" name="413" href="#413">413</a>       Method method,
+<a class="jxr_linenumber" name="414" href="#414">414</a>       <a href="../../stormpot/simulations/Sim.html">Agent</a> agent) {
+<a class="jxr_linenumber" name="415" href="#415">415</a>     <a href="../../stormpot/simulations/Sim.html">IterationPause</a> iterationPause = iterationPauseIndex.get(agent.name());
+<a class="jxr_linenumber" name="416" href="#416">416</a>     <a href="../../stormpot/simulations/Sim.html">AgentRunner</a> runner = <strong class="jxr_keyword">new</strong> <a href="../../stormpot/simulations/Sim.html">AgentRunner</a>(
+<a class="jxr_linenumber" name="417" href="#417">417</a>         controlSignal, deps, agent, <strong class="jxr_keyword">this</strong>, method, iterationPause);
+<a class="jxr_linenumber" name="418" href="#418">418</a>     Thread thread = <strong class="jxr_keyword">new</strong> Thread(runner, <span class="jxr_string">"Agent["</span> + agent.name() + <span class="jxr_string">"]"</span>);
+<a class="jxr_linenumber" name="419" href="#419">419</a>     thread.start();
+<a class="jxr_linenumber" name="420" href="#420">420</a>     agents.add(runner);
+<a class="jxr_linenumber" name="421" href="#421">421</a>   }
+<a class="jxr_linenumber" name="422" href="#422">422</a> 
+<a class="jxr_linenumber" name="423" href="#423">423</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">class</strong> <a href="../../stormpot/simulations/Sim.html">AgentRunner</a> <strong class="jxr_keyword">implements</strong> Runnable {
+<a class="jxr_linenumber" name="424" href="#424">424</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> <a href="../../stormpot/simulations/Sim.html">ControlSignal</a> controlSignal;
+<a class="jxr_linenumber" name="425" href="#425">425</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">long</strong> initialDelayTime;
+<a class="jxr_linenumber" name="426" href="#426">426</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> TimeUnit initialDelayUnit;
+<a class="jxr_linenumber" name="427" href="#427">427</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> String agentName;
+<a class="jxr_linenumber" name="428" href="#428">428</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> <a href="../../stormpot/simulations/Sim.html">Sim</a> sim;
+<a class="jxr_linenumber" name="429" href="#429">429</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> Method agentMethod;
+<a class="jxr_linenumber" name="430" href="#430">430</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> <a href="../../stormpot/simulations/Sim.html">IterationPause</a> iterationPause;
+<a class="jxr_linenumber" name="431" href="#431">431</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> Histogram histogram;
+<a class="jxr_linenumber" name="432" href="#432">432</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> Object[] argumentList;
+<a class="jxr_linenumber" name="433" href="#433">433</a> 
+<a class="jxr_linenumber" name="434" href="#434">434</a>     <strong class="jxr_keyword">public</strong> <a href="../../stormpot/simulations/Sim.html">AgentRunner</a>(
+<a class="jxr_linenumber" name="435" href="#435">435</a>         <a href="../../stormpot/simulations/Sim.html">ControlSignal</a> controlSignal,
+<a class="jxr_linenumber" name="436" href="#436">436</a>         <a href="../../stormpot/simulations/Sim.html">DependencyResolver</a> deps,
+<a class="jxr_linenumber" name="437" href="#437">437</a>         <a href="../../stormpot/simulations/Sim.html">Agent</a> agent,
+<a class="jxr_linenumber" name="438" href="#438">438</a>         <a href="../../stormpot/simulations/Sim.html">Sim</a> sim,
+<a class="jxr_linenumber" name="439" href="#439">439</a>         Method agentMethod,
+<a class="jxr_linenumber" name="440" href="#440">440</a>         <a href="../../stormpot/simulations/Sim.html">IterationPause</a> iterationPause) {
+<a class="jxr_linenumber" name="441" href="#441">441</a>       <strong class="jxr_keyword">this</strong>.controlSignal = controlSignal;
+<a class="jxr_linenumber" name="442" href="#442">442</a>       initialDelayTime = agent.initialDelay();
+<a class="jxr_linenumber" name="443" href="#443">443</a>       initialDelayUnit = agent.initialDelayUnit();
+<a class="jxr_linenumber" name="444" href="#444">444</a>       agentName = agent.name();
+<a class="jxr_linenumber" name="445" href="#445">445</a>       <strong class="jxr_keyword">this</strong>.sim = sim;
+<a class="jxr_linenumber" name="446" href="#446">446</a>       <strong class="jxr_keyword">this</strong>.agentMethod = agentMethod;
+<a class="jxr_linenumber" name="447" href="#447">447</a>       <strong class="jxr_keyword">this</strong>.iterationPause = iterationPause;
+<a class="jxr_linenumber" name="448" href="#448">448</a>       histogram = newHistogram();
+<a class="jxr_linenumber" name="449" href="#449">449</a>       argumentList = deps.resolve(agentMethod.getParameterTypes());
+<a class="jxr_linenumber" name="450" href="#450">450</a>     }
+<a class="jxr_linenumber" name="451" href="#451">451</a> 
+<a class="jxr_linenumber" name="452" href="#452">452</a>     @Override
+<a class="jxr_linenumber" name="453" href="#453">453</a>     <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">void</strong> run() {
+<a class="jxr_linenumber" name="454" href="#454">454</a>       <strong class="jxr_keyword">try</strong> {
+<a class="jxr_linenumber" name="455" href="#455">455</a>         runUnsafe();
+<a class="jxr_linenumber" name="456" href="#456">456</a>       } <strong class="jxr_keyword">catch</strong> (Exception e) {
+<a class="jxr_linenumber" name="457" href="#457">457</a>         <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> RuntimeException(<span class="jxr_string">"Agent["</span> + agentName + <span class="jxr_string">"] failed"</span>, e);
+<a class="jxr_linenumber" name="458" href="#458">458</a>       }
+<a class="jxr_linenumber" name="459" href="#459">459</a>     }
+<a class="jxr_linenumber" name="460" href="#460">460</a> 
+<a class="jxr_linenumber" name="461" href="#461">461</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">void</strong> runUnsafe() <strong class="jxr_keyword">throws</strong> Exception {
+<a class="jxr_linenumber" name="462" href="#462">462</a>       controlSignal.awaitStart();
+<a class="jxr_linenumber" name="463" href="#463">463</a>       <strong class="jxr_keyword">if</strong> (initialDelayUnit != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="464" href="#464">464</a>         initialDelayUnit.sleep(initialDelayTime);
+<a class="jxr_linenumber" name="465" href="#465">465</a>       }
+<a class="jxr_linenumber" name="466" href="#466">466</a> 
+<a class="jxr_linenumber" name="467" href="#467">467</a>       <strong class="jxr_keyword">long</strong> lastPauseTime = 0;
+<a class="jxr_linenumber" name="468" href="#468">468</a>       <strong class="jxr_keyword">while</strong> (!controlSignal.stopped()) {
+<a class="jxr_linenumber" name="469" href="#469">469</a>         <strong class="jxr_keyword">long</strong> start = System.nanoTime();
+<a class="jxr_linenumber" name="470" href="#470">470</a>         callAgentMethod();
+<a class="jxr_linenumber" name="471" href="#471">471</a>         <strong class="jxr_keyword">long</strong> elapsed = System.nanoTime() - start;
+<a class="jxr_linenumber" name="472" href="#472">472</a>         <strong class="jxr_keyword">long</strong> micros = elapsed / 1000;
+<a class="jxr_linenumber" name="473" href="#473">473</a>         histogram.recordValueWithExpectedInterval(micros, lastPauseTime);
+<a class="jxr_linenumber" name="474" href="#474">474</a>         lastPauseTime = iterationPause.pause(micros);
+<a class="jxr_linenumber" name="475" href="#475">475</a>       }
+<a class="jxr_linenumber" name="476" href="#476">476</a>       controlSignal.done();
+<a class="jxr_linenumber" name="477" href="#477">477</a>     }
+<a class="jxr_linenumber" name="478" href="#478">478</a> 
+<a class="jxr_linenumber" name="479" href="#479">479</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">void</strong> callAgentMethod() {
+<a class="jxr_linenumber" name="480" href="#480">480</a>       <strong class="jxr_keyword">try</strong> {
+<a class="jxr_linenumber" name="481" href="#481">481</a>         agentMethod.invoke(sim, argumentList);
+<a class="jxr_linenumber" name="482" href="#482">482</a>       } <strong class="jxr_keyword">catch</strong> (Exception e) {
+<a class="jxr_linenumber" name="483" href="#483">483</a>         <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> RuntimeException(<span class="jxr_string">"Agent["</span> + agentName + <span class="jxr_string">"] method invocation failure"</span>, e);
+<a class="jxr_linenumber" name="484" href="#484">484</a>       }
+<a class="jxr_linenumber" name="485" href="#485">485</a>     }
+<a class="jxr_linenumber" name="486" href="#486">486</a> 
+<a class="jxr_linenumber" name="487" href="#487">487</a>     <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">void</strong> printResults() {
+<a class="jxr_linenumber" name="488" href="#488">488</a>       System.out.printf(<span class="jxr_string">"Latency results for Agent[%s]:%n"</span>, agentName);
+<a class="jxr_linenumber" name="489" href="#489">489</a>       printHistogram(histogram);
+<a class="jxr_linenumber" name="490" href="#490">490</a>       System.out.println();
+<a class="jxr_linenumber" name="491" href="#491">491</a>     }
+<a class="jxr_linenumber" name="492" href="#492">492</a>   }
+<a class="jxr_linenumber" name="493" href="#493">493</a> 
+<a class="jxr_linenumber" name="494" href="#494">494</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> Histogram newHistogram() {
+<a class="jxr_linenumber" name="495" href="#495">495</a>     <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">new</strong> Histogram(TimeUnit.MINUTES.toMicros(10), 3);
+<a class="jxr_linenumber" name="496" href="#496">496</a>   }
+<a class="jxr_linenumber" name="497" href="#497">497</a> 
+<a class="jxr_linenumber" name="498" href="#498">498</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">void</strong> printHistogram(Histogram histogram) {
+<a class="jxr_linenumber" name="499" href="#499">499</a>     histogram.outputPercentileDistribution(System.out, 1, 1000.0);
+<a class="jxr_linenumber" name="500" href="#500">500</a>   }
+<a class="jxr_linenumber" name="501" href="#501">501</a> 
+<a class="jxr_linenumber" name="502" href="#502">502</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">class</strong> <a href="../../stormpot/simulations/Sim.html">IterationPause</a> {
+<a class="jxr_linenumber" name="503" href="#503">503</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> <a href="../../stormpot/simulations/Sim.html">Sim</a> sim;
+<a class="jxr_linenumber" name="504" href="#504">504</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> Method pauseMethod;
+<a class="jxr_linenumber" name="505" href="#505">505</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> TimeUnit pauseUnit;
+<a class="jxr_linenumber" name="506" href="#506">506</a> 
+<a class="jxr_linenumber" name="507" href="#507">507</a>     <strong class="jxr_keyword">public</strong> <a href="../../stormpot/simulations/Sim.html">IterationPause</a>(<a href="../../stormpot/simulations/Sim.html">AgentPause</a> agentPause, <a href="../../stormpot/simulations/Sim.html">Sim</a> sim, Method pauseMethod) {
+<a class="jxr_linenumber" name="508" href="#508">508</a>       <strong class="jxr_keyword">this</strong>.sim = sim;
+<a class="jxr_linenumber" name="509" href="#509">509</a>       <strong class="jxr_keyword">this</strong>.pauseMethod = pauseMethod;
+<a class="jxr_linenumber" name="510" href="#510">510</a>       <strong class="jxr_keyword">this</strong>.pauseUnit = agentPause.unit();
+<a class="jxr_linenumber" name="511" href="#511">511</a>     }
+<a class="jxr_linenumber" name="512" href="#512">512</a> 
+<a class="jxr_linenumber" name="513" href="#513">513</a>     <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">long</strong> pause(<strong class="jxr_keyword">long</strong> spentTimeMicros) <strong class="jxr_keyword">throws</strong> Exception {
+<a class="jxr_linenumber" name="514" href="#514">514</a>       Number result = (Number) pauseMethod.invoke(sim);
+<a class="jxr_linenumber" name="515" href="#515">515</a>       <strong class="jxr_keyword">long</strong> pauseTime = result.longValue();
+<a class="jxr_linenumber" name="516" href="#516">516</a>       <strong class="jxr_keyword">long</strong> upauseTime = pauseUnit.toMicros(pauseTime);
+<a class="jxr_linenumber" name="517" href="#517">517</a>       TimeUnit.MICROSECONDS.sleep(upauseTime - spentTimeMicros);
+<a class="jxr_linenumber" name="518" href="#518">518</a>       <strong class="jxr_keyword">return</strong> upauseTime;
+<a class="jxr_linenumber" name="519" href="#519">519</a>     }
+<a class="jxr_linenumber" name="520" href="#520">520</a>   }
+<a class="jxr_linenumber" name="521" href="#521">521</a> 
+<a class="jxr_linenumber" name="522" href="#522">522</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">class</strong> <a href="../../stormpot/simulations/Sim.html">ControlSignal</a> {
+<a class="jxr_linenumber" name="523" href="#523">523</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> CountDownLatch startLatch;
+<a class="jxr_linenumber" name="524" href="#524">524</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> Semaphore doneCounter;
+<a class="jxr_linenumber" name="525" href="#525">525</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">volatile</strong> <strong class="jxr_keyword">boolean</strong> stopped;
+<a class="jxr_linenumber" name="526" href="#526">526</a> 
+<a class="jxr_linenumber" name="527" href="#527">527</a>     <strong class="jxr_keyword">private</strong> <a href="../../stormpot/simulations/Sim.html">ControlSignal</a>() {
+<a class="jxr_linenumber" name="528" href="#528">528</a>       startLatch = <strong class="jxr_keyword">new</strong> CountDownLatch(1);
+<a class="jxr_linenumber" name="529" href="#529">529</a>       doneCounter = <strong class="jxr_keyword">new</strong> Semaphore(0);
+<a class="jxr_linenumber" name="530" href="#530">530</a>     }
+<a class="jxr_linenumber" name="531" href="#531">531</a> 
+<a class="jxr_linenumber" name="532" href="#532">532</a>     <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">void</strong> awaitStart() <strong class="jxr_keyword">throws</strong> InterruptedException {
+<a class="jxr_linenumber" name="533" href="#533">533</a>       startLatch.await();
+<a class="jxr_linenumber" name="534" href="#534">534</a>     }
+<a class="jxr_linenumber" name="535" href="#535">535</a> 
+<a class="jxr_linenumber" name="536" href="#536">536</a>     <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">void</strong> start() {
+<a class="jxr_linenumber" name="537" href="#537">537</a>       startLatch.countDown();
+<a class="jxr_linenumber" name="538" href="#538">538</a>     }
+<a class="jxr_linenumber" name="539" href="#539">539</a> 
+<a class="jxr_linenumber" name="540" href="#540">540</a>     <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">boolean</strong> stopped() {
+<a class="jxr_linenumber" name="541" href="#541">541</a>       <strong class="jxr_keyword">return</strong> stopped;
+<a class="jxr_linenumber" name="542" href="#542">542</a>     }
+<a class="jxr_linenumber" name="543" href="#543">543</a> 
+<a class="jxr_linenumber" name="544" href="#544">544</a>     <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">void</strong> stop() {
+<a class="jxr_linenumber" name="545" href="#545">545</a>       stopped = <strong class="jxr_keyword">true</strong>;
+<a class="jxr_linenumber" name="546" href="#546">546</a>     }
+<a class="jxr_linenumber" name="547" href="#547">547</a> 
+<a class="jxr_linenumber" name="548" href="#548">548</a>     <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">void</strong> done() {
+<a class="jxr_linenumber" name="549" href="#549">549</a>       doneCounter.release();
+<a class="jxr_linenumber" name="550" href="#550">550</a>     }
+<a class="jxr_linenumber" name="551" href="#551">551</a> 
+<a class="jxr_linenumber" name="552" href="#552">552</a>     <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">void</strong> awaitDone(<strong class="jxr_keyword">int</strong> doneCounts) <strong class="jxr_keyword">throws</strong> InterruptedException {
+<a class="jxr_linenumber" name="553" href="#553">553</a>       doneCounter.acquire(doneCounts);
+<a class="jxr_linenumber" name="554" href="#554">554</a>     }
+<a class="jxr_linenumber" name="555" href="#555">555</a>   }
+<a class="jxr_linenumber" name="556" href="#556">556</a> 
+<a class="jxr_linenumber" name="557" href="#557">557</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">class</strong> <a href="../../stormpot/simulations/Sim.html">DependencyResolver</a> {
+<a class="jxr_linenumber" name="558" href="#558">558</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> List&lt;Object&gt; dependencies;
+<a class="jxr_linenumber" name="559" href="#559">559</a> 
+<a class="jxr_linenumber" name="560" href="#560">560</a>     <strong class="jxr_keyword">private</strong> <a href="../../stormpot/simulations/Sim.html">DependencyResolver</a>() {
+<a class="jxr_linenumber" name="561" href="#561">561</a>       dependencies = <strong class="jxr_keyword">new</strong> ArrayList&lt;Object&gt;();
+<a class="jxr_linenumber" name="562" href="#562">562</a>     }
+<a class="jxr_linenumber" name="563" href="#563">563</a> 
+<a class="jxr_linenumber" name="564" href="#564">564</a>     <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">void</strong> add(Object obj) {
+<a class="jxr_linenumber" name="565" href="#565">565</a>       <strong class="jxr_keyword">if</strong> (obj != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="566" href="#566">566</a>         dependencies.add(obj);
+<a class="jxr_linenumber" name="567" href="#567">567</a>       }
+<a class="jxr_linenumber" name="568" href="#568">568</a>     }
+<a class="jxr_linenumber" name="569" href="#569">569</a> 
+<a class="jxr_linenumber" name="570" href="#570">570</a>     <strong class="jxr_keyword">public</strong> Object[] resolve(Class&lt;?&gt;[] types) {
+<a class="jxr_linenumber" name="571" href="#571">571</a>       Object[] values = <strong class="jxr_keyword">new</strong> Object[types.length];
+<a class="jxr_linenumber" name="572" href="#572">572</a>       <strong class="jxr_keyword">for</strong> (<strong class="jxr_keyword">int</strong> i = 0; i &lt; values.length; i++) {
+<a class="jxr_linenumber" name="573" href="#573">573</a>         values[i] = resolve(types[i]);
+<a class="jxr_linenumber" name="574" href="#574">574</a>       }
+<a class="jxr_linenumber" name="575" href="#575">575</a>       <strong class="jxr_keyword">return</strong> values;
+<a class="jxr_linenumber" name="576" href="#576">576</a>     }
+<a class="jxr_linenumber" name="577" href="#577">577</a> 
+<a class="jxr_linenumber" name="578" href="#578">578</a>     <strong class="jxr_keyword">private</strong> &lt;T&gt; T resolve(Class&lt;T&gt; type) {
+<a class="jxr_linenumber" name="579" href="#579">579</a>       <strong class="jxr_keyword">for</strong> (Object dependency : dependencies) {
+<a class="jxr_linenumber" name="580" href="#580">580</a>         <strong class="jxr_keyword">if</strong> (type.isInstance(dependency)) {
+<a class="jxr_linenumber" name="581" href="#581">581</a>           <strong class="jxr_keyword">return</strong> type.<strong class="jxr_keyword">cast</strong>(dependency);
+<a class="jxr_linenumber" name="582" href="#582">582</a>         }
+<a class="jxr_linenumber" name="583" href="#583">583</a>       }
+<a class="jxr_linenumber" name="584" href="#584">584</a>       <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">null</strong>;
+<a class="jxr_linenumber" name="585" href="#585">585</a>     }
+<a class="jxr_linenumber" name="586" href="#586">586</a> 
+<a class="jxr_linenumber" name="587" href="#587">587</a>     <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">void</strong> replace(Object obj) {
+<a class="jxr_linenumber" name="588" href="#588">588</a>       <strong class="jxr_keyword">int</strong> size = dependencies.size();
+<a class="jxr_linenumber" name="589" href="#589">589</a>       <strong class="jxr_keyword">for</strong> (<strong class="jxr_keyword">int</strong> i = 0; i &lt; size; i++) {
+<a class="jxr_linenumber" name="590" href="#590">590</a>         <strong class="jxr_keyword">if</strong> (dependencies.get(i).getClass() == obj.getClass()) {
+<a class="jxr_linenumber" name="591" href="#591">591</a>           dependencies.set(i, obj);
+<a class="jxr_linenumber" name="592" href="#592">592</a>           <strong class="jxr_keyword">return</strong>;
+<a class="jxr_linenumber" name="593" href="#593">593</a>         }
+<a class="jxr_linenumber" name="594" href="#594">594</a>       }
+<a class="jxr_linenumber" name="595" href="#595">595</a>       add(obj);
+<a class="jxr_linenumber" name="596" href="#596">596</a>     }
+<a class="jxr_linenumber" name="597" href="#597">597</a>   }
+<a class="jxr_linenumber" name="598" href="#598">598</a> }
+</pre>
+<hr/><div id="footer">This page was automatically generated by <a href="http://maven.apache.org/">Maven</a></div></body>
+</html>
+

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>QueueFactory.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.html" class="el_package">stormpot</a> &gt; <span class="el_source">QueueFactory.java</span></div><h1>QueueFactory.java</h1><pre class="source lang-java linenums">/*
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>QueueFactory.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.source.html" class="el_package">stormpot</a> &gt; <span class="el_source">QueueFactory.java</span></div><h1>QueueFactory.java</h1><pre class="source lang-java linenums">/*
  * Copyright (C) 2011-2014 Chris Vest (mr.chrisvest@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -19,52 +19,101 @@ import java.lang.reflect.Constructor;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-<span class="nc" id="L22">class QueueFactory {</span>
-<span class="nc" id="L23">  interface Factory {</span>
+<span class="nc" id="L22">final class QueueFactory {</span>
+  interface Factory {
     &lt;T&gt; BlockingQueue&lt;T&gt; createUnboundedBlockingQueue();
   }
 
+<span class="pc" id="L27">  static enum FactoryChoiceReason {</span>
+<span class="fc" id="L28">    DEFAULT_FIRST_CHOICE(&quot;The &quot; + QUEUE_IMPL_FIRST_CHOICE + &quot; was available on the classpath, and the &quot; +</span>
+        QUEUE_IMPL + &quot; system property did not specify any alternative implementation to use.&quot;),
+<span class="fc" id="L30">    SPECIFIED_CHOICE(&quot;The &quot; + QUEUE_IMPL + &quot; system property specified the queue implementation to use, &quot; +</span>
+        &quot;specifically &quot; + System.getProperty(QUEUE_IMPL) + &quot;.&quot;),
+<span class="fc" id="L32">    DEFAULT_SECOND_CHOICE(&quot;The &quot; + QUEUE_IMPL_FIRST_CHOICE + &quot; was not available on the classpath, and the &quot; +</span>
+        QUEUE_IMPL + &quot; system property did not specify any alternative implementation to use, so &quot; +
+        QUEUE_IMPL_SECOND_CHOICE + &quot; was used as the default fallback.&quot;),
+<span class="fc" id="L35">    DEFAULT_FALLBACK(&quot;&quot;)</span>
+    ;
+
+    private final String description;
+
+<span class="fc" id="L40">    FactoryChoiceReason(String description) {</span>
+<span class="fc" id="L41">      this.description = description;</span>
+<span class="fc" id="L42">    }</span>
+
+    public String toString() {
+<span class="nc" id="L45">      return super.toString() + &quot;(&quot; + description + &quot;)&quot;;</span>
+    }
+  }
+
   private static final Factory factory;
+  private static final FactoryChoiceReason reason;
+
+  private static final String QUEUE_IMPL = &quot;stormpot.blocking.queue.impl&quot;;
+  private static final String QUEUE_IMPL_FIRST_CHOICE = &quot;java.util.concurrent.LinkedTransferQueue&quot;;
+<span class="fc" id="L54">  private static final String QUEUE_IMPL_SECOND_CHOICE = LinkedBlockingQueue.class.getCanonicalName();</span>
 
   static {
-<span class="fc" id="L30">    Factory theFactory = null;</span>
-<span class="fc" id="L31">    String queueClass = System.getProperty(</span>
-        &quot;stormpot.blocking.queue.impl&quot;,
-        &quot;java.util.concurrent.LinkedTransferQueue&quot;);
+<span class="fc" id="L57">    Factory theFactory = null;</span>
+<span class="fc" id="L58">    FactoryChoiceReason theReason = FactoryChoiceReason.SPECIFIED_CHOICE;</span>
+<span class="fc" id="L59">    String queueType = System.getProperty(QUEUE_IMPL);</span>
+
+<span class="pc bpc" id="L61" title="1 of 2 branches missed.">    if (queueType == null) {</span>
+<span class="fc" id="L62">      queueType = QUEUE_IMPL_FIRST_CHOICE;</span>
+<span class="fc" id="L63">      theReason = FactoryChoiceReason.DEFAULT_FIRST_CHOICE;</span>
+    }
+
     try {
-<span class="fc" id="L35">      Class&lt;?&gt; transferqueueClass = Class.forName(queueClass);</span>
-<span class="fc" id="L36">      final Constructor&lt;?&gt; constructor = transferqueueClass.getConstructor();</span>
-<span class="fc" id="L37">      constructor.newInstance(); // Just making sure that it works...</span>
-<span class="fc" id="L38">      theFactory = new Factory() {</span>
+<span class="fc" id="L67">      Class&lt;?&gt; queueClass = Class.forName(queueType);</span>
+<span class="fc" id="L68">      final Constructor&lt;?&gt; constructor = queueClass.getConstructor();</span>
+<span class="fc" id="L69">      BlockingQueue.class.cast(constructor.newInstance()); // Just making sure that it works...</span>
+<span class="fc" id="L70">      theFactory = new Factory() {</span>
         @SuppressWarnings(&quot;unchecked&quot;)
         @Override
         public &lt;T&gt; BlockingQueue&lt;T&gt; createUnboundedBlockingQueue() {
           try {
-<span class="fc" id="L43">            return (BlockingQueue&lt;T&gt;) constructor.newInstance();</span>
-<span class="nc" id="L44">          } catch (Exception e) {</span>
-<span class="nc" id="L45">            Exception exception = new Exception(</span>
+<span class="fc" id="L75">            return (BlockingQueue&lt;T&gt;) constructor.newInstance();</span>
+<span class="nc" id="L76">          } catch (Exception e) {</span>
+<span class="nc" id="L77">            Exception exception = new Exception(</span>
                 &quot;WARNING: Expected class to be constructable: &quot; + constructor,
                 e);
-<span class="nc" id="L48">            exception.printStackTrace();</span>
+<span class="nc" id="L80">            exception.printStackTrace();</span>
           }
-<span class="nc" id="L50">          return new LinkedBlockingQueue&lt;T&gt;();</span>
+<span class="nc" id="L82">          return new LinkedBlockingQueue&lt;T&gt;();</span>
         }
       };
-<span class="nc" id="L53">    } catch (Exception ignore) {</span>
-<span class="fc" id="L54">    }</span>
-<span class="pc bpc" id="L55" title="1 of 2 branches missed.">    if (theFactory == null) {</span>
-<span class="nc" id="L56">      theFactory = new Factory() {</span>
+<span class="nc" id="L85">    } catch (Exception e) {</span>
+<span class="nc bnc" id="L86" title="All 2 branches missed.">      if (theReason == FactoryChoiceReason.SPECIFIED_CHOICE) {</span>
+<span class="nc" id="L87">        Exception exception = new Exception(</span>
+            &quot;WARNING: The queue implementation specified by the &quot; + QUEUE_IMPL + &quot; system property, &quot; +
+            &quot;specifically &quot; + queueType + &quot;, was determined to be unusable. &quot; +
+            &quot;Falling back to the &quot; + QUEUE_IMPL_SECOND_CHOICE + &quot; implementation.&quot;,
+            e);
+<span class="nc" id="L92">        exception.printStackTrace();</span>
+      }
+<span class="fc" id="L94">    }</span>
+
+<span class="pc bpc" id="L96" title="1 of 2 branches missed.">    if (theFactory == null) {</span>
+<span class="nc" id="L97">      theFactory = new Factory() {</span>
         @Override
         public &lt;T&gt; BlockingQueue&lt;T&gt; createUnboundedBlockingQueue() {
-<span class="nc" id="L59">          return new LinkedBlockingQueue&lt;T&gt;();</span>
+<span class="nc" id="L100">          return new LinkedBlockingQueue&lt;T&gt;();</span>
         }
       };
+<span class="nc bnc" id="L103" title="All 2 branches missed.">      theReason = theReason == FactoryChoiceReason.DEFAULT_FIRST_CHOICE?</span>
+          FactoryChoiceReason.DEFAULT_SECOND_CHOICE : FactoryChoiceReason.DEFAULT_FALLBACK;
     }
-<span class="fc" id="L63">    factory = theFactory;</span>
-<span class="fc" id="L64">  }</span>
+
+<span class="fc" id="L107">    factory = theFactory;</span>
+<span class="fc" id="L108">    reason = theReason;</span>
+<span class="fc" id="L109">  }</span>
 
   static &lt;T&gt; BlockingQueue&lt;T&gt; createUnboundedBlockingQueue() {
-<span class="fc" id="L67">    return factory.createUnboundedBlockingQueue();</span>
+<span class="fc" id="L112">    return factory.createUnboundedBlockingQueue();</span>
+  }
+
+  static FactoryChoiceReason getQueueFactoryChoiceReason() {
+<span class="nc" id="L116">    return reason;</span>
   }
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.2.201409121644</span></div></body></html>

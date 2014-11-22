@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>TimeSpreadExpiration.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.html" class="el_package">stormpot</a> &gt; <span class="el_source">TimeSpreadExpiration.java</span></div><h1>TimeSpreadExpiration.java</h1><pre class="source lang-java linenums">/*
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>TimeSpreadExpiration.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.source.html" class="el_package">stormpot</a> &gt; <span class="el_source">TimeSpreadExpiration.java</span></div><h1>TimeSpreadExpiration.java</h1><pre class="source lang-java linenums">/*
  * Copyright (C) 2011-2014 Chris Vest (mr.chrisvest@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -21,31 +21,31 @@ import java.util.concurrent.TimeUnit;
  * This is the standard time based {@link Expiration}. It will invalidate
  * objects based on about how long ago they were allocated.
  *
- * @author Chris Vest &amp;lt;mr.chrisvest@gmail.com&amp;gt;
+ * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  * @since 2.2
  */
+// TODO 3.0 make class final
 public class TimeSpreadExpiration implements Expiration&lt;Poolable&gt; {
 
   private final long lowerBoundMillis;
   private final long upperBoundMillis;
+  private final TimeUnit unit;
 
   /**
    * Construct a new Expiration that will invalidate objects that are older
    * than the given lower bound, before they get older than the upper bound,
    * in the given time unit.
-   * &lt;p&gt;
-   * If the &lt;code&gt;lowerBound&lt;/code&gt; is less than 1, the &lt;code&gt;upperBound&lt;/code&gt;
-   * is less than the &lt;code&gt;lowerBound&lt;/code&gt;, or the &lt;code&gt;unit&lt;/code&gt; is
-   * &lt;code&gt;null&lt;/code&gt;, then an {@link java.lang.IllegalArgumentException} will
-   * be thrown.
+   *
+   * If the `lowerBound` is less than 1, the `upperBound` is less than the
+   * `lowerBound`, or the `unit` is `null`, then an
+   * {@link java.lang.IllegalArgumentException} will be thrown.
    *
    * @param lowerBound Poolables younger than this, in the given unit, are not
    *                   considered expired. This value must be at least 1.
    * @param upperBound Poolables older than this, in the given unit, are always
    *                   considered expired. This value must be greater than the
    *                   lowerBound.
-   * @param unit The {@link TimeUnit} of the bounds values. Never
-   *             &lt;code&gt;null&lt;/code&gt;.
+   * @param unit The {@link TimeUnit} of the bounds values. Never `null`.
    */
   public TimeSpreadExpiration(
       long lowerBound,
@@ -64,30 +64,41 @@ public class TimeSpreadExpiration implements Expiration&lt;Poolable&gt; {
     }
 <span class="fc" id="L65">    this.lowerBoundMillis = unit.toMillis(lowerBound);</span>
 <span class="fc" id="L66">    this.upperBoundMillis = unit.toMillis(upperBound);</span>
-<span class="fc" id="L67">  }</span>
+<span class="fc" id="L67">    this.unit = unit;</span>
+<span class="fc" id="L68">  }</span>
 
   /**
-   * Returns &lt;code&gt;true&lt;/code&gt;, with uniformly increasing probability, if the
+   * Returns `true`, with uniformly increasing probability, if the
    * {@link stormpot.Poolable} represented by the given {@link SlotInfo} is
-   * older than the lower bound, eventually returning &lt;code&gt;true&lt;/code&gt; with
+   * older than the lower bound, eventually returning `true` with
    * 100% certainty when the age of the Poolable is equal to or greater than
    * the upper bound.
-   * &lt;p&gt;
+   *
    * The uniformity of the random expiration holds regardless of how often a
    * Poolable is checked. That is to say, checking a Poolable more times within
-   * an interval of time, does &lt;em&gt;not&lt;/em&gt; increase its chances of being
+   * an interval of time, does _not_ increase its chances of being
    * declared expired.
    */
   @Override
   public boolean hasExpired(SlotInfo&lt;? extends Poolable&gt; info) {
-<span class="fc" id="L83">    long expirationAge = info.getStamp();</span>
-<span class="fc bfc" id="L84" title="All 2 branches covered.">    if (expirationAge == 0) {</span>
-<span class="fc" id="L85">      long maxDelta = upperBoundMillis - lowerBoundMillis;</span>
-<span class="fc" id="L86">      expirationAge = lowerBoundMillis + Math.abs(info.randomInt() % maxDelta);</span>
-<span class="fc" id="L87">      info.setStamp(expirationAge);</span>
+<span class="fc" id="L84">    long expirationAge = info.getStamp();</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">    if (expirationAge == 0) {</span>
+<span class="fc" id="L86">      long maxDelta = upperBoundMillis - lowerBoundMillis;</span>
+<span class="fc" id="L87">      expirationAge = lowerBoundMillis + Math.abs(info.randomInt() % maxDelta);</span>
+<span class="fc" id="L88">      info.setStamp(expirationAge);</span>
     }
-<span class="fc" id="L89">    long age = info.getAgeMillis();</span>
-<span class="fc bfc" id="L90" title="All 2 branches covered.">    return age &gt;= expirationAge;</span>
+<span class="fc" id="L90">    long age = info.getAgeMillis();</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">    return age &gt;= expirationAge;</span>
+  }
+
+  /**
+   * Produces a String representation of this TimeSpreadExpiration.
+   */
+  @Override
+  public String toString() {
+<span class="fc" id="L99">    long lower = unit.convert(lowerBoundMillis, TimeUnit.MILLISECONDS);</span>
+<span class="fc" id="L100">    long upper = unit.convert(upperBoundMillis, TimeUnit.MILLISECONDS);</span>
+<span class="fc" id="L101">    return &quot;TimeSpreadExpiration(&quot; + lower + &quot; to &quot; + upper + &quot; &quot; + unit + &quot;)&quot;;</span>
   }
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.2.201409121644</span></div></body></html>

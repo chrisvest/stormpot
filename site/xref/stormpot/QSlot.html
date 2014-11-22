@@ -28,7 +28,7 @@
 <a class="jxr_linenumber" name="18" href="#18">18</a>  <strong class="jxr_keyword">import</strong> java.util.concurrent.BlockingQueue;
 <a class="jxr_linenumber" name="19" href="#19">19</a>  <strong class="jxr_keyword">import</strong> java.util.concurrent.atomic.AtomicBoolean;
 <a class="jxr_linenumber" name="20" href="#20">20</a>  
-<a class="jxr_linenumber" name="21" href="#21">21</a>  <strong class="jxr_keyword">class</strong> QSlot&lt;T <strong class="jxr_keyword">extends</strong> Poolable&gt; <strong class="jxr_keyword">implements</strong> Slot, SlotInfo&lt;T&gt; {
+<a class="jxr_linenumber" name="21" href="#21">21</a>  <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">class</strong> QSlot&lt;T <strong class="jxr_keyword">extends</strong> Poolable&gt; <strong class="jxr_keyword">implements</strong> Slot, SlotInfo&lt;T&gt; {
 <a class="jxr_linenumber" name="22" href="#22">22</a>    <strong class="jxr_keyword">final</strong> BlockingQueue&lt;QSlot&lt;T&gt;&gt; live;
 <a class="jxr_linenumber" name="23" href="#23">23</a>    <strong class="jxr_keyword">final</strong> AtomicBoolean claimed;
 <a class="jxr_linenumber" name="24" href="#24">24</a>    T obj;
@@ -36,7 +36,7 @@
 <a class="jxr_linenumber" name="26" href="#26">26</a>    <strong class="jxr_keyword">long</strong> created;
 <a class="jxr_linenumber" name="27" href="#27">27</a>    <strong class="jxr_keyword">long</strong> claims;
 <a class="jxr_linenumber" name="28" href="#28">28</a>    <strong class="jxr_keyword">long</strong> stamp;
-<a class="jxr_linenumber" name="29" href="#29">29</a>    
+<a class="jxr_linenumber" name="29" href="#29">29</a>  
 <a class="jxr_linenumber" name="30" href="#30">30</a>    <strong class="jxr_keyword">public</strong> <a href="../stormpot/QSlot.html">QSlot</a>(BlockingQueue&lt;QSlot&lt;T&gt;&gt; live) {
 <a class="jxr_linenumber" name="31" href="#31">31</a>      <strong class="jxr_keyword">this</strong>.live = live;
 <a class="jxr_linenumber" name="32" href="#32">32</a>      <strong class="jxr_keyword">this</strong>.claimed = <strong class="jxr_keyword">new</strong> AtomicBoolean(<strong class="jxr_keyword">true</strong>);

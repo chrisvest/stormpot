@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>PoolException.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.html" class="el_package">stormpot</a> &gt; <span class="el_source">PoolException.java</span></div><h1>PoolException.java</h1><pre class="source lang-java linenums">/*
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>PoolException.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.source.html" class="el_package">stormpot</a> &gt; <span class="el_source">PoolException.java</span></div><h1>PoolException.java</h1><pre class="source lang-java linenums">/*
  * Copyright (C) 2011-2014 Chris Vest (mr.chrisvest@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -18,18 +18,18 @@ package stormpot;
 /**
  * The PoolException may be thrown by a pool implementation in a number of
  * circumstances:
- * &lt;ul&gt;
- * &lt;li&gt;If claim is called and the pool needs to
- * {@link Allocator#allocate(Slot) allocate} a new object, but the allocation
- * fails by returning &lt;code&gt;null&lt;/code&gt; or throwing an exception.
- * &lt;li&gt;Likewise if the {@link Reallocator#reallocate(Slot, Poolable)} method
- * return &lt;code&gt;null&lt;/code&gt; or throw an exception.
- * &lt;li&gt;If the {@link Slot#release(Poolable)} method is misused, and the pool is
- * able to detect this.
- * &lt;li&gt;If the {@link Expiration#hasExpired(SlotInfo) expiration check} throws an
- * exception.
- * &lt;/ul&gt;
- * @author Chris Vest &amp;lt;mr.chrisvest@gmail.com&amp;gt;
+ *
+ * * If claim is called and the pool needs to
+ *   {@link Allocator#allocate(Slot) allocate} a new object, but the allocation
+ *   fails by returning `null` or throwing an exception.
+ * * Likewise if the {@link Reallocator#reallocate(Slot, Poolable)} method
+ *   return `null` or throw an exception.
+ * * If the {@link Slot#release(Poolable)} method is misused, and the pool is
+ *   able to detect this.
+ * * If the {@link Expiration#hasExpired(SlotInfo) expiration check} throws an
+ *   exception.
+ *
+ * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  */
 public class PoolException extends RuntimeException {
   private static final long serialVersionUID = -1908093409167496640L;
@@ -56,4 +56,4 @@ public class PoolException extends RuntimeException {
 <span class="fc" id="L56">    super(message, cause);</span>
 <span class="fc" id="L57">  }</span>
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.2.201409121644</span></div></body></html>

@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>PreciseLeakDetector.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.source.html" class="el_package">stormpot</a> &gt; <span class="el_source">PreciseLeakDetector.java</span></div><h1>PreciseLeakDetector.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2011-2014 Chris Vest (mr.chrisvest@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package stormpot;
+
+import java.lang.ref.WeakReference;
+
+final class PreciseLeakDetector {
+<span class="fc" id="L21">  private static final int branchPower =</span>
+      Integer.getInteger(&quot;stormpot.PreciseLeakDetector.branchPower&quot;, 5);
+<span class="fc" id="L23">  private static final int branchFactor = 1 &lt;&lt; branchPower;</span>
+<span class="fc" id="L24">  private static final int branchMask = branchFactor - 1;</span>
+
+  private static class WeakRef extends WeakReference&lt;Object&gt; {
+    WeakRef next;
+
+    public WeakRef(Object referent) {
+<span class="fc" id="L30">      super(referent);</span>
+<span class="fc" id="L31">    }</span>
+  }
+
+  // Both guarded by synchronized(this)
+  private Object[] probes;
+  private int leakedObjectCount;
+
+<span class="fc" id="L38">  PreciseLeakDetector() {</span>
+    // The probes are basically a two-level Bagwell hash trie with linked list
+    // buckets at the end, to reduce the proliferation of arrays.
+    // Basically, we compute the identity hash code for an object, and the
+    // least significant 5 bits are the index into the first-level 32 element
+    // 'probe' array. When inserting, if that slot is null, then we insert the
+    // WeakRef directly into that place. In fact, we allow building a WeakRef
+    // chain up to 4 elements long, directly in the first-level 'probes' array.
+    // Otherwise we add the second-level 32 element array, rehash the existing
+    // chain into it, by using the next 5 second-least significant bits as
+    // index. From here on, we don't create any more levels, but just link the
+    // WeakRefs together like a daisy-chain. This way, we create at most 33
+    // arrays, with room for 1024 objects. Most pools probably won't need to
+    // have more than that many objects registered at a time.
+<span class="fc" id="L52">    probes = new Object[branchFactor];</span>
+<span class="fc" id="L53">  }</span>
+
+  synchronized void register(Object obj) {
+<span class="fc" id="L56">    int hash1 = System.identityHashCode(obj) &amp; branchMask;</span>
+
+<span class="fc" id="L58">    Object current = probes[hash1];</span>
+
+<span class="fc bfc" id="L60" title="All 2 branches covered.">    if (current == null) {</span>
+<span class="fc" id="L61">      probes[hash1] = new WeakRef(obj);</span>
+<span class="fc" id="L62">      return;</span>
+    }
+
+<span class="fc bfc" id="L65" title="All 2 branches covered.">    if (current instanceof WeakRef) {</span>
+<span class="fc" id="L66">      WeakRef currentRef = (WeakRef) current;</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">      if (chainShorterThan(4, current)) {</span>
+<span class="fc" id="L68">        WeakRef ref = new WeakRef(obj);</span>
+<span class="fc" id="L69">        ref.next = currentRef;</span>
+<span class="fc" id="L70">        probes[hash1] = ref;</span>
+<span class="fc" id="L71">      } else {</span>
+<span class="fc" id="L72">        WeakRef[] level2 = new WeakRef[branchFactor];</span>
+<span class="fc" id="L73">        WeakRef ref = new WeakRef(obj);</span>
+<span class="fc" id="L74">        ref.next = currentRef;</span>
+<span class="fc" id="L75">        assocLevel2(level2, ref);</span>
+<span class="fc" id="L76">        probes[hash1] = level2;</span>
+      }
+<span class="fc" id="L78">      return;</span>
+    }
+
+<span class="fc" id="L81">    WeakRef[] level2 = (WeakRef[]) current;</span>
+<span class="fc" id="L82">    assocLevel2(level2, new WeakRef(obj));</span>
+<span class="fc" id="L83">  }</span>
+
+  private void assocLevel2(WeakRef[] level2, WeakRef chain) {
+    WeakRef next;
+    Object obj;
+<span class="fc bfc" id="L88" title="All 2 branches covered.">    while (chain != null) {</span>
+<span class="fc" id="L89">      next = chain.next;</span>
+<span class="fc" id="L90">      obj = chain.get();</span>
+
+<span class="fc bfc" id="L92" title="All 2 branches covered.">      if (obj != null) {</span>
+<span class="fc" id="L93">        int hash2 = (System.identityHashCode(obj) &gt;&gt; branchPower) &amp; branchMask;</span>
+<span class="fc" id="L94">        chain.next = level2[hash2];</span>
+<span class="fc" id="L95">        level2[hash2] = chain;</span>
+<span class="fc" id="L96">      } else {</span>
+<span class="fc" id="L97">        leakedObjectCount++;</span>
+      }
+
+<span class="fc" id="L100">      chain = next;</span>
+    }
+<span class="fc" id="L102">  }</span>
+
+  private boolean chainShorterThan(int length, Object weakRef) {
+<span class="fc" id="L105">    WeakRef ref = (WeakRef) weakRef;</span>
+
+<span class="fc bfc" id="L107" title="All 2 branches covered.">    while (ref != null) {</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">      if (length == 0) {</span>
+<span class="fc" id="L109">        return false;</span>
+      }
+<span class="fc" id="L111">      length--;</span>
+<span class="fc" id="L112">      ref = ref.next;</span>
+    }
+<span class="fc" id="L114">    return true;</span>
+  }
+
+  synchronized void unregister(Object obj) {
+<span class="fc" id="L118">    int hash0 = System.identityHashCode(obj);</span>
+<span class="fc" id="L119">    int hash1 = hash0 &amp; branchMask;</span>
+
+<span class="fc" id="L121">    Object current = probes[hash1];</span>
+
+<span class="fc bfc" id="L123" title="All 2 branches covered.">    if (current instanceof WeakRef) {</span>
+<span class="fc" id="L124">      WeakRef ref = (WeakRef) current;</span>
+<span class="fc" id="L125">      probes[hash1] = removeFromChain(ref, obj);</span>
+<span class="fc" id="L126">      return;</span>
+    }
+
+<span class="fc" id="L129">    int hash2 = (hash0 &gt;&gt; branchPower) &amp; branchMask;</span>
+<span class="fc" id="L130">    WeakRef[] level2 = (WeakRef[]) current;</span>
+<span class="fc" id="L131">    level2[hash2] = removeFromChain(level2[hash2], obj);</span>
+<span class="fc" id="L132">  }</span>
+
+  private WeakRef removeFromChain(WeakRef chain, Object obj) {
+<span class="fc" id="L135">    WeakRef newChain = null;</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">    while (chain != null) {</span>
+<span class="fc" id="L137">      WeakRef next = chain.next;</span>
+<span class="fc" id="L138">      Object current = chain.get();</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">      if (current == null) {</span>
+<span class="fc" id="L140">        leakedObjectCount++;</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">      } else if (current == obj) {</span>
+<span class="fc" id="L142">        chain.clear();</span>
+      } else {
+<span class="fc" id="L144">        chain.next = newChain;</span>
+<span class="fc" id="L145">        newChain = chain;</span>
+      }
+<span class="fc" id="L147">      chain = next;</span>
+<span class="fc" id="L148">    }</span>
+<span class="fc" id="L149">    return newChain;</span>
+  }
+
+  synchronized long countLeakedObjects() {
+<span class="fc bfc" id="L153" title="All 2 branches covered.">    for (int i = 0; i &lt; probes.length; i++) {</span>
+<span class="fc" id="L154">      Object current = probes[i];</span>
+<span class="fc bfc" id="L155" title="All 2 branches covered.">      if (current instanceof WeakRef) {</span>
+<span class="fc" id="L156">        probes[i] = pruneChain((WeakRef) current);</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">      } else if (current instanceof WeakRef[]) {</span>
+<span class="fc" id="L158">        WeakRef[] level2 = (WeakRef[]) current;</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">        for (int j = 0; j &lt; level2.length; j++) {</span>
+<span class="fc" id="L160">          level2[j] = pruneChain(level2[j]);</span>
+        }
+      }
+    }
+
+<span class="fc" id="L165">    return leakedObjectCount;</span>
+  }
+
+  private WeakRef pruneChain(WeakRef chain) {
+<span class="fc" id="L169">    WeakRef newChain = null;</span>
+<span class="fc bfc" id="L170" title="All 2 branches covered.">    while (chain != null) {</span>
+<span class="fc" id="L171">      WeakRef next = chain.next;</span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">      if (chain.get() == null) {</span>
+<span class="fc" id="L173">        leakedObjectCount++;</span>
+      } else {
+<span class="fc" id="L175">        chain.next = newChain;</span>
+<span class="fc" id="L176">        newChain = chain;</span>
+      }
+<span class="fc" id="L178">      chain = next;</span>
+<span class="fc" id="L179">    }</span>
+<span class="fc" id="L180">    return newChain;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.2.201409121644</span></div></body></html>

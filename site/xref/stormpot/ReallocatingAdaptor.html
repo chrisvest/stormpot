@@ -26,7 +26,7 @@
 <a class="jxr_linenumber" name="16" href="#16">16</a>  <strong class="jxr_keyword">package</strong> stormpot;
 <a class="jxr_linenumber" name="17" href="#17">17</a>  
 <a class="jxr_linenumber" name="18" href="#18">18</a>  <strong class="jxr_keyword">class</strong> ReallocatingAdaptor&lt;T <strong class="jxr_keyword">extends</strong> Poolable&gt; <strong class="jxr_keyword">implements</strong> Reallocator&lt;T&gt; {
-<a class="jxr_linenumber" name="19" href="#19">19</a>    <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> Allocator&lt;T&gt; allocator;
+<a class="jxr_linenumber" name="19" href="#19">19</a>    <strong class="jxr_keyword">protected</strong> <strong class="jxr_keyword">final</strong> Allocator&lt;T&gt; allocator;
 <a class="jxr_linenumber" name="20" href="#20">20</a>  
 <a class="jxr_linenumber" name="21" href="#21">21</a>    <strong class="jxr_keyword">public</strong> <a href="../stormpot/ReallocatingAdaptor.html">ReallocatingAdaptor</a>(Allocator&lt;T&gt; allocator) {
 <a class="jxr_linenumber" name="22" href="#22">22</a>      <strong class="jxr_keyword">this</strong>.allocator = allocator;

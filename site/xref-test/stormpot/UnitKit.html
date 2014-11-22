@@ -70,7 +70,7 @@
 <a class="jxr_linenumber" name="60" href="#60">60</a>          <strong class="jxr_keyword">try</strong> {
 <a class="jxr_linenumber" name="61" href="#61">61</a>            <strong class="jxr_keyword">return</strong> pool.claim(timeout);
 <a class="jxr_linenumber" name="62" href="#62">62</a>          } <strong class="jxr_keyword">catch</strong> (InterruptedException e) {
-<a class="jxr_linenumber" name="63" href="#63">63</a>            <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> PoolException(<span class="jxr_string">"claim interrupted"</span>, e);
+<a class="jxr_linenumber" name="63" href="#63">63</a>            <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> PoolException(<span class="jxr_string">"Claim interrupted"</span>, e);
 <a class="jxr_linenumber" name="64" href="#64">64</a>          }
 <a class="jxr_linenumber" name="65" href="#65">65</a>        }
 <a class="jxr_linenumber" name="66" href="#66">66</a>      };
@@ -198,25 +198,38 @@
 <a class="jxr_linenumber" name="188" href="#188">188</a>   }
 <a class="jxr_linenumber" name="189" href="#189">189</a> 
 <a class="jxr_linenumber" name="190" href="#190">190</a>   <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">void</strong> spinwait(<strong class="jxr_keyword">long</strong> ms) {
-<a class="jxr_linenumber" name="191" href="#191">191</a>     <strong class="jxr_keyword">long</strong> now = System.currentTimeMillis();
-<a class="jxr_linenumber" name="192" href="#192">192</a>     <strong class="jxr_keyword">long</strong> deadline = now + ms;
+<a class="jxr_linenumber" name="191" href="#191">191</a>     <strong class="jxr_keyword">long</strong> now = System.nanoTime();
+<a class="jxr_linenumber" name="192" href="#192">192</a>     <strong class="jxr_keyword">long</strong> deadline = now + TimeUnit.MILLISECONDS.toNanos(ms);
 <a class="jxr_linenumber" name="193" href="#193">193</a>     <strong class="jxr_keyword">while</strong> (now &lt; deadline) {
-<a class="jxr_linenumber" name="194" href="#194">194</a>       now = System.currentTimeMillis();
+<a class="jxr_linenumber" name="194" href="#194">194</a>       now = System.nanoTime();
 <a class="jxr_linenumber" name="195" href="#195">195</a>     }
 <a class="jxr_linenumber" name="196" href="#196">196</a>   }
 <a class="jxr_linenumber" name="197" href="#197">197</a> 
-<a class="jxr_linenumber" name="198" href="#198">198</a>   <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">void</strong> sneakyThrow(Throwable throwable) {
-<a class="jxr_linenumber" name="199" href="#199">199</a>     UnitKit.&lt;RuntimeException&gt;_sneakyThrow(throwable);
-<a class="jxr_linenumber" name="200" href="#200">200</a>   }
-<a class="jxr_linenumber" name="201" href="#201">201</a> 
-<a class="jxr_linenumber" name="202" href="#202">202</a>   <em class="jxr_javadoccomment">/**</em>
-<a class="jxr_linenumber" name="203" href="#203">203</a> <em class="jxr_javadoccomment">   * <a href="http://youtu.be/7qXXWHfJha4" target="alexandria_uri">http://youtu.be/7qXXWHfJha4</a></em>
-<a class="jxr_linenumber" name="204" href="#204">204</a> <em class="jxr_javadoccomment">   */</em>
-<a class="jxr_linenumber" name="205" href="#205">205</a>   @SuppressWarnings(<span class="jxr_string">"unchecked"</span>)
-<a class="jxr_linenumber" name="206" href="#206">206</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> &lt;T <strong class="jxr_keyword">extends</strong> Throwable&gt; <strong class="jxr_keyword">void</strong> _sneakyThrow(Throwable throwable) <strong class="jxr_keyword">throws</strong> T {
-<a class="jxr_linenumber" name="207" href="#207">207</a>     <strong class="jxr_keyword">throw</strong> (T) throwable;
-<a class="jxr_linenumber" name="208" href="#208">208</a>   }
-<a class="jxr_linenumber" name="209" href="#209">209</a> }
+<a class="jxr_linenumber" name="198" href="#198">198</a>   <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">void</strong> claimRelease(
+<a class="jxr_linenumber" name="199" href="#199">199</a>       <strong class="jxr_keyword">int</strong> count,
+<a class="jxr_linenumber" name="200" href="#200">200</a>       Pool&lt;? <strong class="jxr_keyword">extends</strong> Poolable&gt; pool,
+<a class="jxr_linenumber" name="201" href="#201">201</a>       Timeout timeout) <strong class="jxr_keyword">throws</strong> InterruptedException {
+<a class="jxr_linenumber" name="202" href="#202">202</a>     Poolable[] objs = <strong class="jxr_keyword">new</strong> Poolable[count];
+<a class="jxr_linenumber" name="203" href="#203">203</a>     <strong class="jxr_keyword">for</strong> (<strong class="jxr_keyword">int</strong> i = 0; i &lt; count; i++) {
+<a class="jxr_linenumber" name="204" href="#204">204</a>       objs[i] = pool.claim(timeout);
+<a class="jxr_linenumber" name="205" href="#205">205</a>     }
+<a class="jxr_linenumber" name="206" href="#206">206</a>     <strong class="jxr_keyword">for</strong> (<strong class="jxr_keyword">int</strong> i = 0; i &lt; count; i++) {
+<a class="jxr_linenumber" name="207" href="#207">207</a>       objs[i].release();
+<a class="jxr_linenumber" name="208" href="#208">208</a>     }
+<a class="jxr_linenumber" name="209" href="#209">209</a>   }
+<a class="jxr_linenumber" name="210" href="#210">210</a> 
+<a class="jxr_linenumber" name="211" href="#211">211</a>   <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">void</strong> sneakyThrow(Throwable throwable) {
+<a class="jxr_linenumber" name="212" href="#212">212</a>     UnitKit.&lt;RuntimeException&gt;_sneakyThrow(throwable);
+<a class="jxr_linenumber" name="213" href="#213">213</a>   }
+<a class="jxr_linenumber" name="214" href="#214">214</a> 
+<a class="jxr_linenumber" name="215" href="#215">215</a>   <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="216" href="#216">216</a> <em class="jxr_javadoccomment">   * <a href="http://youtu.be/7qXXWHfJha4" target="alexandria_uri">http://youtu.be/7qXXWHfJha4</a></em>
+<a class="jxr_linenumber" name="217" href="#217">217</a> <em class="jxr_javadoccomment">   */</em>
+<a class="jxr_linenumber" name="218" href="#218">218</a>   @SuppressWarnings(<span class="jxr_string">"unchecked"</span>)
+<a class="jxr_linenumber" name="219" href="#219">219</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> &lt;T <strong class="jxr_keyword">extends</strong> Throwable&gt; <strong class="jxr_keyword">void</strong> _sneakyThrow(Throwable throwable) <strong class="jxr_keyword">throws</strong> T {
+<a class="jxr_linenumber" name="220" href="#220">220</a>     <strong class="jxr_keyword">throw</strong> (T) throwable;
+<a class="jxr_linenumber" name="221" href="#221">221</a>   }
+<a class="jxr_linenumber" name="222" href="#222">222</a> }
 </pre>
 <hr/><div id="footer">This page was automatically generated by <a href="http://maven.apache.org/">Maven</a></div></body>
 </html>

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>QSlot.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.html" class="el_package">stormpot</a> &gt; <span class="el_source">QSlot.java</span></div><h1>QSlot.java</h1><pre class="source lang-java linenums">/*
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>QSlot.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.source.html" class="el_package">stormpot</a> &gt; <span class="el_source">QSlot.java</span></div><h1>QSlot.java</h1><pre class="source lang-java linenums">/*
  * Copyright (C) 2011-2014 Chris Vest (mr.chrisvest@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -18,7 +18,7 @@ package stormpot;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-class QSlot&lt;T extends Poolable&gt; implements Slot, SlotInfo&lt;T&gt; {
+final class QSlot&lt;T extends Poolable&gt; implements Slot, SlotInfo&lt;T&gt; {
   final BlockingQueue&lt;QSlot&lt;T&gt;&gt; live;
   final AtomicBoolean claimed;
   T obj;
@@ -26,7 +26,7 @@ class QSlot&lt;T extends Poolable&gt; implements Slot, SlotInfo&lt;T&gt; {
   long created;
   long claims;
   long stamp;
-  
+
 <span class="fc" id="L30">  public QSlot(BlockingQueue&lt;QSlot&lt;T&gt;&gt; live) {</span>
 <span class="fc" id="L31">    this.live = live;</span>
 <span class="fc" id="L32">    this.claimed = new AtomicBoolean(true);</span>
@@ -82,4 +82,4 @@ class QSlot&lt;T extends Poolable&gt; implements Slot, SlotInfo&lt;T&gt; {
 <span class="fc" id="L82">    this.stamp = stamp;</span>
 <span class="fc" id="L83">  }</span>
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.2.201409121644</span></div></body></html>

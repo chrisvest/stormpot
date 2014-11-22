@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>QueuePool.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.html" class="el_package">stormpot</a> &gt; <span class="el_source">QueuePool.java</span></div><h1>QueuePool.java</h1><pre class="source lang-java linenums">/*
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>QueuePool.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.source.html" class="el_package">stormpot</a> &gt; <span class="el_source">QueuePool.java</span></div><h1>QueuePool.java</h1><pre class="source lang-java linenums">/*
  * Copyright (C) 2011-2014 Chris Vest (mr.chrisvest@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -16,18 +16,19 @@
 package stormpot;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadFactory;
 
 /**
  * QueuePool is a fairly simple {@link LifecycledResizablePool} implementation
  * that basically consists of a queue of Poolable instances, and a Thread to
  * allocate them.
- * &lt;p&gt;
+ *
  * This means that the object allocation always happens in a dedicated thread.
  * This means that no thread that calls any of the claim methods, will incur
  * the overhead of allocating Poolables. This should lead to reduced deviation
  * in the times it takes claim method to complete, provided the pool is not
  * depleted.
- * &lt;p&gt;
+ *
  * The design is simple and straight forward, and exhibits a reasonable
  * base-line performance in all cases. If, however, the same threads are going
  * to claim and release objects from the pool over and over again — for
@@ -35,111 +36,190 @@ import java.util.concurrent.BlockingQueue;
  * {@link stormpot.BlazePool} is likely going to yield better
  * performance.
  *
- * @author Chris Vest &amp;lt;mr.chrisvest@gmail.com&amp;gt;
+ * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  * @param &lt;T&gt; The type of {@link Poolable} managed by this pool.
  */
+// TODO 3.0 make class final
 public class QueuePool&lt;T extends Poolable&gt;
-implements LifecycledResizablePool&lt;T&gt; {
+    implements LifecycledResizablePool&lt;T&gt;, ManagedPool {
   private final BlockingQueue&lt;QSlot&lt;T&gt;&gt; live;
   private final BlockingQueue&lt;QSlot&lt;T&gt;&gt; dead;
-  private final QAllocThread&lt;T&gt; allocThread;
-  private final Expiration&lt;? super T&gt; deallocRule;
-<span class="fc" id="L47">  private volatile boolean shutdown = false;</span>
+  private final QAllocThread&lt;T&gt; allocator;
+  private final Thread allocatorThread;
+  private final Expiration&lt;? super T&gt; expiration;
+  private final MetricsRecorder metricsRecorder;
+<span class="fc" id="L51">  private volatile boolean shutdown = false;</span>
 
   /**
    * Special slot used to signal that the pool has been shut down.
    */
-<span class="fc" id="L52">  final QSlot&lt;T&gt; poisonPill = new QSlot&lt;T&gt;(null);</span>
-  
+<span class="fc" id="L56">  final QSlot&lt;T&gt; poisonPill = new QSlot&lt;T&gt;(null);</span>
+
   /**
    * Construct a new QueuePool instance based on the given {@link Config}.
    * @param config The pool configuration to use.
    */
-<span class="fc" id="L58">  public QueuePool(Config&lt;T&gt; config) {</span>
-<span class="fc" id="L59">    live = QueueFactory.createUnboundedBlockingQueue();</span>
-<span class="fc" id="L60">    dead = QueueFactory.createUnboundedBlockingQueue();</span>
-<span class="fc" id="L61">    synchronized (config) {</span>
-<span class="fc" id="L62">      config.validate();</span>
-<span class="fc" id="L63">      allocThread = new QAllocThread&lt;T&gt;(live, dead, config, poisonPill);</span>
-<span class="fc" id="L64">      deallocRule = config.getExpiration();</span>
-<span class="fc" id="L65">    }</span>
-<span class="fc" id="L66">    allocThread.start();</span>
-<span class="fc" id="L67">  }</span>
+<span class="fc" id="L62">  public QueuePool(Config&lt;T&gt; config) {</span>
+<span class="fc" id="L63">    live = QueueFactory.createUnboundedBlockingQueue();</span>
+<span class="fc" id="L64">    dead = QueueFactory.createUnboundedBlockingQueue();</span>
+<span class="fc" id="L65">    synchronized (config) {</span>
+<span class="fc" id="L66">      config.validate();</span>
+<span class="fc" id="L67">      ThreadFactory factory = config.getThreadFactory();</span>
+<span class="fc" id="L68">      metricsRecorder = config.getMetricsRecorder();</span>
+<span class="fc" id="L69">      expiration = config.getExpiration();</span>
+<span class="fc" id="L70">      allocator = new QAllocThread&lt;T&gt;(</span>
+          live, dead, config, poisonPill);
+<span class="fc" id="L72">      allocatorThread = factory.newThread(allocator);</span>
+<span class="fc" id="L73">    }</span>
+<span class="fc" id="L74">    allocatorThread.start();</span>
+<span class="fc" id="L75">  }</span>
 
   private void checkForPoison(QSlot&lt;T&gt; slot) {
-<span class="fc bfc" id="L70" title="All 2 branches covered.">    if (slot == poisonPill) {</span>
-<span class="fc" id="L71">      live.offer(poisonPill);</span>
-<span class="fc" id="L72">      throw new IllegalStateException(&quot;pool is shut down&quot;);</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">    if (slot == poisonPill) {</span>
+<span class="fc" id="L79">      live.offer(poisonPill);</span>
+<span class="fc" id="L80">      throw new IllegalStateException(&quot;Pool has been shut down&quot;);</span>
     }
-<span class="fc bfc" id="L74" title="All 2 branches covered.">    if (slot.poison != null) {</span>
-<span class="fc" id="L75">      Exception poison = slot.poison;</span>
-<span class="fc" id="L76">      dead.offer(slot);</span>
-<span class="fc" id="L77">      throw new PoolException(&quot;allocation failed&quot;, poison);</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">    if (slot.poison != null) {</span>
+<span class="fc" id="L83">      Exception poison = slot.poison;</span>
+<span class="fc" id="L84">      dead.offer(slot);</span>
+<span class="fc" id="L85">      throw new PoolException(&quot;Allocation failed&quot;, poison);</span>
     }
-<span class="fc bfc" id="L79" title="All 2 branches covered.">    if (shutdown) {</span>
-<span class="fc" id="L80">      dead.offer(slot);</span>
-<span class="fc" id="L81">      throw new IllegalStateException(&quot;pool is shut down&quot;);</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">    if (shutdown) {</span>
+<span class="fc" id="L88">      dead.offer(slot);</span>
+<span class="fc" id="L89">      throw new IllegalStateException(&quot;Pool has been shut down&quot;);</span>
     }
-<span class="fc" id="L83">  }</span>
+<span class="fc" id="L91">  }</span>
 
   private boolean isInvalid(QSlot&lt;T&gt; slot) {
-<span class="fc" id="L86">    boolean invalid = true;</span>
-<span class="fc" id="L87">    RuntimeException exception = null;</span>
+<span class="fc" id="L94">    boolean invalid = true;</span>
+<span class="fc" id="L95">    RuntimeException exception = null;</span>
     try {
-<span class="fc" id="L89">      invalid = deallocRule.hasExpired(slot);</span>
-<span class="fc" id="L90">    } catch (Throwable ex) {</span>
-<span class="fc" id="L91">      exception = new PoolException(</span>
+<span class="fc" id="L97">      invalid = expiration.hasExpired(slot);</span>
+<span class="fc" id="L98">    } catch (Throwable ex) {</span>
+<span class="fc" id="L99">      exception = new PoolException(</span>
           &quot;Got exception when checking whether an object had expired&quot;, ex);
-<span class="fc" id="L93">    }</span>
-<span class="fc bfc" id="L94" title="All 2 branches covered.">    if (invalid) {</span>
+<span class="fc" id="L101">    }</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">    if (invalid) {</span>
       // it's invalid - into the dead queue with it and continue looping
-<span class="fc" id="L96">      dead.offer(slot);</span>
-<span class="fc bfc" id="L97" title="All 2 branches covered.">      if (exception != null) {</span>
-<span class="fc" id="L98">        throw exception;</span>
+<span class="fc" id="L104">      dead.offer(slot);</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">      if (exception != null) {</span>
+<span class="fc" id="L106">        throw exception;</span>
       }
     } else {
       // it's valid - claim it and stop looping
-<span class="fc" id="L102">      slot.claim();</span>
+<span class="fc" id="L110">      slot.claim();</span>
     }
-<span class="fc" id="L104">    return invalid;</span>
+<span class="fc" id="L112">    return invalid;</span>
   }
 
+  @Override
   public T claim(Timeout timeout) throws PoolException,
       InterruptedException {
-<span class="fc bfc" id="L109" title="All 2 branches covered.">    if (timeout == null) {</span>
-<span class="fc" id="L110">      throw new IllegalArgumentException(&quot;timeout cannot be null&quot;);</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">    if (timeout == null) {</span>
+<span class="fc" id="L119">      throw new IllegalArgumentException(&quot;Timeout cannot be null&quot;);</span>
     }
     QSlot&lt;T&gt; slot;
-<span class="fc" id="L113">    long deadline = timeout.getDeadline();</span>
+<span class="fc" id="L122">    long deadline = timeout.getDeadline();</span>
     do {
-<span class="fc" id="L115">      long timeoutLeft = timeout.getTimeLeft(deadline);</span>
-<span class="fc" id="L116">      slot = live.poll(timeoutLeft, timeout.getBaseUnit());</span>
-<span class="fc bfc" id="L117" title="All 2 branches covered.">      if (slot == null) {</span>
+<span class="fc" id="L124">      long timeoutLeft = timeout.getTimeLeft(deadline);</span>
+<span class="fc" id="L125">      slot = live.poll(timeoutLeft, timeout.getBaseUnit());</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">      if (slot == null) {</span>
         // we timed out while taking from the queue - just return null
-<span class="fc" id="L119">        return null;</span>
+<span class="fc" id="L128">        return null;</span>
       }
-<span class="fc" id="L121">      checkForPoison(slot);</span>
-<span class="fc bfc" id="L122" title="All 2 branches covered.">    } while (isInvalid(slot));</span>
-<span class="fc" id="L123">    return slot.obj;</span>
+<span class="fc" id="L130">      checkForPoison(slot);</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">    } while (isInvalid(slot));</span>
+<span class="fc" id="L132">    return slot.obj;</span>
   }
 
+  @Override
   public Completion shutdown() {
-<span class="fc" id="L127">    shutdown = true;</span>
-<span class="fc" id="L128">    return allocThread.shutdown();</span>
+<span class="fc" id="L137">    shutdown = true;</span>
+<span class="fc" id="L138">    return allocator.shutdown(allocatorThread);</span>
   }
 
+  @Override
   public void setTargetSize(int size) {
-<span class="fc bfc" id="L132" title="All 2 branches covered.">    if (size &lt; 1) {</span>
-<span class="fc" id="L133">      throw new IllegalArgumentException(&quot;target size must be at least 1&quot;);</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">    if (size &lt; 1) {</span>
+<span class="fc" id="L144">      throw new IllegalArgumentException(&quot;Target pool size must be at least 1&quot;);</span>
     }
-<span class="fc bfc" id="L135" title="All 2 branches covered.">    if (shutdown) {</span>
-<span class="fc" id="L136">      return;</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">    if (shutdown) {</span>
+<span class="fc" id="L147">      return;</span>
     }
-<span class="fc" id="L138">    allocThread.setTargetSize(size);</span>
-<span class="fc" id="L139">  }</span>
+<span class="fc" id="L149">    allocator.setTargetSize(size);</span>
+<span class="fc" id="L150">  }</span>
 
+  @Override
   public int getTargetSize() {
-<span class="fc" id="L142">    return allocThread.getTargetSize();</span>
+<span class="fc" id="L154">    return allocator.getTargetSize();</span>
+  }
+
+  @Override
+  public long getAllocationCount() {
+<span class="fc" id="L159">    return allocator.getAllocationCount();</span>
+  }
+
+  @Override
+  public long getFailedAllocationCount() {
+<span class="fc" id="L164">    return allocator.getFailedAllocationCount();</span>
+  }
+
+  @Override
+  public boolean isShutDown() {
+<span class="fc" id="L169">    return shutdown;</span>
+  }
+
+  @Override
+  public double getObjectLifetimePercentile(double percentile) {
+<span class="fc bfc" id="L174" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L175">      return Double.NaN;</span>
+    }
+<span class="fc" id="L177">    return metricsRecorder.getObjectLifetimePercentile(percentile);</span>
+  }
+
+  @Override
+  public double getAllocationLatencyPercentile(double percentile) {
+<span class="fc bfc" id="L182" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L183">      return Double.NaN;</span>
+    }
+<span class="fc" id="L185">    return metricsRecorder.getAllocationLatencyPercentile(percentile);</span>
+  }
+
+  @Override
+  public double getAllocationFailureLatencyPercentile(double percentile) {
+<span class="fc bfc" id="L190" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L191">      return Double.NaN;</span>
+    }
+<span class="fc" id="L193">    return metricsRecorder.getAllocationFailureLatencyPercentile(percentile);</span>
+  }
+
+  @Override
+  public double getReallocationLatencyPercentile(double percentile) {
+<span class="fc bfc" id="L198" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L199">      return Double.NaN;</span>
+    }
+<span class="fc" id="L201">    return metricsRecorder.getReallocationLatencyPercentile(percentile);</span>
+  }
+
+  @Override
+  public double getReallocationFailureLatencyPercentile(double percentile) {
+<span class="fc bfc" id="L206" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L207">      return Double.NaN;</span>
+    }
+<span class="fc" id="L209">    return metricsRecorder.getReallocationFailurePercentile(percentile);</span>
+  }
+
+  @Override
+  public double getDeallocationLatencyPercentile(double percentile) {
+<span class="fc bfc" id="L214" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L215">      return Double.NaN;</span>
+    }
+<span class="fc" id="L217">    return metricsRecorder.getDeallocationLatencyPercentile(percentile);</span>
+  }
+
+  @Override
+  public long getLeakedObjectsCount() {
+<span class="fc" id="L222">    return allocator.countLeakedObjects();</span>
   }
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.2.201409121644</span></div></body></html>

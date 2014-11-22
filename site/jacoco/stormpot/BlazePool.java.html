@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>BlazePool.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.html" class="el_package">stormpot</a> &gt; <span class="el_source">BlazePool.java</span></div><h1>BlazePool.java</h1><pre class="source lang-java linenums">/*
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>BlazePool.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.source.html" class="el_package">stormpot</a> &gt; <span class="el_source">BlazePool.java</span></div><h1>BlazePool.java</h1><pre class="source lang-java linenums">/*
  * Copyright (C) 2011-2014 Chris Vest (mr.chrisvest@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -16,40 +16,45 @@
 package stormpot;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 /**
  * BlazePool is a highly optimised {@link LifecycledResizablePool}
  * implementation that consists of a queues of Poolable instances, the access
  * to which is made faster with clever use of ThreadLocals.
- * &lt;p&gt;
- * Object allocation always happens in a dedicated thread, off-loading the 
+ *
+ * Object allocation always happens in a dedicated thread, off-loading the
  * cost of allocating the pooled objects. This should lead to reduced deviation
  * in the times it takes claim method to complete, provided the pool is not
  * depleted.
- * &lt;p&gt;
+ *
  * BlazePool optimises for the case where the same threads need to claim and
  * release objects over and over again. On the other hand, if the releasing
  * thread tends to differ from the claiming thread, then the major optimisation
  * in BlazePool is defeated, and performance regresses to a slow-path that is
  * a tad slower than {@link stormpot.QueuePool}.
  *
- * @author Chris Vest &amp;lt;mr.chrisvest@gmail.com&amp;gt;
+ * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  * @param &lt;T&gt; The type of {@link Poolable} managed by this pool.
  */
+// TODO 3.0 make class final
 public class BlazePool&lt;T extends Poolable&gt;
-implements LifecycledResizablePool&lt;T&gt; {
-<span class="fc" id="L42">  private static final Exception SHUTDOWN_POISON = new Exception() {</span>
+    implements LifecycledResizablePool&lt;T&gt;, ManagedPool {
+<span class="fc" id="L44">  private static final Exception SHUTDOWN_POISON = new Exception() {</span>
+    private static final long serialVersionUID = 31137L;
     @Override
     public Throwable fillInStackTrace() {
-<span class="fc" id="L45">      return this;</span>
+<span class="fc" id="L48">      return this;</span>
     }
   };
 
   private final BlockingQueue&lt;BSlot&lt;T&gt;&gt; live;
   private final BlockingQueue&lt;BSlot&lt;T&gt;&gt; dead;
-  private final BAllocThread&lt;T&gt; allocThread;
+  private final BAllocThread&lt;T&gt; allocator;
+  private final Thread allocatorThread;
   private final Expiration&lt;? super T&gt; deallocRule;
+  private final MetricsRecorder metricsRecorder;
 
   /**
    * Special slot used to signal that the pool has been shut down.
@@ -57,33 +62,37 @@ implements LifecycledResizablePool&lt;T&gt; {
   private final BSlot&lt;T&gt; poisonPill;
 
   private final ThreadLocal&lt;BSlot&lt;T&gt;&gt; tlr;
-<span class="fc" id="L60">  private volatile boolean shutdown = false;</span>
-  
+<span class="fc" id="L65">  private volatile boolean shutdown = false;</span>
+
   /**
    * Construct a new BlazePool instance based on the given {@link Config}.
    * @param config The pool configuration to use.
    */
-<span class="fc" id="L66">  public BlazePool(Config&lt;T&gt; config) {</span>
-<span class="fc" id="L67">    live = QueueFactory.createUnboundedBlockingQueue();</span>
-<span class="fc" id="L68">    dead = QueueFactory.createUnboundedBlockingQueue();</span>
-<span class="fc" id="L69">    tlr = new ThreadLocal&lt;BSlot&lt;T&gt;&gt;();</span>
-<span class="fc" id="L70">    poisonPill = new BSlot&lt;T&gt;(live);</span>
-<span class="fc" id="L71">    poisonPill.poison = SHUTDOWN_POISON;</span>
+<span class="fc" id="L71">  public BlazePool(Config&lt;T&gt; config) {</span>
+<span class="fc" id="L72">    live = QueueFactory.createUnboundedBlockingQueue();</span>
+<span class="fc" id="L73">    dead = QueueFactory.createUnboundedBlockingQueue();</span>
+<span class="fc" id="L74">    tlr = new ThreadLocal&lt;BSlot&lt;T&gt;&gt;();</span>
+<span class="fc" id="L75">    poisonPill = new BSlot&lt;T&gt;(live);</span>
+<span class="fc" id="L76">    poisonPill.poison = SHUTDOWN_POISON;</span>
 
-<span class="fc" id="L73">    synchronized (config) {</span>
-<span class="fc" id="L74">      config.validate();</span>
-<span class="fc" id="L75">      allocThread = new BAllocThread&lt;T&gt;(live, dead, config, poisonPill);</span>
-<span class="fc" id="L76">      deallocRule = config.getExpiration();</span>
-<span class="fc" id="L77">    }</span>
-<span class="fc" id="L78">    allocThread.start();</span>
-<span class="fc" id="L79">  }</span>
+<span class="fc" id="L78">    synchronized (config) {</span>
+<span class="fc" id="L79">      config.validate();</span>
+<span class="fc" id="L80">      ThreadFactory factory = config.getThreadFactory();</span>
+<span class="fc" id="L81">      allocator = new BAllocThread&lt;T&gt;(live, dead, config, poisonPill);</span>
+<span class="fc" id="L82">      allocatorThread = factory.newThread(allocator);</span>
+<span class="fc" id="L83">      deallocRule = config.getExpiration();</span>
+<span class="fc" id="L84">      metricsRecorder = config.getMetricsRecorder();</span>
+<span class="fc" id="L85">    }</span>
+<span class="fc" id="L86">    allocatorThread.start();</span>
+<span class="fc" id="L87">  }</span>
 
+  @Override
   public T claim(Timeout timeout)
       throws PoolException, InterruptedException {
-<span class="fc bfc" id="L83" title="All 2 branches covered.">    if (timeout == null) {</span>
-<span class="fc" id="L84">      throw new IllegalArgumentException(&quot;timeout cannot be null&quot;);</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">    if (timeout == null) {</span>
+<span class="fc" id="L93">      throw new IllegalArgumentException(&quot;Timeout cannot be null&quot;);</span>
     }
-<span class="fc" id="L86">    BSlot&lt;T&gt; slot = tlr.get();</span>
+<span class="fc" id="L95">    BSlot&lt;T&gt; slot = tlr.get();</span>
     // Note that the TLR slot at this point might have been tried by another
     // thread, found to be expired, put on the dead-queue and deallocated.
     // We handle this because slots always transition to the dead state before
@@ -91,15 +100,15 @@ implements LifecycledResizablePool&lt;T&gt; {
     // slot.live2claimTlr() call will fail.
     // Then we will eventually find another slot from the live-queue that we
     // can claim and make our new TLR slot.
-<span class="fc bfc" id="L94" title="All 4 branches covered.">    if (slot != null &amp;&amp; slot.live2claimTlr()) {</span>
+<span class="fc bfc" id="L103" title="All 4 branches covered.">    if (slot != null &amp;&amp; slot.live2claimTlr()) {</span>
       // Attempt the claim before checking the validity, because we might
       // already have claimed it.
       // If we checked validity before claiming, then we might find that it
       // had expired, and throw it in the dead queue, causing a claimed
       // Poolable to be deallocated before it is released.
-<span class="fc bfc" id="L100" title="All 2 branches covered.">      if (!isInvalid(slot, true)) {</span>
-<span class="fc" id="L101">        slot.incrementClaims();</span>
-<span class="fc" id="L102">        return slot.obj;</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">      if (!isInvalid(slot, true)) {</span>
+<span class="fc" id="L110">        slot.incrementClaims();</span>
+<span class="fc" id="L111">        return slot.obj;</span>
       }
       // We managed to tlr-claim the slot, but it turned out to be no good.
       // That means we now have to transition it from tlr-claimed to dead.
@@ -114,25 +123,25 @@ implements LifecycledResizablePool&lt;T&gt; {
       // duplicate entries in the queues. Otherwise we'd have a nasty memory
       // leak on our hands.
     }
-    // The thread-local claim failed, so we have to go throught the slow-path.
-<span class="fc" id="L118">    return slowClaim(timeout);</span>
+    // The thread-local claim failed, so we have to go through the slow-path.
+<span class="fc" id="L127">    return slowClaim(timeout);</span>
   }
 
   private T slowClaim(Timeout timeout)
       throws PoolException, InterruptedException {
     // The slow-path for claim is in its own method to allow the fast-path to
-    // inline seperately. At this point, taking a performance hit is
-    // ineviateble anyway, so we're allowed a bit more leeway.
+    // inline separately. At this point, taking a performance hit is
+    // inevitable anyway, so we're allowed a bit more leeway.
     BSlot&lt;T&gt; slot;
-<span class="fc" id="L127">    long deadline = timeout.getDeadline();</span>
-<span class="fc" id="L128">    long timeoutLeft = timeout.getTimeoutInBaseUnit();</span>
-<span class="fc" id="L129">    TimeUnit baseUnit = timeout.getBaseUnit();</span>
+<span class="fc" id="L136">    long deadline = timeout.getDeadline();</span>
+<span class="fc" id="L137">    long timeoutLeft = timeout.getTimeoutInBaseUnit();</span>
+<span class="fc" id="L138">    TimeUnit baseUnit = timeout.getBaseUnit();</span>
     boolean notClaimed;
     for (;;) {
-<span class="fc" id="L132">      slot = live.poll(timeoutLeft, baseUnit);</span>
-<span class="fc bfc" id="L133" title="All 2 branches covered.">      if (slot == null) {</span>
+<span class="fc" id="L141">      slot = live.poll(timeoutLeft, baseUnit);</span>
+<span class="fc bfc" id="L142" title="All 2 branches covered.">      if (slot == null) {</span>
         // we timed out while taking from the queue - just return null
-<span class="fc" id="L135">        return null;</span>
+<span class="fc" id="L144">        return null;</span>
       }
       // Again, attempt to claim before checking validity. We mustn't kill
       // objects that are already claimed by someone else.
@@ -140,7 +149,7 @@ implements LifecycledResizablePool&lt;T&gt; {
         // We pulled a slot off the queue. If we can transition it to the
         // claimed state, then it means it wasn't tlr-claimed and we got it.
         // Note that the slot at this point can be in any queue.
-<span class="fc bfc" id="L143" title="All 2 branches covered.">        notClaimed = !slot.live2claim();</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">        notClaimed = !slot.live2claim();</span>
         // If we fail to claim it, then it means that it is tlr-claimed by
         // someone else. We know this because slots in the live-queue can only
         // be either live or tlr-claimed. There is no transition to claimed
@@ -156,27 +165,27 @@ implements LifecycledResizablePool&lt;T&gt; {
         // transition because it is now too late for him to put it back into
         // the live-queue. On the other hand, if the slot is now live, it means
         // that we can claim it for our selves. So we loop on this.
-<span class="fc bfc" id="L159" title="All 4 branches covered.">      } while (notClaimed &amp;&amp; !slot.claimTlr2claim());</span>
+<span class="fc bfc" id="L168" title="All 4 branches covered.">      } while (notClaimed &amp;&amp; !slot.claimTlr2claim());</span>
       // If we could not live-&gt;claimed but tlr-claimed-&gt;claimed, then
       // we mustn't check isInvalid, because that might send it to the
       // dead-queue *while somebody else thinks they've TLR-claimed it!*
       // We handle this in the outer loop: if we couldn't claim, then we retry
       // the loop.
-<span class="fc bfc" id="L165" title="All 4 branches covered.">      if (notClaimed || isInvalid(slot, false)) {</span>
-<span class="fc" id="L166">        timeoutLeft = timeout.getTimeLeft(deadline);</span>
-<span class="fc" id="L167">        continue;</span>
+<span class="fc bfc" id="L174" title="All 4 branches covered.">      if (notClaimed || isInvalid(slot, false)) {</span>
+<span class="fc" id="L175">        timeoutLeft = timeout.getTimeLeft(deadline);</span>
+<span class="fc" id="L176">        continue;</span>
       }
       break;
     }
-<span class="fc" id="L171">    slot.incrementClaims();</span>
-<span class="fc" id="L172">    tlr.set(slot);</span>
-<span class="fc" id="L173">    return slot.obj;</span>
+<span class="fc" id="L180">    slot.incrementClaims();</span>
+<span class="fc" id="L181">    tlr.set(slot);</span>
+<span class="fc" id="L182">    return slot.obj;</span>
   }
 
   private boolean isInvalid(BSlot&lt;T&gt; slot, boolean isTlr) {
-<span class="fc" id="L177">    Exception poison = slot.poison;</span>
-<span class="fc bfc" id="L178" title="All 2 branches covered.">    if (poison != null) {</span>
-<span class="fc bfc" id="L179" title="All 2 branches covered.">      if (poison == SHUTDOWN_POISON) {</span>
+<span class="fc" id="L186">    Exception poison = slot.poison;</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">    if (poison != null) {</span>
+<span class="fc bfc" id="L188" title="All 2 branches covered.">      if (poison == SHUTDOWN_POISON) {</span>
         // The poison pill means the pool has been shut down. The pill was
         // transitioned from live to claimed just prior to this check, so we
         // must transition it back to live and put it back into the live-queue
@@ -184,38 +193,38 @@ implements LifecycledResizablePool&lt;T&gt; {
         // Because we always throw when we see it, it will never become a
         // tlr-slot, and so we don't need to worry about transitioning from
         // tlr-claimed to live.
-<span class="fc" id="L187">        slot.claim2live();</span>
-<span class="fc" id="L188">        live.offer(poisonPill);</span>
-<span class="fc" id="L189">        throw new IllegalStateException(&quot;pool is shut down&quot;);</span>
+<span class="fc" id="L196">        slot.claim2live();</span>
+<span class="fc" id="L197">        live.offer(poisonPill);</span>
+<span class="fc" id="L198">        throw new IllegalStateException(&quot;Pool has been shut down&quot;);</span>
       } else {
-<span class="fc" id="L191">        kill(slot);</span>
-<span class="fc bfc" id="L192" title="All 2 branches covered.">        if (isTlr) {</span>
-<span class="fc" id="L193">          return true;</span>
+<span class="fc" id="L200">        kill(slot);</span>
+<span class="fc bfc" id="L201" title="All 2 branches covered.">        if (isTlr) {</span>
+<span class="fc" id="L202">          return true;</span>
         } else {
-<span class="fc" id="L195">          throw new PoolException(&quot;allocation failed&quot;, poison);</span>
+<span class="fc" id="L204">          throw new PoolException(&quot;Allocation failed&quot;, poison);</span>
         }
       }
     }
-<span class="fc bfc" id="L199" title="All 2 branches covered.">    if (shutdown) {</span>
-<span class="fc" id="L200">      kill(slot);</span>
-<span class="fc" id="L201">      throw new IllegalStateException(&quot;pool is shut down&quot;);</span>
+<span class="fc bfc" id="L208" title="All 2 branches covered.">    if (shutdown) {</span>
+<span class="fc" id="L209">      kill(slot);</span>
+<span class="fc" id="L210">      throw new IllegalStateException(&quot;Pool has been shut down&quot;);</span>
     }
-<span class="fc" id="L203">    boolean invalid = true;</span>
-<span class="fc" id="L204">    RuntimeException exception = null;</span>
+<span class="fc" id="L212">    boolean invalid = true;</span>
+<span class="fc" id="L213">    RuntimeException exception = null;</span>
     try {
-<span class="fc" id="L206">      invalid = deallocRule.hasExpired(slot);</span>
-<span class="fc" id="L207">    } catch (Throwable ex) {</span>
-<span class="fc" id="L208">      exception = new PoolException(</span>
+<span class="fc" id="L215">      invalid = deallocRule.hasExpired(slot);</span>
+<span class="fc" id="L216">    } catch (Throwable ex) {</span>
+<span class="fc" id="L217">      exception = new PoolException(</span>
           &quot;Got exception when checking whether an object had expired&quot;, ex);
-<span class="fc" id="L210">    }</span>
-<span class="fc bfc" id="L211" title="All 2 branches covered.">    if (invalid) {</span>
+<span class="fc" id="L219">    }</span>
+<span class="fc bfc" id="L220" title="All 2 branches covered.">    if (invalid) {</span>
       // it's invalid - into the dead queue with it and continue looping
-<span class="fc" id="L213">      kill(slot);</span>
-<span class="fc bfc" id="L214" title="All 2 branches covered.">      if (exception != null) {</span>
-<span class="fc" id="L215">        throw exception;</span>
+<span class="fc" id="L222">      kill(slot);</span>
+<span class="fc bfc" id="L223" title="All 2 branches covered.">      if (exception != null) {</span>
+<span class="fc" id="L224">        throw exception;</span>
       }
     }
-<span class="fc" id="L218">    return invalid;</span>
+<span class="fc" id="L227">    return invalid;</span>
   }
 
   private void kill(BSlot&lt;T&gt; slot) {
@@ -226,35 +235,107 @@ implements LifecycledResizablePool&lt;T&gt; {
     // dead-queue. This helps ensure that a slot will only ever be in at most
     // one queue.
     for (;;) {
-<span class="fc" id="L229">      int state = slot.getState();</span>
-<span class="pc bpc" id="L230" title="1 of 4 branches missed.">      if (state == BSlot.CLAIMED &amp;&amp; slot.claim2dead()) {</span>
-<span class="fc" id="L231">        dead.offer(slot);</span>
-<span class="fc" id="L232">        return;</span>
+<span class="fc" id="L238">      int state = slot.getState();</span>
+<span class="pc bpc" id="L239" title="1 of 4 branches missed.">      if (state == BSlot.CLAIMED &amp;&amp; slot.claim2dead()) {</span>
+<span class="fc" id="L240">        dead.offer(slot);</span>
+<span class="fc" id="L241">        return;</span>
       }
-<span class="pc bpc" id="L234" title="1 of 4 branches missed.">      if (state == BSlot.TLR_CLAIMED &amp;&amp; slot.claimTlr2live()) {</span>
-<span class="fc" id="L235">        tlr.set(null);</span>
-<span class="fc" id="L236">        return;</span>
+<span class="pc bpc" id="L243" title="1 of 4 branches missed.">      if (state == BSlot.TLR_CLAIMED &amp;&amp; slot.claimTlr2live()) {</span>
+<span class="fc" id="L244">        tlr.set(null);</span>
+<span class="fc" id="L245">        return;</span>
       }
-<span class="fc" id="L238">    }</span>
+<span class="fc" id="L247">    }</span>
   }
 
+  @Override
   public Completion shutdown() {
-<span class="fc" id="L242">    shutdown = true;</span>
-<span class="fc" id="L243">    return allocThread.shutdown();</span>
+<span class="fc" id="L252">    shutdown = true;</span>
+<span class="fc" id="L253">    return allocator.shutdown(allocatorThread);</span>
   }
 
+  @Override
   public void setTargetSize(int size) {
-<span class="fc bfc" id="L247" title="All 2 branches covered.">    if (size &lt; 1) {</span>
-<span class="fc" id="L248">      throw new IllegalArgumentException(&quot;target size must be at least 1&quot;);</span>
+<span class="fc bfc" id="L258" title="All 2 branches covered.">    if (size &lt; 1) {</span>
+<span class="fc" id="L259">      throw new IllegalArgumentException(</span>
+          &quot;Target pool size must be at least 1&quot;);
     }
-<span class="fc bfc" id="L250" title="All 2 branches covered.">    if (shutdown) {</span>
-<span class="fc" id="L251">      return;</span>
+<span class="fc bfc" id="L262" title="All 2 branches covered.">    if (shutdown) {</span>
+<span class="fc" id="L263">      return;</span>
     }
-<span class="fc" id="L253">    allocThread.setTargetSize(size);</span>
-<span class="fc" id="L254">  }</span>
+<span class="fc" id="L265">    allocator.setTargetSize(size);</span>
+<span class="fc" id="L266">  }</span>
 
+  @Override
   public int getTargetSize() {
-<span class="fc" id="L257">    return allocThread.getTargetSize();</span>
+<span class="fc" id="L270">    return allocator.getTargetSize();</span>
+  }
+
+  @Override
+  public long getAllocationCount() {
+<span class="fc" id="L275">    return allocator.getAllocationCount();</span>
+  }
+
+  @Override
+  public long getFailedAllocationCount() {
+<span class="fc" id="L280">    return allocator.getFailedAllocationCount();</span>
+  }
+
+  @Override
+  public boolean isShutDown() {
+<span class="fc" id="L285">    return shutdown;</span>
+  }
+
+  @Override
+  public double getObjectLifetimePercentile(double percentile) {
+<span class="fc bfc" id="L290" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L291">      return Double.NaN;</span>
+    }
+<span class="fc" id="L293">    return metricsRecorder.getObjectLifetimePercentile(percentile);</span>
+  }
+
+  @Override
+  public double getAllocationLatencyPercentile(double percentile) {
+<span class="fc bfc" id="L298" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L299">      return Double.NaN;</span>
+    }
+<span class="fc" id="L301">    return metricsRecorder.getAllocationLatencyPercentile(percentile);</span>
+  }
+
+  @Override
+  public double getAllocationFailureLatencyPercentile(double percentile) {
+<span class="fc bfc" id="L306" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L307">      return Double.NaN;</span>
+    }
+<span class="fc" id="L309">    return metricsRecorder.getAllocationFailureLatencyPercentile(percentile);</span>
+  }
+
+  @Override
+  public double getReallocationLatencyPercentile(double percentile) {
+<span class="fc bfc" id="L314" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L315">      return Double.NaN;</span>
+    }
+<span class="fc" id="L317">    return metricsRecorder.getReallocationLatencyPercentile(percentile);</span>
+  }
+
+  @Override
+  public double getReallocationFailureLatencyPercentile(double percentile) {
+<span class="fc bfc" id="L322" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L323">      return Double.NaN;</span>
+    }
+<span class="fc" id="L325">    return metricsRecorder.getReallocationFailurePercentile(percentile);</span>
+  }
+
+  @Override
+  public double getDeallocationLatencyPercentile(double percentile) {
+<span class="fc bfc" id="L330" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L331">      return Double.NaN;</span>
+    }
+<span class="fc" id="L333">    return metricsRecorder.getDeallocationLatencyPercentile(percentile);</span>
+  }
+
+  @Override
+  public long getLeakedObjectsCount() {
+<span class="fc" id="L338">    return allocator.countLeakedObjects();</span>
   }
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.2.201409121644</span></div></body></html>

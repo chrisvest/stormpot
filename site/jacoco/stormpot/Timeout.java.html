@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>Timeout.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.html" class="el_package">stormpot</a> &gt; <span class="el_source">Timeout.java</span></div><h1>Timeout.java</h1><pre class="source lang-java linenums">/*
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>Timeout.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.source.html" class="el_package">stormpot</a> &gt; <span class="el_source">Timeout.java</span></div><h1>Timeout.java</h1><pre class="source lang-java linenums">/*
  * Copyright (C) 2011-2014 Chris Vest (mr.chrisvest@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -20,12 +20,13 @@ import java.util.concurrent.TimeUnit;
 /**
  * A Timeout represents the maximum amount of time a caller is willing to wait
  * for a blocking operation to complete.
- * &lt;p&gt;
+ *
  * Timeouts are independent of their units, so two timeouts of equivalent
  * duration but constructed in different units, will be equal to each other and
  * work exactly the same.
- * @author Chris Vest &amp;lt;mr.chrisvest@gmail.com&amp;gt;
+ * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  */
+// TODO 3.0 make class final
 public class Timeout {
   private final long timeout;
   private final TimeUnit unit;
@@ -33,36 +34,36 @@ public class Timeout {
   
   /**
    * Construct a new timeout with the given value and unit. The unit cannot be
-   * &lt;code&gt;null&lt;/code&gt;, but the timeout value is unrestricted. The meaning of a
+   * `null`, but the timeout value is unrestricted. The meaning of a
    * negative timeout value is specific to the implementation of the use site,
    * but typically means that no amount of blocking or waiting is tolerated.
    * @param timeout A numerical value for the timeout. Can be zero or negative,
    * though the meaning is implementation specific.
-   * @param unit The unit of the timeout value. Never &lt;code&gt;null&lt;/code&gt;.
+   * @param unit The unit of the timeout value. Never `null`.
    */
-<span class="fc" id="L43">  public Timeout(long timeout, TimeUnit unit) {</span>
-<span class="fc bfc" id="L44" title="All 2 branches covered.">    if (unit == null) {</span>
-<span class="fc" id="L45">      throw new IllegalArgumentException(&quot;unit cannot be null&quot;);</span>
+<span class="fc" id="L44">  public Timeout(long timeout, TimeUnit unit) {</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">    if (unit == null) {</span>
+<span class="fc" id="L46">      throw new IllegalArgumentException(&quot;The TimeUnit cannot be null&quot;);</span>
     }
-<span class="fc" id="L47">    this.timeout = timeout;</span>
-<span class="fc" id="L48">    this.unit = unit;</span>
-<span class="fc" id="L49">    this.timeoutBase = getBaseUnit().convert(timeout, unit);</span>
-<span class="fc" id="L50">  }</span>
+<span class="fc" id="L48">    this.timeout = timeout;</span>
+<span class="fc" id="L49">    this.unit = unit;</span>
+<span class="fc" id="L50">    this.timeoutBase = getBaseUnit().convert(timeout, unit);</span>
+<span class="fc" id="L51">  }</span>
 
   /**
    * Get the timeout value in terms of the {@link #getUnit() unit}.
    * @return A numerical value of the timeout. Possibly zero or negative.
    */
   public long getTimeout() {
-<span class="fc" id="L57">    return timeout;</span>
+<span class="fc" id="L58">    return timeout;</span>
   }
 
   /**
    * Get the unit for the {@link #getTimeout() timeout value}.
-   * @return The {@link TimeUnit} of the timeout value. Never &lt;code&gt;null&lt;/code&gt;.
+   * @return The {@link TimeUnit} of the timeout value. Never `null`.
    */
   public TimeUnit getUnit() {
-<span class="fc" id="L65">    return unit;</span>
+<span class="fc" id="L66">    return unit;</span>
   }
 
   /**
@@ -70,14 +71,14 @@ public class Timeout {
    * {@link #getBaseUnit() base unit}. Once you have a deadline, you can ask
    * how much time is left until it transpires, with the
    * {@link #getTimeLeft(long)} method, giving the deadline as an argument.
-   * &lt;p&gt;
+   *
    * If the {@link #getTimeout() timeout value} is really small, zero or
    * negative, then the deadline might be an instant in the past.
    * @return A numerical value that represents the deadline from &quot;now&quot; until
    * this timeout has passed.
    */
   public long getDeadline() {
-<span class="fc" id="L80">    return now() + timeoutBase;</span>
+<span class="fc" id="L81">    return now() + timeoutBase;</span>
   }
 
   /**
@@ -85,7 +86,7 @@ public class Timeout {
    * @return A numerical value of the timeout. Possibly zero or negative.
    */
   public long getTimeoutInBaseUnit() {
-<span class="fc" id="L88">    return timeoutBase;</span>
+<span class="fc" id="L89">    return timeoutBase;</span>
   }
 
   /**
@@ -98,7 +99,7 @@ public class Timeout {
    * this value is negative, then the deadline has transpired.
    */
   public long getTimeLeft(long deadline) {
-<span class="fc" id="L101">    return deadline - now();</span>
+<span class="fc" id="L102">    return deadline - now();</span>
   }
 
   /**
@@ -107,31 +108,31 @@ public class Timeout {
    * @return TimeUnit The unit of precision used by the clock in this Timeout.
    */
   public TimeUnit getBaseUnit() {
-<span class="fc" id="L110">    return TimeUnit.NANOSECONDS;</span>
+<span class="fc" id="L111">    return TimeUnit.NANOSECONDS;</span>
   }
 
   private long now() {
-<span class="fc" id="L114">    return System.nanoTime();</span>
+<span class="fc" id="L115">    return System.nanoTime();</span>
   }
 
   @Override
   public int hashCode() {
-<span class="fc" id="L119">    return 31 * (1 + (int) (timeoutBase ^ (timeoutBase &gt;&gt;&gt; 32)));</span>
+<span class="fc" id="L120">    return 31 * (1 + (int) (timeoutBase ^ (timeoutBase &gt;&gt;&gt; 32)));</span>
   }
 
   /**
    * Timeouts of equivalent duration are equal, even if they were constructed
    * with different units.
-   * @return &lt;code&gt;true&lt;/code&gt; if this Timeout value is equal to the given
-   * Timeout value, &lt;code&gt;false&lt;/code&gt; otherwise.
+   * @return `true` if this Timeout value is equal to the given
+   * Timeout value, `false` otherwise.
    */
   @Override
   public boolean equals(Object obj) {
-<span class="fc bfc" id="L130" title="All 2 branches covered.">    if (!(obj instanceof Timeout)) {</span>
-<span class="fc" id="L131">      return false;</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">    if (!(obj instanceof Timeout)) {</span>
+<span class="fc" id="L132">      return false;</span>
     }
-<span class="fc" id="L133">    Timeout that = (Timeout) obj;</span>
-<span class="fc bfc" id="L134" title="All 2 branches covered.">    return this.timeoutBase == that.timeoutBase;</span>
+<span class="fc" id="L134">    Timeout that = (Timeout) obj;</span>
+<span class="fc bfc" id="L135" title="All 2 branches covered.">    return this.timeoutBase == that.timeoutBase;</span>
   }
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.2.201409121644</span></div></body></html>

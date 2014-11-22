@@ -26,11 +26,11 @@
 <a class="jxr_linenumber" name="16" href="#16">16</a>  <strong class="jxr_keyword">package</strong> stormpot;
 <a class="jxr_linenumber" name="17" href="#17">17</a>  
 <a class="jxr_linenumber" name="18" href="#18">18</a>  <strong class="jxr_keyword">import</strong> org.junit.Test;
-<a class="jxr_linenumber" name="19" href="#19">19</a>  <strong class="jxr_keyword">import</strong> stormpot.*;
-<a class="jxr_linenumber" name="20" href="#20">20</a>  
-<a class="jxr_linenumber" name="21" href="#21">21</a>  <strong class="jxr_keyword">import</strong> java.util.LinkedList;
-<a class="jxr_linenumber" name="22" href="#22">22</a>  <strong class="jxr_keyword">import</strong> java.util.Queue;
-<a class="jxr_linenumber" name="23" href="#23">23</a>  <strong class="jxr_keyword">import</strong> java.util.concurrent.BlockingQueue;
+<a class="jxr_linenumber" name="19" href="#19">19</a>  
+<a class="jxr_linenumber" name="20" href="#20">20</a>  <strong class="jxr_keyword">import</strong> java.util.LinkedList;
+<a class="jxr_linenumber" name="21" href="#21">21</a>  <strong class="jxr_keyword">import</strong> java.util.Queue;
+<a class="jxr_linenumber" name="22" href="#22">22</a>  <strong class="jxr_keyword">import</strong> java.util.concurrent.BlockingQueue;
+<a class="jxr_linenumber" name="23" href="#23">23</a>  <strong class="jxr_keyword">import</strong> java.util.concurrent.Callable;
 <a class="jxr_linenumber" name="24" href="#24">24</a>  
 <a class="jxr_linenumber" name="25" href="#25">25</a>  <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">class</strong> <a href="../stormpot/BAllocThread_NullPollFromLiveWhileShrinking_Test.html">BAllocThread_NullPollFromLiveWhileShrinking_Test</a>
 <a class="jxr_linenumber" name="26" href="#26">26</a>  <strong class="jxr_keyword">extends</strong> AllocThread_NullPollFromLiveWhileShrinking_TestTemplate&lt;BSlot&lt;Poolable&gt;, BAllocThread&lt;Poolable&gt;&gt; {
@@ -74,7 +74,7 @@
 <a class="jxr_linenumber" name="64" href="#64">64</a>      
 <a class="jxr_linenumber" name="65" href="#65">65</a>      <strong class="jxr_keyword">try</strong> {
 <a class="jxr_linenumber" name="66" href="#66">66</a>        th.run();
-<a class="jxr_linenumber" name="67" href="#67">67</a>      } <strong class="jxr_keyword">catch</strong> (Stop _) {
+<a class="jxr_linenumber" name="67" href="#67">67</a>      } <strong class="jxr_keyword">catch</strong> (Stop ignore) {
 <a class="jxr_linenumber" name="68" href="#68">68</a>        <em class="jxr_comment">// we're happy now</em>
 <a class="jxr_linenumber" name="69" href="#69">69</a>      }
 <a class="jxr_linenumber" name="70" href="#70">70</a>    }

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>BSlot.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.html" class="el_package">stormpot</a> &gt; <span class="el_source">BSlot.java</span></div><h1>BSlot.java</h1><pre class="source lang-java linenums">/*
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>BSlot.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.source.html" class="el_package">stormpot</a> &gt; <span class="el_source">BSlot.java</span></div><h1>BSlot.java</h1><pre class="source lang-java linenums">/*
  * Copyright (C) 2011-2014 Chris Vest (mr.chrisvest@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -26,7 +26,9 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
  * the effect of even the tiniest changes!
  * False-sharing is a fickle and vengeful mistress.
  */
-class BSlot&lt;T extends Poolable&gt; extends BSlotColdFields&lt;T&gt; implements Slot, SlotInfo&lt;T&gt; {
+final class BSlot&lt;T extends Poolable&gt;
+    extends BSlotColdFields&lt;T&gt;
+    implements Slot, SlotInfo&lt;T&gt; {
   static final int LIVING = 1;
   static final int CLAIMED = 2;
   static final int TLR_CLAIMED = 3;
@@ -36,100 +38,104 @@ class BSlot&lt;T extends Poolable&gt; extends BSlotColdFields&lt;T&gt; implement
     // Volatile write in the constructor: This object must be safely published,
     // so that we are sure that the volatile write happens-before other
     // threads observe the pointer to this object.
-<span class="fc" id="L39">    super(DEAD, live);</span>
-<span class="fc" id="L40">  }</span>
+<span class="fc" id="L41">    super(DEAD, live);</span>
+<span class="fc" id="L42">  }</span>
   
   public void release(Poolable obj) {
     int slotState;
     do {
-<span class="fc" id="L45">      slotState = get();</span>
+<span class="fc" id="L47">      slotState = get();</span>
       // We loop here because TLR_CLAIMED slots can be concurrently changed
       // into normal CLAIMED slots.
-<span class="fc bfc" id="L48" title="All 2 branches covered.">    } while (!tryTransitionToLive(slotState));</span>
-<span class="fc bfc" id="L49" title="All 2 branches covered.">    if (slotState == CLAIMED) {</span>
-<span class="fc" id="L50">      live.offer(this);</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">    } while (!tryTransitionToLive(slotState));</span>
+<span class="fc bfc" id="L51" title="All 2 branches covered.">    if (slotState == CLAIMED) {</span>
+<span class="fc" id="L52">      live.offer(this);</span>
     }
-<span class="fc" id="L52">  }</span>
+<span class="fc" id="L54">  }</span>
 
   private boolean tryTransitionToLive(int slotState) {
-<span class="fc bfc" id="L55" title="All 2 branches covered.">    if (slotState == TLR_CLAIMED) {</span>
-<span class="fc" id="L56">      return claimTlr2live();</span>
-<span class="fc bfc" id="L57" title="All 2 branches covered.">    } else if (slotState == CLAIMED) {</span>
-<span class="fc" id="L58">      return claim2live();</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">    if (slotState == TLR_CLAIMED) {</span>
+<span class="fc" id="L58">      return claimTlr2live();</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">    } else if (slotState == CLAIMED) {</span>
+<span class="fc" id="L60">      return claim2live();</span>
     }
-<span class="fc" id="L60">    throw new PoolException(&quot;Slot release from bad state: &quot; + slotState);</span>
+<span class="fc" id="L62">    throw new PoolException(&quot;Slot release from bad state: &quot; + slotState);</span>
   }
   
   public boolean claim2live() {
-<span class="fc" id="L64">    lazySet(LIVING);</span>
-<span class="fc" id="L65">    return true;</span>
+<span class="fc" id="L66">    lazySet(LIVING);</span>
+<span class="fc" id="L67">    return true;</span>
   }
 
   public boolean claimTlr2live() {
-<span class="fc" id="L69">    return compareAndSet(TLR_CLAIMED, LIVING);</span>
+<span class="fc" id="L71">    return compareAndSet(TLR_CLAIMED, LIVING);</span>
   }
   
   public boolean live2claim() {
-<span class="fc" id="L73">    return compareAndSet(LIVING, CLAIMED);</span>
+<span class="fc" id="L75">    return compareAndSet(LIVING, CLAIMED);</span>
   }
   
   public boolean live2claimTlr() {
-<span class="fc" id="L77">    return compareAndSet(LIVING, TLR_CLAIMED);</span>
+<span class="fc" id="L79">    return compareAndSet(LIVING, TLR_CLAIMED);</span>
   }
   
   public boolean claimTlr2claim() {
-<span class="fc" id="L81">    return compareAndSet(TLR_CLAIMED, CLAIMED);</span>
+<span class="fc" id="L83">    return compareAndSet(TLR_CLAIMED, CLAIMED);</span>
   }
   
   public boolean claim2dead() {
-<span class="fc" id="L85">    return compareAndSet(CLAIMED, DEAD);</span>
+<span class="fc" id="L87">    return compareAndSet(CLAIMED, DEAD);</span>
   }
 
   // Never fails
   public void dead2live() {
-<span class="fc" id="L90">    lazySet(LIVING);</span>
-<span class="fc" id="L91">  }</span>
+<span class="fc" id="L92">    lazySet(LIVING);</span>
+<span class="fc" id="L93">  }</span>
   
   public boolean live2dead() {
-<span class="fc" id="L94">    return compareAndSet(LIVING, DEAD);</span>
+<span class="fc" id="L96">    return compareAndSet(LIVING, DEAD);</span>
   }
 
   @Override
   public long getAgeMillis() {
-<span class="fc" id="L99">    return System.currentTimeMillis() - created;</span>
+<span class="fc" id="L101">    return System.currentTimeMillis() - created;</span>
   }
 
   @Override
   public long getClaimCount() {
-<span class="fc" id="L104">    return claims;</span>
+<span class="fc" id="L106">    return claims;</span>
   }
 
   @Override
   public T getPoolable() {
-<span class="fc" id="L109">    return obj;</span>
+<span class="fc" id="L111">    return obj;</span>
   }
 
   public boolean isDead() {
-<span class="fc bfc" id="L113" title="All 2 branches covered.">    return get() == DEAD;</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">    return get() == DEAD;</span>
+  }
+
+  public boolean isLive() {
+<span class="fc bfc" id="L119" title="All 2 branches covered.">    return get() == LIVING;</span>
   }
   
   public int getState() {
-<span class="fc" id="L117">    return get();</span>
+<span class="fc" id="L123">    return get();</span>
   }
 
   public void incrementClaims() {
-<span class="fc" id="L121">    claims++;</span>
-<span class="fc" id="L122">  }</span>
+<span class="fc" id="L127">    claims++;</span>
+<span class="fc" id="L128">  }</span>
 
   @Override
   public long getStamp() {
-<span class="fc" id="L126">    return stamp;</span>
+<span class="fc" id="L132">    return stamp;</span>
   }
 
   @Override
   public void setStamp(long stamp) {
-<span class="fc" id="L131">    this.stamp = stamp;</span>
-<span class="fc" id="L132">  }</span>
+<span class="fc" id="L137">    this.stamp = stamp;</span>
+<span class="fc" id="L138">  }</span>
 }
 
 
@@ -178,7 +184,7 @@ stormpot.BSlot object internals:
 Instance size: 184 bytes (estimated, add this JAR via -javaagent: to get accurate result)
 Space losses: 4 bytes internal + 4 bytes external = 8 bytes total
  */
-<span class="fc" id="L181">abstract class Padding1 {</span>
+<span class="fc" id="L187">abstract class Padding1 {</span>
   private int p0;
   private long p1, p2, p3, p4, p5, p6;
 }
@@ -192,44 +198,44 @@ abstract class PaddedAtomicInteger extends Padding1 {
     Unsafe theUnsafe;
     long theStateFieldOffset;
     try {
-<span class="fc" id="L195">      Field theUnsafeField = Unsafe.class.getDeclaredField(&quot;theUnsafe&quot;);</span>
-<span class="fc" id="L196">      theUnsafeField.setAccessible(true);</span>
-<span class="fc" id="L197">      theUnsafe = (Unsafe) theUnsafeField.get(null);</span>
-<span class="fc" id="L198">      Field stateField = PaddedAtomicInteger.class.getDeclaredField(&quot;state&quot;);</span>
-<span class="fc" id="L199">      theStateFieldOffset = theUnsafe.objectFieldOffset(stateField);</span>
-<span class="nc" id="L200">    } catch (Throwable ignore) {</span>
-<span class="nc" id="L201">      theUnsafe = null;</span>
-<span class="nc" id="L202">      theStateFieldOffset = 0;</span>
-<span class="fc" id="L203">    }</span>
-<span class="fc" id="L204">    stateFieldOffset = theStateFieldOffset;</span>
-<span class="fc" id="L205">    unsafe = theUnsafe;</span>
-<span class="fc" id="L206">    updater = AtomicIntegerFieldUpdater.newUpdater(PaddedAtomicInteger.class, &quot;state&quot;);</span>
-<span class="fc" id="L207">  }</span>
+<span class="fc" id="L201">      Field theUnsafeField = Unsafe.class.getDeclaredField(&quot;theUnsafe&quot;);</span>
+<span class="fc" id="L202">      theUnsafeField.setAccessible(true);</span>
+<span class="fc" id="L203">      theUnsafe = (Unsafe) theUnsafeField.get(null);</span>
+<span class="fc" id="L204">      Field stateField = PaddedAtomicInteger.class.getDeclaredField(&quot;state&quot;);</span>
+<span class="fc" id="L205">      theStateFieldOffset = theUnsafe.objectFieldOffset(stateField);</span>
+<span class="nc" id="L206">    } catch (Throwable ignore) {</span>
+<span class="nc" id="L207">      theUnsafe = null;</span>
+<span class="nc" id="L208">      theStateFieldOffset = 0;</span>
+<span class="fc" id="L209">    }</span>
+<span class="fc" id="L210">    stateFieldOffset = theStateFieldOffset;</span>
+<span class="fc" id="L211">    unsafe = theUnsafe;</span>
+<span class="fc" id="L212">    updater = AtomicIntegerFieldUpdater.newUpdater(PaddedAtomicInteger.class, &quot;state&quot;);</span>
+<span class="fc" id="L213">  }</span>
 
   private volatile int state;
 
-<span class="fc" id="L211">  public PaddedAtomicInteger(int state) {</span>
-<span class="fc" id="L212">    this.state = state;</span>
-<span class="fc" id="L213">  }</span>
+<span class="fc" id="L217">  public PaddedAtomicInteger(int state) {</span>
+<span class="fc" id="L218">    this.state = state;</span>
+<span class="fc" id="L219">  }</span>
 
   protected final boolean compareAndSet(int expected, int update) {
-<span class="pc bpc" id="L216" title="1 of 2 branches missed.">    if (unsafe != null) {</span>
-<span class="fc" id="L217">      return unsafe.compareAndSwapInt(this, stateFieldOffset, expected, update);</span>
+<span class="pc bpc" id="L222" title="1 of 2 branches missed.">    if (unsafe != null) {</span>
+<span class="fc" id="L223">      return unsafe.compareAndSwapInt(this, stateFieldOffset, expected, update);</span>
     } else {
-<span class="nc" id="L219">      return updater.compareAndSet(this, expected, update);</span>
+<span class="nc" id="L225">      return updater.compareAndSet(this, expected, update);</span>
     }
   }
 
   protected final void lazySet(int update) {
-<span class="pc bpc" id="L224" title="1 of 2 branches missed.">    if (unsafe != null) {</span>
-<span class="fc" id="L225">      unsafe.putOrderedInt(this, stateFieldOffset, update);</span>
+<span class="pc bpc" id="L230" title="1 of 2 branches missed.">    if (unsafe != null) {</span>
+<span class="fc" id="L231">      unsafe.putOrderedInt(this, stateFieldOffset, update);</span>
     } else {
-<span class="nc" id="L227">      updater.lazySet(this, update);</span>
+<span class="nc" id="L233">      updater.lazySet(this, update);</span>
     }
-<span class="fc" id="L229">  }</span>
+<span class="fc" id="L235">  }</span>
 
   protected int get() {
-<span class="fc" id="L232">    return state;</span>
+<span class="fc" id="L238">    return state;</span>
   }
 }
 
@@ -237,8 +243,8 @@ abstract class Padding2 extends PaddedAtomicInteger {
   private long p1, p2, p3, p4, p5, p6, p7;
 
   public Padding2(int state) {
-<span class="fc" id="L240">    super(state);</span>
-<span class="fc" id="L241">  }</span>
+<span class="fc" id="L246">    super(state);</span>
+<span class="fc" id="L247">  }</span>
 }
 
 abstract class BSlotColdFields&lt;T extends Poolable&gt; extends Padding2 implements SlotInfo&lt;T&gt; {
@@ -250,22 +256,22 @@ abstract class BSlotColdFields&lt;T extends Poolable&gt; extends Padding2 implem
   long claims;
 
   public BSlotColdFields(int state, BlockingQueue&lt;BSlot&lt;T&gt;&gt; live) {
-<span class="fc" id="L253">    super(state);</span>
-<span class="fc" id="L254">    this.live = live;</span>
-<span class="fc" id="L255">  }</span>
+<span class="fc" id="L259">    super(state);</span>
+<span class="fc" id="L260">    this.live = live;</span>
+<span class="fc" id="L261">  }</span>
 
   // XorShift PRNG with a 2^128-1 period.
-<span class="fc" id="L258">  int x = System.identityHashCode(this);</span>
-<span class="fc" id="L259">  int y = -938745813;</span>
-<span class="fc" id="L260">  int z = 452465366;</span>
-<span class="fc" id="L261">  int w = 1343246171;</span>
+<span class="fc" id="L264">  int x = System.identityHashCode(this);</span>
+<span class="fc" id="L265">  int y = -938745813;</span>
+<span class="fc" id="L266">  int z = 452465366;</span>
+<span class="fc" id="L267">  int w = 1343246171;</span>
 
   @Override
   public int randomInt() {
-<span class="fc" id="L265">    int t = x^(x&lt;&lt;15);</span>
+<span class="fc" id="L271">    int t = x^(x&lt;&lt;15);</span>
     //noinspection SuspiciousNameCombination
-<span class="fc" id="L267">    x = y; y = z; z = w;</span>
-<span class="fc" id="L268">    return w = (w^(w&gt;&gt;&gt;21))^(t^(t&gt;&gt;&gt;4));</span>
+<span class="fc" id="L273">    x = y; y = z; z = w;</span>
+<span class="fc" id="L274">    return w = (w^(w&gt;&gt;&gt;21))^(t^(t&gt;&gt;&gt;4));</span>
   }
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.2.201409121644</span></div></body></html>

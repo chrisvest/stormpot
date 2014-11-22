@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>TimeExpiration.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.html" class="el_package">stormpot</a> &gt; <span class="el_source">TimeExpiration.java</span></div><h1>TimeExpiration.java</h1><pre class="source lang-java linenums">/*
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>TimeExpiration.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.source.html" class="el_package">stormpot</a> &gt; <span class="el_source">TimeExpiration.java</span></div><h1>TimeExpiration.java</h1><pre class="source lang-java linenums">/*
  * Copyright (C) 2011-2014 Chris Vest (mr.chrisvest@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -21,44 +21,52 @@ import java.util.concurrent.TimeUnit;
  * This is a time based {@link Expiration}. It will invalidate
  * objects based on how long ago they were allocated.
  * 
- * @author Chris Vest &amp;lt;mr.chrisvest@gmail.com&amp;gt;
+ * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  */
+// TODO 3.0 make class final
 public class TimeExpiration implements Expiration&lt;Poolable&gt; {
 
   private final long maxPermittedAgeMillis;
+  private final TimeUnit unit;
 
   /**
    * Construct a new Expiration that will invalidate objects that are older
    * than the provided span of time in the given unit.
-   * &lt;p&gt;
-   * If the &lt;code&gt;maxPermittedAge&lt;/code&gt; is less than one, or the
-   * &lt;code&gt;unit&lt;/code&gt; is &lt;code&gt;null&lt;/code&gt;, then an
-   * {@link IllegalArgumentException} will be thrown.
+   *
+   * If the `maxPermittedAge` is less than one, or the `unit` is `null`, then
+   * an {@link IllegalArgumentException} will be thrown.
    * 
    * @param maxPermittedAge Poolables older than this, in the given unit, will
    * be considered expired. This value must be at least 1.
    * @param unit The {@link TimeUnit} of the maximum permitted age. Never
-   * &lt;code&gt;null&lt;/code&gt;.
+   * `null`.
    */
-<span class="fc" id="L43">  public TimeExpiration(long maxPermittedAge, TimeUnit unit) {</span>
-<span class="fc bfc" id="L44" title="All 2 branches covered.">    if (maxPermittedAge &lt; 1) {</span>
-<span class="fc" id="L45">      throw new IllegalArgumentException(</span>
-          &quot;max permitted age cannot be less than 1&quot;);
+<span class="fc" id="L44">  public TimeExpiration(long maxPermittedAge, TimeUnit unit) {</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">    if (maxPermittedAge &lt; 1) {</span>
+<span class="fc" id="L46">      throw new IllegalArgumentException(</span>
+          &quot;Max permitted age cannot be less than 1&quot;);
     }
-<span class="fc bfc" id="L48" title="All 2 branches covered.">    if (unit == null) {</span>
-<span class="fc" id="L49">      throw new IllegalArgumentException(&quot;unit cannot be null&quot;);</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">    if (unit == null) {</span>
+<span class="fc" id="L50">      throw new IllegalArgumentException(&quot;The TimeUnit cannot be null&quot;);</span>
     }
-<span class="fc" id="L51">    maxPermittedAgeMillis = unit.toMillis(maxPermittedAge);</span>
-<span class="fc" id="L52">  }</span>
+<span class="fc" id="L52">    maxPermittedAgeMillis = unit.toMillis(maxPermittedAge);</span>
+<span class="fc" id="L53">    this.unit = unit;</span>
+<span class="fc" id="L54">  }</span>
 
   /**
-   * Returns &lt;code&gt;true&lt;/code&gt; if the {@link Poolable} represented by the given
+   * Returns `true` if the {@link Poolable} represented by the given
    * {@link SlotInfo} is older than the maximum age permitted by this
    * TimeExpiration.
    */
   @Override
   public boolean hasExpired(SlotInfo&lt;? extends Poolable&gt; info) {
-<span class="fc bfc" id="L61" title="All 2 branches covered.">    return info.getAgeMillis() &gt; maxPermittedAgeMillis;</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">    return info.getAgeMillis() &gt; maxPermittedAgeMillis;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="fc" id="L68">    long time = unit.convert(maxPermittedAgeMillis, TimeUnit.MILLISECONDS);</span>
+<span class="fc" id="L69">    return &quot;TimeExpiration(&quot; + time + &quot; &quot; + unit + &quot;)&quot;;</span>
   }
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.2.201409121644</span></div></body></html>

@@ -28,13 +28,13 @@
 <a class="jxr_linenumber" name="18" href="#18">18</a>  <em class="jxr_javadoccomment">/**</em>
 <a class="jxr_linenumber" name="19" href="#19">19</a>  <em class="jxr_javadoccomment"> * The expiration is used to determine if a given slot has expired, or</em>
 <a class="jxr_linenumber" name="20" href="#20">20</a>  <em class="jxr_javadoccomment"> * otherwise become invalid.</em>
-<a class="jxr_linenumber" name="21" href="#21">21</a>  <em class="jxr_javadoccomment"> * &lt;p&gt;</em>
+<a class="jxr_linenumber" name="21" href="#21">21</a>  <em class="jxr_javadoccomment"> *</em>
 <a class="jxr_linenumber" name="22" href="#22">22</a>  <em class="jxr_javadoccomment"> * Note that Expiration instances must be thread-safe, as they may be</em>
 <a class="jxr_linenumber" name="23" href="#23">23</a>  <em class="jxr_javadoccomment"> * accessed concurrently by multiple threads. However, for a given</em>
 <a class="jxr_linenumber" name="24" href="#24">24</a>  <em class="jxr_javadoccomment"> * {@link SlotInfo} and {@link Poolable} instance, only a single thread will</em>
 <a class="jxr_linenumber" name="25" href="#25">25</a>  <em class="jxr_javadoccomment"> * invoke the expiration at a time. This means that there is no need to</em>
 <a class="jxr_linenumber" name="26" href="#26">26</a>  <em class="jxr_javadoccomment"> * synchronise on the SlotInfo or Poolable objects.</em>
-<a class="jxr_linenumber" name="27" href="#27">27</a>  <em class="jxr_javadoccomment"> * &lt;p&gt;</em>
+<a class="jxr_linenumber" name="27" href="#27">27</a>  <em class="jxr_javadoccomment"> *</em>
 <a class="jxr_linenumber" name="28" href="#28">28</a>  <em class="jxr_javadoccomment"> * The easiest way to ensure that an Expiration implementation is thread-safe,</em>
 <a class="jxr_linenumber" name="29" href="#29">29</a>  <em class="jxr_javadoccomment"> * is to make sure that they never mutate any state. If they do, however,</em>
 <a class="jxr_linenumber" name="30" href="#30">30</a>  <em class="jxr_javadoccomment"> * then they must do so in a thread-safe manner, unless the mutable state is</em>
@@ -42,39 +42,50 @@
 <a class="jxr_linenumber" name="32" href="#32">32</a>  <em class="jxr_javadoccomment"> * mutable state will be thread-local. Be aware that making the</em>
 <a class="jxr_linenumber" name="33" href="#33">33</a>  <em class="jxr_javadoccomment"> * {@link #hasExpired(SlotInfo) hasExpired} method {@code synchronized} will</em>
 <a class="jxr_linenumber" name="34" href="#34">34</a>  <em class="jxr_javadoccomment"> * most likely severely reduce the performance and scalability of the pool.</em>
-<a class="jxr_linenumber" name="35" href="#35">35</a>  <em class="jxr_javadoccomment"> * &lt;p&gt;</em>
+<a class="jxr_linenumber" name="35" href="#35">35</a>  <em class="jxr_javadoccomment"> *</em>
 <a class="jxr_linenumber" name="36" href="#36">36</a>  <em class="jxr_javadoccomment"> * The Expiration can be invoked several times during a</em>
 <a class="jxr_linenumber" name="37" href="#37">37</a>  <em class="jxr_javadoccomment"> * {@link Pool#claim(Timeout) claim} call, so it is important that the</em>
 <a class="jxr_linenumber" name="38" href="#38">38</a>  <em class="jxr_javadoccomment"> * Expiration is fast. It can easily be the dominating factor in the</em>
 <a class="jxr_linenumber" name="39" href="#39">39</a>  <em class="jxr_javadoccomment"> * performance of the pool.</em>
 <a class="jxr_linenumber" name="40" href="#40">40</a>  <em class="jxr_javadoccomment"> *</em>
-<a class="jxr_linenumber" name="41" href="#41">41</a>  <em class="jxr_javadoccomment"> * @author Chris Vest &amp;lt;mr.chrisvest@gmail.com&amp;gt;</em>
-<a class="jxr_linenumber" name="42" href="#42">42</a>  <em class="jxr_javadoccomment"> */</em>
-<a class="jxr_linenumber" name="43" href="#43">43</a>  <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">interface</strong> Expiration&lt;T <strong class="jxr_keyword">extends</strong> Poolable&gt; {
-<a class="jxr_linenumber" name="44" href="#44">44</a>    <em class="jxr_javadoccomment">/**</em>
-<a class="jxr_linenumber" name="45" href="#45">45</a>  <em class="jxr_javadoccomment">   * Test whether the Slot and Poolable object, represented by the given</em>
-<a class="jxr_linenumber" name="46" href="#46">46</a>  <em class="jxr_javadoccomment">   * {@link SlotInfo} object, is still valid, or if the pool should</em>
-<a class="jxr_linenumber" name="47" href="#47">47</a>  <em class="jxr_javadoccomment">   * deallocate it and allocate a replacement.</em>
-<a class="jxr_linenumber" name="48" href="#48">48</a>  <em class="jxr_javadoccomment">   * &lt;p&gt;</em>
-<a class="jxr_linenumber" name="49" href="#49">49</a>  <em class="jxr_javadoccomment">   * If the method throws an exception, then that is taken to mean that the</em>
-<a class="jxr_linenumber" name="50" href="#50">50</a>  <em class="jxr_javadoccomment">   * slot is invalid. The exception will bubble out of the</em>
-<a class="jxr_linenumber" name="51" href="#51">51</a>  <em class="jxr_javadoccomment">   * {@link Pool#claim(Timeout) claim} method, but the mechanism is</em>
-<a class="jxr_linenumber" name="52" href="#52">52</a>  <em class="jxr_javadoccomment">   * implementation specific. For this reason, it is generally advised that</em>
-<a class="jxr_linenumber" name="53" href="#53">53</a>  <em class="jxr_javadoccomment">   * Expirations do not throw exceptions.</em>
-<a class="jxr_linenumber" name="54" href="#54">54</a>  <em class="jxr_javadoccomment">   * &lt;p&gt;</em>
-<a class="jxr_linenumber" name="55" href="#55">55</a>  <em class="jxr_javadoccomment">   * Note that this method can be called as often as several times per</em>
-<a class="jxr_linenumber" name="56" href="#56">56</a>  <em class="jxr_javadoccomment">   * {@link Pool#claim(Timeout) claim}. The performance of this method therefor</em>
-<a class="jxr_linenumber" name="57" href="#57">57</a>  <em class="jxr_javadoccomment">   * has a big influence on the percieved performance of the pool.</em>
-<a class="jxr_linenumber" name="58" href="#58">58</a>  <em class="jxr_javadoccomment">   *</em>
-<a class="jxr_linenumber" name="59" href="#59">59</a>  <em class="jxr_javadoccomment">   * @param info An informative representative of the slot being tested.</em>
-<a class="jxr_linenumber" name="60" href="#60">60</a>  <em class="jxr_javadoccomment">   * Never &lt;code&gt;null&lt;/code&gt;.</em>
-<a class="jxr_linenumber" name="61" href="#61">61</a>  <em class="jxr_javadoccomment">   * @return &lt;code&gt;true&lt;/code&gt; if the Slot and Poolable in question should be</em>
-<a class="jxr_linenumber" name="62" href="#62">62</a>  <em class="jxr_javadoccomment">   * deallocated, &lt;code&gt;false&lt;/code&gt; if it is valid and eligible for claiming.</em>
-<a class="jxr_linenumber" name="63" href="#63">63</a>  <em class="jxr_javadoccomment">   * @throws Exception If checking the validity of the Slot or Poolable somehow</em>
-<a class="jxr_linenumber" name="64" href="#64">64</a>  <em class="jxr_javadoccomment">   * went wrong. In this case, the Poolable will be assumed to be expired.</em>
-<a class="jxr_linenumber" name="65" href="#65">65</a>  <em class="jxr_javadoccomment">   */</em>
-<a class="jxr_linenumber" name="66" href="#66">66</a>    <strong class="jxr_keyword">boolean</strong> hasExpired(SlotInfo&lt;? <strong class="jxr_keyword">extends</strong> T&gt; info) <strong class="jxr_keyword">throws</strong> Exception;
-<a class="jxr_linenumber" name="67" href="#67">67</a>  }
+<a class="jxr_linenumber" name="41" href="#41">41</a>  <em class="jxr_javadoccomment"> * TIP: If the expiration is too slow, you can alternatively use a time-based</em>
+<a class="jxr_linenumber" name="42" href="#42">42</a>  <em class="jxr_javadoccomment"> * expiration, such as {@link stormpot.TimeExpiration}, that has been</em>
+<a class="jxr_linenumber" name="43" href="#43">43</a>  <em class="jxr_javadoccomment"> * configured with a very low expiration time, like a few seconds. Then you can</em>
+<a class="jxr_linenumber" name="44" href="#44">44</a>  <em class="jxr_javadoccomment"> * configure the pool to use a {@link stormpot.Reallocator}, where you do the</em>
+<a class="jxr_linenumber" name="45" href="#45">45</a>  <em class="jxr_javadoccomment"> * expensive expiration check in the</em>
+<a class="jxr_linenumber" name="46" href="#46">46</a>  <em class="jxr_javadoccomment"> * {@link stormpot.Reallocator#reallocate(Slot, Poolable) reallocate} method,</em>
+<a class="jxr_linenumber" name="47" href="#47">47</a>  <em class="jxr_javadoccomment"> * returning the same Poolable back if it hasn't expired.</em>
+<a class="jxr_linenumber" name="48" href="#48">48</a>  <em class="jxr_javadoccomment"> * Be aware, though, that such a scheme has to be tuned to the load of the</em>
+<a class="jxr_linenumber" name="49" href="#49">49</a>  <em class="jxr_javadoccomment"> * application, such that the objects in the pool don't all expire at the same</em>
+<a class="jxr_linenumber" name="50" href="#50">50</a>  <em class="jxr_javadoccomment"> * time, leaving the pool empty.</em>
+<a class="jxr_linenumber" name="51" href="#51">51</a>  <em class="jxr_javadoccomment"> *</em>
+<a class="jxr_linenumber" name="52" href="#52">52</a>  <em class="jxr_javadoccomment"> * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;</em>
+<a class="jxr_linenumber" name="53" href="#53">53</a>  <em class="jxr_javadoccomment"> */</em>
+<a class="jxr_linenumber" name="54" href="#54">54</a>  <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">interface</strong> Expiration&lt;T <strong class="jxr_keyword">extends</strong> Poolable&gt; {
+<a class="jxr_linenumber" name="55" href="#55">55</a>    <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="56" href="#56">56</a>  <em class="jxr_javadoccomment">   * Test whether the Slot and Poolable object, represented by the given</em>
+<a class="jxr_linenumber" name="57" href="#57">57</a>  <em class="jxr_javadoccomment">   * {@link SlotInfo} object, is still valid, or if the pool should</em>
+<a class="jxr_linenumber" name="58" href="#58">58</a>  <em class="jxr_javadoccomment">   * deallocate it and allocate a replacement.</em>
+<a class="jxr_linenumber" name="59" href="#59">59</a>  <em class="jxr_javadoccomment">   *</em>
+<a class="jxr_linenumber" name="60" href="#60">60</a>  <em class="jxr_javadoccomment">   * If the method throws an exception, then that is taken to mean that the</em>
+<a class="jxr_linenumber" name="61" href="#61">61</a>  <em class="jxr_javadoccomment">   * slot is invalid. The exception will bubble out of the</em>
+<a class="jxr_linenumber" name="62" href="#62">62</a>  <em class="jxr_javadoccomment">   * {@link Pool#claim(Timeout) claim} method, but the mechanism is</em>
+<a class="jxr_linenumber" name="63" href="#63">63</a>  <em class="jxr_javadoccomment">   * implementation specific. For this reason, it is generally advised that</em>
+<a class="jxr_linenumber" name="64" href="#64">64</a>  <em class="jxr_javadoccomment">   * Expirations do not throw exceptions.</em>
+<a class="jxr_linenumber" name="65" href="#65">65</a>  <em class="jxr_javadoccomment">   *</em>
+<a class="jxr_linenumber" name="66" href="#66">66</a>  <em class="jxr_javadoccomment">   * Note that this method can be called as often as several times per</em>
+<a class="jxr_linenumber" name="67" href="#67">67</a>  <em class="jxr_javadoccomment">   * {@link Pool#claim(Timeout) claim}. The performance of this method therefor</em>
+<a class="jxr_linenumber" name="68" href="#68">68</a>  <em class="jxr_javadoccomment">   * has a big influence on the perceived performance of the pool.</em>
+<a class="jxr_linenumber" name="69" href="#69">69</a>  <em class="jxr_javadoccomment">   *</em>
+<a class="jxr_linenumber" name="70" href="#70">70</a>  <em class="jxr_javadoccomment">   * @param info An informative representative of the slot being tested.</em>
+<a class="jxr_linenumber" name="71" href="#71">71</a>  <em class="jxr_javadoccomment">   * Never `null`.</em>
+<a class="jxr_linenumber" name="72" href="#72">72</a>  <em class="jxr_javadoccomment">   * @return `true` if the Slot and Poolable in question should be</em>
+<a class="jxr_linenumber" name="73" href="#73">73</a>  <em class="jxr_javadoccomment">   * deallocated, `false` if it is valid and eligible for claiming.</em>
+<a class="jxr_linenumber" name="74" href="#74">74</a>  <em class="jxr_javadoccomment">   * @throws Exception If checking the validity of the Slot or Poolable somehow</em>
+<a class="jxr_linenumber" name="75" href="#75">75</a>  <em class="jxr_javadoccomment">   * went wrong. In this case, the Poolable will be assumed to be expired.</em>
+<a class="jxr_linenumber" name="76" href="#76">76</a>  <em class="jxr_javadoccomment">   */</em>
+<a class="jxr_linenumber" name="77" href="#77">77</a>    <strong class="jxr_keyword">boolean</strong> hasExpired(SlotInfo&lt;? <strong class="jxr_keyword">extends</strong> T&gt; info) <strong class="jxr_keyword">throws</strong> Exception;
+<a class="jxr_linenumber" name="78" href="#78">78</a>  }
 </pre>
 <hr/><div id="footer">This page was automatically generated by <a href="http://maven.apache.org/">Maven</a></div></body>
 </html>
