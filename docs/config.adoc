@@ -146,6 +146,7 @@ The default `ThreadFactory` is based on the `Executors.defaultThreadFactory`, bu
 Stormpot has precise leak detection enabled by default, because the CPU overhead is very low.
 There is, however, a bit of memory overhead.
 Therefor, it may make sense to disable this in use cases where memory is very constrained, and/or the pool contains a very large number of objects.
+If you pool upwards a hundred thousand objects or more, you might want to disable it for performance reasons.
 
 The precise leak detection feature lets Stormpot keep track of when objects that were meant to circulate in the pool, suddenly leak out and never come back.
 The number of leaks detected is reported via the `getLeakedObjectsCount` method of the `ManagedPool` interface.
