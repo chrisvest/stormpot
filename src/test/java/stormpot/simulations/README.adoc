@@ -1,0 +1,8 @@
+
+= Simulations
+
+This package contain fully fledged programs, rather than tests.
+Their purpose is to explore and observe operational behaviours and effects.
+Things that cannot really be tested for.
+
+This is not about making sure that Stormpot is correct, but rather that it is well behaved in production.

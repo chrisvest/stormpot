@@ -124,7 +124,7 @@
         -->
         <groupId>org.pitest</groupId>
         <artifactId>pitest-maven</artifactId>
-        <version>1.1.0</version>
+        <version>1.1.2</version>
         <configuration>
           <targetTests>
             <param>stormpot.*</param>
@@ -228,6 +228,12 @@
       <groupId>com.codahale.metrics</groupId>
       <artifactId>metrics-core</artifactId>
       <version>3.0.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hdrhistogram</groupId>
+      <artifactId>HdrHistogram</artifactId>
+      <version>2.0.3</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
