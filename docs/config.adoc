@@ -166,7 +166,7 @@ In such a case it's nice that the API for awaiting on the completion of the shut
 
 === Complete Config Source
 
-For reference, the complete source for the `Config` class is listed bellow.
+For reference, the complete source for the `Config` class is listed below.
 When you instantiate a `Pool` instance, be it `QueuePool` or `BlazePool`, they will take the monitor-lock on the `Config` instance, thereby preventing it from being modified while they are looking at it.
 The pools will then call the `validate` method to make sure that they have a `Config` instance that can be used.
 Then, they will grab the data they need.
