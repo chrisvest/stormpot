@@ -20,7 +20,7 @@ stormpot,stormpot,Padding1,0,3,0,0,0,1,0,1,0,1
 stormpot,stormpot,BlazePool.new Exception() {...},0,5,0,0,0,2,0,2,0,2
 stormpot,stormpot,PoolException,0,9,0,0,0,4,0,2,0,2
 stormpot,stormpot,Padding2,0,4,0,0,0,2,0,1,0,1
-stormpot,stormpot,PreciseLeakDetector,0,315,0,34,0,88,0,26,0,9
+stormpot,stormpot,PreciseLeakDetector,6,309,1,33,1,87,1,25,0,9
 stormpot,stormpot,PaddedAtomicInteger,15,57,2,2,5,19,2,5,0,5
 stormpot,stormpot,PreciseLeakDetector.WeakRef,0,4,0,0,0,2,0,1,0,1
 stormpot,stormpot,Config,6,187,0,20,2,52,0,29,0,19
