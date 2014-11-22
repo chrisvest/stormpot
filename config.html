@@ -848,7 +848,7 @@ In such a case it&#8217;s nice that the API for awaiting on the completion of th
 <div class="sect2">
 <h3 id="_complete_config_source">Complete Config Source</h3>
 <div class="paragraph">
-<p>For reference, the complete source for the <code>Config</code> class is listed bellow.
+<p>For reference, the complete source for the <code>Config</code> class is listed below.
 When you instantiate a <code>Pool</code> instance, be it <code>QueuePool</code> or <code>BlazePool</code>, they will take the monitor-lock on the <code>Config</code> instance, thereby preventing it from being modified while they are looking at it.
 The pools will then call the <code>validate</code> method to make sure that they have a <code>Config</code> instance that can be used.
 Then, they will grab the data they need.
