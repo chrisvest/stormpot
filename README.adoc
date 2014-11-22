@@ -36,9 +36,9 @@ operation. Some of the things that sets Stormpot apart include:
    sporadic backend (Allocator) failures.
    (since 2.2)
  * Precise object leak detection with virtually no overhead.
-   (being added in upcoming 2.3)
+   (since 2.3)
  * Optional background object expiration checking.
-   (being added in upcoming 2.3)
+   (since 2.3)
  * And other features that makes for a smooth runtime behaviour.
 
 == Installing
