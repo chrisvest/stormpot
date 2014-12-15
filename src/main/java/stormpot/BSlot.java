@@ -15,9 +15,6 @@
  */
 package stormpot;
 
-import sun.misc.Unsafe;
-
-import java.lang.reflect.Field;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
@@ -59,9 +56,20 @@ final class BSlot<T extends Poolable>
     } else if (slotState == CLAIMED) {
       return claim2live();
     }
-    throw new PoolException("Slot release from bad state: " + slotState);
+    return throwBadStateOnTransitionToLive(slotState);
   }
-  
+
+  private boolean throwBadStateOnTransitionToLive(int slotState) {
+    String state;
+    switch (slotState) {
+      case DEAD: state = "DEAD"; break;
+      case LIVING: state = "LIVING"; break;
+      default: state = "STATE[" + slotState + "]";
+    }
+    throw new PoolException("Slot release from bad state: " + state + ". " +
+        "You most likely called release() twice on the same object.");
+  }
+
   public boolean claim2live() {
     lazySet(LIVING);
     return true;
@@ -190,26 +198,19 @@ abstract class Padding1 {
 }
 
 abstract class PaddedAtomicInteger extends Padding1 {
-  private static final Unsafe unsafe;
   private static final long stateFieldOffset;
   private static final AtomicIntegerFieldUpdater<PaddedAtomicInteger> updater;
 
   static {
-    Unsafe theUnsafe;
-    long theStateFieldOffset;
-    try {
-      Field theUnsafeField = Unsafe.class.getDeclaredField("theUnsafe");
-      theUnsafeField.setAccessible(true);
-      theUnsafe = (Unsafe) theUnsafeField.get(null);
-      Field stateField = PaddedAtomicInteger.class.getDeclaredField("state");
-      theStateFieldOffset = theUnsafe.objectFieldOffset(stateField);
-    } catch (Throwable ignore) {
-      theUnsafe = null;
-      theStateFieldOffset = 0;
+    long theStateFieldOffset = 0;
+    AtomicIntegerFieldUpdater<PaddedAtomicInteger> theStateUpdater = null;
+    if (UnsafeUtil.hasUnsafe()) {
+      theStateFieldOffset = UnsafeUtil.objectFieldOffset(PaddedAtomicInteger.class, "state");
+    } else {
+      theStateUpdater = AtomicIntegerFieldUpdater.newUpdater(PaddedAtomicInteger.class, "state");
     }
     stateFieldOffset = theStateFieldOffset;
-    unsafe = theUnsafe;
-    updater = AtomicIntegerFieldUpdater.newUpdater(PaddedAtomicInteger.class, "state");
+    updater = theStateUpdater;
   }
 
   private volatile int state;
@@ -219,16 +220,16 @@ abstract class PaddedAtomicInteger extends Padding1 {
   }
 
   protected final boolean compareAndSet(int expected, int update) {
-    if (unsafe != null) {
-      return unsafe.compareAndSwapInt(this, stateFieldOffset, expected, update);
+    if (UnsafeUtil.hasUnsafe()) {
+      return UnsafeUtil.compareAndSwapInt(this, stateFieldOffset, expected, update);
     } else {
       return updater.compareAndSet(this, expected, update);
     }
   }
 
   protected final void lazySet(int update) {
-    if (unsafe != null) {
-      unsafe.putOrderedInt(this, stateFieldOffset, update);
+    if (UnsafeUtil.hasUnsafe()) {
+      UnsafeUtil.putOrderedInt(this, stateFieldOffset, update);
     } else {
       updater.lazySet(this, update);
     }

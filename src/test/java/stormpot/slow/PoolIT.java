@@ -28,15 +28,15 @@ import org.junit.runner.RunWith;
 import stormpot.*;
 
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assume.assumeThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
+import static stormpot.AlloKit.$countDown;
 import static stormpot.AlloKit.*;
 import static stormpot.ExpireKit.*;
 
@@ -89,18 +89,15 @@ public class PoolIT {
     }
   }
 
-  private LifecycledResizablePool<GenericPoolable> lifecycledResizable(
-      PoolFixture fixture) {
-    Pool<GenericPoolable> pool = fixture.initPool(config);
-    assumeThat(pool, instanceOf(LifecycledResizablePool.class));
-    return (LifecycledResizablePool<GenericPoolable>) pool;
+  private void createPool(PoolFixture fixture) {
+    pool = (LifecycledResizablePool<GenericPoolable>) fixture.initPool(config);
   }
 
   @Test(timeout = 16010)
   @Theory public void
   highContentionMustNotCausePoolLeakage(
       PoolFixture fixture) throws Exception {
-    pool = lifecycledResizable(fixture);
+    createPool(fixture);
 
     Runnable runner = createTaskClaimReleaseUntilShutdown(pool);
 
@@ -143,7 +140,7 @@ public class PoolIT {
       PoolFixture fixture) throws Exception {
     int size = 100000;
     config.setSize(size);
-    pool = lifecycledResizable(fixture);
+    createPool(fixture);
 
     List<Future<?>> futures = new ArrayList<Future<?>>();
     for (int i = 0; i < 64; i++) {
@@ -202,7 +199,7 @@ public class PoolIT {
       }
     });
 
-    pool = lifecycledResizable(fixture);
+    createPool(fixture);
 
     List<Future<?>> futures = new ArrayList<Future<?>>();
     for (int i = 0; i < 64; i++) {
@@ -233,7 +230,7 @@ public class PoolIT {
     config.setExpiration(expiration);
     config.setBackgroundExpirationEnabled(true);
 
-    pool = lifecycledResizable(fixture);
+    createPool(fixture);
 
     // Do a thread-local reclaim, if applicable, to keep the object in
     // circulation
@@ -259,7 +256,7 @@ public class PoolIT {
     config.setExpiration(expiration);
     config.setBackgroundExpirationEnabled(true);
 
-    pool = lifecycledResizable(fixture);
+    createPool(fixture);
 
     GenericPoolable obj = pool.claim(longTimeout);
     int expirationsCount = expiration.countExpirations();
@@ -271,5 +268,78 @@ public class PoolIT {
     assertThat(allocator.countDeallocations(), is(0));
     assertThat(expiration.countExpirations(), is(expirationsCount));
     obj.release();
+  }
+
+  @Test(timeout = 160100)
+  @Theory public void
+  decreasingSizeOfDepletedPoolMustOnlyDeallocateAllocatedObjects(PoolFixture fixture)
+      throws Exception {
+    int startingSize = 256;
+    CountDownLatch startLatch = new CountDownLatch(startingSize);
+    Semaphore semaphore = new Semaphore(0);
+    allocator = allocator(
+        alloc($countDown(startLatch, $new)),
+        dealloc($release(semaphore, $null)));
+    config.setSize(startingSize);
+    config.setAllocator(allocator);
+    createPool(fixture);
+    startLatch.await();
+    List<GenericPoolable> objs = new ArrayList<GenericPoolable>();
+    for (int i = 0; i < startingSize; i++) {
+      objs.add(pool.claim(longTimeout));
+    }
+
+    int size = startingSize;
+    List<GenericPoolable> subList = objs.subList(0, startingSize - 1);
+    for (GenericPoolable obj : subList) {
+      size--;
+      pool.setTargetSize(size);
+      // It's important that the wait mask produces values greater than the
+      // allocation threads idle wait time.
+      assertFalse(semaphore.tryAcquire(size & 127, TimeUnit.MILLISECONDS));
+      obj.release();
+      semaphore.acquire();
+    }
+
+    assertThat(allocator.getDeallocations(), equalTo(subList));
+
+    objs.get(startingSize - 1).release();
+  }
+
+  @Test(timeout = 160100)
+  @Theory public void
+  mustNotDeallocateNullsFromLiveQueueDuringShutdown(PoolFixture fixture)
+      throws Exception {
+    int startingSize = 256;
+    CountDownLatch startLatch = new CountDownLatch(startingSize);
+    Semaphore semaphore = new Semaphore(0);
+    allocator = allocator(
+        alloc($countDown(startLatch, $new)),
+        dealloc($release(semaphore, $null)));
+    config.setSize(startingSize);
+    config.setAllocator(allocator);
+    createPool(fixture);
+    startLatch.await();
+    List<GenericPoolable> objs = new ArrayList<GenericPoolable>();
+    for (int i = 0; i < startingSize; i++) {
+      objs.add(pool.claim(longTimeout));
+    }
+
+    Completion completion = pool.shutdown();
+    int size = startingSize;
+    List<GenericPoolable> subList = objs.subList(0, startingSize - 1);
+    for (GenericPoolable obj : subList) {
+      size--;
+      // It's important that the wait mask produces values greater than the
+      // allocation threads idle wait time.
+      assertFalse(semaphore.tryAcquire(size & 127, TimeUnit.MILLISECONDS));
+      obj.release();
+      semaphore.acquire();
+    }
+
+    assertThat(allocator.getDeallocations(), equalTo(subList));
+
+    objs.get(startingSize - 1).release();
+    assertTrue("shutdown timeout elapsed", completion.await(longTimeout));
   }
 }

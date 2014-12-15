@@ -52,7 +52,6 @@ final class BAllocThread<T extends Poolable> implements Runnable {
 
   public BAllocThread(
       BlockingQueue<BSlot<T>> live,
-      BlockingQueue<BSlot<T>> dead,
       Config<T> config, BSlot<T> poisonPill) {
     this.targetSize = config.getSize();
     completionLatch = new CountDownLatch(1);
@@ -60,7 +59,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
     this.metricsRecorder = config.getMetricsRecorder();
     this.size = 0;
     this.live = live;
-    this.dead = dead;
+    this.dead = QueueFactory.createUnboundedBlockingQueue();
     this.poisonPill = poisonPill;
     this.expiration = config.getExpiration();
     this.backgroundExpirationEnabled = config.isBackgroundExpirationEnabled();
@@ -311,5 +310,9 @@ final class BAllocThread<T extends Poolable> implements Runnable {
       return leakDetector.countLeakedObjects();
     }
     return -1;
+  }
+
+  public void offerDeadSlot(BSlot<T> slot) {
+    dead.offer(slot);
   }
 }

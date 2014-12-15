@@ -15,7 +15,10 @@
  */
 package stormpot;
 
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
@@ -43,8 +46,12 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.junit.Assume.assumeThat;
 import static stormpot.AlloKit.*;
-import static stormpot.UnitKit.*;
+import static stormpot.AlloKit.$countDown;
+import static stormpot.AlloKit.$if;
 import static stormpot.ExpireKit.*;
+import static stormpot.ExpireKit.$countDown;
+import static stormpot.ExpireKit.$if;
+import static stormpot.UnitKit.*;
 
 /**
  * This is the generic test for Pool implementations. The test ensures that
@@ -968,6 +975,25 @@ public class PoolTest {
     pool.claim(longTimeout).release();
     pool.shutdown().await(longTimeout);
     assertFalse(wasNull.get());
+  }
+
+  @Test(timeout = 601)
+  @Theory public void
+  shutdownMustEventuallyDeallocateAllPoolables(PoolFixture fixture) throws Exception {
+    int size = 10;
+    config.setSize(size);
+    createPool(fixture);
+    List<GenericPoolable> objs = new ArrayList<GenericPoolable>();
+    for (int i = 0; i < size; i++) {
+      objs.add(pool.claim(longTimeout));
+    }
+    Completion completion = pool.shutdown();
+    completion.await(shortTimeout);
+    for (GenericPoolable obj : objs) {
+      obj.release();
+    }
+    completion.await(longTimeout);
+    assertThat(allocator.countDeallocations(), is(size));
   }
   
   /**

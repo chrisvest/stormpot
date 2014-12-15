@@ -291,6 +291,16 @@ public class AlloKit {
     };
   }
 
+  public static Action $release(final Semaphore semaphore, final Action action) {
+    return new Action() {
+      @Override
+      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
+        semaphore.release();
+        return action.apply(slot, obj);
+      }
+    };
+  }
+
   public static Action $countDown(
       final CountDownLatch latch,
       final Action action) {

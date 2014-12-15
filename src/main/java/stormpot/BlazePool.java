@@ -50,7 +50,6 @@ public class BlazePool<T extends Poolable>
   };
 
   private final BlockingQueue<BSlot<T>> live;
-  private final BlockingQueue<BSlot<T>> dead;
   private final BAllocThread<T> allocator;
   private final Thread allocatorThread;
   private final Expiration<? super T> deallocRule;
@@ -70,7 +69,6 @@ public class BlazePool<T extends Poolable>
    */
   public BlazePool(Config<T> config) {
     live = QueueFactory.createUnboundedBlockingQueue();
-    dead = QueueFactory.createUnboundedBlockingQueue();
     tlr = new ThreadLocal<BSlot<T>>();
     poisonPill = new BSlot<T>(live);
     poisonPill.poison = SHUTDOWN_POISON;
@@ -78,7 +76,7 @@ public class BlazePool<T extends Poolable>
     synchronized (config) {
       config.validate();
       ThreadFactory factory = config.getThreadFactory();
-      allocator = new BAllocThread<T>(live, dead, config, poisonPill);
+      allocator = new BAllocThread<T>(live, config, poisonPill);
       allocatorThread = factory.newThread(allocator);
       deallocRule = config.getExpiration();
       metricsRecorder = config.getMetricsRecorder();
@@ -237,7 +235,7 @@ public class BlazePool<T extends Poolable>
     for (;;) {
       int state = slot.getState();
       if (state == BSlot.CLAIMED && slot.claim2dead()) {
-        dead.offer(slot);
+        allocator.offerDeadSlot(slot);
         return;
       }
       if (state == BSlot.TLR_CLAIMED && slot.claimTlr2live()) {
