@@ -56,7 +56,7 @@ final class UnsafeUtil {
         Field field = type.getDeclaredField(fieldName);
         return unsafe.objectFieldOffset(field);
       } catch (NoSuchFieldException e) {
-        throw new AssertionError(
+        throw new Error(
             "Intrinsic error: objectFieldOffset for " + fieldName, e);
       }
     }
