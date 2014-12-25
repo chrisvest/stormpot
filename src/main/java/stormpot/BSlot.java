@@ -56,17 +56,17 @@ final class BSlot<T extends Poolable>
     } else if (slotState == CLAIMED) {
       return claim2live();
     }
-    return throwBadStateOnTransitionToLive(slotState);
+    throw badStateOnTransitionToLive(slotState);
   }
 
-  private boolean throwBadStateOnTransitionToLive(int slotState) {
+  private PoolException badStateOnTransitionToLive(int slotState) {
     String state;
     switch (slotState) {
       case DEAD: state = "DEAD"; break;
       case LIVING: state = "LIVING"; break;
       default: state = "STATE[" + slotState + "]";
     }
-    throw new PoolException("Slot release from bad state: " + state + ". " +
+    return new PoolException("Slot release from bad state: " + state + ". " +
         "You most likely called release() twice on the same object.");
   }
 
