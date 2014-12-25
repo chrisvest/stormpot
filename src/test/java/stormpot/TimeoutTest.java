@@ -123,6 +123,23 @@ public class TimeoutTest {
   }
 
   @Test public void
+  timeoutValueMustConvertExactlyToBaseUnit() {
+    TimeUnit seconds = TimeUnit.SECONDS;
+    int value = 1;
+    Timeout timeout = new Timeout(value, seconds);
+    long convertedValue = timeout.getBaseUnit().convert(value, seconds);
+    assertThat(timeout.getTimeoutInBaseUnit(), is(convertedValue));
+  }
+
+  @Test public void
+  specifyingTimeoutInBaseUnitMustDoNoConversion() {
+    Timeout a = new Timeout(1, TimeUnit.SECONDS);
+    long baseTimeout = a.getTimeoutInBaseUnit();
+    Timeout b = new Timeout(baseTimeout, a.getBaseUnit());
+    assertThat(b.getTimeoutInBaseUnit(), is(b.getTimeout()));
+  }
+
+  @Test public void
   equalTimeoutsMustHaveSameHashCode() {
     Random rng = new Random();
     TimeUnit[] units = TimeUnit.values();
