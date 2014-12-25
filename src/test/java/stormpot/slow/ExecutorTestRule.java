@@ -21,12 +21,12 @@ import org.junit.runners.model.Statement;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 public class ExecutorTestRule implements TestRule {
-  private TestThreadFactory threadFactory;
   private ExecutorService executor;
   private List<Future<?>> futuresToPrintOnFailure = new ArrayList<Future<?>>();
 
@@ -39,14 +39,15 @@ public class ExecutorTestRule implements TestRule {
     return new Statement() {
       @Override
       public void evaluate() throws Throwable {
-        TestThreadFactory threadFactory = new TestThreadFactory();
+        String testName = description.getDisplayName();
+        TestThreadFactory threadFactory = new TestThreadFactory(testName);
         executor = createExecutor(threadFactory);
         try {
           base.evaluate();
           executor.shutdown();
           if (!executor.awaitTermination(5000, TimeUnit.SECONDS)) {
             throw new Exception(
-                "ExecutorService.shutdown timed out after 1 second");
+                "ExecutorService.shutdown timed out after 5 second");
           }
           threadFactory.verifyAllThreadsTerminatedSuccessfully();
         } catch (Throwable throwable) {
@@ -93,12 +94,19 @@ public class ExecutorTestRule implements TestRule {
   }
 
   private class TestThreadFactory implements ThreadFactory {
+    private final String testName;
+    private final AtomicInteger threadCounter = new AtomicInteger();
     private final List<Thread> threads =
         Collections.synchronizedList(new ArrayList<Thread>());
 
+    private TestThreadFactory(String testName) {
+      this.testName = testName;
+    }
+
     @Override
     public Thread newThread(Runnable runnable) {
-      Thread thread = new Thread(runnable, "test-executor-pool-thread");
+      int id = threadCounter.incrementAndGet();
+      Thread thread = new Thread(runnable, "TestThread#" + id + "[" + testName + "]");
       threads.add(thread);
       return thread;
     }

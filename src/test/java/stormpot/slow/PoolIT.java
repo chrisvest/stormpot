@@ -48,6 +48,7 @@ public class PoolIT {
   @Rule public final ExecutorTestRule executorTestRule = new ExecutorTestRule();
 
   private static final Timeout longTimeout = new Timeout(1, TimeUnit.MINUTES);
+  private static final Timeout shortTimeout = new Timeout(1, TimeUnit.SECONDS);
 
   // Initialised by setUp()
   private CountingAllocator allocator;
@@ -68,7 +69,11 @@ public class PoolIT {
   }
 
   @After public void
-  verifyObjectsAreNeverDeallocatedMoreThanOnce() {
+  verifyObjectsAreNeverDeallocatedMoreThanOnce() throws InterruptedException {
+    assertTrue("pool should have been shut down by the test",
+        pool.shutdown().await(shortTimeout));
+    pool = null;
+
     List<GenericPoolable> deallocated = allocator.getDeallocations();
     // Synchronize to avoid ConcurrentModification with background thread
     synchronized (deallocated) {
@@ -87,6 +92,7 @@ public class PoolIT {
       }
       assertThat(duplicates, is(emptyIterableOf(GenericPoolable.class)));
     }
+    allocator = null;
   }
 
   private void createPool(PoolFixture fixture) {
@@ -108,7 +114,7 @@ public class PoolIT {
     do {
       pool.claim(longTimeout).release();
     } while (System.currentTimeMillis() < deadline);
-    pool.shutdown().await(longTimeout);
+    assertTrue(pool.shutdown().await(longTimeout));
     future.get();
   }
 
@@ -155,7 +161,7 @@ public class PoolIT {
     }
 
     // Very good, now shut down everything
-    pool.shutdown().await(longTimeout);
+    assertTrue(pool.shutdown().await(longTimeout));
 
     // Check that the shut down was orderly
     for (Future<?> future : futures) {
@@ -213,7 +219,7 @@ public class PoolIT {
     Thread.sleep(5000);
 
     // The shutdown completes if no objects are leaked
-    pool.shutdown().await(longTimeout);
+    assertTrue(pool.shutdown().await(longTimeout));
 
     for (Future<?> future : futures) {
       // Also verify that no unexpected exceptions were thrown
