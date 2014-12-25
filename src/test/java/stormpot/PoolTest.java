@@ -597,7 +597,7 @@ public class PoolTest {
     assertThat(secondAge - firstAge, greaterThanOrEqualTo(5L));
   }
 
-  @Test(timeout = 601)
+  @Test(timeout = 1601)
   @Theory public void
   slotInfoAgeMustResetAfterAllocation(PoolFixture fixture) throws InterruptedException {
     final AtomicBoolean hasExpired = new AtomicBoolean();
@@ -610,7 +610,7 @@ public class PoolTest {
     config.setAllocator(reallocator(realloc($throw(new Exception()))));
     createPool(fixture);
     pool.claim(longTimeout).release();
-    spinwait(5); // time transpires
+    Thread.sleep(100); // time transpires
     pool.claim(longTimeout).release();
     long firstAge = age.get(); // age is now at least 5 ms
     hasExpired.set(true);
@@ -624,9 +624,9 @@ public class PoolTest {
     pool.claim(longTimeout).release();
     long secondAge = age.get(); // age should be less than age of prev. obj.
     assertThat(secondAge, lessThan(firstAge));
-  } // TODO racy because we're not sure to be able to claim the second object in less than 5 ms, given preemptive SMP
+  }
 
-  @Test(timeout = 601)
+  @Test(timeout = 1601)
   @Theory public void
   slotInfoAgeMustResetAfterReallocation(PoolFixture fixture) throws InterruptedException {
     final AtomicBoolean hasExpired = new AtomicBoolean();
@@ -635,7 +635,7 @@ public class PoolTest {
         $capture($age(age), $expiredIf(hasExpired))));
     createPool(fixture);
     pool.claim(longTimeout).release();
-    spinwait(5); // time transpires
+    Thread.sleep(100); // time transpires
     pool.claim(longTimeout).release();
     long firstAge = age.get();
     hasExpired.set(true);
@@ -644,7 +644,7 @@ public class PoolTest {
     pool.claim(longTimeout).release(); // new object, new age
     long secondAge = age.get();
     assertThat(secondAge, lessThan(firstAge));
-  } // TODO racy because we're not sure to be able to claim the second object in less than 5 ms, given preemptive SMP
+  }
 
   /**
    * It is not possible to claim from a pool that has been shut down. Doing
