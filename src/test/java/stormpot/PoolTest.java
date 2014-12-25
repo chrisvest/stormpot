@@ -131,6 +131,7 @@ public class PoolTest {
     return (ManagedPool) pool;
   }
 
+  @SuppressWarnings("unused")
   @Test
   @Theory public void
   metaTestingAssumptions(PoolFixture ignore) {
@@ -2560,6 +2561,7 @@ public class PoolTest {
     assertThat(managedPool.getLeakedObjectsCount(), is(1L));
   }
 
+  @SuppressWarnings("UnusedAssignment")
   @Test(timeout = 6010)
   @Theory public void
   mustNotHoldOnToDeallocatedObjectsWhenLeakDetectionIsEnabled(
