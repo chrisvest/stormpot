@@ -2149,10 +2149,11 @@ public class PoolTest {
   @Theory public void
   mustProactivelyReallocatePoisonedSlotsWhenReallocatorStopsReturningNull(
       PoolFixture fixture) throws Exception {
-    final AtomicBoolean expired = new AtomicBoolean();
-    final CountDownLatch allocationLatch = new CountDownLatch(2);
+    AtomicBoolean expired = new AtomicBoolean();
+    CountDownLatch allocationLatch = new CountDownLatch(1);
+    Semaphore fixReallocLatch = new Semaphore(0);
     allocator = reallocator(
-        alloc($countDown(allocationLatch, $new)),
+        alloc($new, $countDown(allocationLatch, $acquire(fixReallocLatch, $new))),
         realloc($null, $new));
     config.setAllocator(allocator);
     config.setExpiration(expire($expiredIf(expired)));
@@ -2162,6 +2163,7 @@ public class PoolTest {
     expired.set(true); // the next object we claim is expired
     GenericPoolable obj = pool.claim(zeroTimeout); // send it back to reallocation
     assertThat(obj, is(nullValue()));
+    fixReallocLatch.release();
     allocationLatch.await();
     expired.set(false);
     obj = pool.claim(longTimeout);
