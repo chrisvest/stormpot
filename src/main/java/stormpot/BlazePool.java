@@ -63,12 +63,15 @@ public class BlazePool<T extends Poolable>
   private final ThreadLocal<BSlot<T>> tlr;
   private volatile boolean shutdown = false;
 
+  private final DisregardBPile<T> disregardPile;
+
   /**
    * Construct a new BlazePool instance based on the given {@link Config}.
    * @param config The pool configuration to use.
    */
   public BlazePool(Config<T> config) {
     live = QueueFactory.createUnboundedBlockingQueue();
+    disregardPile = new DisregardBPile<T>(live);
     tlr = new ThreadLocal<BSlot<T>>();
     poisonPill = new BSlot<T>(live);
     poisonPill.poison = SHUTDOWN_POISON;
@@ -76,7 +79,7 @@ public class BlazePool<T extends Poolable>
     synchronized (config) {
       config.validate();
       ThreadFactory factory = config.getThreadFactory();
-      allocator = new BAllocThread<T>(live, config, poisonPill);
+      allocator = new BAllocThread<T>(live, disregardPile, config, poisonPill);
       allocatorThread = factory.newThread(allocator);
       deallocRule = config.getExpiration();
       metricsRecorder = config.getMetricsRecorder();
@@ -134,46 +137,29 @@ public class BlazePool<T extends Poolable>
     long deadline = timeout.getDeadline();
     long timeoutLeft = timeout.getTimeoutInBaseUnit();
     TimeUnit baseUnit = timeout.getBaseUnit();
-    boolean notClaimed;
+    long maxWaitQuantum = baseUnit.convert(10, TimeUnit.MILLISECONDS);
     for (;;) {
-      slot = live.poll(timeoutLeft, baseUnit);
+      slot = live.poll(Math.min(timeoutLeft, maxWaitQuantum), baseUnit);
       if (slot == null) {
-        // we timed out while taking from the queue - just return null
-        return null;
+        if (timeoutLeft <= 0) {
+          // we timed out while taking from the queue - just return null
+          return null;
+        } else {
+          timeoutLeft = timeout.getTimeLeft(deadline);
+          disregardPile.refillQueue();
+          continue;
+        }
       }
-      // Again, attempt to claim before checking validity. We mustn't kill
-      // objects that are already claimed by someone else.
-      do {
-        // We pulled a slot off the queue. If we can transition it to the
-        // claimed state, then it means it wasn't tlr-claimed and we got it.
-        // Note that the slot at this point can be in any queue.
-        notClaimed = !slot.live2claim();
-        // If we fail to claim it, then it means that it is tlr-claimed by
-        // someone else. We know this because slots in the live-queue can only
-        // be either live or tlr-claimed. There is no transition to claimed
-        // or dead without first pulling the slot off the live-queue.
-        // Note that the slot at this point is not in any queue, and we can't
-        // put it back into the live-queue, because that could lead to
-        // busy-looping on tlr-claimed slots which would waste CPU cycles when
-        // the pool is depleted. We must instead make sure that tlr-claimer
-        // transition to a proper claimer, such that he will make sure to
-        // release the slot back into the live-queue once he is done with it.
-        // However, as we are contemplating this, he might have already
-        // released it again, which means that it is live and we can't make our
-        // transition because it is now too late for him to put it back into
-        // the live-queue. On the other hand, if the slot is now live, it means
-        // that we can claim it for our selves. So we loop on this.
-      } while (notClaimed && !slot.claimTlr2claim());
-      // If we could not live->claimed but tlr-claimed->claimed, then
-      // we mustn't check isInvalid, because that might send it to the
-      // dead-queue *while somebody else thinks they've TLR-claimed it!*
-      // We handle this in the outer loop: if we couldn't claim, then we retry
-      // the loop.
-      if (notClaimed || isInvalid(slot, false)) {
-        timeoutLeft = timeout.getTimeLeft(deadline);
-        continue;
+
+      if (slot.live2claim()) {
+        if (isInvalid(slot, false)) {
+          timeoutLeft = timeout.getTimeLeft(deadline);
+        } else {
+          break;
+        }
+      } else {
+        disregardPile.addSlot(slot);
       }
-      break;
     }
     slot.incrementClaims();
     tlr.set(slot);
@@ -183,25 +169,7 @@ public class BlazePool<T extends Poolable>
   private boolean isInvalid(BSlot<T> slot, boolean isTlr) {
     Exception poison = slot.poison;
     if (poison != null) {
-      if (poison == SHUTDOWN_POISON) {
-        // The poison pill means the pool has been shut down. The pill was
-        // transitioned from live to claimed just prior to this check, so we
-        // must transition it back to live and put it back into the live-queue
-        // before throwing our exception.
-        // Because we always throw when we see it, it will never become a
-        // tlr-slot, and so we don't need to worry about transitioning from
-        // tlr-claimed to live.
-        slot.claim2live();
-        live.offer(poisonPill);
-        throw new IllegalStateException("Pool has been shut down");
-      } else {
-        kill(slot);
-        if (isTlr) {
-          return true;
-        } else {
-          throw new PoolException("Allocation failed", poison);
-        }
-      }
+      return dealWithSlotPoison(slot, isTlr, poison);
     }
     if (shutdown) {
       kill(slot);
@@ -223,6 +191,28 @@ public class BlazePool<T extends Poolable>
       }
     }
     return invalid;
+  }
+
+  private boolean dealWithSlotPoison(BSlot<T> slot, boolean isTlr, Exception poison) {
+    if (poison == SHUTDOWN_POISON) {
+      // The poison pill means the pool has been shut down. The pill was
+      // transitioned from live to claimed just prior to this check, so we
+      // must transition it back to live and put it back into the live-queue
+      // before throwing our exception.
+      // Because we always throw when we see it, it will never become a
+      // tlr-slot, and so we don't need to worry about transitioning from
+      // tlr-claimed to live.
+      slot.claim2live();
+      live.offer(poisonPill);
+      throw new IllegalStateException("Pool has been shut down");
+    } else {
+      kill(slot);
+      if (isTlr) {
+        return true;
+      } else {
+        throw new PoolException("Allocation failed", poison);
+      }
+    }
   }
 
   private void kill(BSlot<T> slot) {

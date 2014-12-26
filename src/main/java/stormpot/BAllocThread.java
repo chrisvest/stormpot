@@ -31,6 +31,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
 
   private final CountDownLatch completionLatch;
   private final BlockingQueue<BSlot<T>> live;
+  private final DisregardBPile<T> disregardPile;
   private final BlockingQueue<BSlot<T>> dead;
   private final Reallocator<T> allocator;
   private final BSlot<T> poisonPill;
@@ -52,13 +53,16 @@ final class BAllocThread<T extends Poolable> implements Runnable {
 
   public BAllocThread(
       BlockingQueue<BSlot<T>> live,
-      Config<T> config, BSlot<T> poisonPill) {
+      DisregardBPile<T> disregardPile,
+      Config<T> config,
+      BSlot<T> poisonPill) {
     this.targetSize = config.getSize();
     completionLatch = new CountDownLatch(1);
     this.allocator = config.getAdaptedReallocator();
     this.metricsRecorder = config.getMetricsRecorder();
     this.size = 0;
     this.live = live;
+    this.disregardPile = disregardPile;
     this.dead = QueueFactory.createUnboundedBlockingQueue();
     this.poisonPill = poisonPill;
     this.expiration = config.getExpiration();
@@ -195,7 +199,9 @@ final class BAllocThread<T extends Poolable> implements Runnable {
         slot = null;
       }
       if (slot == null) {
-        LockSupport.parkNanos(shutdownPauseNanos);
+        if (!disregardPile.refillQueue()) {
+          LockSupport.parkNanos(shutdownPauseNanos);
+        }
       } else {
         if (slot.isDead() || slot.live2dead()) {
           dealloc(slot);

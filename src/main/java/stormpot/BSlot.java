@@ -26,9 +26,9 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 final class BSlot<T extends Poolable>
     extends BSlotColdFields<T>
     implements Slot, SlotInfo<T> {
-  static final int LIVING = 1;
-  static final int CLAIMED = 2;
-  static final int TLR_CLAIMED = 3;
+  static final int CLAIMED = 1;
+  static final int TLR_CLAIMED = 2;
+  static final int LIVING = 3;
   static final int DEAD = 4;
 
   public BSlot(BlockingQueue<BSlot<T>> live) {
@@ -39,24 +39,14 @@ final class BSlot<T extends Poolable>
   }
   
   public void release(Poolable obj) {
-    int slotState;
-    do {
-      slotState = get();
-      // We loop here because TLR_CLAIMED slots can be concurrently changed
-      // into normal CLAIMED slots.
-    } while (!tryTransitionToLive(slotState));
+    int slotState = get();
+    if (slotState > TLR_CLAIMED) {
+      throw badStateOnTransitionToLive(slotState);
+    }
+    lazySet(LIVING);
     if (slotState == CLAIMED) {
       live.offer(this);
     }
-  }
-
-  private boolean tryTransitionToLive(int slotState) {
-    if (slotState == TLR_CLAIMED) {
-      return claimTlr2live();
-    } else if (slotState == CLAIMED) {
-      return claim2live();
-    }
-    throw badStateOnTransitionToLive(slotState);
   }
 
   private PoolException badStateOnTransitionToLive(int slotState) {
@@ -76,7 +66,8 @@ final class BSlot<T extends Poolable>
   }
 
   public boolean claimTlr2live() {
-    return compareAndSet(TLR_CLAIMED, LIVING);
+    lazySet(LIVING);
+    return true;
   }
   
   public boolean live2claim() {
@@ -85,10 +76,6 @@ final class BSlot<T extends Poolable>
   
   public boolean live2claimTlr() {
     return compareAndSet(LIVING, TLR_CLAIMED);
-  }
-  
-  public boolean claimTlr2claim() {
-    return compareAndSet(TLR_CLAIMED, CLAIMED);
   }
   
   public boolean claim2dead() {
@@ -126,7 +113,7 @@ final class BSlot<T extends Poolable>
   public boolean isLive() {
     return get() == LIVING;
   }
-  
+
   public int getState() {
     return get();
   }
