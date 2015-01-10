@@ -41,13 +41,7 @@ import java.util.concurrent.TimeUnit;
 // TODO 3.0 make class final
 public class BlazePool<T extends Poolable>
     implements LifecycledResizablePool<T>, ManagedPool {
-  private static final Exception SHUTDOWN_POISON = new Exception() {
-    private static final long serialVersionUID = 31137L;
-    @Override
-    public Throwable fillInStackTrace() {
-      return this;
-    }
-  };
+  private static final Exception SHUTDOWN_POISON = new Exception();
 
   private final BlockingQueue<BSlot<T>> live;
   private final BAllocThread<T> allocator;
@@ -167,30 +161,40 @@ public class BlazePool<T extends Poolable>
   }
 
   private boolean isInvalid(BSlot<T> slot, boolean isTlr) {
-    Exception poison = slot.poison;
-    if (poison != null) {
-      return dealWithSlotPoison(slot, isTlr, poison);
+    if (shutdown | slot.poison != null) {
+      return handleUncommonInvalidation(slot, isTlr);
     }
-    if (shutdown) {
-      kill(slot);
-      throw new IllegalStateException("Pool has been shut down");
-    }
+
     boolean invalid = true;
-    RuntimeException exception = null;
+    Throwable exception = null;
     try {
       invalid = deallocRule.hasExpired(slot);
     } catch (Throwable ex) {
-      exception = new PoolException(
-          "Got exception when checking whether an object had expired", ex);
+      exception = ex;
     }
     if (invalid) {
       // it's invalid - into the dead queue with it and continue looping
-      kill(slot);
-      if (exception != null) {
-        throw exception;
-      }
+      handleCommonInvalidation(slot, exception);
     }
     return invalid;
+  }
+
+  private void handleCommonInvalidation(BSlot<T> slot, Throwable exception) {
+    kill(slot);
+    if (exception != null) {
+      String msg = "Got exception when checking whether an object had expired";
+      throw new PoolException(msg, exception);
+    }
+  }
+
+  private boolean handleUncommonInvalidation(BSlot<T> slot, boolean isTlr) {
+    Exception poison = slot.poison;
+    if (poison != null) {
+      return dealWithSlotPoison(slot, isTlr, poison);
+    } else {
+      kill(slot);
+      throw new IllegalStateException("Pool has been shut down");
+    }
   }
 
   private boolean dealWithSlotPoison(BSlot<T> slot, boolean isTlr, Exception poison) {
@@ -222,16 +226,13 @@ public class BlazePool<T extends Poolable>
     // claimed, that is, pulled off the live-queue, can it be put into the
     // dead-queue. This helps ensure that a slot will only ever be in at most
     // one queue.
-    for (;;) {
-      int state = slot.getState();
-      if (state == BSlot.CLAIMED && slot.claim2dead()) {
-        allocator.offerDeadSlot(slot);
-        return;
-      }
-      if (state == BSlot.TLR_CLAIMED && slot.claimTlr2live()) {
-        tlr.set(null);
-        return;
-      }
+
+    if (slot.getState() == BSlot.CLAIMED) {
+      slot.claim2dead();
+      allocator.offerDeadSlot(slot);
+    } else {
+      slot.claimTlr2live();
+      tlr.set(null);
     }
   }
 

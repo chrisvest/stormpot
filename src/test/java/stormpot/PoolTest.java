@@ -178,7 +178,7 @@ public class PoolTest {
   claimMustReturnNullIfTimeoutElapses(PoolFixture fixture)
       throws Exception {
     createPool(fixture);
-    GenericPoolable a = pool.claim(longTimeout);// pool is now depleted
+    GenericPoolable a = pool.claim(longTimeout); // pool is now depleted
     Poolable b = pool.claim(shortTimeout);
     try {
       assertThat(b, is(nullValue()));

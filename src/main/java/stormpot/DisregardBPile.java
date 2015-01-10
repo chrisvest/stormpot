@@ -19,7 +19,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressWarnings("unchecked")
-class DisregardBPile<T extends Poolable>
+final class DisregardBPile<T extends Poolable>
     extends AtomicReference<DisregardedBSlot<T>> {
   private static final DisregardedBSlot<Poolable> STACK_END =
       new DisregardedBSlot<Poolable>(null);

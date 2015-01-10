@@ -39,14 +39,19 @@ final class BSlot<T extends Poolable>
   }
   
   public void release(Poolable obj) {
-    int slotState = get();
-    if (slotState > TLR_CLAIMED) {
-      throw badStateOnTransitionToLive(slotState);
-    }
+    int slotState = getClaimState();
     lazySet(LIVING);
     if (slotState == CLAIMED) {
       live.offer(this);
     }
+  }
+
+  private int getClaimState() {
+    int slotState = get();
+    if (slotState > TLR_CLAIMED) {
+      throw badStateOnTransitionToLive(slotState);
+    }
+    return slotState;
   }
 
   private PoolException badStateOnTransitionToLive(int slotState) {
@@ -60,31 +65,28 @@ final class BSlot<T extends Poolable>
         "You most likely called release() twice on the same object.");
   }
 
-  public boolean claim2live() {
+  public void claim2live() {
     lazySet(LIVING);
-    return true;
   }
 
-  public boolean claimTlr2live() {
+  public void claimTlr2live() {
     lazySet(LIVING);
-    return true;
   }
-  
+
+  public void dead2live() {
+    lazySet(LIVING);
+  }
+
+  public void claim2dead() {
+    lazySet(DEAD);
+  }
+
   public boolean live2claim() {
     return compareAndSet(LIVING, CLAIMED);
   }
   
   public boolean live2claimTlr() {
     return compareAndSet(LIVING, TLR_CLAIMED);
-  }
-  
-  public boolean claim2dead() {
-    return compareAndSet(CLAIMED, DEAD);
-  }
-
-  // Never fails
-  public void dead2live() {
-    lazySet(LIVING);
   }
   
   public boolean live2dead() {
