@@ -161,30 +161,19 @@ public class BlazePool<T extends Poolable>
   }
 
   private boolean isInvalid(BSlot<T> slot, boolean isTlr) {
-    if (shutdown | slot.poison != null) {
+    if (isUncommonlyInvalid(slot)) {
       return handleUncommonInvalidation(slot, isTlr);
     }
 
-    boolean invalid = true;
-    Throwable exception = null;
     try {
-      invalid = deallocRule.hasExpired(slot);
+      return deallocRule.hasExpired(slot) && handleCommonInvalidation(slot, null);
     } catch (Throwable ex) {
-      exception = ex;
+      return handleCommonInvalidation(slot, ex);
     }
-    if (invalid) {
-      // it's invalid - into the dead queue with it and continue looping
-      handleCommonInvalidation(slot, exception);
-    }
-    return invalid;
   }
 
-  private void handleCommonInvalidation(BSlot<T> slot, Throwable exception) {
-    kill(slot);
-    if (exception != null) {
-      String msg = "Got exception when checking whether an object had expired";
-      throw new PoolException(msg, exception);
-    }
+  private boolean isUncommonlyInvalid(BSlot<T> slot) {
+    return shutdown | slot.poison != null;
   }
 
   private boolean handleUncommonInvalidation(BSlot<T> slot, boolean isTlr) {
@@ -195,6 +184,15 @@ public class BlazePool<T extends Poolable>
       kill(slot);
       throw new IllegalStateException("Pool has been shut down");
     }
+  }
+
+  private boolean handleCommonInvalidation(BSlot<T> slot, Throwable exception) {
+    kill(slot);
+    if (exception != null) {
+      String msg = "Got exception when checking whether an object had expired";
+      throw new PoolException(msg, exception);
+    }
+    return true;
   }
 
   private boolean dealWithSlotPoison(BSlot<T> slot, boolean isTlr, Exception poison) {
