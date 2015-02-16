@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
  * to which is made faster with clever use of ThreadLocals.
  *
  * Object allocation always happens in a dedicated thread, off-loading the
- * cost of allocating the pooled objects. This should lead to reduced deviation
+ * cost of allocating the pooled objects. This leads to reduced deviation
  * in the times it takes claim method to complete, provided the pool is not
  * depleted.
  *
@@ -166,7 +166,8 @@ public class BlazePool<T extends Poolable>
     }
 
     try {
-      return deallocRule.hasExpired(slot) && handleCommonInvalidation(slot, null);
+      return deallocRule.hasExpired(slot)
+          && handleCommonInvalidation(slot, null);
     } catch (Throwable ex) {
       return handleCommonInvalidation(slot, ex);
     }
