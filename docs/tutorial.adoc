@@ -212,10 +212,12 @@ This is the only way to tell whether or not the shut down process has completed.
 
 All blocking operations in the Stormpot API take `Timeout` objects as arguments.
 While timeout objects can represent very long timeouts, they cannot extend for an eternity.
-This, at least in principle, prevents the blocking methods from waiting for forever. Stormpot only has two blocking methods: the `claim` method on the `Pool` interface, and the `await` method on the `Completion` interface mentioned in the previous section.
+This, at least in principle, prevents the blocking methods from waiting for forever.
+Stormpot only has two blocking methods: the `claim` method on the `Pool` interface, and the `await` method on the `Completion` interface mentioned in the previous section.
 
 `Timeout` objects are immutable value objects, so they are fine to keep in `static final` fields and shared among multiple threads.
 They also have unit independent equality semantics, so a timeout of 1 second is equal to a timeout of 1000 milliseconds.
+Timeouts are also independent of variable calendar time, meaning that they don't grow or shrink with passing leap seconds or daylight savings time adjustments.
 
 The `Timeout` objects have a number of methods that expose the mechanics of how Stormpot uses the timeout objects, but you need not concern yourself with that, unless you want to use it in your own implementations of timeouting blocking operations.
 

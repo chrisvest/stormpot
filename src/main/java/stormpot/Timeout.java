@@ -24,6 +24,12 @@ import java.util.concurrent.TimeUnit;
  * Timeouts are independent of their units, so two timeouts of equivalent
  * duration but constructed in different units, will be equal to each other and
  * work exactly the same.
+ *
+ * Timeouts are also independent of "calendar time" in the sense that they
+ * represent and work as a duration of absolute time. In other words, timeouts
+ * do not grow or shrink with passing leap seconds or daylight savings time
+ * adjustments.
+ *
  * @author Chris Vest <mr.chrisvest@gmail.com>
  */
 // TODO 3.0 make class final
