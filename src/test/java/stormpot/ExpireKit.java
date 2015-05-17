@@ -93,6 +93,15 @@ public class ExpireKit {
     }
   };
 
+  public static final Expire $explicitExpire = new Expire() {
+    @Override
+    public boolean hasExpired(SlotInfo<? extends Poolable> info) throws Exception {
+      GenericPoolable poolable = (GenericPoolable) info.getPoolable();
+      poolable.expire();
+      return false;
+    }
+  };
+
   public static Expire $if(
       final AtomicBoolean cond,
       final Expire then,

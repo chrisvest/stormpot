@@ -49,7 +49,7 @@ public class ReallocatingAdaptorTest {
 
   @Test public void
   allocateMustDelegate() throws Exception {
-    GenericPoolable obj = reallocator.allocate(new GenericSlot());
+    GenericPoolable obj = reallocator.allocate(new NullSlot());
     assertThat(allocator.getAllocations(), is(asList(obj)));
     assertThat(allocator.countAllocations(), is(1));
     assertThat(allocator.countDeallocations(), is(0));
@@ -57,7 +57,7 @@ public class ReallocatingAdaptorTest {
 
   @Test public void
   deallocateMustDelegate() throws Exception {
-    GenericPoolable obj = reallocator.allocate(new GenericSlot());
+    GenericPoolable obj = reallocator.allocate(new NullSlot());
     reallocator.deallocate(obj);
     assertThat(allocator.getDeallocations(), is(asList(obj)));
     assertThat(allocator.countAllocations(), is(1));
@@ -66,7 +66,7 @@ public class ReallocatingAdaptorTest {
 
   @Test public void
   reallocateMustDelegate() throws Exception {
-    Slot slot = new GenericSlot();
+    Slot slot = new NullSlot();
     GenericPoolable obj1 = reallocator.allocate(slot);
     GenericPoolable obj2 = reallocator.reallocate(slot, obj1);
     assertThat(allocator.getAllocations(), is(asList(obj1, obj2)));
@@ -80,7 +80,7 @@ public class ReallocatingAdaptorTest {
     allocator = allocator(
         dealloc($throw(new AssertionError("Should have caught this"))));
     reallocator = new ReallocatingAdaptor<GenericPoolable>(allocator);
-    Slot slot = new GenericSlot();
+    Slot slot = new NullSlot();
     GenericPoolable obj = reallocator.allocate(slot);
     reallocator.reallocate(slot, obj);
   }

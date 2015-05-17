@@ -53,7 +53,7 @@ public class QueuePool<T extends Poolable>
   /**
    * Special slot used to signal that the pool has been shut down.
    */
-  final QSlot<T> poisonPill = new QSlot<T>(null);
+  final QSlot<T> poisonPill = new QSlot<T>(null, null);
 
   /**
    * Construct a new QueuePool instance based on the given {@link Config}.
@@ -93,12 +93,14 @@ public class QueuePool<T extends Poolable>
   private boolean isInvalid(QSlot<T> slot) {
     boolean invalid = true;
     RuntimeException exception = null;
+    boolean expired = slot.expired;
     try {
       invalid = expiration.hasExpired(slot);
     } catch (Throwable ex) {
       exception = new PoolException(
           "Got exception when checking whether an object had expired", ex);
     }
+    invalid |= expired;
     if (invalid) {
       // it's invalid - into the dead queue with it and continue looping
       dead.offer(slot);

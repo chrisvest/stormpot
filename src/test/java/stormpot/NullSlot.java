@@ -19,4 +19,8 @@ public class NullSlot implements Slot {
   @Override
   public void release(Poolable obj) {
   }
+
+  @Override
+  public void expire(Poolable obj) {
+  }
 }

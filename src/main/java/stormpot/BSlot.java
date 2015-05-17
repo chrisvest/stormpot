@@ -16,6 +16,7 @@
 package stormpot;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
 /**
@@ -24,18 +25,17 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
  * False-sharing is a fickle and vengeful mistress.
  */
 final class BSlot<T extends Poolable>
-    extends BSlotColdFields<T>
-    implements Slot, SlotInfo<T> {
+    extends BSlotColdFields<T> {
   static final int CLAIMED = 1;
   static final int TLR_CLAIMED = 2;
   static final int LIVING = 3;
   static final int DEAD = 4;
 
-  public BSlot(BlockingQueue<BSlot<T>> live) {
+  public BSlot(BlockingQueue<BSlot<T>> live, AtomicInteger poisonedSlots) {
     // Volatile write in the constructor: This object must be safely published,
     // so that we are sure that the volatile write happens-before other
     // threads observe the pointer to this object.
-    super(DEAD, live);
+    super(DEAD, live, poisonedSlots);
   }
   
   public void release(Poolable obj) {
@@ -230,24 +230,29 @@ abstract class PaddedAtomicInteger extends Padding1 {
 }
 
 abstract class Padding2 extends PaddedAtomicInteger {
-  private long p1, p2, p3, p4, p5, p6, p7;
+  private long p1, p2, p3, p4, p5, p6;
 
   public Padding2(int state) {
     super(state);
   }
 }
 
-abstract class BSlotColdFields<T extends Poolable> extends Padding2 implements SlotInfo<T> {
+abstract class BSlotColdFields<T extends Poolable> extends Padding2 implements Slot, SlotInfo<T> {
   final BlockingQueue<BSlot<T>> live;
+  final AtomicInteger poisonedSlots;
   long stamp;
   long created;
   T obj;
   Exception poison;
   long claims;
 
-  public BSlotColdFields(int state, BlockingQueue<BSlot<T>> live) {
+  public BSlotColdFields(
+      int state,
+      BlockingQueue<BSlot<T>> live,
+      AtomicInteger poisonedSlots) {
     super(state);
     this.live = live;
+    this.poisonedSlots = poisonedSlots;
   }
 
   // XorShift PRNG with a 2^128-1 period.
@@ -262,5 +267,13 @@ abstract class BSlotColdFields<T extends Poolable> extends Padding2 implements S
     //noinspection SuspiciousNameCombination
     x = y; y = z; z = w;
     return w = (w^(w>>>21))^(t^(t>>>4));
+  }
+
+  @Override
+  public void expire(Poolable obj) {
+    if (poison != BlazePool.EXPLICIT_EXPIRE_POISON) {
+      poison = BlazePool.EXPLICIT_EXPIRE_POISON;
+      poisonedSlots.getAndIncrement();
+    }
   }
 }

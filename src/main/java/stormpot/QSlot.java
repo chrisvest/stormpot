@@ -17,18 +17,22 @@ package stormpot;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 final class QSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   final BlockingQueue<QSlot<T>> live;
+  final AtomicInteger poisonedSlots;
   final AtomicBoolean claimed;
   T obj;
   Exception poison;
   long created;
   long claims;
   long stamp;
+  boolean expired;
 
-  public QSlot(BlockingQueue<QSlot<T>> live) {
+  public QSlot(BlockingQueue<QSlot<T>> live, AtomicInteger poisonedSlots) {
     this.live = live;
+    this.poisonedSlots = poisonedSlots;
     this.claimed = new AtomicBoolean(true);
   }
   
@@ -39,8 +43,16 @@ final class QSlot<T extends Poolable> implements Slot, SlotInfo<T> {
 
   public void release(Poolable obj) {
     if (claimed.compareAndSet(true, false)) {
+      if (expired) {
+        poisonedSlots.getAndIncrement();
+      }
       live.offer(this);
     }
+  }
+
+  @Override
+  public void expire(Poolable obj) {
+    expired = true;
   }
 
   @Override

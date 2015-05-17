@@ -42,9 +42,12 @@ import java.util.concurrent.TimeUnit;
 public class BlazePool<T extends Poolable>
     implements LifecycledResizablePool<T>, ManagedPool {
   private static final Exception SHUTDOWN_POISON = new Exception();
+  static final Exception EXPLICIT_EXPIRE_POISON = new Exception();
 
   private final BlockingQueue<BSlot<T>> live;
+  private final DisregardBPile<T> disregardPile;
   private final BAllocThread<T> allocator;
+  private final ThreadLocal<BSlot<T>> tlr;
   private final Thread allocatorThread;
   private final Expiration<? super T> deallocRule;
   private final MetricsRecorder metricsRecorder;
@@ -54,10 +57,7 @@ public class BlazePool<T extends Poolable>
    */
   private final BSlot<T> poisonPill;
 
-  private final ThreadLocal<BSlot<T>> tlr;
-  private volatile boolean shutdown = false;
-
-  private final DisregardBPile<T> disregardPile;
+  private volatile boolean shutdown;
 
   /**
    * Construct a new BlazePool instance based on the given {@link Config}.
@@ -67,7 +67,7 @@ public class BlazePool<T extends Poolable>
     live = QueueFactory.createUnboundedBlockingQueue();
     disregardPile = new DisregardBPile<T>(live);
     tlr = new ThreadLocal<BSlot<T>>();
-    poisonPill = new BSlot<T>(live);
+    poisonPill = new BSlot<T>(live, null);
     poisonPill.poison = SHUTDOWN_POISON;
 
     synchronized (config) {
@@ -210,7 +210,7 @@ public class BlazePool<T extends Poolable>
       throw new IllegalStateException("Pool has been shut down");
     } else {
       kill(slot);
-      if (isTlr) {
+      if (isTlr || poison == EXPLICIT_EXPIRE_POISON) {
         return true;
       } else {
         throw new PoolException("Allocation failed", poison);

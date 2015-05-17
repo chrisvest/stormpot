@@ -21,6 +21,17 @@ package stormpot;
  * Poolables as a call-back, to tell the pool when an object is released.
  *
  * The individual pool implementations provide their own Slot implementations.
+ *
+ * Slots contain mutable state within them. If objects are claimed, released
+ * and otherwise worked on from different threads, then the hand-over must
+ * happen through a safe publication mechanism.
+ *
+ * See Java Concurrency in Practice by Brian Goetz for more information on safe
+ * publication.
+ *
+ * Slots also expects single-threaded access, so they cannot be used
+ * concurrently by multiple threads. Only one thread at a time can use a Slot
+ * instance.
  * 
  * @author Chris Vest <mr.chrisvest@gmail.com>
  * @see Poolable
@@ -51,4 +62,39 @@ public interface Slot {
    * slot, and is being released.
    */
   void release(Poolable obj);
+
+  /**
+   * Mark the object represented by this slot as expired. Expired objects
+   * cannot be claimed again, and will be deallocated by the pool at the
+   * earliest convenience. Objects are normally expired automatically using
+   * the {@link Expiration} policy that the pool has been configured with. If
+   * an object through its use is found to be unusable, then it can be
+   * explicitly expired using this method. Objects can only be explicitly
+   * expired while they are claimed, and such expired objects will not be
+   * deallocated until they are released back to the pool.
+   *
+   * It is a user error to expire objects that are not currently claimed. It is
+   * likewise a user error to expire a Slot while inside the Allocators
+   * {@link Allocator#allocate(Slot) allocate} method.
+   *
+   * The expiration only takes effect after the object has been released, so
+   * calling this method from within the Expirations
+   * {@link Expiration#hasExpired(SlotInfo) hasExpired} method will not prevent
+   * the object from being claimed, but will prevent it from being claimed
+   * again after it's been released back to the pool. An Expiration policy that
+   * expires all objects with this method, is effectively allowed objects to
+   * only be claimed once.
+   *
+   * Pools are free to throw a PoolException if they detect any wrong uses,
+   * but it is not guaranteed and the exact behaviour is not specified.
+   * "Unspecified behaviour" means that dead-locks and infinite loops are fair
+   * responses as well. Therefore, heed the advice and don't misuse expire!
+   *
+   * Pools must, however, guarantee that an object is never
+   * {@link Allocator#deallocate(Poolable) deallocated} more than once.
+   * This guarantee must hold even if expire is misused.
+   * @param obj A reference to the Poolable object that is allocated for this
+   * slot, and is being expired.
+   */
+  void expire(Poolable obj);
 }

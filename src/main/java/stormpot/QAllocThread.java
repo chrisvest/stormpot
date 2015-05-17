@@ -18,6 +18,7 @@ package stormpot;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
 final class QAllocThread<T extends Poolable> implements Runnable {
@@ -38,6 +39,7 @@ final class QAllocThread<T extends Poolable> implements Runnable {
   private final boolean backgroundExpirationEnabled;
   private final Expiration<? super T> expiration;
   private final PreciseLeakDetector leakDetector;
+  private final AtomicInteger poisonedSlots;
 
   // Single reader: this. Many writers.
   private volatile int targetSize;
@@ -48,7 +50,6 @@ final class QAllocThread<T extends Poolable> implements Runnable {
   private volatile long failedAllocationCount;
 
   private int size;
-  private int poisonedSlots;
 
   public QAllocThread(
       BlockingQueue<QSlot<T>> live,
@@ -67,6 +68,7 @@ final class QAllocThread<T extends Poolable> implements Runnable {
     this.expiration = config.getExpiration();
     this.leakDetector = config.isPreciseLeakDetectionEnabled() ?
         new PreciseLeakDetector() : null;
+    this.poisonedSlots = new AtomicInteger();
   }
 
   @Override
@@ -80,10 +82,10 @@ final class QAllocThread<T extends Poolable> implements Runnable {
     try {
       //noinspection InfiniteLoopStatement
       for (;;) {
-        boolean weHaveWorkToDo = size != targetSize || poisonedSlots > 0;
+        boolean weHaveWorkToDo = size != targetSize || poisonedSlots.get() > 0;
         long deadPollTimeout = weHaveWorkToDo? 0 : 50;
         if (size < targetSize) {
-          QSlot<T> slot = new QSlot<T>(live);
+          QSlot<T> slot = new QSlot<T>(live, poisonedSlots);
           alloc(slot);
           registerWithLeakDetector(slot);
         }
@@ -102,11 +104,11 @@ final class QAllocThread<T extends Poolable> implements Runnable {
           break;
         }
 
-        if (poisonedSlots > 0) {
+        if (poisonedSlots.get() > 0) {
           // Proactively seek out and try to heal poisoned slots
           slot = live.poll();
           if (slot != null) {
-            if (slot.poison == null) {
+            if (slot.poison == null && !slot.expired) {
               live.offer(slot);
             } else {
               realloc(slot);
@@ -116,7 +118,7 @@ final class QAllocThread<T extends Poolable> implements Runnable {
           slot = live.poll();
           try {
             if (slot != null) {
-              if (expiration.hasExpired(slot)) {
+              if (slot.expired || expiration.hasExpired(slot)) {
                 dead.offer(slot);
               } else {
                 live.offer(slot);
@@ -171,14 +173,14 @@ final class QAllocThread<T extends Poolable> implements Runnable {
     try {
       slot.obj = allocator.allocate(slot);
       if (slot.obj == null) {
-        poisonedSlots++;
+        poisonedSlots.getAndIncrement();
         failedAllocationCount++;
         slot.poison = new NullPointerException("Allocation returned null");
       } else {
         allocationCount++;
       }
     } catch (Exception e) {
-      poisonedSlots++;
+      poisonedSlots.getAndIncrement();
       failedAllocationCount++;
       slot.poison = e;
     }
@@ -186,6 +188,7 @@ final class QAllocThread<T extends Poolable> implements Runnable {
     slot.created = System.currentTimeMillis();
     slot.claims = 0;
     slot.stamp = 0;
+    slot.expired = false;
     slot.claimed.set(true);
     slot.release(slot.obj);
   }
@@ -197,7 +200,7 @@ final class QAllocThread<T extends Poolable> implements Runnable {
         recordObjectLifetimeSample(System.currentTimeMillis() - slot.created);
         allocator.deallocate(slot.obj);
       } else {
-        poisonedSlots--;
+        poisonedSlots.getAndDecrement();
       }
     } catch (Exception ignore) { // NOPMD
       // Ignored as per specification
@@ -211,14 +214,14 @@ final class QAllocThread<T extends Poolable> implements Runnable {
       try {
         slot.obj = allocator.reallocate(slot, slot.obj);
         if (slot.obj == null) {
-          poisonedSlots++;
+          poisonedSlots.getAndIncrement();
           failedAllocationCount++;
           slot.poison = new NullPointerException("Reallocation returned null");
         } else {
           allocationCount++;
         }
       } catch (Exception e) {
-        poisonedSlots++;
+        poisonedSlots.getAndIncrement();
         failedAllocationCount++;
         slot.poison = e;
       }
@@ -227,6 +230,7 @@ final class QAllocThread<T extends Poolable> implements Runnable {
       slot.created = now;
       slot.claims = 0;
       slot.stamp = 0;
+      slot.expired = false;
       live.offer(slot);
     } else {
       dealloc(slot);

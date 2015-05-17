@@ -2768,6 +2768,121 @@ public class PoolTest {
     obj.release();
   }
 
+  @Test(timeout = 6010)
+  @Theory public void
+  mustDeallocateExplicitlyExpiredObjects(
+      PoolFixture fixture) throws Exception {
+    int poolSize = 2;
+    config.setSize(poolSize);
+    createPool(fixture);
+
+    // Explicitly expire a pool size worth of objects
+    for (int i = 0; i < poolSize; i++) {
+      GenericPoolable obj = pool.claim(longTimeout);
+      obj.expire();
+      obj.release();
+    }
+
+    // Grab and release a pool size worth objects as a barrier for reallocating
+    // the expired objects
+    List<GenericPoolable> objs = new ArrayList<GenericPoolable>();
+    for (int i = 0; i < poolSize; i++) {
+      objs.add(pool.claim(longTimeout));
+    }
+    for (GenericPoolable obj : objs) {
+      obj.release();
+    }
+
+    // Now we should see a pool size worth of reallocations
+    assertThat("allocations", allocator.countAllocations(), is(2 * poolSize));
+    assertThat("deallocations", allocator.countDeallocations(), is(poolSize));
+  }
+
+  @Test(timeout = 6010)
+  @Theory public void
+  mustReallocateExplicitlyExpiredObjectsInBackgroundWithBackgroundExpiration(
+      PoolFixture fixture) throws Exception {
+    CountDownLatch latch = new CountDownLatch(2);
+    allocator = allocator(alloc($countDown(latch, $new)));
+    config.setAllocator(allocator).setSize(1).setBackgroundExpirationEnabled(true);
+    createPool(fixture);
+
+    GenericPoolable obj = pool.claim(longTimeout);
+    obj.expire();
+    obj.release();
+
+    latch.await();
+  }
+
+  @Test(timeout = 6010)
+  @Theory public void
+  mustReallocateExplicitlyExpiredObjectsInBackgroundWithoutBackgroundExpiration(
+      PoolFixture fixture) throws Exception {
+    CountDownLatch latch = new CountDownLatch(2);
+    allocator = allocator(alloc($countDown(latch, $new)));
+    config.setAllocator(allocator).setSize(1).setBackgroundExpirationEnabled(false);
+    createPool(fixture);
+
+    GenericPoolable obj = pool.claim(longTimeout);
+    obj.expire();
+    obj.release();
+
+    latch.await();
+  }
+
+  @Test(timeout = 6010)
+  @Theory public void
+  mustReplaceExplicitlyExpiredObjectsEvenIfDeallocationFails(PoolFixture fixture)
+    throws Exception {
+    allocator = allocator(dealloc($throw(new Exception("Boom!"))));
+    config.setAllocator(allocator).setSize(1);
+    createPool(fixture);
+
+    GenericPoolable a = pool.claim(longTimeout);
+    a.expire();
+    a.release();
+
+    GenericPoolable b = pool.claim(longTimeout);
+    b.release();
+
+    assertThat(a, not(sameInstance(b)));
+  }
+
+  @Test(timeout = 6010)
+  @Theory public void
+  explicitExpiryFromExpirationMustAllowOneClaimPerObject(PoolFixture fixture)
+    throws Exception {
+    config.setExpiration(expire($explicitExpire));
+    createPool(fixture);
+
+    GenericPoolable a = pool.claim(longTimeout);
+    a.release();
+
+    GenericPoolable b = pool.claim(longTimeout);
+    b.release();
+
+    assertThat(a, not(sameInstance(b)));
+  }
+
+  @Test(timeout = 6010)
+  @Theory public void
+  explicitlyExpiryMustBeIdempotent(PoolFixture fixture) throws Exception {
+    createPool(fixture);
+
+    GenericPoolable a = pool.claim(longTimeout);
+    a.expire();
+    a.expire();
+    a.expire();
+    a.release();
+
+    GenericPoolable b = pool.claim(longTimeout);
+    b.release();
+
+    assertThat(a, not(sameInstance(b)));
+    assertThat(allocator.countAllocations(), is(2));
+    assertThat(allocator.countDeallocations(), is(1));
+  }
+
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the javadocs and docs pages.
 }

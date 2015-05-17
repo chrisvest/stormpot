@@ -171,12 +171,17 @@ These three situations are particular to how Stormpot works.
 
 ==== Object Expiration
 
-Whether or not an object has expired is decided by the configured `Expiration` strategy on every call to the claim method, for each candidate that is checked.
-The `hasExpired` method of the configured expiration is therefor very performance critical, as it may be called more than once for every call to the claim method.
+Whether or not an object has expired is decided by the configured `Expiration` strategy on every call to the `claim` method.
+If the `claim` method finds an object that has expired, then it is sent off to be deallocated, and another candidate object is tried.
+The `hasExpired` method of the configured expiration is therefor very performance critical, as it may be called more than once for every call to the `claim` method.
 
 You can implement and configure your own `Expiration` implementation if you want, but Stormpot also comes with a couple of implementations of its own.
 The default expiration implementation is a `TimeSpreadExpiration` that is configured to expire objects after they have been live for somewhere between 8 to 10 minutes.
 This implementation chooses the expiration age randomly on a per object bases, and thereby avoids expiring all objects at the same time.
+
+If something out of the ordinary happens, and an object expires while it is claimed (depending on what "expired" means for your use case), then the object can be explicitly expired with the `expire` method on the `Slot`.
+The `expire` method must be called while the object is still claimed, and the expiration will not take effect until the object is released.
+Once released, the explicitly expired object cannot be claimed again, and it will be deallocated.
 
 ==== Pool Resizing
 

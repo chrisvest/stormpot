@@ -27,4 +27,8 @@ public class GenericPoolable implements Poolable {
     lastReleaseBy = Thread.currentThread();
     slot.release(this);
   }
+
+  public void expire() {
+    slot.expire(this);
+  }
 }

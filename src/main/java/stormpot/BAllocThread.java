@@ -18,6 +18,7 @@ package stormpot;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
 final class BAllocThread<T extends Poolable> implements Runnable {
@@ -29,16 +30,17 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   private final static long shutdownPauseNanos =
       TimeUnit.MILLISECONDS.toNanos(10);
 
-  private final CountDownLatch completionLatch;
   private final BlockingQueue<BSlot<T>> live;
   private final DisregardBPile<T> disregardPile;
-  private final BlockingQueue<BSlot<T>> dead;
   private final Reallocator<T> allocator;
   private final BSlot<T> poisonPill;
   private final MetricsRecorder metricsRecorder;
   private final Expiration<? super T> expiration;
   private final boolean backgroundExpirationEnabled;
   private final PreciseLeakDetector leakDetector;
+  private final CountDownLatch completionLatch;
+  private final BlockingQueue<BSlot<T>> dead;
+  private final AtomicInteger poisonedSlots;
 
   // Single reader: this. Many writers.
   private volatile int targetSize;
@@ -49,26 +51,26 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   private volatile long failedAllocationCount;
 
   private int size;
-  private int poisonedSlots;
 
   public BAllocThread(
       BlockingQueue<BSlot<T>> live,
       DisregardBPile<T> disregardPile,
       Config<T> config,
       BSlot<T> poisonPill) {
-    this.targetSize = config.getSize();
-    completionLatch = new CountDownLatch(1);
-    this.allocator = config.getAdaptedReallocator();
-    this.metricsRecorder = config.getMetricsRecorder();
-    this.size = 0;
     this.live = live;
     this.disregardPile = disregardPile;
-    this.dead = QueueFactory.createUnboundedBlockingQueue();
+    this.allocator = config.getAdaptedReallocator();
+    this.targetSize = config.getSize();
+    this.metricsRecorder = config.getMetricsRecorder();
     this.poisonPill = poisonPill;
     this.expiration = config.getExpiration();
     this.backgroundExpirationEnabled = config.isBackgroundExpirationEnabled();
     this.leakDetector = config.isPreciseLeakDetectionEnabled() ?
         new PreciseLeakDetector() : null;
+    this.completionLatch = new CountDownLatch(1);
+    this.dead = QueueFactory.createUnboundedBlockingQueue();
+    this.poisonedSlots = new AtomicInteger();
+    this.size = 0;
   }
 
   @Override
@@ -94,7 +96,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   }
 
   private void replenishPool() throws InterruptedException {
-    boolean weHaveWorkToDo = size != targetSize || poisonedSlots > 0;
+    boolean weHaveWorkToDo = size != targetSize || poisonedSlots.get() > 0;
     long deadPollTimeout = weHaveWorkToDo? 0 : 50;
     if (size < targetSize) {
       increaseSizeByAllocating();
@@ -112,7 +114,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
       return;
     }
 
-    if (poisonedSlots > 0) {
+    if (poisonedSlots.get() > 0) {
       // Proactively seek out and try to heal poisoned slots
       proactivelyHealPoison();
     } else if (backgroundExpirationEnabled && !weHaveWorkToDo) {
@@ -121,7 +123,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   }
 
   private void increaseSizeByAllocating() {
-    BSlot<T> slot = new BSlot<T>(live);
+    BSlot<T> slot = new BSlot<T>(live, poisonedSlots);
     alloc(slot);
     registerWithLeakDetector(slot);
   }
@@ -171,7 +173,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
       if (slot.isLive() && slot.live2claim()) {
         boolean expired;
         try {
-          expired = expiration.hasExpired(slot);
+          expired = slot.poison != null || expiration.hasExpired(slot);
         } catch (Exception ignore) {
           expired = true;
         }
@@ -217,14 +219,14 @@ final class BAllocThread<T extends Poolable> implements Runnable {
     try {
       slot.obj = allocator.allocate(slot);
       if (slot.obj == null) {
-        poisonedSlots++;
+        poisonedSlots.getAndIncrement();
         failedAllocationCount++;
         slot.poison = new NullPointerException("Allocation returned null");
       } else {
         allocationCount++;
       }
     } catch (Exception e) {
-      poisonedSlots++;
+      poisonedSlots.getAndIncrement();
       failedAllocationCount++;
       slot.poison = e;
     }
@@ -248,7 +250,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
         recordObjectLifetimeSample(now - slot.created);
         allocator.deallocate(slot.obj);
       } else {
-        poisonedSlots--;
+        poisonedSlots.getAndDecrement();
       }
     } catch (Exception ignore) { // NOPMD
       // Ignored as per specification
@@ -258,18 +260,21 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   }
 
   private void realloc(BSlot<T> slot) {
+    if (slot.poison == BlazePool.EXPLICIT_EXPIRE_POISON) {
+      slot.poison = null;
+    }
     if (slot.poison == null) {
       try {
         slot.obj = allocator.reallocate(slot, slot.obj);
         if (slot.obj == null) {
-          poisonedSlots++;
+          poisonedSlots.getAndIncrement();
           failedAllocationCount++;
           slot.poison = new NullPointerException("Reallocation returned null");
         } else {
           allocationCount++;
         }
       } catch (Exception e) {
-        poisonedSlots++;
+        poisonedSlots.getAndIncrement();
         failedAllocationCount++;
         slot.poison = e;
       }
