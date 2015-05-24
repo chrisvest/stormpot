@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
  * @author Chris Vest <mr.chrisvest@gmail.com>
  */
 // TODO 3.0 make class final
-public class TimeExpiration implements Expiration<Poolable> {
+public class TimeExpiration<T extends Poolable> implements Expiration<T> {
 
   private final long maxPermittedAgeMillis;
   private final TimeUnit unit;
@@ -59,7 +59,7 @@ public class TimeExpiration implements Expiration<Poolable> {
    * TimeExpiration.
    */
   @Override
-  public boolean hasExpired(SlotInfo<? extends Poolable> info) {
+  public boolean hasExpired(SlotInfo<? extends T> info) {
     return info.getAgeMillis() > maxPermittedAgeMillis;
   }
 
