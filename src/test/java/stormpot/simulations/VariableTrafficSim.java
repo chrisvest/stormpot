@@ -28,7 +28,7 @@ public class VariableTrafficSim extends Sim {
   private volatile long startTime;
 
   @Conf(Param.expiration)
-  public TimeExpiration expiration = new TimeExpiration(6, TimeUnit.SECONDS);
+  public TimeExpiration<Poolable> expiration = new TimeExpiration<Poolable>(6, TimeUnit.SECONDS);
 
   @Conf(Param.backgroundExpirationEnabled)
   public boolean[] backgroundExpiration = {true, false};

@@ -27,7 +27,7 @@ import static org.junit.Assert.assertTrue;
 public class TimeExpirationTest {
 
   private Expiration<Poolable> createExpiration(int ttl) {
-    return new TimeExpiration(ttl, TimeUnit.MILLISECONDS);
+    return new TimeExpiration<Poolable>(ttl, TimeUnit.MILLISECONDS);
   }
   
   private SlotInfo<?> infoWithAge(final long ageMillis) {
@@ -64,7 +64,7 @@ public class TimeExpirationTest {
   
   @Test(expected = IllegalArgumentException.class) public void
   timeUnitCannotBeNull() {
-    new TimeExpiration(10, null);
+    new TimeExpiration<Poolable>(10, null);
   }
   
   @Test public void
@@ -95,10 +95,10 @@ public class TimeExpirationTest {
 
   @Test public void
   mustHaveNiceToString() {
-    TimeExpiration a = new TimeExpiration(42, TimeUnit.DAYS);
+    TimeExpiration<Poolable> a = new TimeExpiration<Poolable>(42, TimeUnit.DAYS);
     assertThat(a.toString(), is("TimeExpiration(42 DAYS)"));
 
-    TimeExpiration b = new TimeExpiration(21, TimeUnit.MILLISECONDS);
+    TimeExpiration<Poolable> b = new TimeExpiration<Poolable>(21, TimeUnit.MILLISECONDS);
     assertThat(b.toString(), is("TimeExpiration(21 MILLISECONDS)"));
   }
 }

@@ -25,10 +25,12 @@ import java.util.concurrent.TimeUnit;
  */
 @Sim.Simulation(pools = {BlazePool.class}, measurementTime = 60, output = Sim.Output.summary)
 public class TimeSpreadExpirationSim extends Sim {
+  @SuppressWarnings("rawtypes") // Not possible to have a generic array. It might be possible to make @Conf work with a
+                                // java.util.Set instead, but that's probably not worth the effort.
   @Conf(Param.expiration)
   public Expiration[] expirations = {
-      new TimeExpiration(2, TimeUnit.SECONDS),
-      new TimeSpreadExpiration(1, 2, TimeUnit.SECONDS)
+      new TimeExpiration<Poolable>(2, TimeUnit.SECONDS),
+      new TimeSpreadExpiration<Poolable>(1, 2, TimeUnit.SECONDS)
   };
 
   @Agents({@Agent, @Agent, @Agent, @Agent, @Agent, @Agent, @Agent})
