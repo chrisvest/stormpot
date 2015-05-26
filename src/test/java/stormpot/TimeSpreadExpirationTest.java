@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertThat;
+import static stormpot.MockSlotInfo.mockSlotInfoWithAge;
 
 public class TimeSpreadExpirationTest {
 
@@ -114,7 +115,7 @@ public class TimeSpreadExpirationTest {
 
       while (itr.hasNext()) {
         MockSlotInfo info = itr.next();
-        info.ageInMillis = base + i;
+        info.setAgeInMillis(base + i);
         if (expiration.hasExpired(info)) {
           expirations++;
           itr.remove();
@@ -133,7 +134,7 @@ public class TimeSpreadExpirationTest {
       Expiration<Poolable> expiration, long ageInMillis) throws Exception {
     int expired = 0;
     for (int count = 0; count < 100000; count++) {
-      MockSlotInfo slotInfo = new MockSlotInfo(ageInMillis);
+      MockSlotInfo slotInfo = mockSlotInfoWithAge(ageInMillis);
       if (expiration.hasExpired(slotInfo)) {
         expired++;
       }
@@ -143,52 +144,5 @@ public class TimeSpreadExpirationTest {
 
   private TimeSpreadExpiration<Poolable> createExpiration(int lowerBound, int upperBound, TimeUnit minutes) {
     return new TimeSpreadExpiration<Poolable>(lowerBound, upperBound, minutes);
-  }
-
-  private static final class MockSlotInfo implements SlotInfo<Poolable> {
-    private static int seed = 987623458;
-    
-    private static int xorShift(int seed) {
-      seed ^= (seed << 6);
-      seed ^= (seed >>> 21);
-      return seed ^ (seed << 7);
-    }
-    
-    long ageInMillis;
-    private long stamp = 0;
-
-    private MockSlotInfo(long ageInMillis) {
-      this.ageInMillis = ageInMillis;
-    }
-
-    @Override
-    public long getAgeMillis() {
-      return ageInMillis;
-    }
-
-    @Override
-    public long getClaimCount() {
-      return 0;
-    }
-
-    @Override
-    public Poolable getPoolable() {
-      return null;
-    }
-
-    @Override
-    public int randomInt() {
-      return seed = xorShift(seed);
-    }
-
-    @Override
-    public long getStamp() {
-      return stamp;
-    }
-
-    @Override
-    public void setStamp(long stamp) {
-      this.stamp = stamp;
-    }
   }
 }

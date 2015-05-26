@@ -23,45 +23,14 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static stormpot.MockSlotInfo.mockSlotInfoWithAge;
 
 public class TimeExpirationTest {
 
   private Expiration<Poolable> createExpiration(int ttl) {
     return new TimeExpiration<Poolable>(ttl, TimeUnit.MILLISECONDS);
   }
-  
-  private SlotInfo<?> infoWithAge(final long ageMillis) {
-    return new SlotInfo<Poolable>() {
-      public long getAgeMillis() {
-        return ageMillis;
-      }
 
-      @Override
-      public long getClaimCount() {
-        return 0;
-      }
-
-      @Override
-      public Poolable getPoolable() {
-        return null;
-      }
-
-      @Override
-      public int randomInt() {
-        return 0;
-      }
-
-      @Override
-      public long getStamp() {
-        return 0;
-      }
-
-      @Override
-      public void setStamp(long stamp) {
-      }
-    };
-  }
-  
   @Test(expected = IllegalArgumentException.class) public void
   timeUnitCannotBeNull() {
     new TimeExpiration<Poolable>(10, null);
@@ -70,21 +39,21 @@ public class TimeExpirationTest {
   @Test public void
   youngSlotsAreNotInvalid() throws Exception {
     Expiration<Poolable> expiration = createExpiration(2);
-    SlotInfo<?> info = infoWithAge(1);
+    SlotInfo<?> info = mockSlotInfoWithAge(1);
     assertFalse(expiration.hasExpired(info));
   }
 
   @Test public void
   slotsAtTheMaximumPermittedAgeAreNotInvalid() throws Exception {
     Expiration<Poolable> expiration = createExpiration(2);
-    SlotInfo<?> info = infoWithAge(2);
+    SlotInfo<?> info = mockSlotInfoWithAge(2);
     assertFalse(expiration.hasExpired(info));
   }
   
   @Test public void
   slotsOlderThanTheMaximumPermittedAgeAreInvalid() throws Exception {
     Expiration<Poolable> expiration = createExpiration(2);
-    SlotInfo<?> info = infoWithAge(3);
+    SlotInfo<?> info = mockSlotInfoWithAge(3);
     assertTrue(expiration.hasExpired(info));
   }
   
