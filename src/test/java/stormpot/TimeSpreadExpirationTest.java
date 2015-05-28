@@ -30,31 +30,29 @@ public class TimeSpreadExpirationTest {
 
   @Test(expected = IllegalArgumentException.class) public void
   lowerExpirationBoundCannotBeLessThanOne() {
-    new TimeSpreadExpiration(0, 2, TimeUnit.NANOSECONDS);
+    createExpiration(0, 2, TimeUnit.NANOSECONDS);
   }
   
   @Test(expected = IllegalArgumentException.class) public void
   upperExpirationBoundMustBeGreaterThanTheLowerBound() {
-    new TimeSpreadExpiration(1, 1, TimeUnit.NANOSECONDS);
+    createExpiration(1, 1, TimeUnit.NANOSECONDS);
   }
   
   @Test(expected = IllegalArgumentException.class) public void
   timeUnitCannotBeNull() {
-    new TimeSpreadExpiration(1, 2, null);
+    createExpiration(1, 2, null);
   }
   
   @Test public void
   slotsAtExactlyTheUpperExpirationBoundAreAlwaysInvalid() throws Exception {
-    TimeSpreadExpiration expiration =
-        new TimeSpreadExpiration(1, 2, TimeUnit.SECONDS);
+    TimeSpreadExpiration<Poolable> expiration = createExpiration(1, 2, TimeUnit.SECONDS);
     int percentage = expirationPercentage(expiration, 2000);
     assertThat(percentage, is(100));
   }
   
   @Test public void
   slotsYoungerThanTheLowerExpirationBoundAreNeverInvalid() throws Exception {
-    TimeSpreadExpiration expiration =
-        new TimeSpreadExpiration(1, 2, TimeUnit.SECONDS);
+    TimeSpreadExpiration<Poolable> expiration = createExpiration(1, 2, TimeUnit.SECONDS);
     int percentage = expirationPercentage(expiration, 999);
     assertThat(percentage, is(0));
   }
@@ -62,8 +60,7 @@ public class TimeSpreadExpirationTest {
   @Test public void
   slotsMidwayInBetweenTheLowerAndUpperBoundHave50PercentChanceOfBeingInvalid()
       throws Exception {
-    TimeSpreadExpiration expiration =
-        new TimeSpreadExpiration(1, 2, TimeUnit.SECONDS);
+    TimeSpreadExpiration<Poolable> expiration = createExpiration(1, 2, TimeUnit.SECONDS);
     int percentage = expirationPercentage(expiration, 1500);
     assertThat(Math.abs(percentage - 50), lessThan(2));
   }
@@ -71,8 +68,7 @@ public class TimeSpreadExpirationTest {
   @Test public void
   slotsThatAre25PercentUpTheIntervalHave25PercentChanceOFBeingInvalid()
       throws Exception {
-    TimeSpreadExpiration expiration =
-        new TimeSpreadExpiration(1, 2, TimeUnit.SECONDS);
+    TimeSpreadExpiration<Poolable> expiration = createExpiration(1, 2, TimeUnit.SECONDS);
     int percentage = expirationPercentage(expiration, 1250);
     assertThat(Math.abs(percentage - 25), lessThan(2));
   }
@@ -80,21 +76,19 @@ public class TimeSpreadExpirationTest {
   @Test public void
   slotsThatAre75PercentUpTheIntervalHave75PercentChanceOFBeingInvalid()
       throws Exception {
-    TimeSpreadExpiration expiration =
-        new TimeSpreadExpiration(1, 2, TimeUnit.SECONDS);
+    TimeSpreadExpiration<Poolable> expiration = createExpiration(1, 2, TimeUnit.SECONDS);
     int percentage = expirationPercentage(expiration, 1750);
     assertThat(Math.abs(percentage - 75), lessThan(2));
   }
 
   @Test public void
   mustHaveNiceToString() {
-    TimeSpreadExpiration expiration =
-        new TimeSpreadExpiration(8, 10, TimeUnit.MINUTES);
+    TimeSpreadExpiration<Poolable> expiration = createExpiration(8, 10, TimeUnit.MINUTES);
     assertThat(expiration.toString(), is("TimeSpreadExpiration(8 to 10 MINUTES)"));
-    expiration = new TimeSpreadExpiration(60, 160, TimeUnit.MILLISECONDS);
+    expiration = createExpiration(60, 160, TimeUnit.MILLISECONDS);
     assertThat(expiration.toString(), is("TimeSpreadExpiration(60 to 160 MILLISECONDS)"));
   }
-  
+
   @Test public void
   thePercentagesShouldNotChangeNoMatterHowManyTimesAnObjectIsChecked()
       throws Exception {
@@ -106,19 +100,18 @@ public class TimeSpreadExpirationTest {
     int expirationCountTollerance = objectsPerMillis / 10;
     int expirationsMin = objectsPerMillis - expirationCountTollerance;
     int expirationsMax = objectsPerMillis + expirationCountTollerance;
-    
-    TimeSpreadExpiration expiration =
-        new TimeSpreadExpiration(base, top, TimeUnit.MILLISECONDS);
+
+    TimeSpreadExpiration<Poolable> expiration = createExpiration(base, top, TimeUnit.MILLISECONDS);
     List<MockSlotInfo> infos = new LinkedList<MockSlotInfo>();
-    
+
     for (int i = 0; i < objects; i++) {
       infos.add(new MockSlotInfo(base));
     }
-    
+
     for (int i = 0; i < span; i++) {
       Iterator<MockSlotInfo> itr = infos.iterator();
       int expirations = 0;
-      
+
       while (itr.hasNext()) {
         MockSlotInfo info = itr.next();
         info.ageInMillis = base + i;
@@ -127,7 +120,7 @@ public class TimeSpreadExpirationTest {
           itr.remove();
         }
       }
-      
+
       if (expirations < expirationsMin || expirations > expirationsMax) {
         throw new AssertionError(
             "Expected expiration count at millisecond " + i + " to be " +
@@ -147,7 +140,11 @@ public class TimeSpreadExpirationTest {
     }
     return expired / 1000;
   }
-  
+
+  private TimeSpreadExpiration<Poolable> createExpiration(int lowerBound, int upperBound, TimeUnit minutes) {
+    return new TimeSpreadExpiration<Poolable>(lowerBound, upperBound, minutes);
+  }
+
   private static final class MockSlotInfo implements SlotInfo<Poolable> {
     private static int seed = 987623458;
     

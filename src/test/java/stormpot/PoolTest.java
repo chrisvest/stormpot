@@ -90,9 +90,9 @@ public class PoolTest {
   @Rule public final TestRule failurePrinter = new FailurePrinterTestRule();
   
   private static final Expiration<Poolable> oneMsTTL =
-      new TimeExpiration(1, TimeUnit.MILLISECONDS);
+      new TimeExpiration<Poolable>(1, TimeUnit.MILLISECONDS);
   private static final Expiration<Poolable> fiveMsTTL =
-      new TimeExpiration(5, TimeUnit.MILLISECONDS);
+      new TimeExpiration<Poolable>(5, TimeUnit.MILLISECONDS);
   private static final Timeout longTimeout = new Timeout(1, TimeUnit.MINUTES);
   private static final Timeout mediumTimeout = new Timeout(10, TimeUnit.MILLISECONDS);
   private static final Timeout shortTimeout = new Timeout(1, TimeUnit.MILLISECONDS);

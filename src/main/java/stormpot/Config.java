@@ -55,7 +55,7 @@ public class Config<T extends Poolable> implements Cloneable {
 
   private int size = 10;
   private Expiration<? super T> expiration =
-      new TimeSpreadExpiration(480000, 600000, TimeUnit.MILLISECONDS); // 8 to 10 minutes
+      new TimeSpreadExpiration<T>(480000, 600000, TimeUnit.MILLISECONDS); // 8 to 10 minutes
   private Allocator<?> allocator;
   private MetricsRecorder metricsRecorder;
   private ThreadFactory threadFactory = StormpotThreadFactory.INSTANCE;
