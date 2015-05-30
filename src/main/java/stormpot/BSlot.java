@@ -136,7 +136,7 @@ final class BSlot<T extends Poolable>
 }
 
 
-
+// stop checking line length
 /*
 The Java Object Layout rendition:
 
@@ -181,6 +181,7 @@ stormpot.BSlot object internals:
 Instance size: 184 bytes (estimated, add this JAR via -javaagent: to get accurate result)
 Space losses: 4 bytes internal + 4 bytes external = 8 bytes total
  */
+// start checking line length
 abstract class Padding1 {
   private int p0;
   private long p1, p2, p3, p4, p5, p6;

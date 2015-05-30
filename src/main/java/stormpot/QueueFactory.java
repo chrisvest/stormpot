@@ -25,13 +25,15 @@ final class QueueFactory {
   }
 
   static enum FactoryChoiceReason {
-    DEFAULT_FIRST_CHOICE("The " + QUEUE_IMPL_FIRST_CHOICE + " was available on the classpath, and the " +
-        QUEUE_IMPL + " system property did not specify any alternative implementation to use."),
-    SPECIFIED_CHOICE("The " + QUEUE_IMPL + " system property specified the queue implementation to use, " +
-        "specifically " + System.getProperty(QUEUE_IMPL) + "."),
-    DEFAULT_SECOND_CHOICE("The " + QUEUE_IMPL_FIRST_CHOICE + " was not available on the classpath, and the " +
-        QUEUE_IMPL + " system property did not specify any alternative implementation to use, so " +
-        QUEUE_IMPL_SECOND_CHOICE + " was used as the default fallback."),
+    DEFAULT_FIRST_CHOICE("The " + QUEUE_IMPL_FIRST_CHOICE + " was available on the classpath," +
+            " and the " + QUEUE_IMPL + " system property did not specify any alternative" +
+            " implementation to use."),
+    SPECIFIED_CHOICE("The " + QUEUE_IMPL + " system property specified the queue implementation" +
+            " to use, specifically " + System.getProperty(QUEUE_IMPL) + "."),
+    DEFAULT_SECOND_CHOICE("The " + QUEUE_IMPL_FIRST_CHOICE + " was not available on the" +
+            " classpath, and the " + QUEUE_IMPL + " system property did not specify any" +
+            " alternative implementation to use, so " + QUEUE_IMPL_SECOND_CHOICE + " was used" +
+            " as the default fallback."),
     DEFAULT_FALLBACK("")
     ;
 
@@ -49,9 +51,11 @@ final class QueueFactory {
   private static final Factory factory;
   private static final FactoryChoiceReason reason;
 
+  // stop checking line length
   private static final String QUEUE_IMPL = "stormpot.blocking.queue.impl";
   private static final String QUEUE_IMPL_FIRST_CHOICE = "java.util.concurrent.LinkedTransferQueue";
   private static final String QUEUE_IMPL_SECOND_CHOICE = LinkedBlockingQueue.class.getCanonicalName();
+  // start checking line length
 
   static {
     Factory theFactory = null;
@@ -85,9 +89,9 @@ final class QueueFactory {
     } catch (Exception e) {
       if (theReason == FactoryChoiceReason.SPECIFIED_CHOICE) {
         Exception exception = new Exception(
-            "WARNING: The queue implementation specified by the " + QUEUE_IMPL + " system property, " +
-            "specifically " + queueType + ", was determined to be unusable. " +
-            "Falling back to the " + QUEUE_IMPL_SECOND_CHOICE + " implementation.",
+            "WARNING: The queue implementation specified by the " + QUEUE_IMPL + " system" +
+            " property, specifically " + queueType + ", was determined to be unusable." +
+            " Falling back to the " + QUEUE_IMPL_SECOND_CHOICE + " implementation.",
             e);
         exception.printStackTrace();
       }
