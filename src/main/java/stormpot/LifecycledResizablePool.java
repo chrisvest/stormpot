@@ -23,5 +23,5 @@ package stormpot;
  * @param <T> The type of {@link Poolable} contained in this pool.
  */
 public interface LifecycledResizablePool<T extends Poolable>
-extends LifecycledPool<T>, ResizablePool<T> {
+    extends LifecycledPool<T>, ResizablePool<T> {
 }
