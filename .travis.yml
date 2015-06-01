@@ -4,3 +4,4 @@ jdk:
   - openjdk7
   - openjdk6
   - oraclejdk8
+script: "mvn verify"
