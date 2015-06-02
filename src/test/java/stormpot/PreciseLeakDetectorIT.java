@@ -31,10 +31,12 @@ import static org.junit.Assert.assertThat;
 public class PreciseLeakDetectorIT {
   private PreciseLeakDetector detector = new PreciseLeakDetector();
 
-  // Note: this test takes about 3 to 4 minutes to run.
   @Test
   public void
   mustCountCorrectlyAfterRandomAddRemoveLeakAndCounts() {
+    System.out.print(
+        "NOTE: this test takes about 3 to 5 minutes to run...    ");
+
     // This particular seed seems to give pretty good coverage:
     Random rng = new Random(-6406176578229504295L);
     Set<Object> objs = new HashSet<Object>();
@@ -86,12 +88,9 @@ public class PreciseLeakDetectorIT {
   private static void printProgress(int iterations, int i) {
     int stride = iterations / 100;
     int progress = i / stride;
-    String lineReset = "\033[2K\033[G";
 
     if (progress * stride == i - 1) {
-      System.out.printf(
-          "%sNOTE: this test takes about 3 to 5 minutes to run... %s%%",
-          lineReset, progress);
+      System.out.printf("\033[4D% 3d%%", progress);
     }
   }
 
