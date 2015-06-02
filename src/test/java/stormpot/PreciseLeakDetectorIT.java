@@ -35,15 +35,14 @@ public class PreciseLeakDetectorIT {
   @Test
   public void
   mustCountCorrectlyAfterRandomAddRemoveLeakAndCounts() {
-    System.out.println("NOTE: this test takes about 3 to 5 minutes to run...");
-
     // This particular seed seems to give pretty good coverage:
     Random rng = new Random(-6406176578229504295L);
     Set<Object> objs = new HashSet<Object>();
     long leaksCreated = 0;
 
     // This distribution of the operations seems to give a good coverage:
-    for (int i = 0; i < 120000; i++) {
+    int iterations = 120000;
+    for (int i = 0; i < iterations; i++) {
       int choice = rng.nextInt(100);
       if (choice < 60) {
         // Add
@@ -63,20 +62,37 @@ public class PreciseLeakDetectorIT {
         // Leak
         Object obj = removeRandom(objs);
         if (obj != null) {
+          //noinspection UnusedAssignment : required for System.gc()
           obj = null;
           System.gc();
           leaksCreated++;
         }
       }
+
+      printProgress(iterations, i);
     }
+    System.out.println();
     for (Object obj : objs) {
       detector.unregister(obj);
     }
     objs.clear();
+    //noinspection UnusedAssignment : required for System.gc()
     objs = null;
 
     System.gc();
     assertThat(detector.countLeakedObjects(), is(leaksCreated));
+  }
+
+  private static void printProgress(int iterations, int i) {
+    int stride = iterations / 100;
+    int progress = i / stride;
+    String lineReset = "\033[2K\033[G";
+
+    if (progress * stride == i - 1) {
+      System.out.printf(
+          "%sNOTE: this test takes about 3 to 5 minutes to run... %s%%",
+          lineReset, progress);
+    }
   }
 
   private Object removeRandom(Set<Object> objs) {
