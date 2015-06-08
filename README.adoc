@@ -29,10 +29,10 @@ operation. Some of the things that sets Stormpot apart include:
    license].
  * Very high http://chrisvest.github.io/stormpot/site/jacoco/index.html[test
    coverage].
- * The http://chrisvest.name/released-stormpot-21.html[highest throughput and
+ * The https://medium.com/@chrisvest/released-stormpot-2-1-c31509142757[highest throughput and
    lowest latency] in its class.
    (since 2.1)
- * http://chrisvest.name/released-stormpot-22.html[Automatic recovery] from
+ * https://medium.com/@chrisvest/released-stormpot-2-2-ccd1e8639f07[Automatic recovery] from
    sporadic backend (Allocator) failures.
    (since 2.2)
  * Precise object leak detection with virtually no overhead.
