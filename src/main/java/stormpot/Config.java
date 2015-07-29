@@ -301,7 +301,7 @@ public class Config<T extends Poolable> implements Cloneable {
    * @deprecated This method will be removed in version 3.0. No alternative is
    * provided, because it is really an internal API.
    */
-  @Deprecated
+  @Deprecated // TODO 3.0 make package private
   public synchronized void validate() throws IllegalArgumentException {
     if (size < 1) {
       throw new IllegalArgumentException(
