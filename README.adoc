@@ -101,8 +101,7 @@ try {
  * *Fix bugs or implement features* by forking the project, but please start an
    issue about the bug or feature you want to work on (or find the existing
    issue) and describe the approach and design you have in mind. Keep in mind
-   that Stormpot is implemented with a very
-   http://chrisvest.name/contract-coverage.html[strict adherence to TDD].
+   that Stormpot is implemented with a very strict adherence to TDD.
    Finally, make sure to respect the existing indentation and formatting.
    If you are writing a test that takes more than a few hundred milliseconds to
    run, then put it in the `stormpot.slow` test package; either in the existing
@@ -130,8 +129,7 @@ try {
       It is no doubt a useful thing to have, though.
       If you want to take on that problem, either with offset in the existing
       code or by starting over from scratch, then please go ahead.
-   ** I'm sure there are other interesting related problems out there to take
-      on.
+   ** I'm sure there are other interesting related problems out there to take on.
       There are many database drivers for various NoSQL databases, that have
       object pooling needs.
 
