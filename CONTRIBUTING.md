@@ -20,8 +20,9 @@ If you want to work on the code, then there are a couple of things to note:
  * Make sure your pull request applies cleanly. I don't care if you do this by
    rebasing, or by proactively pulling and merging changes from upstream master.
  * To the furthest extent possible, make sure that you follow the strict TDD
-   practice that Stormpot has been built with. The process is described in my
-   [Contract Coverage](http://chrisvest.name/contract-coverage.html) blog post.
+   practice that Stormpot has been built with: Test for observable behaviour of
+   the public API. Aim for 100% coverage. Test all failure modes. Document all
+   aspects of features, including all failure modes.
  * Pull requests that make changes to existing functionality, needs to include
    prose that convinces me of the correctness of the new code. If the changes
    are trivial, then this will be easy. If the changes are non-trivial, then
