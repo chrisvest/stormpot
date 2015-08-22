@@ -34,7 +34,7 @@
 <a class="jxr_linenumber" name="24" href="#24">24</a>  <em class="jxr_javadoccomment"> * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;</em>
 <a class="jxr_linenumber" name="25" href="#25">25</a>  <em class="jxr_javadoccomment"> */</em>
 <a class="jxr_linenumber" name="26" href="#26">26</a>  <em class="jxr_comment">// TODO 3.0 make class final</em>
-<a class="jxr_linenumber" name="27" href="#27">27</a>  <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">class</strong> <a href="../stormpot/TimeExpiration.html">TimeExpiration</a> <strong class="jxr_keyword">implements</strong> Expiration&lt;Poolable&gt; {
+<a class="jxr_linenumber" name="27" href="#27">27</a>  <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">class</strong> TimeExpiration&lt;T <strong class="jxr_keyword">extends</strong> Poolable&gt; <strong class="jxr_keyword">implements</strong> Expiration&lt;T&gt; {
 <a class="jxr_linenumber" name="28" href="#28">28</a>  
 <a class="jxr_linenumber" name="29" href="#29">29</a>    <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">long</strong> maxPermittedAgeMillis;
 <a class="jxr_linenumber" name="30" href="#30">30</a>    <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">final</strong> TimeUnit unit;
@@ -69,7 +69,7 @@
 <a class="jxr_linenumber" name="59" href="#59">59</a>  <em class="jxr_javadoccomment">   * TimeExpiration.</em>
 <a class="jxr_linenumber" name="60" href="#60">60</a>  <em class="jxr_javadoccomment">   */</em>
 <a class="jxr_linenumber" name="61" href="#61">61</a>    @Override
-<a class="jxr_linenumber" name="62" href="#62">62</a>    <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">boolean</strong> hasExpired(SlotInfo&lt;? <strong class="jxr_keyword">extends</strong> Poolable&gt; info) {
+<a class="jxr_linenumber" name="62" href="#62">62</a>    <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">boolean</strong> hasExpired(SlotInfo&lt;? <strong class="jxr_keyword">extends</strong> T&gt; info) {
 <a class="jxr_linenumber" name="63" href="#63">63</a>      <strong class="jxr_keyword">return</strong> info.getAgeMillis() &gt; maxPermittedAgeMillis;
 <a class="jxr_linenumber" name="64" href="#64">64</a>    }
 <a class="jxr_linenumber" name="65" href="#65">65</a>  

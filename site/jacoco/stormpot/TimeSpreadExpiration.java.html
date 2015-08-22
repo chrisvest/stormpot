@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
  * @since 2.2
  */
 // TODO 3.0 make class final
-public class TimeSpreadExpiration implements Expiration&lt;Poolable&gt; {
+public class TimeSpreadExpiration&lt;T extends Poolable&gt; implements Expiration&lt;T&gt; {
 
   private final long lowerBoundMillis;
   private final long upperBoundMillis;
@@ -80,7 +80,7 @@ public class TimeSpreadExpiration implements Expiration&lt;Poolable&gt; {
    * declared expired.
    */
   @Override
-  public boolean hasExpired(SlotInfo&lt;? extends Poolable&gt; info) {
+  public boolean hasExpired(SlotInfo&lt;? extends T&gt; info) {
 <span class="fc" id="L84">    long expirationAge = info.getStamp();</span>
 <span class="fc bfc" id="L85" title="All 2 branches covered.">    if (expirationAge == 0) {</span>
 <span class="fc" id="L86">      long maxDelta = upperBoundMillis - lowerBoundMillis;</span>

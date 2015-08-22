@@ -53,7 +53,7 @@ public class QueuePool&lt;T extends Poolable&gt;
   /**
    * Special slot used to signal that the pool has been shut down.
    */
-<span class="fc" id="L56">  final QSlot&lt;T&gt; poisonPill = new QSlot&lt;T&gt;(null);</span>
+<span class="fc" id="L56">  final QSlot&lt;T&gt; poisonPill = new QSlot&lt;T&gt;(null, null);</span>
 
   /**
    * Construct a new QueuePool instance based on the given {@link Config}.
@@ -93,133 +93,135 @@ public class QueuePool&lt;T extends Poolable&gt;
   private boolean isInvalid(QSlot&lt;T&gt; slot) {
 <span class="fc" id="L94">    boolean invalid = true;</span>
 <span class="fc" id="L95">    RuntimeException exception = null;</span>
+<span class="fc" id="L96">    boolean expired = slot.expired;</span>
     try {
-<span class="fc" id="L97">      invalid = expiration.hasExpired(slot);</span>
-<span class="fc" id="L98">    } catch (Throwable ex) {</span>
-<span class="fc" id="L99">      exception = new PoolException(</span>
+<span class="fc" id="L98">      invalid = expiration.hasExpired(slot);</span>
+<span class="fc" id="L99">    } catch (Throwable ex) {</span>
+<span class="fc" id="L100">      exception = new PoolException(</span>
           &quot;Got exception when checking whether an object had expired&quot;, ex);
-<span class="fc" id="L101">    }</span>
-<span class="fc bfc" id="L102" title="All 2 branches covered.">    if (invalid) {</span>
+<span class="fc" id="L102">    }</span>
+<span class="fc" id="L103">    invalid |= expired;</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">    if (invalid) {</span>
       // it's invalid - into the dead queue with it and continue looping
-<span class="fc" id="L104">      dead.offer(slot);</span>
-<span class="fc bfc" id="L105" title="All 2 branches covered.">      if (exception != null) {</span>
-<span class="fc" id="L106">        throw exception;</span>
+<span class="fc" id="L106">      dead.offer(slot);</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">      if (exception != null) {</span>
+<span class="fc" id="L108">        throw exception;</span>
       }
     } else {
       // it's valid - claim it and stop looping
-<span class="fc" id="L110">      slot.claim();</span>
+<span class="fc" id="L112">      slot.claim();</span>
     }
-<span class="fc" id="L112">    return invalid;</span>
+<span class="fc" id="L114">    return invalid;</span>
   }
 
   @Override
   public T claim(Timeout timeout) throws PoolException,
       InterruptedException {
-<span class="fc bfc" id="L118" title="All 2 branches covered.">    if (timeout == null) {</span>
-<span class="fc" id="L119">      throw new IllegalArgumentException(&quot;Timeout cannot be null&quot;);</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">    if (timeout == null) {</span>
+<span class="fc" id="L121">      throw new IllegalArgumentException(&quot;Timeout cannot be null&quot;);</span>
     }
     QSlot&lt;T&gt; slot;
-<span class="fc" id="L122">    long deadline = timeout.getDeadline();</span>
+<span class="fc" id="L124">    long deadline = timeout.getDeadline();</span>
     do {
-<span class="fc" id="L124">      long timeoutLeft = timeout.getTimeLeft(deadline);</span>
-<span class="fc" id="L125">      slot = live.poll(timeoutLeft, timeout.getBaseUnit());</span>
-<span class="fc bfc" id="L126" title="All 2 branches covered.">      if (slot == null) {</span>
+<span class="fc" id="L126">      long timeoutLeft = timeout.getTimeLeft(deadline);</span>
+<span class="fc" id="L127">      slot = live.poll(timeoutLeft, timeout.getBaseUnit());</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">      if (slot == null) {</span>
         // we timed out while taking from the queue - just return null
-<span class="fc" id="L128">        return null;</span>
+<span class="fc" id="L130">        return null;</span>
       }
-<span class="fc" id="L130">      checkForPoison(slot);</span>
-<span class="fc bfc" id="L131" title="All 2 branches covered.">    } while (isInvalid(slot));</span>
-<span class="fc" id="L132">    return slot.obj;</span>
+<span class="fc" id="L132">      checkForPoison(slot);</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">    } while (isInvalid(slot));</span>
+<span class="fc" id="L134">    return slot.obj;</span>
   }
 
   @Override
   public Completion shutdown() {
-<span class="fc" id="L137">    shutdown = true;</span>
-<span class="fc" id="L138">    return allocator.shutdown(allocatorThread);</span>
+<span class="fc" id="L139">    shutdown = true;</span>
+<span class="fc" id="L140">    return allocator.shutdown(allocatorThread);</span>
   }
 
   @Override
   public void setTargetSize(int size) {
-<span class="fc bfc" id="L143" title="All 2 branches covered.">    if (size &lt; 1) {</span>
-<span class="fc" id="L144">      throw new IllegalArgumentException(&quot;Target pool size must be at least 1&quot;);</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">    if (size &lt; 1) {</span>
+<span class="fc" id="L146">      throw new IllegalArgumentException(&quot;Target pool size must be at least 1&quot;);</span>
     }
-<span class="fc bfc" id="L146" title="All 2 branches covered.">    if (shutdown) {</span>
-<span class="fc" id="L147">      return;</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">    if (shutdown) {</span>
+<span class="fc" id="L149">      return;</span>
     }
-<span class="fc" id="L149">    allocator.setTargetSize(size);</span>
-<span class="fc" id="L150">  }</span>
+<span class="fc" id="L151">    allocator.setTargetSize(size);</span>
+<span class="fc" id="L152">  }</span>
 
   @Override
   public int getTargetSize() {
-<span class="fc" id="L154">    return allocator.getTargetSize();</span>
+<span class="fc" id="L156">    return allocator.getTargetSize();</span>
   }
 
   @Override
   public long getAllocationCount() {
-<span class="fc" id="L159">    return allocator.getAllocationCount();</span>
+<span class="fc" id="L161">    return allocator.getAllocationCount();</span>
   }
 
   @Override
   public long getFailedAllocationCount() {
-<span class="fc" id="L164">    return allocator.getFailedAllocationCount();</span>
+<span class="fc" id="L166">    return allocator.getFailedAllocationCount();</span>
   }
 
   @Override
   public boolean isShutDown() {
-<span class="fc" id="L169">    return shutdown;</span>
+<span class="fc" id="L171">    return shutdown;</span>
   }
 
   @Override
   public double getObjectLifetimePercentile(double percentile) {
-<span class="fc bfc" id="L174" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
-<span class="fc" id="L175">      return Double.NaN;</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L177">      return Double.NaN;</span>
     }
-<span class="fc" id="L177">    return metricsRecorder.getObjectLifetimePercentile(percentile);</span>
+<span class="fc" id="L179">    return metricsRecorder.getObjectLifetimePercentile(percentile);</span>
   }
 
   @Override
   public double getAllocationLatencyPercentile(double percentile) {
-<span class="fc bfc" id="L182" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
-<span class="fc" id="L183">      return Double.NaN;</span>
+<span class="fc bfc" id="L184" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L185">      return Double.NaN;</span>
     }
-<span class="fc" id="L185">    return metricsRecorder.getAllocationLatencyPercentile(percentile);</span>
+<span class="fc" id="L187">    return metricsRecorder.getAllocationLatencyPercentile(percentile);</span>
   }
 
   @Override
   public double getAllocationFailureLatencyPercentile(double percentile) {
-<span class="fc bfc" id="L190" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
-<span class="fc" id="L191">      return Double.NaN;</span>
+<span class="fc bfc" id="L192" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L193">      return Double.NaN;</span>
     }
-<span class="fc" id="L193">    return metricsRecorder.getAllocationFailureLatencyPercentile(percentile);</span>
+<span class="fc" id="L195">    return metricsRecorder.getAllocationFailureLatencyPercentile(percentile);</span>
   }
 
   @Override
   public double getReallocationLatencyPercentile(double percentile) {
-<span class="fc bfc" id="L198" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
-<span class="fc" id="L199">      return Double.NaN;</span>
+<span class="fc bfc" id="L200" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L201">      return Double.NaN;</span>
     }
-<span class="fc" id="L201">    return metricsRecorder.getReallocationLatencyPercentile(percentile);</span>
+<span class="fc" id="L203">    return metricsRecorder.getReallocationLatencyPercentile(percentile);</span>
   }
 
   @Override
   public double getReallocationFailureLatencyPercentile(double percentile) {
-<span class="fc bfc" id="L206" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
-<span class="fc" id="L207">      return Double.NaN;</span>
+<span class="fc bfc" id="L208" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L209">      return Double.NaN;</span>
     }
-<span class="fc" id="L209">    return metricsRecorder.getReallocationFailurePercentile(percentile);</span>
+<span class="fc" id="L211">    return metricsRecorder.getReallocationFailurePercentile(percentile);</span>
   }
 
   @Override
   public double getDeallocationLatencyPercentile(double percentile) {
-<span class="fc bfc" id="L214" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
-<span class="fc" id="L215">      return Double.NaN;</span>
+<span class="fc bfc" id="L216" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L217">      return Double.NaN;</span>
     }
-<span class="fc" id="L217">    return metricsRecorder.getDeallocationLatencyPercentile(percentile);</span>
+<span class="fc" id="L219">    return metricsRecorder.getDeallocationLatencyPercentile(percentile);</span>
   }
 
   @Override
   public long getLeakedObjectsCount() {
-<span class="fc" id="L222">    return allocator.countLeakedObjects();</span>
+<span class="fc" id="L224">    return allocator.countLeakedObjects();</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.2.201409121644</span></div></body></html>

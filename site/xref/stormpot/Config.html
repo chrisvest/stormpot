@@ -65,7 +65,7 @@
 <a class="jxr_linenumber" name="55" href="#55">55</a>  
 <a class="jxr_linenumber" name="56" href="#56">56</a>    <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">int</strong> size = 10;
 <a class="jxr_linenumber" name="57" href="#57">57</a>    <strong class="jxr_keyword">private</strong> Expiration&lt;? <strong class="jxr_keyword">super</strong> T&gt; expiration =
-<a class="jxr_linenumber" name="58" href="#58">58</a>        <strong class="jxr_keyword">new</strong> <a href="../stormpot/TimeSpreadExpiration.html">TimeSpreadExpiration</a>(480000, 600000, TimeUnit.MILLISECONDS); <em class="jxr_comment">// 8 to 10 minutes</em>
+<a class="jxr_linenumber" name="58" href="#58">58</a>        <strong class="jxr_keyword">new</strong> TimeSpreadExpiration&lt;T&gt;(480000, 600000, TimeUnit.MILLISECONDS); <em class="jxr_comment">// 8 to 10 minutes</em>
 <a class="jxr_linenumber" name="59" href="#59">59</a>    <strong class="jxr_keyword">private</strong> Allocator&lt;?&gt; allocator;
 <a class="jxr_linenumber" name="60" href="#60">60</a>    <strong class="jxr_keyword">private</strong> <a href="../stormpot/MetricsRecorder.html">MetricsRecorder</a> metricsRecorder;
 <a class="jxr_linenumber" name="61" href="#61">61</a>    <strong class="jxr_keyword">private</strong> ThreadFactory threadFactory = StormpotThreadFactory.INSTANCE;
@@ -311,7 +311,7 @@
 <a class="jxr_linenumber" name="301" href="#301">301</a> <em class="jxr_javadoccomment">   * @deprecated This method will be removed in version 3.0. No alternative is</em>
 <a class="jxr_linenumber" name="302" href="#302">302</a> <em class="jxr_javadoccomment">   * provided, because it is really an internal API.</em>
 <a class="jxr_linenumber" name="303" href="#303">303</a> <em class="jxr_javadoccomment">   */</em>
-<a class="jxr_linenumber" name="304" href="#304">304</a>   @Deprecated
+<a class="jxr_linenumber" name="304" href="#304">304</a>   @Deprecated <em class="jxr_comment">// TODO 3.0 make package private</em>
 <a class="jxr_linenumber" name="305" href="#305">305</a>   <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">synchronized</strong> <strong class="jxr_keyword">void</strong> validate() <strong class="jxr_keyword">throws</strong> IllegalArgumentException {
 <a class="jxr_linenumber" name="306" href="#306">306</a>     <strong class="jxr_keyword">if</strong> (size &lt; 1) {
 <a class="jxr_linenumber" name="307" href="#307">307</a>       <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> IllegalArgumentException(

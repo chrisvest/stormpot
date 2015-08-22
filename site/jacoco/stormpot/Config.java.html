@@ -55,7 +55,7 @@ public class Config&lt;T extends Poolable&gt; implements Cloneable {
 
 <span class="fc" id="L56">  private int size = 10;</span>
 <span class="fc" id="L57">  private Expiration&lt;? super T&gt; expiration =</span>
-      new TimeSpreadExpiration(480000, 600000, TimeUnit.MILLISECONDS); // 8 to 10 minutes
+      new TimeSpreadExpiration&lt;T&gt;(480000, 600000, TimeUnit.MILLISECONDS); // 8 to 10 minutes
   private Allocator&lt;?&gt; allocator;
   private MetricsRecorder metricsRecorder;
 <span class="fc" id="L61">  private ThreadFactory threadFactory = StormpotThreadFactory.INSTANCE;</span>
@@ -301,7 +301,7 @@ public class Config&lt;T extends Poolable&gt; implements Cloneable {
    * @deprecated This method will be removed in version 3.0. No alternative is
    * provided, because it is really an internal API.
    */
-  @Deprecated
+  @Deprecated // TODO 3.0 make package private
   public synchronized void validate() throws IllegalArgumentException {
 <span class="fc bfc" id="L306" title="All 2 branches covered.">    if (size &lt; 1) {</span>
 <span class="fc" id="L307">      throw new IllegalArgumentException(</span>

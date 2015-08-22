@@ -1,30 +1,34 @@
 GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
 stormpot,stormpot.qpool,QueuePool,0,4,0,0,0,2,0,1,0,1
 stormpot,stormpot.bpool,BlazePool,0,4,0,0,0,2,0,1,0,1
+stormpot,stormpot,CompoundExpiration,0,23,0,4,0,5,0,4,0,2
 stormpot,stormpot,TimeExpiration,0,60,0,6,0,11,0,6,0,3
 stormpot,stormpot,QueueFactory.new QueueFactory.Factory() {...},7,0,0,0,2,0,2,0,2,0
 stormpot,stormpot,QueueFactory.new QueueFactory.Factory() {...},21,13,0,0,4,2,0,2,0,2
 stormpot,stormpot,ReallocatingAdaptor,0,30,0,0,0,11,0,5,0,5
-stormpot,stormpot,QueueFactory.FactoryChoiceReason,24,75,0,0,1,8,3,2,3,2
+stormpot,stormpot,UnsafeUtil.new PrivilegedExceptionAction() {...},4,37,2,2,1,7,2,2,0,2
+stormpot,stormpot,QueueFactory.FactoryChoiceReason,24,77,0,0,1,8,3,2,3,2
 stormpot,stormpot,LatchCompletion,0,21,0,2,0,6,0,3,0,2
-stormpot,stormpot,BSlotColdFields,0,57,0,0,0,10,0,2,0,2
-stormpot,stormpot,BSlot,0,128,0,12,0,33,0,26,0,20
-stormpot,stormpot,BlazePool,0,369,2,54,0,103,2,45,0,19
+stormpot,stormpot,DisregardedBSlot,0,6,0,0,0,3,0,1,0,1
+stormpot,stormpot,DisregardBPile,0,58,1,5,0,18,1,6,0,4
+stormpot,stormpot,BSlotColdFields,0,72,0,2,0,15,0,4,0,3
+stormpot,stormpot,BSlot,14,129,2,9,2,36,2,24,0,20
+stormpot,stormpot,BlazePool,6,405,1,51,2,103,1,48,0,23
 stormpot,stormpot,TimeSpreadExpiration,0,112,0,10,0,21,0,8,0,3
 stormpot,stormpot,QueueFactory,43,47,6,2,9,17,6,2,2,2
 stormpot,stormpot,Timeout,0,78,0,6,0,19,0,13,0,10
 stormpot,stormpot,StormpotThreadFactory,0,27,0,0,0,7,0,3,0,3
-stormpot,stormpot,QAllocThread,0,500,0,58,0,137,0,46,0,17
+stormpot,stormpot,UnsafeUtil,23,37,2,2,6,9,3,6,1,6
+stormpot,stormpot,QAllocThread,0,511,1,61,0,140,1,47,0,17
 stormpot,stormpot,TimingReallocatingAdaptor,0,60,0,0,0,18,0,3,0,3
 stormpot,stormpot,Padding1,0,3,0,0,0,1,0,1,0,1
-stormpot,stormpot,BlazePool.new Exception() {...},0,5,0,0,0,2,0,2,0,2
 stormpot,stormpot,PoolException,0,9,0,0,0,4,0,2,0,2
 stormpot,stormpot,Padding2,0,4,0,0,0,2,0,1,0,1
-stormpot,stormpot,PreciseLeakDetector,6,309,1,33,1,87,1,25,0,9
-stormpot,stormpot,PaddedAtomicInteger,15,57,2,2,5,19,2,5,0,5
+stormpot,stormpot,PreciseLeakDetector,0,315,0,34,0,88,0,26,0,9
+stormpot,stormpot,PaddedAtomicInteger,14,41,3,3,3,16,3,5,0,5
 stormpot,stormpot,PreciseLeakDetector.WeakRef,0,4,0,0,0,2,0,1,0,1
 stormpot,stormpot,Config,6,187,0,20,2,52,0,29,0,19
 stormpot,stormpot,TimingReallocatorAdaptor,0,35,0,0,0,11,0,2,0,2
-stormpot,stormpot,BAllocThread,0,574,3,73,0,162,3,59,0,24
-stormpot,stormpot,QueuePool,0,283,0,32,0,79,0,33,0,17
-stormpot,stormpot,QSlot,0,103,0,2,0,23,0,10,0,9
+stormpot,stormpot,BAllocThread,10,588,6,78,2,167,6,61,0,25
+stormpot,stormpot,QueuePool,0,291,0,32,0,81,0,33,0,17
+stormpot,stormpot,QSlot,0,117,0,4,0,28,0,12,0,10

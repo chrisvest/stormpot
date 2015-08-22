@@ -17,69 +17,81 @@ package stormpot;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 final class QSlot&lt;T extends Poolable&gt; implements Slot, SlotInfo&lt;T&gt; {
   final BlockingQueue&lt;QSlot&lt;T&gt;&gt; live;
+  final AtomicInteger poisonedSlots;
   final AtomicBoolean claimed;
   T obj;
   Exception poison;
   long created;
   long claims;
   long stamp;
+  boolean expired;
 
-<span class="fc" id="L30">  public QSlot(BlockingQueue&lt;QSlot&lt;T&gt;&gt; live) {</span>
-<span class="fc" id="L31">    this.live = live;</span>
-<span class="fc" id="L32">    this.claimed = new AtomicBoolean(true);</span>
-<span class="fc" id="L33">  }</span>
+<span class="fc" id="L33">  public QSlot(BlockingQueue&lt;QSlot&lt;T&gt;&gt; live, AtomicInteger poisonedSlots) {</span>
+<span class="fc" id="L34">    this.live = live;</span>
+<span class="fc" id="L35">    this.poisonedSlots = poisonedSlots;</span>
+<span class="fc" id="L36">    this.claimed = new AtomicBoolean(true);</span>
+<span class="fc" id="L37">  }</span>
   
   public void claim() {
-<span class="fc" id="L36">    claimed.set(true);</span>
-<span class="fc" id="L37">    claims++;</span>
-<span class="fc" id="L38">  }</span>
+<span class="fc" id="L40">    claimed.set(true);</span>
+<span class="fc" id="L41">    claims++;</span>
+<span class="fc" id="L42">  }</span>
 
   public void release(Poolable obj) {
-<span class="fc bfc" id="L41" title="All 2 branches covered.">    if (claimed.compareAndSet(true, false)) {</span>
-<span class="fc" id="L42">      live.offer(this);</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">    if (claimed.compareAndSet(true, false)) {</span>
+<span class="fc bfc" id="L46" title="All 2 branches covered.">      if (expired) {</span>
+<span class="fc" id="L47">        poisonedSlots.getAndIncrement();</span>
+      }
+<span class="fc" id="L49">      live.offer(this);</span>
     }
-<span class="fc" id="L44">  }</span>
+<span class="fc" id="L51">  }</span>
+
+  @Override
+  public void expire(Poolable obj) {
+<span class="fc" id="L55">    expired = true;</span>
+<span class="fc" id="L56">  }</span>
 
   @Override
   public long getAgeMillis() {
-<span class="fc" id="L48">    return System.currentTimeMillis() - created;</span>
+<span class="fc" id="L60">    return System.currentTimeMillis() - created;</span>
   }
 
   @Override
   public long getClaimCount() {
-<span class="fc" id="L53">    return claims;</span>
+<span class="fc" id="L65">    return claims;</span>
   }
 
   @Override
   public T getPoolable() {
-<span class="fc" id="L58">    return obj;</span>
+<span class="fc" id="L70">    return obj;</span>
   }
 
   // XorShift PRNG with a 2^128-1 period.
-<span class="fc" id="L62">  int x = System.identityHashCode(this);</span>
-<span class="fc" id="L63">  int y = -938745813;</span>
-<span class="fc" id="L64">  int z = 452465366;</span>
-<span class="fc" id="L65">  int w = 1343246171;</span>
+<span class="fc" id="L74">  int x = System.identityHashCode(this);</span>
+<span class="fc" id="L75">  int y = -938745813;</span>
+<span class="fc" id="L76">  int z = 452465366;</span>
+<span class="fc" id="L77">  int w = 1343246171;</span>
 
   @Override
   public int randomInt() {
-<span class="fc" id="L69">    int t = x^(x&lt;&lt;15);</span>
+<span class="fc" id="L81">    int t = x^(x&lt;&lt;15);</span>
     //noinspection SuspiciousNameCombination
-<span class="fc" id="L71">    x = y; y = z; z = w;</span>
-<span class="fc" id="L72">    return w = (w^(w&gt;&gt;&gt;21))^(t^(t&gt;&gt;&gt;4));</span>
+<span class="fc" id="L83">    x = y; y = z; z = w;</span>
+<span class="fc" id="L84">    return w = (w^(w&gt;&gt;&gt;21))^(t^(t&gt;&gt;&gt;4));</span>
   }
 
   @Override
   public long getStamp() {
-<span class="fc" id="L77">    return stamp;</span>
+<span class="fc" id="L89">    return stamp;</span>
   }
 
   @Override
   public void setStamp(long stamp) {
-<span class="fc" id="L82">    this.stamp = stamp;</span>
-<span class="fc" id="L83">  }</span>
+<span class="fc" id="L94">    this.stamp = stamp;</span>
+<span class="fc" id="L95">  }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.2.201409121644</span></div></body></html>

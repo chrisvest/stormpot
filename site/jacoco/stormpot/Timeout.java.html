@@ -24,6 +24,12 @@ import java.util.concurrent.TimeUnit;
  * Timeouts are independent of their units, so two timeouts of equivalent
  * duration but constructed in different units, will be equal to each other and
  * work exactly the same.
+ *
+ * Timeouts are also independent of &quot;calendar time&quot; in the sense that they
+ * represent and work as a duration of absolute time. In other words, timeouts
+ * do not grow or shrink with passing leap seconds or daylight savings time
+ * adjustments.
+ *
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  */
 // TODO 3.0 make class final
@@ -41,21 +47,21 @@ public class Timeout {
    * though the meaning is implementation specific.
    * @param unit The unit of the timeout value. Never `null`.
    */
-<span class="fc" id="L44">  public Timeout(long timeout, TimeUnit unit) {</span>
-<span class="fc bfc" id="L45" title="All 2 branches covered.">    if (unit == null) {</span>
-<span class="fc" id="L46">      throw new IllegalArgumentException(&quot;The TimeUnit cannot be null&quot;);</span>
+<span class="fc" id="L50">  public Timeout(long timeout, TimeUnit unit) {</span>
+<span class="fc bfc" id="L51" title="All 2 branches covered.">    if (unit == null) {</span>
+<span class="fc" id="L52">      throw new IllegalArgumentException(&quot;The TimeUnit cannot be null&quot;);</span>
     }
-<span class="fc" id="L48">    this.timeout = timeout;</span>
-<span class="fc" id="L49">    this.unit = unit;</span>
-<span class="fc" id="L50">    this.timeoutBase = getBaseUnit().convert(timeout, unit);</span>
-<span class="fc" id="L51">  }</span>
+<span class="fc" id="L54">    this.timeout = timeout;</span>
+<span class="fc" id="L55">    this.unit = unit;</span>
+<span class="fc" id="L56">    this.timeoutBase = getBaseUnit().convert(timeout, unit);</span>
+<span class="fc" id="L57">  }</span>
 
   /**
    * Get the timeout value in terms of the {@link #getUnit() unit}.
    * @return A numerical value of the timeout. Possibly zero or negative.
    */
   public long getTimeout() {
-<span class="fc" id="L58">    return timeout;</span>
+<span class="fc" id="L64">    return timeout;</span>
   }
 
   /**
@@ -63,7 +69,7 @@ public class Timeout {
    * @return The {@link TimeUnit} of the timeout value. Never `null`.
    */
   public TimeUnit getUnit() {
-<span class="fc" id="L66">    return unit;</span>
+<span class="fc" id="L72">    return unit;</span>
   }
 
   /**
@@ -78,7 +84,7 @@ public class Timeout {
    * this timeout has passed.
    */
   public long getDeadline() {
-<span class="fc" id="L81">    return now() + timeoutBase;</span>
+<span class="fc" id="L87">    return now() + timeoutBase;</span>
   }
 
   /**
@@ -86,7 +92,7 @@ public class Timeout {
    * @return A numerical value of the timeout. Possibly zero or negative.
    */
   public long getTimeoutInBaseUnit() {
-<span class="fc" id="L89">    return timeoutBase;</span>
+<span class="fc" id="L95">    return timeoutBase;</span>
   }
 
   /**
@@ -99,7 +105,7 @@ public class Timeout {
    * this value is negative, then the deadline has transpired.
    */
   public long getTimeLeft(long deadline) {
-<span class="fc" id="L102">    return deadline - now();</span>
+<span class="fc" id="L108">    return deadline - now();</span>
   }
 
   /**
@@ -108,16 +114,16 @@ public class Timeout {
    * @return TimeUnit The unit of precision used by the clock in this Timeout.
    */
   public TimeUnit getBaseUnit() {
-<span class="fc" id="L111">    return TimeUnit.NANOSECONDS;</span>
+<span class="fc" id="L117">    return TimeUnit.NANOSECONDS;</span>
   }
 
   private long now() {
-<span class="fc" id="L115">    return System.nanoTime();</span>
+<span class="fc" id="L121">    return System.nanoTime();</span>
   }
 
   @Override
   public int hashCode() {
-<span class="fc" id="L120">    return 31 * (1 + (int) (timeoutBase ^ (timeoutBase &gt;&gt;&gt; 32)));</span>
+<span class="fc" id="L126">    return 31 * (1 + (int) (timeoutBase ^ (timeoutBase &gt;&gt;&gt; 32)));</span>
   }
 
   /**
@@ -128,11 +134,11 @@ public class Timeout {
    */
   @Override
   public boolean equals(Object obj) {
-<span class="fc bfc" id="L131" title="All 2 branches covered.">    if (!(obj instanceof Timeout)) {</span>
-<span class="fc" id="L132">      return false;</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">    if (!(obj instanceof Timeout)) {</span>
+<span class="fc" id="L138">      return false;</span>
     }
-<span class="fc" id="L134">    Timeout that = (Timeout) obj;</span>
-<span class="fc bfc" id="L135" title="All 2 branches covered.">    return this.timeoutBase == that.timeoutBase;</span>
+<span class="fc" id="L140">    Timeout that = (Timeout) obj;</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">    return this.timeoutBase == that.timeoutBase;</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.2.201409121644</span></div></body></html>
