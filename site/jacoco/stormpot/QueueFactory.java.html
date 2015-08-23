@@ -29,10 +29,10 @@ import java.util.concurrent.LinkedBlockingQueue;
             &quot; and the &quot; + QUEUE_IMPL + &quot; system property did not specify any alternative&quot; +
             &quot; implementation to use.&quot;),
 <span class="fc" id="L31">    SPECIFIED_CHOICE(&quot;The &quot; + QUEUE_IMPL + &quot; system property specified the queue implementation&quot; +</span>
-            &quot; to use, specifically &quot; + System.getProperty(QUEUE_IMPL) + &quot;.&quot;),
+<span class="fc" id="L32">            &quot; to use, specifically &quot; + System.getProperty(QUEUE_IMPL) + &quot;.&quot;),</span>
 <span class="fc" id="L33">    DEFAULT_SECOND_CHOICE(&quot;The &quot; + QUEUE_IMPL_FIRST_CHOICE + &quot; was not available on the&quot; +</span>
             &quot; classpath, and the &quot; + QUEUE_IMPL + &quot; system property did not specify any&quot; +
-            &quot; alternative implementation to use, so &quot; + QUEUE_IMPL_SECOND_CHOICE + &quot; was used&quot; +
+<span class="fc" id="L35">            &quot; alternative implementation to use, so &quot; + QUEUE_IMPL_SECOND_CHOICE + &quot; was used&quot; +</span>
             &quot; as the default fallback.&quot;),
 <span class="fc" id="L37">    DEFAULT_FALLBACK(&quot;&quot;)</span>
     ;

@@ -166,8 +166,8 @@ public class BlazePool&lt;T extends Poolable&gt;
     }
 
     try {
-<span class="pc bpc" id="L169" title="1 of 4 branches missed.">      return deallocRule.hasExpired(slot)</span>
-          &amp;&amp; handleCommonInvalidation(slot, null);
+<span class="fc bfc" id="L169" title="All 2 branches covered.">      return deallocRule.hasExpired(slot)</span>
+<span class="pc bpc" id="L170" title="1 of 2 branches missed.">          &amp;&amp; handleCommonInvalidation(slot, null);</span>
 <span class="nc" id="L171">    } catch (Throwable ex) {</span>
 <span class="nc" id="L172">      return handleCommonInvalidation(slot, ex);</span>
     }

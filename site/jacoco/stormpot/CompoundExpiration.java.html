@@ -39,8 +39,8 @@ public class CompoundExpiration&lt;T extends Poolable&gt; implements Expiration&
    */
   @Override
   public boolean hasExpired(SlotInfo&lt;? extends T&gt; info) throws Exception {
-<span class="fc bfc" id="L42" title="All 4 branches covered.">    return firstExpiration.hasExpired(info)</span>
-            || secondExpiration.hasExpired(info);
+<span class="fc bfc" id="L42" title="All 2 branches covered.">    return firstExpiration.hasExpired(info)</span>
+<span class="fc bfc" id="L43" title="All 2 branches covered.">            || secondExpiration.hasExpired(info);</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.2.201409121644</span></div></body></html>

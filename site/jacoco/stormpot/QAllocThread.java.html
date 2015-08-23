@@ -28,7 +28,7 @@ final class QAllocThread&lt;T extends Poolable&gt; implements Runnable {
    * get its hands on, but there are still (claimed) slots left.
    */
 <span class="fc" id="L30">  private final static long shutdownPauseNanos =</span>
-      TimeUnit.MILLISECONDS.toNanos(10);
+<span class="fc" id="L31">      TimeUnit.MILLISECONDS.toNanos(10);</span>
 
   private final CountDownLatch completionLatch;
   private final BlockingQueue&lt;QSlot&lt;T&gt;&gt; live;
