@@ -51,7 +51,7 @@ Add it as a Maven dependency to your projects:
 <dependency>
   <groupId>com.github.chrisvest</groupId>
   <artifactId>stormpot</artifactId>
-  <version>2.3</version>
+  <version>2.4</version>
 </dependency>
 --
 
