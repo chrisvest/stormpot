@@ -85,8 +85,8 @@ public interface Allocator<T extends Poolable> {
    * a clean-up thread inside the pool.
    *
    * Deallocation from the release of an expired object, and deallocation from
-   * the shut down procedure of a {@link LifecycledPool} behave the same way
-   * in this regard. They will both silently swallow any exception thrown.
+   * the shut down procedure of a {@link Pool} behave the same way in this
+   * regard. They will both silently swallow any exception thrown.
    *
    * On the other hand, pools are guaranteed to otherwise correctly deal with
    * any exception that might be thrown. The shut down procedure will still

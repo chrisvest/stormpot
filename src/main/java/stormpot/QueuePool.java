@@ -16,12 +16,12 @@
 package stormpot;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.ThreadFactory;
 
 /**
- * QueuePool is a fairly simple {@link LifecycledResizablePool} implementation
- * that basically consists of a queue of Poolable instances, and a Thread to
- * allocate them.
+ * QueuePool is a fairly simple {@link Pool} implementation that basically
+ * consists of a queue of Poolable instances, and a Thread to allocate them.
  *
  * This means that the object allocation always happens in a dedicated thread.
  * This means that no thread that calls any of the claim methods, will incur
@@ -40,7 +40,7 @@ import java.util.concurrent.ThreadFactory;
  * @param <T> The type of {@link Poolable} managed by this pool.
  */
 public final class QueuePool<T extends Poolable>
-    implements LifecycledResizablePool<T>, ManagedPool {
+    implements Pool<T>, ManagedPool {
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;
   private final QAllocThread<T> allocator;
@@ -52,21 +52,21 @@ public final class QueuePool<T extends Poolable>
   /**
    * Special slot used to signal that the pool has been shut down.
    */
-  final QSlot<T> poisonPill = new QSlot<T>(null, null);
+  final QSlot<T> poisonPill = new QSlot<>(null, null);
 
   /**
    * Construct a new QueuePool instance based on the given {@link Config}.
    * @param config The pool configuration to use.
    */
   public QueuePool(Config<T> config) {
-    live = QueueFactory.createUnboundedBlockingQueue();
-    dead = QueueFactory.createUnboundedBlockingQueue();
+    live = new LinkedTransferQueue<>();
+    dead = new LinkedTransferQueue<>();
     synchronized (config) {
       config.validate();
       ThreadFactory factory = config.getThreadFactory();
       metricsRecorder = config.getMetricsRecorder();
       expiration = config.getExpiration();
-      allocator = new QAllocThread<T>(
+      allocator = new QAllocThread<>(
           live, dead, config, poisonPill);
       allocatorThread = factory.newThread(allocator);
     }

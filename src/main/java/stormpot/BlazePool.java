@@ -16,13 +16,14 @@
 package stormpot;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 /**
- * BlazePool is a highly optimised {@link LifecycledResizablePool}
- * implementation that consists of a queues of Poolable instances, the access
- * to which is made faster with clever use of ThreadLocals.
+ * BlazePool is a highly optimised {@link Pool} implementation that consists of
+ * a queues of Poolable instances, the access to which is made faster with
+ * clever use of ThreadLocals.
  *
  * Object allocation always happens in a dedicated thread, off-loading the
  * cost of allocating the pooled objects. This leads to reduced deviation
@@ -39,8 +40,11 @@ import java.util.concurrent.TimeUnit;
  * @param <T> The type of {@link Poolable} managed by this pool.
  */
 public final class BlazePool<T extends Poolable>
-    implements LifecycledResizablePool<T>, ManagedPool {
+    implements Pool<T>, ManagedPool {
+
+  @SuppressWarnings("ThrowableInstanceNeverThrown")
   private static final Exception SHUTDOWN_POISON = new Exception();
+  @SuppressWarnings("ThrowableInstanceNeverThrown")
   static final Exception EXPLICIT_EXPIRE_POISON = new Exception();
 
   private final BlockingQueue<BSlot<T>> live;
@@ -63,16 +67,16 @@ public final class BlazePool<T extends Poolable>
    * @param config The pool configuration to use.
    */
   public BlazePool(Config<T> config) {
-    live = QueueFactory.createUnboundedBlockingQueue();
-    disregardPile = new DisregardBPile<T>(live);
-    tlr = new ThreadLocal<BSlot<T>>();
-    poisonPill = new BSlot<T>(live, null);
+    live = new LinkedTransferQueue<>();
+    disregardPile = new DisregardBPile<>(live);
+    tlr = new ThreadLocal<>();
+    poisonPill = new BSlot<>(live, null);
     poisonPill.poison = SHUTDOWN_POISON;
 
     synchronized (config) {
       config.validate();
       ThreadFactory factory = config.getThreadFactory();
-      allocator = new BAllocThread<T>(live, disregardPile, config, poisonPill);
+      allocator = new BAllocThread<>(live, disregardPile, config, poisonPill);
       allocatorThread = factory.newThread(allocator);
       deallocRule = config.getExpiration();
       metricsRecorder = config.getMetricsRecorder();

@@ -90,9 +90,9 @@ public class PoolTest {
   @Rule public final TestRule failurePrinter = new FailurePrinterTestRule();
   
   private static final Expiration<Poolable> oneMsTTL =
-      new TimeExpiration<Poolable>(1, TimeUnit.MILLISECONDS);
+      new TimeExpiration<>(1, TimeUnit.MILLISECONDS);
   private static final Expiration<Poolable> fiveMsTTL =
-      new TimeExpiration<Poolable>(5, TimeUnit.MILLISECONDS);
+      new TimeExpiration<>(5, TimeUnit.MILLISECONDS);
   private static final Timeout longTimeout = new Timeout(1, TimeUnit.MINUTES);
   private static final Timeout mediumTimeout = new Timeout(10, TimeUnit.MILLISECONDS);
   private static final Timeout shortTimeout = new Timeout(1, TimeUnit.MILLISECONDS);
@@ -100,7 +100,7 @@ public class PoolTest {
   
   private CountingAllocator allocator;
   private Config<GenericPoolable> config;
-  private LifecycledResizablePool<GenericPoolable> pool;
+  private Pool<GenericPoolable> pool;
 
   @DataPoint public static PoolFixture queuePool = new QueuePoolFixture();
   @DataPoint public static PoolFixture blazePool = new BlazePoolFixture();
@@ -122,7 +122,7 @@ public class PoolTest {
   }
 
   private void createPool(PoolFixture fixture) {
-    pool = (LifecycledResizablePool<GenericPoolable>) fixture.initPool(config);
+    pool = fixture.initPool(config);
   }
 
   private ManagedPool assumeManagedPool(PoolFixture fixture) {
@@ -1545,12 +1545,12 @@ public class PoolTest {
   mustCompleteShutDownEvenIfAllSlotsHaveNullErrors(PoolFixture fixture)
       throws InterruptedException {
     Allocator<GenericPoolable> allocator = allocator(alloc($null));
-    LifecycledPool<GenericPoolable> pool = givenPoolWithFailedAllocation(fixture, allocator);
+    Pool<GenericPoolable> pool = givenPoolWithFailedAllocation(fixture, allocator);
     // the shut-down procedure must complete before the test times out.
     pool.shutdown().await(longTimeout);
   }
 
-  private LifecycledPool<GenericPoolable> givenPoolWithFailedAllocation(
+  private Pool<GenericPoolable> givenPoolWithFailedAllocation(
       PoolFixture fixture, Allocator<GenericPoolable> allocator) {
     config.setAllocator(allocator);
     createPool(fixture);
@@ -1577,7 +1577,7 @@ public class PoolTest {
       throws InterruptedException {
     Allocator<GenericPoolable> allocator =
         allocator(alloc($throw(new Exception("it's terrible stuff!!!"))));
-    LifecycledPool<GenericPoolable> pool =
+    Pool<GenericPoolable> pool =
         givenPoolWithFailedAllocation(fixture, allocator);
     // must complete before the test timeout:
     pool.shutdown().await(longTimeout);

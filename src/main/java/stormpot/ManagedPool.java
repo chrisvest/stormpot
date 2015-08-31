@@ -81,13 +81,13 @@ public interface ManagedPool {
 
   /**
    * @param size The new target size.
-   * @see ResizablePool#setTargetSize(int)
+   * @see Pool#setTargetSize(int)
    */
   void setTargetSize(int size);
 
   /**
    * @return The current target size.
-   * @see ResizablePool#getTargetSize()
+   * @see Pool#getTargetSize()
    */
   int getTargetSize();
 
@@ -95,8 +95,7 @@ public interface ManagedPool {
    * Returns 'true' if the shut down process has been started on this pool,
    * 'false' otherwise. This method does not reveal whether or not the shut
    * down process has completed.
-   * @return 'true' if {@link LifecycledPool#shutdown()} has been called on
-   * this pool.
+   * @return 'true' if {@link Pool#shutdown()} has been called on this pool.
    */
   boolean isShutDown();
 

@@ -56,7 +56,7 @@ public class PoolIT {
   private ExecutorService executor;
 
   // Initialised in the tests
-  private LifecycledResizablePool<GenericPoolable> pool;
+  private Pool<GenericPoolable> pool;
 
   @DataPoint public static PoolFixture queuePool = new QueuePoolFixture();
   @DataPoint public static PoolFixture blazePool = new BlazePoolFixture();
@@ -96,7 +96,7 @@ public class PoolIT {
   }
 
   private void createPool(PoolFixture fixture) {
-    pool = (LifecycledResizablePool<GenericPoolable>) fixture.initPool(config);
+    pool = fixture.initPool(config);
   }
 
   @Test(timeout = 16010)
@@ -119,7 +119,7 @@ public class PoolIT {
   }
 
   private Runnable createTaskClaimReleaseUntilShutdown(
-      final LifecycledResizablePool<GenericPoolable> pool,
+      final Pool<GenericPoolable> pool,
       final Class<? extends Throwable>... acceptableExceptions) {
     return () -> {
       for (;;) {

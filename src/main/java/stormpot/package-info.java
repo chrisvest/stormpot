@@ -19,13 +19,11 @@
  *
  * Stormpot is a generic, thread-safe and fast object pooling library.
  *
- * The object pools themselves implement the {@link stormpot.Pool} interface,
- * or one or both of the {@link stormpot.LifecycledPool} or
- * {@link stormpot.ResizablePool} interfaces, or even the
- * {@link stormpot.LifecycledResizablePool} interface. The things you actually
- * want to pool must all implement the {@link stormpot.Poolable} interface, and
- * you must also provide an implementation of the {@link stormpot.Allocator}
- * interface as a factory to create your pooled objects.
+ * The object pools themselves implement the {@link stormpot.Pool} interface.
+ * The things you actually want to pool must all implement the
+ * {@link stormpot.Poolable} interface, and you must also provide an
+ * implementation of the {@link stormpot.Allocator} interface as a factory to
+ * create your pooled objects.
  *
  * include::docs/usage.adoc[]
  *

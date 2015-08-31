@@ -73,7 +73,7 @@ public abstract class Sim {
   protected @interface Simulation {
     long measurementTime() default 10;
     TimeUnit measurementTimeUnit() default TimeUnit.SECONDS;
-    Class<? extends LifecycledPool>[] pools() default {QueuePool.class, BlazePool.class};
+    Class<? extends Pool>[] pools() default {QueuePool.class, BlazePool.class};
     Output output() default Output.detailed;
   }
 
@@ -128,19 +128,19 @@ public abstract class Sim {
     Sim sim = (Sim) klass.newInstance();
 
     // Find all the pool implementation constructors.
-    List<Constructor<LifecycledPool<GenericPoolable>>> ctors =
+    List<Constructor<Pool<GenericPoolable>>> ctors =
         new ArrayList<>();
     Simulation simulation = klass.getAnnotation(Simulation.class);
     if (simulation != null) {
-      for (Class<? extends LifecycledPool> type : simulation.pools()) {
+      for (Class<? extends Pool> type : simulation.pools()) {
         Constructor<?> constructor = type.getConstructor(Config.class);
-        ctors.add((Constructor<LifecycledPool<GenericPoolable>>) constructor);
+        ctors.add((Constructor<Pool<GenericPoolable>>) constructor);
       }
     } else {
       Constructor<?> constructor = QueuePool.class.getConstructor(Config.class);
-      ctors.add((Constructor<LifecycledPool<GenericPoolable>>) constructor);
+      ctors.add((Constructor<Pool<GenericPoolable>>) constructor);
       constructor = BlazePool.class.getConstructor(Config.class);
-      ctors.add((Constructor<LifecycledPool<GenericPoolable>>) constructor);
+      ctors.add((Constructor<Pool<GenericPoolable>>) constructor);
     }
 
     // Go through all fields, constructing a set of configurations.
@@ -150,7 +150,7 @@ public abstract class Sim {
     Collection<Config<GenericPoolable>> configurations =
         buildConfigurations(klass, sim, enableAllocationCost);
     for (Config<GenericPoolable> config : configurations) {
-      for (Constructor<LifecycledPool<GenericPoolable>> ctor : ctors) {
+      for (Constructor<Pool<GenericPoolable>> ctor : ctors) {
         Output output = simulation == null? Output.detailed : simulation.output();
         simulate(sim, ctor, config, enableAllocationCost, output);
       }
@@ -261,7 +261,7 @@ public abstract class Sim {
 
   private static void simulate(
       Sim sim,
-      Constructor<LifecycledPool<GenericPoolable>> ctor,
+      Constructor<Pool<GenericPoolable>> ctor,
       Config<GenericPoolable> config,
       AtomicBoolean enableAllocationCost,
       Output output) throws Exception {
@@ -286,7 +286,7 @@ public abstract class Sim {
 
       // Reset internal state.
       enableAllocationCost.set(false);
-      LifecycledPool<GenericPoolable> pool = ctor.newInstance(config);
+      Pool<GenericPoolable> pool = ctor.newInstance(config);
       sim = sim.getClass().newInstance();
       deps.replace(pool);
 

@@ -110,7 +110,7 @@ public class DaoPoolExample {
 
   // tag::poolStart[]
   static class MyDaoPool {
-    private final LifecycledPool<MyDao> pool;
+    private final Pool<MyDao> pool;
     
     public MyDaoPool(DataSource dataSource) {
       MyDaoAllocator allocator = new MyDaoAllocator(dataSource);

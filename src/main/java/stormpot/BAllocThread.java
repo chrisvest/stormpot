@@ -17,6 +17,7 @@ package stormpot;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
@@ -68,7 +69,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
     this.leakDetector = config.isPreciseLeakDetectionEnabled() ?
         new PreciseLeakDetector() : null;
     this.completionLatch = new CountDownLatch(1);
-    this.dead = QueueFactory.createUnboundedBlockingQueue();
+    this.dead = new LinkedTransferQueue<>();
     this.poisonedSlots = new AtomicInteger();
     this.size = 0;
   }
@@ -123,7 +124,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   }
 
   private void increaseSizeByAllocating() {
-    BSlot<T> slot = new BSlot<T>(live, poisonedSlots);
+    BSlot<T> slot = new BSlot<>(live, poisonedSlots);
     alloc(slot);
     registerWithLeakDetector(slot);
   }

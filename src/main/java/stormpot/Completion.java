@@ -23,7 +23,7 @@ package stormpot;
  * if the task has already completed, but the await methods will return
  * immediately if that is the case.
  * @author Chris Vest <mr.chrisvest@gmail.com>
- * @see LifecycledPool#shutdown()
+ * @see Pool#shutdown()
  */
 public interface Completion {
   
