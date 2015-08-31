@@ -41,7 +41,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
+import static java.util.function.Function.identity;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.junit.Assume.assumeThat;
@@ -2862,6 +2865,200 @@ public class PoolTest {
     assertThat(allocator.countAllocations(), is(2));
     assertThat(allocator.countDeallocations(), is(1));
   }
+
+  private static final Consumer<GenericPoolable> nullConsumer = (obj) -> {};
+
+  @Test(timeout = 6010, expected = IllegalArgumentException.class)
+  @Theory public void
+  applyMustThrowOnNullTimeout(PoolFixture fixture)
+      throws Exception {
+    createPool(fixture);
+    pool.apply(null, identity());
+  }
+
+  @Test(timeout = 6010, expected = IllegalArgumentException.class)
+  @Theory public void
+  supplyMustThrowOnNullTimeout(PoolFixture fixture)
+      throws Exception {
+    createPool(fixture);
+    pool.supply(null, nullConsumer);
+  }
+
+  @Test(timeout = 6010, expected = NullPointerException.class)
+  @Theory public void
+  applyMustThrowOnNullFunction(PoolFixture fixture) throws Exception {
+    createPool(fixture);
+    pool.apply(longTimeout, null);
+  }
+
+  @Test(timeout = 6010, expected = NullPointerException.class)
+  @Theory public void
+  supplyMustThrowOnNullConsumer(PoolFixture fixture) throws Exception {
+    createPool(fixture);
+    pool.supply(longTimeout, null);
+  }
+
+  @Test(timeout = 6010)
+  @Theory public void
+  applyMustReturnEmptyIfTimeoutElapses(PoolFixture fixture)
+      throws Exception {
+    createPool(fixture);
+    GenericPoolable obj = pool.claim(longTimeout);
+    try {
+      assertFalse(pool.apply(shortTimeout, identity()).isPresent());
+    } finally {
+      obj.release();
+    }
+  }
+
+  @Test(timeout = 6010)
+  @Theory public void
+  supplyMustReturnFalseIfTimeoutElapses(PoolFixture fixture)
+      throws Exception {
+    createPool(fixture);
+    GenericPoolable obj = pool.claim(longTimeout);
+    try {
+      assertFalse(pool.supply(shortTimeout, nullConsumer));
+    } finally {
+      obj.release();
+    }
+  }
+
+  @Test(timeout = 6010)
+  @Theory public void
+  applyMustNotCallFunctionIfTimeoutElapses(PoolFixture fixture)
+      throws Exception {
+    createPool(fixture);
+    GenericPoolable obj = pool.claim(longTimeout);
+    try {
+      AtomicInteger counter = new AtomicInteger();
+      pool.apply(shortTimeout, (x) -> (Object) counter.incrementAndGet());
+      assertThat(counter.get(), is(0));
+    } finally {
+      obj.release();
+    }
+  }
+
+  @Test(timeout = 6010)
+  @Theory public void
+  supplyMustNotCallConsumerIfTimeoutElapses(PoolFixture fixture)
+      throws Exception {
+    createPool(fixture);
+    GenericPoolable obj = pool.claim(longTimeout);
+    try {
+      AtomicReference<GenericPoolable> ref = new AtomicReference<>();
+      pool.supply(shortTimeout, ref::set);
+      assertThat(ref.get(), is(nullValue()));
+    } finally {
+      obj.release();
+    }
+  }
+
+  @Test(timeout = 6010)
+  @Theory public void
+  applyMustCallFunctionIfObjectClaimedWithinTimeout(PoolFixture fixture)
+      throws Exception {
+    createPool(fixture);
+    AtomicInteger counter = new AtomicInteger();
+    pool.apply(longTimeout, (x) -> (Object) counter.incrementAndGet());
+    assertThat(counter.get(), is(1));
+  }
+
+  @Test(timeout = 6010)
+  @Theory public void
+  supplyMustCallConsumerIfObjectClaimedWithinTimeout(PoolFixture fixture)
+      throws Exception {
+    createPool(fixture);
+    GenericPoolable obj = pool.claim(longTimeout);
+    obj.release();
+    AtomicReference<GenericPoolable> ref = new AtomicReference<>();
+    pool.supply(shortTimeout, ref::set);
+    assertThat(ref.get(), is(sameInstance(obj)));
+  }
+
+  @Test(timeout = 6010)
+  @Theory public void
+  applyMustReturnResultOfFunction(PoolFixture fixture) throws Exception {
+    createPool(fixture);
+    String expectedResult = "Result!";
+    String actualResult = pool.apply(longTimeout,
+        (obj) -> expectedResult).get();
+    assertThat(actualResult, is(expectedResult));
+  }
+
+  @Test(timeout = 6010)
+  @Theory public void
+  applyMustReleaseClaimedObject(PoolFixture fixture) throws Exception {
+    createPool(fixture);
+    pool.apply(longTimeout, identity());
+    pool.apply(longTimeout, identity());
+    fork(() -> pool.apply(longTimeout, identity())).join();
+    fork(() -> pool.apply(longTimeout, identity())).join();
+    pool.apply(longTimeout, identity());
+    pool.apply(longTimeout, identity());
+  }
+
+  @Test(timeout = 6010)
+  @Theory public void
+  supplyMustReleaseClaimedObject(PoolFixture fixture) throws Exception {
+    createPool(fixture);
+    pool.supply(longTimeout, nullConsumer);
+    pool.supply(longTimeout, nullConsumer);
+    fork(() -> pool.supply(longTimeout, nullConsumer)).join();
+    fork(() -> pool.supply(longTimeout, nullConsumer)).join();
+    pool.supply(longTimeout, nullConsumer);
+    pool.supply(longTimeout, nullConsumer);
+  }
+
+  private static Object expectException(Callable<?> callable) {
+    try {
+      callable.call();
+      fail("The ExpectedException was not thrown");
+    } catch (ExpectedException ignore) {
+      // We expect this
+    } catch (Exception e) {
+      throw new AssertionError("Failed for other reason", e);
+    }
+    return null;
+  }
+
+  @Test(timeout = 6010)
+  @Theory public void
+  applyMustReleaseClaimedObjectEvenIfFunctionThrows(PoolFixture fixture)
+      throws Exception {
+    createPool(fixture);
+    Function<GenericPoolable,Object> thrower = (obj) -> {
+      throw new ExpectedException();
+    };
+
+    expectException(() -> pool.apply(longTimeout, thrower));
+    expectException(() -> pool.apply(longTimeout, thrower));
+    fork(() -> expectException(() -> pool.apply(longTimeout, thrower))).join();
+    fork(() -> expectException(() -> pool.apply(longTimeout, thrower))).join();
+    expectException(() -> pool.apply(longTimeout, thrower));
+    expectException(() -> pool.apply(longTimeout, thrower));
+  }
+
+  @Test(timeout = 6010)
+  @Theory public void
+  supplyMustReleaseClaimedObjectEvenIfConsumerThrows(PoolFixture fixture)
+      throws Exception {
+    createPool(fixture);
+    Consumer<GenericPoolable> thrower = (obj) -> {
+      throw new ExpectedException();
+    };
+
+    expectException(() -> pool.supply(longTimeout, thrower));
+    expectException(() -> pool.supply(longTimeout, thrower));
+    fork(() -> expectException(() -> pool.supply(longTimeout, thrower))).join();
+    fork(() -> expectException(() -> pool.supply(longTimeout, thrower))).join();
+    expectException(() -> pool.supply(longTimeout, thrower));
+    expectException(() -> pool.supply(longTimeout, thrower));
+  }
+  // TODO apply must throw if the pool is shut down
+  // TODO supply must throw if the pool is shut down
+  // TODO interrupts
+  // TODO unblock by concurrent release
 
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the javadocs and docs pages.

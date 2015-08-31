@@ -166,8 +166,7 @@ class UnitKit {
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     } catch (ExecutionException e) {
-      // AssertionError doesn't have the (String, Throwable) constructor :(
-      throw new Error("Unexpected exception", e);
+      throw new AssertionError("Unexpected exception", e);
     }
   }
 

@@ -15,6 +15,10 @@
  */
 package stormpot;
 
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
 /**
  * A Pool is a self-renewable set of objects from which one can claim exclusive
  * access to elements, until they are released back into the pool.
@@ -76,7 +80,8 @@ public interface Pool<T extends Poolable> {
    * If the current thread has already one or more objects currently claimed,
    * then a distinct object will be returned, if one is or becomes available.
    * This means that it is possible for a single thread to deplete the pool, if
-   * it so desires.
+   * it so desires. However, doing so is inherently deadlock prone, so avoid
+   * claiming more than one object at a time per thread, if at all possible.
    *
    * This method may throw a PoolException if the pool have trouble allocating
    * objects. That is, if its assigned Allocator throws exceptions from its
@@ -176,4 +181,72 @@ public interface Pool<T extends Poolable> {
    * @return The current target size of this pool.
    */
   int getTargetSize();
+
+  /**
+   * Claim an object from the pool and apply the given function to it, returning
+   * the result and releasing the object back to the pool.
+   *
+   * If an object cannot be claimed within the given timeout, then
+   * {@link Optional#empty()} is returned instead. The `empty()` value is also
+   * returned if the function returns `null`.
+   *
+   * @param timeout The timeout of the maximum permitted time-slice to wait for
+   * an object to become available. A timeout with a value of zero or less
+   * means that the call will do no waiting, preferring instead to return early
+   * if no objects are available.
+   * @param function The function to apply to the claimed object, if any. The
+   * function should avoid further claims, since having more than one object
+   * claimed at a time per thread is inherently deadlock prone.
+   * @param <R> The return type of the given function.
+   * @return an {@link Optional} of either the return value of applying the
+   * given function to a claimed object, or empty if the timeout elapsed or
+   * the function returned `null`.
+   * @throws InterruptedException if the thread was interrupted.
+   * @see #claim(Timeout) for more details on failure modes and memory effects.
+   */
+  default <R> Optional<R> apply(Timeout timeout, Function<T, R> function)
+      throws InterruptedException {
+    T obj = claim(timeout);
+    if (obj == null) {
+      return Optional.empty();
+    }
+    try {
+      return Optional.ofNullable(function.apply(obj));
+    } finally {
+      obj.release();
+    }
+  }
+
+  /**
+   * Claim an object from the pool and supply it to the given consumer, and then
+   * release it back to the pool.
+   *
+   * If an object cannot be claimed within the given timeout, then this method
+   * returns `false`. Otherwise, if an object was claimed and supplied to the
+   * consumer, the method returns `true`.
+   * @param timeout The timeout of the maximum permitted time-slice to wait for
+   * an object to become available. A timeout with a value of zero or less
+   * means that the call will do no waiting, preferring instead to return early
+   * if no objects are available.
+   * @param consumer The consumer to pass the claimed object to, if any. The
+   * consumer should avoid further claims, since having more than one object
+   * claimed at a time per thread is inherently deadlock prone.
+   * @return `true` if an object could be claimed within the given timeout and
+   * passed to the given consumer, or `false` otherwise.
+   * @throws InterruptedException if the thread was interrupted.
+   * @see #claim(Timeout) for more details on failure modes and memory effects.
+   */
+  default boolean supply(Timeout timeout, Consumer<T> consumer)
+      throws InterruptedException {
+    T obj = claim(timeout);
+    if (obj == null) {
+      return false;
+    }
+    try {
+      consumer.accept(obj);
+      return true;
+    } finally {
+      obj.release();
+    }
+  }
 }
