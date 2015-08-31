@@ -56,7 +56,7 @@ public class CompoundExpirationTest {
   private CompoundExpiration<GenericPoolable> compoundExpiration(
           Expiration<GenericPoolable> first,
           Expiration<GenericPoolable> second) {
-    return new CompoundExpiration<GenericPoolable>(first, second);
+    return new CompoundExpiration<>(first, second);
   }
 
   public MockSlotInfo mockSlotInfo() {

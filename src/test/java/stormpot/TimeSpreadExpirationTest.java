@@ -46,14 +46,16 @@ public class TimeSpreadExpirationTest {
   
   @Test public void
   slotsAtExactlyTheUpperExpirationBoundAreAlwaysInvalid() throws Exception {
-    TimeSpreadExpiration<Poolable> expiration = createExpiration(1, 2, TimeUnit.SECONDS);
+    TimeSpreadExpiration<Poolable> expiration =
+        createExpiration(1, 2, TimeUnit.SECONDS);
     int percentage = expirationPercentage(expiration, 2000);
     assertThat(percentage, is(100));
   }
   
   @Test public void
   slotsYoungerThanTheLowerExpirationBoundAreNeverInvalid() throws Exception {
-    TimeSpreadExpiration<Poolable> expiration = createExpiration(1, 2, TimeUnit.SECONDS);
+    TimeSpreadExpiration<Poolable> expiration =
+        createExpiration(1, 2, TimeUnit.SECONDS);
     int percentage = expirationPercentage(expiration, 999);
     assertThat(percentage, is(0));
   }
@@ -61,7 +63,8 @@ public class TimeSpreadExpirationTest {
   @Test public void
   slotsMidwayInBetweenTheLowerAndUpperBoundHave50PercentChanceOfBeingInvalid()
       throws Exception {
-    TimeSpreadExpiration<Poolable> expiration = createExpiration(1, 2, TimeUnit.SECONDS);
+    TimeSpreadExpiration<Poolable> expiration =
+        createExpiration(1, 2, TimeUnit.SECONDS);
     int percentage = expirationPercentage(expiration, 1500);
     assertThat(Math.abs(percentage - 50), lessThan(2));
   }
@@ -69,7 +72,8 @@ public class TimeSpreadExpirationTest {
   @Test public void
   slotsThatAre25PercentUpTheIntervalHave25PercentChanceOFBeingInvalid()
       throws Exception {
-    TimeSpreadExpiration<Poolable> expiration = createExpiration(1, 2, TimeUnit.SECONDS);
+    TimeSpreadExpiration<Poolable> expiration =
+        createExpiration(1, 2, TimeUnit.SECONDS);
     int percentage = expirationPercentage(expiration, 1250);
     assertThat(Math.abs(percentage - 25), lessThan(2));
   }
@@ -77,17 +81,21 @@ public class TimeSpreadExpirationTest {
   @Test public void
   slotsThatAre75PercentUpTheIntervalHave75PercentChanceOFBeingInvalid()
       throws Exception {
-    TimeSpreadExpiration<Poolable> expiration = createExpiration(1, 2, TimeUnit.SECONDS);
+    TimeSpreadExpiration<Poolable> expiration =
+        createExpiration(1, 2, TimeUnit.SECONDS);
     int percentage = expirationPercentage(expiration, 1750);
     assertThat(Math.abs(percentage - 75), lessThan(2));
   }
 
   @Test public void
   mustHaveNiceToString() {
-    TimeSpreadExpiration<Poolable> expiration = createExpiration(8, 10, TimeUnit.MINUTES);
-    assertThat(expiration.toString(), is("TimeSpreadExpiration(8 to 10 MINUTES)"));
+    TimeSpreadExpiration<Poolable> expiration =
+        createExpiration(8, 10, TimeUnit.MINUTES);
+    assertThat(expiration.toString(),
+        is("TimeSpreadExpiration(8 to 10 MINUTES)"));
     expiration = createExpiration(60, 160, TimeUnit.MILLISECONDS);
-    assertThat(expiration.toString(), is("TimeSpreadExpiration(60 to 160 MILLISECONDS)"));
+    assertThat(expiration.toString(),
+        is("TimeSpreadExpiration(60 to 160 MILLISECONDS)"));
   }
 
   @Test public void
@@ -102,8 +110,9 @@ public class TimeSpreadExpirationTest {
     int expirationsMin = objectsPerMillis - expirationCountTollerance;
     int expirationsMax = objectsPerMillis + expirationCountTollerance;
 
-    TimeSpreadExpiration<Poolable> expiration = createExpiration(base, top, TimeUnit.MILLISECONDS);
-    List<MockSlotInfo> infos = new LinkedList<MockSlotInfo>();
+    TimeSpreadExpiration<Poolable> expiration =
+        createExpiration(base, top, TimeUnit.MILLISECONDS);
+    List<MockSlotInfo> infos = new LinkedList<>();
 
     for (int i = 0; i < objects; i++) {
       infos.add(new MockSlotInfo(base));
@@ -142,7 +151,8 @@ public class TimeSpreadExpirationTest {
     return expired / 1000;
   }
 
-  private TimeSpreadExpiration<Poolable> createExpiration(int lowerBound, int upperBound, TimeUnit minutes) {
-    return new TimeSpreadExpiration<Poolable>(lowerBound, upperBound, minutes);
+  private TimeSpreadExpiration<Poolable> createExpiration(
+      int lowerBound, int upperBound, TimeUnit minutes) {
+    return new TimeSpreadExpiration<>(lowerBound, upperBound, minutes);
   }
 }

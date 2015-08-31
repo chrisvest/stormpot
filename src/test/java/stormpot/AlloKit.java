@@ -88,8 +88,8 @@ public class AlloKit {
         OnDeallocation onDeallocation) {
       this.onAllocation = onAllocation;
       this.onDeallocation = onDeallocation;
-      allocations = synchronizedList(new ArrayList<GenericPoolable>());
-      deallocations = synchronizedList(new ArrayList<GenericPoolable>());
+      allocations = synchronizedList(new ArrayList<>());
+      deallocations = synchronizedList(new ArrayList<>());
     }
 
     @Override
@@ -147,7 +147,7 @@ public class AlloKit {
         OnReallocation onReallocation) {
       super(onAllocation, onDeallocation);
       this.onReallocation = onReallocation;
-      reallocations = synchronizedList(new ArrayList<GenericPoolable>());
+      reallocations = synchronizedList(new ArrayList<>());
     }
 
     @Override
@@ -249,83 +249,55 @@ public class AlloKit {
     return reallocator(alloc($new), dealloc($null), realloc($new));
   }
 
-  public static final Action $new = new Action() {
-    @Override
-    public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
-      return new GenericPoolable(slot);
-    }
-  };
+  public static final Action $new = (slot, obj) -> new GenericPoolable(slot);
 
-  public static final Action $null = new Action() {
-    @Override
-    public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
-      return null;
-    }
-  };
+  public static final Action $null = (slot, obj) -> null;
 
   public static Action $throw(final Exception e) {
-    return new Action() {
-      @Override
-      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
-        throw e;
-      }
+    return (slot, obj) -> {
+      throw e;
     };
   }
 
   public static Action $throw(final Error e) {
-    return new Action() {
-      @Override
-      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
-        throw e;
-      }
+    return (slot, obj) -> {
+      throw e;
     };
   }
 
   public static Action $acquire(final Semaphore semaphore, final Action action) {
-    return new Action() {
-      @Override
-      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
-        semaphore.acquire();
-        return action.apply(slot, obj);
-      }
+    return (slot, obj) -> {
+      semaphore.acquire();
+      return action.apply(slot, obj);
     };
   }
 
   public static Action $release(final Semaphore semaphore, final Action action) {
-    return new Action() {
-      @Override
-      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
-        semaphore.release();
-        return action.apply(slot, obj);
-      }
+    return (slot, obj) -> {
+      semaphore.release();
+      return action.apply(slot, obj);
     };
   }
 
   public static Action $countDown(
       final CountDownLatch latch,
       final Action action) {
-    return new Action() {
-      @Override
-      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
-        try {
-          return action.apply(slot, obj);
-        } finally {
-          latch.countDown();
-        }
+    return (slot, obj) -> {
+      try {
+        return action.apply(slot, obj);
+      } finally {
+        latch.countDown();
       }
     };
   }
 
   public static Action $sync(final Lock lock, final Action action) {
-    return new Action() {
-      @Override
-      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
-        lock.lock();
-        try {
-          return action.apply(slot, obj);
-        } finally {
-          lock.unlock();
-        }
+    return (slot, obj) -> {
+      lock.lock();
+      try {
+        return action.apply(slot, obj);
+      } finally {
+        lock.unlock();
       }
     };
   }
@@ -333,24 +305,18 @@ public class AlloKit {
   public static Action $observeNull(
       final AtomicBoolean observedNull,
       final Action action) {
-    return new Action() {
-      @Override
-      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
-        if (obj == null) {
-          observedNull.set(true);
-        }
-        return action.apply(slot, obj);
+    return (slot, obj) -> {
+      if (obj == null) {
+        observedNull.set(true);
       }
+      return action.apply(slot, obj);
     };
   }
 
   public static Action $sleep(final long millis, final Action action) {
-    return new Action() {
-      @Override
-      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
-        Thread.sleep(millis);
-        return action.apply(slot, obj);
-      }
+    return (slot, obj) -> {
+      Thread.sleep(millis);
+      return action.apply(slot, obj);
     };
   }
 
@@ -358,14 +324,11 @@ public class AlloKit {
       final AtomicBoolean cond,
       final Action then,
       final Action alt) {
-    return new Action() {
-      @Override
-      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
-        if (cond.get()) {
-          return then.apply(slot, obj);
-        }
-        return alt.apply(slot, obj);
+    return (slot, obj) -> {
+      if (cond.get()) {
+        return then.apply(slot, obj);
       }
+      return alt.apply(slot, obj);
     };
   }
 }

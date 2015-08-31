@@ -39,7 +39,7 @@ public abstract class Sim {
 
   private static final Timeout SHUTDOWN_TIMEOUT = new Timeout(10, TimeUnit.SECONDS);
 
-  protected static enum Param {
+  protected enum Param {
     size(Integer.TYPE),
     expiration(Expiration.class),
     backgroundExpirationEnabled(Boolean.TYPE),
@@ -62,7 +62,7 @@ public abstract class Sim {
     }
   }
 
-  protected static enum Output {
+  protected enum Output {
     none,
     summary,
     detailed
@@ -70,7 +70,7 @@ public abstract class Sim {
 
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.TYPE)
-  protected static @interface Simulation {
+  protected @interface Simulation {
     long measurementTime() default 10;
     TimeUnit measurementTimeUnit() default TimeUnit.SECONDS;
     Class<? extends LifecycledPool>[] pools() default {QueuePool.class, BlazePool.class};
@@ -79,13 +79,13 @@ public abstract class Sim {
 
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.FIELD)
-  protected static @interface Conf {
+  protected @interface Conf {
     Param value();
   }
 
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.METHOD)
-  protected static @interface Agent {
+  protected @interface Agent {
     String name() default "";
     long initialDelay() default 0;
     TimeUnit initialDelayUnit() default TimeUnit.MILLISECONDS;
@@ -93,20 +93,20 @@ public abstract class Sim {
 
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.METHOD)
-  protected static @interface Agents {
+  protected @interface Agents {
     Agent[] value();
   }
 
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.METHOD)
-  protected static @interface AgentPause {
+  protected @interface AgentPause {
     String name() default "";
     TimeUnit unit() default TimeUnit.MILLISECONDS;
   }
 
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.METHOD)
-  protected static @interface AllocationCost {
+  protected @interface AllocationCost {
     TimeUnit value() default TimeUnit.MILLISECONDS;
   }
 
@@ -120,6 +120,7 @@ public abstract class Sim {
     }
   }
 
+  @SuppressWarnings("unchecked")
   public static void main(String[] args) throws Exception {
     long start = System.currentTimeMillis();
     String cmdClass = System.getProperty("sun.java.command").replaceFirst("^.*\\s+", "");
@@ -128,7 +129,7 @@ public abstract class Sim {
 
     // Find all the pool implementation constructors.
     List<Constructor<LifecycledPool<GenericPoolable>>> ctors =
-        new ArrayList<Constructor<LifecycledPool<GenericPoolable>>>();
+        new ArrayList<>();
     Simulation simulation = klass.getAnnotation(Simulation.class);
     if (simulation != null) {
       for (Class<? extends LifecycledPool> type : simulation.pools()) {
@@ -166,7 +167,7 @@ public abstract class Sim {
     // Produce a Config for every permutation of each group
 
     // Building the groups
-    EnumMap<Param, List<Object>> groups = new EnumMap<Param, List<Object>>(Param.class);
+    EnumMap<Param, List<Object>> groups = new EnumMap<>(Param.class);
     for (Field field : klass.getDeclaredFields()) {
       Conf conf = field.getAnnotation(Conf.class);
       if (conf != null) {
@@ -174,7 +175,7 @@ public abstract class Sim {
         Object value = field.get(sim);
         List<Object> values = groups.get(param);
         if (values == null) {
-          values = new LinkedList<Object>();
+          values = new LinkedList<>();
           groups.put(param, values);
         }
         values.add(value);
@@ -184,14 +185,14 @@ public abstract class Sim {
     // Sequence the groups
     Link<Map.Entry<Param, List<Object>>> head = null;
     for (Map.Entry<Param, List<Object>> entry : groups.entrySet()) {
-      head = new Link<Map.Entry<Param, List<Object>>>(head, entry);
+      head = new Link<>(head, entry);
     }
 
     // Building Config permutations
-    Config<GenericPoolable> baseConfig = new Config<GenericPoolable>();
+    Config<GenericPoolable> baseConfig = new Config<>();
     CountingAllocator allocator = buildAllocator(sim, enableAllocationCost);
     baseConfig.setAllocator(allocator);
-    List<Config<GenericPoolable>> result = new LinkedList<Config<GenericPoolable>>();
+    List<Config<GenericPoolable>> result = new LinkedList<>();
     addConfigPermutations(head, baseConfig, result);
     return result;
   }
@@ -291,7 +292,7 @@ public abstract class Sim {
 
       // Wait for the pool to boot up.
       int size = config.getSize();
-      List<GenericPoolable> objs = new ArrayList<GenericPoolable>();
+      List<GenericPoolable> objs = new ArrayList<>();
       for (int j = 0; j < size; j++) {
         objs.add(pool.claim(new Timeout(30, TimeUnit.MINUTES)));
       }
@@ -354,8 +355,8 @@ public abstract class Sim {
     // Agents are defined by the @Agent or @Agents annotations.
     // Their timings are defined by the @AgentPause annotation, linked by their name.
     Method[] methods = getClass().getMethods();
-    List<AgentRunner> agents = new ArrayList<AgentRunner>();
-    Map<String, IterationPause> iterationPauseIndex = new HashMap<String, IterationPause>();
+    List<AgentRunner> agents = new ArrayList<>();
+    Map<String, IterationPause> iterationPauseIndex = new HashMap<>();
     for (Method method : methods) {
       AgentPause agentPause = method.getAnnotation(AgentPause.class);
       if (agentPause != null) {
@@ -558,7 +559,7 @@ public abstract class Sim {
     private final List<Object> dependencies;
 
     private DependencyResolver() {
-      dependencies = new ArrayList<Object>();
+      dependencies = new ArrayList<>();
     }
 
     public void add(Object obj) {

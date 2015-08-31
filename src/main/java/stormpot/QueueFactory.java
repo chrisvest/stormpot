@@ -49,7 +49,6 @@ final class QueueFactory {
   }
 
   private static final Factory factory;
-  private static final FactoryChoiceReason reason;
 
   // stop checking line length
   private static final String QUEUE_IMPL = "stormpot.blocking.queue.impl";
@@ -98,25 +97,13 @@ final class QueueFactory {
     }
 
     if (theFactory == null) {
-      theFactory = new Factory() {
-        @Override
-        public <T> BlockingQueue<T> createUnboundedBlockingQueue() {
-          return new LinkedBlockingQueue<T>();
-        }
-      };
-      theReason = theReason == FactoryChoiceReason.DEFAULT_FIRST_CHOICE?
-          FactoryChoiceReason.DEFAULT_SECOND_CHOICE : FactoryChoiceReason.DEFAULT_FALLBACK;
+      theFactory = LinkedBlockingQueue::new;
     }
 
     factory = theFactory;
-    reason = theReason;
   }
 
   static <T> BlockingQueue<T> createUnboundedBlockingQueue() {
     return factory.createUnboundedBlockingQueue();
-  }
-
-  static FactoryChoiceReason getQueueFactoryChoiceReason() {
-    return reason;
   }
 }

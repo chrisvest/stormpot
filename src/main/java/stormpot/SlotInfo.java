@@ -16,7 +16,7 @@
 package stormpot;
 
 /**
- * An informative little interface, used by {@link Expiration} instances to
+ * An informative interface, used by {@link Expiration} instances to
  * determine if a slot has expired or is still invalid for claiming.
  *
  * @author Chris Vest <mr.chrisvest@gmail.com>

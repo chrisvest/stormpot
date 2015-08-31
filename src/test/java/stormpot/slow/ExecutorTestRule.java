@@ -97,7 +97,7 @@ public class ExecutorTestRule implements TestRule {
     private final String testName;
     private final AtomicInteger threadCounter = new AtomicInteger();
     private final List<Thread> threads =
-        Collections.synchronizedList(new ArrayList<Thread>());
+        Collections.synchronizedList(new ArrayList<>());
 
     private TestThreadFactory(String testName) {
       this.testName = testName;

@@ -39,8 +39,7 @@ import java.util.concurrent.ThreadFactory;
  * @author Chris Vest <mr.chrisvest@gmail.com>
  * @param <T> The type of {@link Poolable} managed by this pool.
  */
-// TODO 3.0 make class final
-public class QueuePool<T extends Poolable>
+public final class QueuePool<T extends Poolable>
     implements LifecycledResizablePool<T>, ManagedPool {
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;

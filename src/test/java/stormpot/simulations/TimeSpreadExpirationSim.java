@@ -29,12 +29,13 @@ public class TimeSpreadExpirationSim extends Sim {
                                 // java.util.Set instead, but that's probably not worth the effort.
   @Conf(Param.expiration)
   public Expiration[] expirations = {
-      new TimeExpiration<Poolable>(2, TimeUnit.SECONDS),
-      new TimeSpreadExpiration<Poolable>(1, 2, TimeUnit.SECONDS)
+      new TimeExpiration<>(2, TimeUnit.SECONDS),
+      new TimeSpreadExpiration<>(1, 2, TimeUnit.SECONDS)
   };
 
   @Agents({@Agent, @Agent, @Agent, @Agent, @Agent, @Agent, @Agent})
-  public void claimRelease(Pool<GenericPoolable> pool) throws InterruptedException {
+  public void claimRelease(Pool<GenericPoolable> pool)
+      throws InterruptedException {
     pool.claim(new Timeout(1, TimeUnit.MINUTES)).release();
   }
 

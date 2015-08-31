@@ -24,8 +24,7 @@ import java.util.concurrent.TimeUnit;
  * @author Chris Vest <mr.chrisvest@gmail.com>
  * @since 2.2
  */
-// TODO 3.0 make class final
-public class TimeSpreadExpiration<T extends Poolable> implements Expiration<T> {
+public final class TimeSpreadExpiration<T extends Poolable> implements Expiration<T> {
 
   private final long lowerBoundMillis;
   private final long upperBoundMillis;

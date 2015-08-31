@@ -37,8 +37,8 @@ public class ThreadLocalWeakRefTest {
     // collected.
 
     Object obj = new Object();
-    ThreadLocal<Object> threadLocal = new ThreadLocal<Object>();
-    WeakReference<Object> weakReference = new WeakReference<Object>(obj);
+    ThreadLocal<Object> threadLocal = new ThreadLocal<>();
+    WeakReference<Object> weakReference = new WeakReference<>(obj);
     threadLocal.set(obj);
 
     // The stack of every thread is a GC-root. We have a strong reference to
@@ -61,9 +61,9 @@ public class ThreadLocalWeakRefTest {
     // ThreadLocalMap does its clean-up procedure. We cannot invoke the
     // clean-up procedure directly, but sufficient perturbation of the
     // ThreadLocalMap will bring it about.
-    ThreadLocal<Object> a = new ThreadLocal<Object>();
+    ThreadLocal<Object> a = new ThreadLocal<>();
     a.set(new Object());
-    ThreadLocal<Object> b = new ThreadLocal<Object>();
+    ThreadLocal<Object> b = new ThreadLocal<>();
     b.set(new Object());
 
     // The entry has now been removed, and our obj is now weakly referenced

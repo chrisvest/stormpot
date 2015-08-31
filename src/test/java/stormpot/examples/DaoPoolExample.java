@@ -115,7 +115,7 @@ public class DaoPoolExample {
     public MyDaoPool(DataSource dataSource) {
       MyDaoAllocator allocator = new MyDaoAllocator(dataSource);
       Config<MyDao> config = new Config<MyDao>().setAllocator(allocator);
-      pool = new QueuePool<MyDao>(config);
+      pool = new QueuePool<>(config);
     }
     // end::poolStart[]
 
@@ -127,7 +127,7 @@ public class DaoPoolExample {
         config.setExpiration(new TestQueryExpiration());
       }
 
-      pool = new QueuePool<MyDao>(config);
+      pool = new QueuePool<>(config);
     }
 
     // tag::poolClose[]
@@ -148,8 +148,8 @@ public class DaoPoolExample {
     }
   }
   
-  static interface WithMyDaoDo<T> {
-    public T doWithDao(MyDao dao);
+  interface WithMyDaoDo<T> {
+    T doWithDao(MyDao dao);
   }
   // end::poolDoWithDao[]
 
@@ -158,11 +158,7 @@ public class DaoPoolExample {
     DataSource dataSource = configureDataSource();
     MyDaoPool pool = new MyDaoPool(dataSource);
     try {
-      String person = pool.doWithDao(new WithMyDaoDo<String>() {
-        public String doWithDao(MyDao dao) {
-          return dao.getFirstName();
-        }
-      });
+      String person = pool.doWithDao(MyDao::getFirstName);
       System.out.println("Hello there, " + person + "!");
     } finally {
       pool.close();

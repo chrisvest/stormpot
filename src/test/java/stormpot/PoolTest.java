@@ -224,7 +224,7 @@ public class PoolTest {
     createPool(fixture);
     GenericPoolable obj = pool.claim(longTimeout);
     assertNotNull("Did not deplete pool in time", obj);
-    AtomicReference<GenericPoolable> ref = new AtomicReference<GenericPoolable>();
+    AtomicReference<GenericPoolable> ref = new AtomicReference<>();
     Thread thread = fork(capture($claim(pool, longTimeout), ref));
     try {
       waitForThreadState(thread, Thread.State.TIMED_WAITING);
@@ -249,7 +249,7 @@ public class PoolTest {
     createPool(fixture);
     Poolable obj = pool.claim(longTimeout);
     assertNotNull("Did not deplete pool in time", obj);
-    AtomicReference<GenericPoolable> ref = new AtomicReference<GenericPoolable>();
+    AtomicReference<GenericPoolable> ref = new AtomicReference<>();
     Thread thread = fork(capture($claim(pool, longTimeout), ref));
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     obj.release();
@@ -322,12 +322,7 @@ public class PoolTest {
   @Test(timeout = 601, expected = NullPointerException.class)
   @Theory public void
   constructorMustThrowIfConfiguredThreadFactoryReturnsNull(PoolFixture fixture) {
-    ThreadFactory factory = new ThreadFactory() {
-      @Override
-      public Thread newThread(Runnable r) {
-        return null;
-      }
-    };
+    ThreadFactory factory = r -> null;
     config.setThreadFactory(factory);
     createPool(fixture);
   }
@@ -446,8 +441,7 @@ public class PoolTest {
   @Theory public void
   slotInfoMustHaveReferenceToItsPoolable(PoolFixture fixture)
       throws Exception {
-    final AtomicReference<Poolable> lastPoolable =
-        new AtomicReference<Poolable>();
+    final AtomicReference<Poolable> lastPoolable = new AtomicReference<>();
     config.setExpiration(expire($capture($poolable(lastPoolable), $fresh)));
     createPool(fixture);
     GenericPoolable a = pool.claim(longTimeout);
@@ -470,7 +464,7 @@ public class PoolTest {
   slotInfoMustBeAbleToProduceRandomNumbers(PoolFixture fixture)
       throws Exception {
     final AtomicReference<SlotInfo<? extends Poolable>> slotInfoRef =
-        new AtomicReference<SlotInfo<? extends Poolable>>();
+        new AtomicReference<>();
     config.setExpiration(expire($capture($slotInfo(slotInfoRef), $fresh)));
     createPool(fixture);
     pool.claim(longTimeout).release(); // Now we have a SlotInfo reference.
@@ -506,11 +500,9 @@ public class PoolTest {
   slotInfoClaimCountMustResetIfSlotsAreReused(PoolFixture fixture)
       throws Exception {
     final AtomicLong maxClaimCount = new AtomicLong();
-    Expiration<Poolable> expiration = new Expiration<Poolable>() {
-      public boolean hasExpired(SlotInfo<? extends Poolable> info) {
-        maxClaimCount.set(Math.max(maxClaimCount.get(), info.getClaimCount()));
-        return info.getClaimCount() > 1;
-      }
+    Expiration<Poolable> expiration = info -> {
+      maxClaimCount.set(Math.max(maxClaimCount.get(), info.getClaimCount()));
+      return info.getClaimCount() > 1;
     };
     config.setExpiration(expiration);
     createPool(fixture);
@@ -533,16 +525,14 @@ public class PoolTest {
   @Theory public void
   slotInfoMustRememberStamp(PoolFixture fixture) throws Exception {
     final AtomicBoolean rememberedStamp = new AtomicBoolean();
-    Expiration<Poolable> expiration = new Expiration<Poolable>() {
-      public boolean hasExpired(SlotInfo<? extends Poolable> info) throws Exception {
-        long stamp = info.getStamp();
-        if (stamp == 0) {
-          info.setStamp(13);
-        } else if (stamp == 13) {
-          rememberedStamp.set(true);
-        }
-        return false;
+    Expiration<Poolable> expiration = info -> {
+      long stamp = info.getStamp();
+      if (stamp == 0) {
+        info.setStamp(13);
+      } else if (stamp == 13) {
+        rememberedStamp.set(true);
       }
+      return false;
     };
     config.setExpiration(expiration);
     createPool(fixture);
@@ -561,17 +551,14 @@ public class PoolTest {
   @Theory public void
   slotInfoStampMustResetIfSlotsAreReused(PoolFixture fixture) throws Exception {
     final AtomicLong zeroStampsCounted = new AtomicLong(0);
-    Expiration<Poolable> expiration = new Expiration<Poolable>() {
-      public boolean hasExpired(SlotInfo<? extends Poolable> info)
-          throws Exception {
-        long stamp = info.getStamp();
-        info.setStamp(15);
-        if (stamp == 0) {
-          zeroStampsCounted.incrementAndGet();
-          return false;
-        }
-        return true;
+    Expiration<Poolable> expiration = info -> {
+      long stamp = info.getStamp();
+      info.setStamp(15);
+      if (stamp == 0) {
+        zeroStampsCounted.incrementAndGet();
+        return false;
       }
+      return true;
     };
     config.setExpiration(expiration);
     createPool(fixture);
@@ -908,7 +895,7 @@ public class PoolTest {
   blockedClaimMustThrowWhenPoolIsShutDown(PoolFixture fixture)
       throws Exception {
     createPool(fixture);
-    AtomicReference<Exception> caught = new AtomicReference<Exception>();
+    AtomicReference<Exception> caught = new AtomicReference<>();
     Poolable obj = pool.claim(longTimeout);
     Thread thread = fork($catchFrom($claim(pool, longTimeout), caught));
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
@@ -984,7 +971,7 @@ public class PoolTest {
     int size = 10;
     config.setSize(size);
     createPool(fixture);
-    List<GenericPoolable> objs = new ArrayList<GenericPoolable>();
+    List<GenericPoolable> objs = new ArrayList<>();
     for (int i = 0; i < size; i++) {
       objs.add(pool.claim(longTimeout));
     }
@@ -1648,7 +1635,7 @@ public class PoolTest {
     obj.release(); // item now biased to our thread
     // claiming in a different thread should give us the same object.
     AtomicReference<GenericPoolable> ref =
-        new AtomicReference<GenericPoolable>();
+        new AtomicReference<>();
     join(forkFuture(capture($claim(pool, longTimeout), ref)));
     try {
       assertThat(ref.get(), is(obj));
@@ -1673,7 +1660,7 @@ public class PoolTest {
     createPool(fixture);
     pool.claim(longTimeout).release(); // bias the object to our thread
     GenericPoolable obj = pool.claim(longTimeout); // this is now our biased claim
-    AtomicReference<GenericPoolable> ref = new AtomicReference<GenericPoolable>();
+    AtomicReference<GenericPoolable> ref = new AtomicReference<>();
     // the biased claim will be upgraded to an ordinary claim:
     join(forkFuture(capture($claim(pool, zeroTimeout), ref)));
     try {
@@ -1809,17 +1796,14 @@ public class PoolTest {
 
     final String allocationCause = "allocation blew up!";
     final AtomicReference<Slot> failOnAllocatingSlot =
-        new AtomicReference<Slot>();
+        new AtomicReference<>();
     final AtomicInteger observedFailedAllocation = new AtomicInteger();
-    Action observeFailure = new Action() {
-      @Override
-      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
-        if (slot == failOnAllocatingSlot.get()) {
-          observedFailedAllocation.incrementAndGet();
-          throw new RuntimeException(allocationCause);
-        }
-        return new GenericPoolable(slot);
+    Action observeFailure = (slot, obj) -> {
+      if (slot == failOnAllocatingSlot.get()) {
+        observedFailedAllocation.incrementAndGet();
+        throw new RuntimeException(allocationCause);
       }
+      return new GenericPoolable(slot);
     };
     allocator = allocator(alloc($acquire(semaphore, observeFailure)));
     config.setAllocator(allocator);
@@ -1839,7 +1823,7 @@ public class PoolTest {
     // Expire all poolables
     hasExpired.set(true);
     AtomicReference<GenericPoolable> ref =
-        new AtomicReference<GenericPoolable>();
+        new AtomicReference<>();
     try {
       forkFuture(capture($claim(pool, shortTimeout), ref)).get();
     } catch (ExecutionException ignore) {
@@ -1930,7 +1914,7 @@ public class PoolTest {
     config.setSize(startingSize);
     config.setAllocator(allocator);
     createPool(fixture);
-    List<GenericPoolable> objs = new ArrayList<GenericPoolable>();
+    List<GenericPoolable> objs = new ArrayList<>();
 
     while (allocator.countAllocations() != startingSize) {
       objs.add(pool.claim(longTimeout)); // force the pool to do work
@@ -1988,7 +1972,7 @@ public class PoolTest {
     config.setExpiration(expiration).setAllocator(allocator);
     config.setSize(startingSize);
     createPool(fixture);
-    List<GenericPoolable> objs = new ArrayList<GenericPoolable>();
+    List<GenericPoolable> objs = new ArrayList<>();
     for (int i = 0; i < startingSize; i++) {
       objs.add(pool.claim(longTimeout));
     }
@@ -2260,14 +2244,11 @@ public class PoolTest {
   poolMustUseConfiguredThreadFactoryWhenCreatingBackgroundThreads(
       PoolFixture fixture) throws InterruptedException {
     final ThreadFactory delegateThreadFactory = config.getThreadFactory();
-    final List<Thread> createdThreads = new ArrayList<Thread>();
-    ThreadFactory factory = new ThreadFactory() {
-      @Override
-      public Thread newThread(Runnable r) {
-        Thread thread = delegateThreadFactory.newThread(r);
-        createdThreads.add(thread);
-        return thread;
-      }
+    final List<Thread> createdThreads = new ArrayList<>();
+    ThreadFactory factory = r -> {
+      Thread thread = delegateThreadFactory.newThread(r);
+      createdThreads.add(thread);
+      return thread;
     };
     config.setThreadFactory(factory);
     createPool(fixture);
@@ -2573,8 +2554,7 @@ public class PoolTest {
 
     // Allocate an object
     GenericPoolable obj = pool.claim(longTimeout);
-    WeakReference<GenericPoolable> weakReference =
-        new WeakReference<GenericPoolable>(obj);
+    WeakReference<GenericPoolable> weakReference = new WeakReference<>(obj);
     obj.release();
     obj = null;
 
@@ -2785,7 +2765,7 @@ public class PoolTest {
 
     // Grab and release a pool size worth objects as a barrier for reallocating
     // the expired objects
-    List<GenericPoolable> objs = new ArrayList<GenericPoolable>();
+    List<GenericPoolable> objs = new ArrayList<>();
     for (int i = 0; i < poolSize; i++) {
       objs.add(pool.claim(longTimeout));
     }

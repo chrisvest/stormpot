@@ -31,7 +31,7 @@ public class ConstantTrafficBackgroundExpirationSim extends Sim {
 
   @Conf(Param.expiration)
   public TimeSpreadExpiration<Poolable> expiration =
-      new TimeSpreadExpiration<Poolable>(200, 1000, TimeUnit.MILLISECONDS);
+      new TimeSpreadExpiration<>(200, 1000, TimeUnit.MILLISECONDS);
 
   @Conf(Param.backgroundExpirationEnabled)
   public boolean[] backgroundExpiration = {true, false};

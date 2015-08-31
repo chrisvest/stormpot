@@ -79,7 +79,7 @@ public class PoolIT {
     synchronized (deallocated) {
       Collections.sort(deallocated, new OrderByIdentityHashcode());
       Iterator<GenericPoolable> iter = deallocated.iterator();
-      List<GenericPoolable> duplicates = new ArrayList<GenericPoolable>();
+      List<GenericPoolable> duplicates = new ArrayList<>();
       if (iter.hasNext()) {
         GenericPoolable a = iter.next();
         while (iter.hasNext()) {
@@ -121,20 +121,17 @@ public class PoolIT {
   private Runnable createTaskClaimReleaseUntilShutdown(
       final LifecycledResizablePool<GenericPoolable> pool,
       final Class<? extends Throwable>... acceptableExceptions) {
-    return new Runnable() {
-      @Override
-      public void run() {
-        for (;;) {
-          try {
-            pool.claim(longTimeout).release();
-          } catch (InterruptedException ignore) {
-            // This is okay
-          } catch (IllegalStateException e) {
-            assertThat(e, hasMessage(equalTo("Pool has been shut down")));
-            break;
-          } catch (PoolException e) {
-            assertThat(e.getCause().getClass(), isOneOf(acceptableExceptions));
-          }
+    return () -> {
+      for (;;) {
+        try {
+          pool.claim(longTimeout).release();
+        } catch (InterruptedException ignore) {
+          // This is okay
+        } catch (IllegalStateException e) {
+          assertThat(e, hasMessage(equalTo("Pool has been shut down")));
+          break;
+        } catch (PoolException e) {
+          assertThat(e.getCause().getClass(), isOneOf(acceptableExceptions));
         }
       }
     };
@@ -148,7 +145,7 @@ public class PoolIT {
     config.setSize(size);
     createPool(fixture);
 
-    List<Future<?>> futures = new ArrayList<Future<?>>();
+    List<Future<?>> futures = new ArrayList<>();
     for (int i = 0; i < 64; i++) {
       Runnable runner = createTaskClaimReleaseUntilShutdown(pool);
       futures.add(executor.submit(runner));
@@ -191,23 +188,19 @@ public class PoolIT {
         dealloc(fallibleAction),
         realloc(fallibleAction));
     config.setAllocator(allocator);
-    config.setExpiration(new Expiration<GenericPoolable>() {
-      @Override
-      public boolean hasExpired(
-          SlotInfo<? extends GenericPoolable> info) throws Exception {
-        int x = info.randomInt();
-        if ((x & 0xFF) > 250) {
-          // About 3% of checks throw an exception
-          throw new SomeRandomException();
-        }
-        // About 1 in 8 checks causes expiration
-        return (x & 0x0F) < 0x02;
+    config.setExpiration(info -> {
+      int x = info.randomInt();
+      if ((x & 0xFF) > 250) {
+        // About 3% of checks throw an exception
+        throw new SomeRandomException();
       }
+      // About 1 in 8 checks causes expiration
+      return (x & 0x0F) < 0x02;
     });
 
     createPool(fixture);
 
-    List<Future<?>> futures = new ArrayList<Future<?>>();
+    List<Future<?>> futures = new ArrayList<>();
     for (int i = 0; i < 64; i++) {
       Runnable runner = createTaskClaimReleaseUntilShutdown(
           pool,
@@ -290,7 +283,7 @@ public class PoolIT {
     config.setAllocator(allocator);
     createPool(fixture);
     startLatch.await();
-    List<GenericPoolable> objs = new ArrayList<GenericPoolable>();
+    List<GenericPoolable> objs = new ArrayList<>();
     for (int i = 0; i < startingSize; i++) {
       objs.add(pool.claim(longTimeout));
     }
@@ -326,7 +319,7 @@ public class PoolIT {
     config.setAllocator(allocator);
     createPool(fixture);
     startLatch.await();
-    List<GenericPoolable> objs = new ArrayList<GenericPoolable>();
+    List<GenericPoolable> objs = new ArrayList<>();
     for (int i = 0; i < startingSize; i++) {
       objs.add(pool.claim(longTimeout));
     }

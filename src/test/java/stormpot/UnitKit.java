@@ -29,7 +29,8 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 
 class UnitKit {
-  private static final ExecutorService executor = Executors.newCachedThreadPool();
+  private static final ExecutorService executor =
+      Executors.newCachedThreadPool();
   
   public static Thread fork(Callable<?> procedure) {
     Thread thread = new Thread(asRunnable(procedure));
@@ -42,26 +43,22 @@ class UnitKit {
   }
 
   public static Runnable asRunnable(final Callable<?> procedure) {
-    return new Runnable() {
-      public void run() {
-        try {
-          procedure.call();
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
+    return () -> {
+      try {
+        procedure.call();
+      } catch (Exception e) {
+        throw new RuntimeException(e);
       }
     };
   }
 
   public static <T extends Poolable> Callable<T> $claim(
       final Pool<T> pool, final Timeout timeout) {
-    return new Callable<T>() {
-      public T call() {
-        try {
-          return pool.claim(timeout);
-        } catch (InterruptedException e) {
-          throw new PoolException("Claim interrupted", e);
-        }
+    return () -> {
+      try {
+        return pool.claim(timeout);
+      } catch (InterruptedException e) {
+        throw new PoolException("Claim interrupted", e);
       }
     };
   }
@@ -69,24 +66,19 @@ class UnitKit {
   public static <T> Callable<T> capture(
       final Callable<T> callable,
       final AtomicReference<T> ref) {
-    return new Callable<T>() {
-      @Override
-      public T call() throws Exception {
-        T obj = callable.call();
-        ref.set(obj);
-        return obj;
-      }
+    return () -> {
+      T obj = callable.call();
+      ref.set(obj);
+      return obj;
     };
   }
   
   public static Callable<Completion> $await(
       final Completion completion,
       final Timeout timeout) {
-    return new Callable<Completion>() {
-      public Completion call() throws Exception {
-        completion.await(timeout);
-        return completion;
-      }
+    return () -> {
+      completion.await(timeout);
+      return completion;
     };
   }
   
@@ -94,36 +86,30 @@ class UnitKit {
       final Completion completion,
       final Timeout timeout,
       final AtomicBoolean result) {
-    return new Callable<AtomicBoolean>() {
-      public AtomicBoolean call() throws Exception {
-        result.set(completion.await(timeout));
-        return result;
-      }
+    return () -> {
+      result.set(completion.await(timeout));
+      return result;
     };
   }
   
   public static <T> Callable<T> $catchFrom(
       final Callable<T> procedure, final AtomicReference<Exception> caught) {
-    return new Callable<T>() {
-      public T call() {
-        try {
-          return procedure.call();
-        } catch (Exception e) {
-          caught.set(e);
-        }
-        return null;
+    return () -> {
+      try {
+        return procedure.call();
+      } catch (Exception e) {
+        caught.set(e);
       }
+      return null;
     };
   }
   
   public static Callable<Void> $interruptUponState(
       final Thread thread, final Thread.State state) {
-    return new Callable<Void>() {
-      public Void call() throws Exception {
-        waitForThreadState(thread, state);
-        thread.interrupt();
-        return null;
-      }
+    return () -> {
+      waitForThreadState(thread, state);
+      thread.interrupt();
+      return null;
     };
   }
   
@@ -131,21 +117,19 @@ class UnitKit {
       final Poolable[] objs,
       final long delay,
       final TimeUnit delayUnit) {
-    return new Callable<Void>() {
-      public Void call() throws Exception {
-        List<Poolable> list = new ArrayList<Poolable>(Arrays.asList(objs));
-        try {
-          while (list.size() > 0) {
-            delayUnit.sleep(delay);
-            list.remove(0).release();
-          }
-        } catch (InterruptedException e) {
-          for (Poolable obj : list) {
-            obj.release();
-          }
+    return () -> {
+      List<Poolable> list = new ArrayList<>(Arrays.asList(objs));
+      try {
+        while (list.size() > 0) {
+          delayUnit.sleep(delay);
+          list.remove(0).release();
         }
-        return null;
+      } catch (InterruptedException e) {
+        for (Poolable obj : list) {
+          obj.release();
+        }
       }
+      return null;
     };
   }
   
@@ -216,7 +200,8 @@ class UnitKit {
    * http://youtu.be/7qXXWHfJha4
    */
   @SuppressWarnings("unchecked")
-  private static <T extends Throwable> void _sneakyThrow(Throwable throwable) throws T {
+  private static <T extends Throwable> void _sneakyThrow(
+      Throwable throwable) throws T {
     throw (T) throwable;
   }
 }

@@ -39,7 +39,7 @@ public class PreciseLeakDetectorIT {
 
     // This particular seed seems to give pretty good coverage:
     Random rng = new Random(-6406176578229504295L);
-    Set<Object> objs = new HashSet<Object>();
+    Set<Object> objs = new HashSet<>();
     long leaksCreated = 0;
 
     // This distribution of the operations seems to give a good coverage:

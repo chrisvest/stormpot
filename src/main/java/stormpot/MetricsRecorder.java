@@ -111,7 +111,7 @@ public interface MetricsRecorder {
    * @return The latency value in milliseconds for the given
    * percentile/quantile.
    */
-  public double getAllocationLatencyPercentile(double percentile);
+  double getAllocationLatencyPercentile(double percentile);
 
   /**
    * Get the approximate latency value, in milliseconds, for failed allocation
@@ -132,7 +132,7 @@ public interface MetricsRecorder {
    * @return The latency value in milliseconds for the given
    * percentile/quantile.
    */
-  public double getAllocationFailureLatencyPercentile(double percentile);
+  double getAllocationFailureLatencyPercentile(double percentile);
 
   /**
    * Get the approximate latency value, in milliseconds, for deallocation
@@ -153,7 +153,7 @@ public interface MetricsRecorder {
    * @return The latency value in milliseconds for the given
    * percentile/quantile.
    */
-  public double getDeallocationLatencyPercentile(double percentile);
+  double getDeallocationLatencyPercentile(double percentile);
 
   /**
    * Get the approximate latency value, in milliseconds, for reallocation
@@ -174,7 +174,7 @@ public interface MetricsRecorder {
    * @return The latency value in milliseconds for the given
    * percentile/quantile.
    */
-  public double getReallocationLatencyPercentile(double percentile);
+  double getReallocationLatencyPercentile(double percentile);
 
   /**
    * Get the approximate latency value, in milliseconds, for failed
@@ -195,7 +195,7 @@ public interface MetricsRecorder {
    * @return The latency value in milliseconds for the given
    * percentile/quantile.
    */
-  public double getReallocationFailurePercentile(double percentile);
+  double getReallocationFailurePercentile(double percentile);
 
   /**
    * Get the approximate object lifetime, in milliseconds, for the given
@@ -215,5 +215,5 @@ public interface MetricsRecorder {
    * @return The latency value in milliseconds for the given
    * percentile/quantile.
    */
-  public double getObjectLifetimePercentile(double percentile);
+  double getObjectLifetimePercentile(double percentile);
 }

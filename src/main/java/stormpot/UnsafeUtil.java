@@ -27,19 +27,17 @@ final class UnsafeUtil {
 
   private static Unsafe getUnsafe() {
     try {
-      return AccessController.doPrivileged(new PrivilegedExceptionAction<Unsafe>() {
-        @Override
-        public Unsafe run() throws Exception {
-          Class<Unsafe> unsafeClass = Unsafe.class;
-          for (Field field : unsafeClass.getDeclaredFields()) {
-            if (unsafeClass.isAssignableFrom(field.getType())) {
-              field.setAccessible(true);
-              Object obj = field.get(null);
-              return unsafeClass.cast(obj);
-            }
+      return AccessController.doPrivileged(
+          (PrivilegedExceptionAction<Unsafe>) () -> {
+        Class<Unsafe> unsafeClass = Unsafe.class;
+        for (Field field : unsafeClass.getDeclaredFields()) {
+          if (unsafeClass.isAssignableFrom(field.getType())) {
+            field.setAccessible(true);
+            Object obj = field.get(null);
+            return unsafeClass.cast(obj);
           }
-          return null;
         }
+        return null;
       });
     } catch (PrivilegedActionException e) {
       return null;
@@ -63,7 +61,8 @@ final class UnsafeUtil {
     return 0;
   }
 
-  static boolean compareAndSwapInt(Object obj, long offset, int expected, int update) {
+  static boolean compareAndSwapInt(
+      Object obj, long offset, int expected, int update) {
     return unsafe.compareAndSwapInt(obj, offset, expected, update);
   }
 

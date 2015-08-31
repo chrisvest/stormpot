@@ -298,11 +298,8 @@ public class Config<T extends Poolable> implements Cloneable {
    * @throws IllegalArgumentException If the size is less than one, if the
    * {@link Expiration} is `null`, if the {@link Allocator} is `null`, or if
    * the ThreadFactory is `null`.
-   * @deprecated This method will be removed in version 3.0. No alternative is
-   * provided, because it is really an internal API.
    */
-  @Deprecated // TODO 3.0 make package private
-  public synchronized void validate() throws IllegalArgumentException {
+  synchronized void validate() throws IllegalArgumentException {
     if (size < 1) {
       throw new IllegalArgumentException(
           "Size must be at least 1, but was " + size);

@@ -15,11 +15,8 @@
  */
 package stormpot;
 
-import stormpot.*;
-import stormpot.qpool.*;
-
 public class QueuePoolFixture implements PoolFixture {
   public <T extends Poolable> Pool<T> initPool(Config<T> config) {
-    return new stormpot.qpool.QueuePool<T>(config);
+    return new stormpot.QueuePool<T>(config);
   }
 }

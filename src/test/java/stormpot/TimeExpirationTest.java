@@ -28,12 +28,12 @@ import static stormpot.MockSlotInfo.mockSlotInfoWithAge;
 public class TimeExpirationTest {
 
   private Expiration<Poolable> createExpiration(int ttl) {
-    return new TimeExpiration<Poolable>(ttl, TimeUnit.MILLISECONDS);
+    return new TimeExpiration<>(ttl, TimeUnit.MILLISECONDS);
   }
 
   @Test(expected = IllegalArgumentException.class) public void
   timeUnitCannotBeNull() {
-    new TimeExpiration<Poolable>(10, null);
+    new TimeExpiration<>(10, null);
   }
   
   @Test public void
@@ -64,10 +64,10 @@ public class TimeExpirationTest {
 
   @Test public void
   mustHaveNiceToString() {
-    TimeExpiration<Poolable> a = new TimeExpiration<Poolable>(42, TimeUnit.DAYS);
+    TimeExpiration<Poolable> a = new TimeExpiration<>(42, TimeUnit.DAYS);
     assertThat(a.toString(), is("TimeExpiration(42 DAYS)"));
 
-    TimeExpiration<Poolable> b = new TimeExpiration<Poolable>(21, TimeUnit.MILLISECONDS);
+    TimeExpiration<Poolable> b = new TimeExpiration<>(21, TimeUnit.MILLISECONDS);
     assertThat(b.toString(), is("TimeExpiration(21 MILLISECONDS)"));
   }
 }

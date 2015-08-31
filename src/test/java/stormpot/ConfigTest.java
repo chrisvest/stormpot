@@ -35,7 +35,7 @@ public class ConfigTest {
   
   @Before public void
   setUp() {
-    config = new Config<GenericPoolable>();
+    config = new Config<>();
   }
   
   @Test public void
@@ -67,7 +67,7 @@ public class ConfigTest {
   @Test public void
   mustNotReAdaptConfiguredReallocators() {
     Reallocator<GenericPoolable> expected =
-        new ReallocatingAdaptor<GenericPoolable>(null);
+        new ReallocatingAdaptor<>(null);
     config.setAllocator(expected);
     Reallocator<GenericPoolable> actual = config.getReallocator();
     assertThat(actual, sameInstance(expected));
@@ -88,11 +88,7 @@ public class ConfigTest {
   
   @Test public void
   deallocationRuleMustBeSettable() {
-    Expiration<Poolable> expectedRule = new Expiration<Poolable>() {
-      public boolean hasExpired(SlotInfo<? extends Poolable> info) {
-        return false;
-      }
-    };
+    Expiration<Poolable> expectedRule = info -> false;
     config.setExpiration(expectedRule);
     @SuppressWarnings("unchecked")
     Expiration<Poolable> actualRule =
@@ -283,12 +279,7 @@ public class ConfigTest {
 
   @Test public void
   threadFactoryMustBeSettable() {
-    ThreadFactory factory = new ThreadFactory() {
-      @Override
-      public Thread newThread(Runnable r) {
-        return null;
-      }
-    };
+    ThreadFactory factory = r -> null;
     config.setThreadFactory(factory);
     assertThat(config.getThreadFactory(), sameInstance(factory));
   }
@@ -318,7 +309,7 @@ public class ConfigTest {
   @Test public void
   allSetterMethodsMustReturnTheSameConfigInstance() throws Exception {
     Method[] methods = Config.class.getDeclaredMethods();
-    List<Method> setterMethods = new ArrayList<Method>();
+    List<Method> setterMethods = new ArrayList<>();
     for (Method method : methods) {
       if (method.getName().startsWith("set")) {
         setterMethods.add(method);
@@ -360,12 +351,7 @@ public class ConfigTest {
     CountingAllocator allocator = AlloKit.allocator();
     ExpireKit.CountingExpiration expiration = ExpireKit.expire();
     MetricsRecorder metricsRecorder = new LastSampleMetricsRecorder();
-    ThreadFactory factory = new ThreadFactory() {
-      @Override
-      public Thread newThread(Runnable r) {
-        return null;
-      }
-    };
+    ThreadFactory factory = r -> null;
 
     config.setExpiration(expiration);
     config.setAllocator(allocator);
@@ -377,10 +363,8 @@ public class ConfigTest {
 
     Config<GenericPoolable> clone = config.clone();
 
-    assertThat((ExpireKit.CountingExpiration) clone.getExpiration(),
-        sameInstance(expiration));
-    assertThat((CountingAllocator) clone.getAllocator(),
-        sameInstance(allocator));
+    assertThat(clone.getExpiration(), sameInstance(expiration));
+    assertThat(clone.getAllocator(), sameInstance(allocator));
     assertTrue(clone.isBackgroundExpirationEnabled());
     assertThat(clone.getMetricsRecorder(), sameInstance(metricsRecorder));
     assertFalse(clone.isPreciseLeakDetectionEnabled());

@@ -77,42 +77,22 @@ public class ExpireKit {
     return new CountingExpirationImpl(checks);
   }
 
-  public static final Expire $fresh = new Expire() {
-    @Override
-    public boolean hasExpired(
-        SlotInfo<? extends Poolable> info) throws Exception {
-      return false;
-    }
-  };
+  public static final Expire $fresh = info -> false;
 
-  public static final Expire $expired = new Expire() {
-    @Override
-    public boolean hasExpired(
-        SlotInfo<? extends Poolable> info) throws Exception {
-      return true;
-    }
-  };
+  public static final Expire $expired = info -> true;
 
-  public static final Expire $explicitExpire = new Expire() {
-    @Override
-    public boolean hasExpired(SlotInfo<? extends Poolable> info) throws Exception {
-      GenericPoolable poolable = (GenericPoolable) info.getPoolable();
-      poolable.expire();
-      return false;
-    }
+  public static final Expire $explicitExpire = info -> {
+    GenericPoolable poolable = (GenericPoolable) info.getPoolable();
+    poolable.expire();
+    return false;
   };
 
   public static Expire $if(
       final AtomicBoolean cond,
       final Expire then,
       final Expire otherwise) {
-    return new Expire() {
-      @Override
-      public boolean hasExpired(
-          SlotInfo<? extends Poolable> info) throws Exception {
-        return cond.get()? then.hasExpired(info) : otherwise.hasExpired(info);
-      }
-    };
+    return info -> cond.get()?
+        then.hasExpired(info) : otherwise.hasExpired(info);
   }
 
   public static Expire $expiredIf(final AtomicBoolean cond) {
@@ -120,85 +100,51 @@ public class ExpireKit {
   }
 
   public static Expire $throwExpire(final Exception exception) {
-    return new Expire() {
-      @Override
-      public boolean hasExpired(
-          SlotInfo<? extends Poolable> info) throws Exception {
-        throw exception;
-      }
+    return info -> {
+      throw exception;
     };
   }
 
   public static Expire $throwExpire(final Throwable throwable) {
-    return new Expire() {
-      @Override
-      public boolean hasExpired(SlotInfo<? extends Poolable> info) throws Exception {
-        UnitKit.sneakyThrow(throwable);
-        return false;
-      }
+    return info -> {
+      UnitKit.sneakyThrow(throwable);
+      return false;
     };
   }
 
   public static Expire $countDown(
       final CountDownLatch latch,
       final Expire then) {
-    return new Expire() {
-      @Override
-      public boolean hasExpired(SlotInfo<? extends Poolable> info) throws Exception {
-        latch.countDown();
-        return then.hasExpired(info);
-      }
+    return info -> {
+      latch.countDown();
+      return then.hasExpired(info);
     };
   }
 
   public static Expire $capture(
       final SlotInfoCapture capture,
       final Expire then) {
-    return new Expire() {
-      @Override
-      public boolean hasExpired(
-          SlotInfo<? extends Poolable> info) throws Exception {
-        capture.capture(info);
-        return then.hasExpired(info);
-      }
+    return info -> {
+      capture.capture(info);
+      return then.hasExpired(info);
     };
   }
 
   public static SlotInfoCapture $age(final AtomicLong age) {
-    return new SlotInfoCapture() {
-      @Override
-      public void capture(SlotInfo<? extends Poolable> info) {
-        age.set(info.getAgeMillis());
-      }
-    };
+    return info -> age.set(info.getAgeMillis());
   }
 
   public static SlotInfoCapture $poolable(
       final AtomicReference<Poolable> ref) {
-    return new SlotInfoCapture() {
-      @Override
-      public void capture(SlotInfo<? extends Poolable> info) {
-        ref.set(info.getPoolable());
-      }
-    };
+    return info -> ref.set(info.getPoolable());
   }
 
   public static SlotInfoCapture $claimCount(final AtomicLong count) {
-    return new SlotInfoCapture() {
-      @Override
-      public void capture(SlotInfo<? extends Poolable> info) {
-        count.set(info.getClaimCount());
-      }
-    };
+    return info -> count.set(info.getClaimCount());
   }
 
   public static SlotInfoCapture $slotInfo(
       final AtomicReference<SlotInfo<? extends Poolable>> ref) {
-    return new SlotInfoCapture() {
-      @Override
-      public void capture(SlotInfo<? extends Poolable> info) {
-        ref.set(info);
-      }
-    };
+    return ref::set;
   }
 }
