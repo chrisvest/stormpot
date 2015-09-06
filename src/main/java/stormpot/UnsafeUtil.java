@@ -28,17 +28,17 @@ final class UnsafeUtil {
   private static Unsafe getUnsafe() {
     try {
       return AccessController.doPrivileged(
-          (PrivilegedExceptionAction<Unsafe>) () -> {
-        Class<Unsafe> unsafeClass = Unsafe.class;
-        for (Field field : unsafeClass.getDeclaredFields()) {
-          if (unsafeClass.isAssignableFrom(field.getType())) {
-            field.setAccessible(true);
-            Object obj = field.get(null);
-            return unsafeClass.cast(obj);
+        (PrivilegedExceptionAction<Unsafe>) () -> {
+          Class<Unsafe> unsafeClass = Unsafe.class;
+          for (Field field : unsafeClass.getDeclaredFields()) {
+            if (unsafeClass.isAssignableFrom(field.getType())) {
+              field.setAccessible(true);
+              Object obj = field.get(null);
+              return unsafeClass.cast(obj);
+            }
           }
-        }
-        return null;
-      });
+          return null;
+        });
     } catch (PrivilegedActionException e) {
       return null;
     }
