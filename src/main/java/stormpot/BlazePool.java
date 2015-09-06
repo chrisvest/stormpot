@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit;
  * @param <T> The type of {@link Poolable} managed by this pool.
  */
 public final class BlazePool<T extends Poolable>
-    implements Pool<T>, ManagedPool {
+    extends Pool<T> implements ManagedPool {
 
   @SuppressWarnings("ThrowableInstanceNeverThrown")
   private static final Exception SHUTDOWN_POISON = new Exception();

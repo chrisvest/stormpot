@@ -66,7 +66,7 @@ import java.util.function.Function;
  * @param <T> the type of {@link Poolable} contained in the pool, as determined
  * by the {@link Config#setAllocator(Allocator) configured allocator}.
  */
-public interface Pool<T extends Poolable> {
+public abstract class Pool<T extends Poolable> {
   /**
    * Claim the exclusive rights until released, to an object in the pool.
    * Possibly waiting up to the specified amount of time, as given by the
@@ -121,7 +121,8 @@ public interface Pool<T extends Poolable> {
    * while waiting.
    * @throws IllegalArgumentException if the `timeout` argument is `null`.
    */
-  T claim(Timeout timeout) throws PoolException, InterruptedException;
+  public abstract T claim(Timeout timeout)
+      throws PoolException, InterruptedException;
 
   /**
    * Initiate the shut down process on this pool, and return a
@@ -152,7 +153,7 @@ public interface Pool<T extends Poolable> {
    * @return A {@link Completion} instance that represents the shut down
    * process.
    */
-  Completion shutdown();
+  public abstract Completion shutdown();
 
   /**
    * Set the target size for this pool. The pool will strive to keep this many
@@ -172,7 +173,7 @@ public interface Pool<T extends Poolable> {
    * {@link IllegalArgumentException} if passed 0 or less.
    * @param size The new target size of the pool
    */
-  void setTargetSize(int size);
+  public abstract void setTargetSize(int size);
 
   /**
    * Get the currently configured target size of the pool. Note that this is
@@ -180,7 +181,7 @@ public interface Pool<T extends Poolable> {
    * the number of allocations the pool strives to keep alive.
    * @return The current target size of this pool.
    */
-  int getTargetSize();
+  public abstract int getTargetSize();
 
   /**
    * Claim an object from the pool and apply the given function to it, returning
@@ -204,7 +205,7 @@ public interface Pool<T extends Poolable> {
    * @throws InterruptedException if the thread was interrupted.
    * @see #claim(Timeout) for more details on failure modes and memory effects.
    */
-  default <R> Optional<R> apply(Timeout timeout, Function<T, R> function)
+  public final <R> Optional<R> apply(Timeout timeout, Function<T, R> function)
       throws InterruptedException {
     T obj = claim(timeout);
     if (obj == null) {
@@ -236,7 +237,7 @@ public interface Pool<T extends Poolable> {
    * @throws InterruptedException if the thread was interrupted.
    * @see #claim(Timeout) for more details on failure modes and memory effects.
    */
-  default boolean supply(Timeout timeout, Consumer<T> consumer)
+  public final boolean supply(Timeout timeout, Consumer<T> consumer)
       throws InterruptedException {
     T obj = claim(timeout);
     if (obj == null) {

@@ -40,7 +40,7 @@ import java.util.concurrent.ThreadFactory;
  * @param <T> The type of {@link Poolable} managed by this pool.
  */
 public final class QueuePool<T extends Poolable>
-    implements Pool<T>, ManagedPool {
+    extends Pool<T> implements ManagedPool {
   private final BlockingQueue<QSlot<T>> live;
   private final BlockingQueue<QSlot<T>> dead;
   private final QAllocThread<T> allocator;
