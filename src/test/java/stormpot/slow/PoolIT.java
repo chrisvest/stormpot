@@ -20,11 +20,10 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.experimental.theories.DataPoint;
-import org.junit.experimental.theories.Theories;
-import org.junit.experimental.theories.Theory;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import stormpot.*;
 
 import java.util.*;
@@ -32,9 +31,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static stormpot.AlloKit.$countDown;
 import static stormpot.AlloKit.*;
@@ -42,13 +39,23 @@ import static stormpot.ExpireKit.*;
 
 @SuppressWarnings("unchecked")
 @Category(SlowTest.class)
-@RunWith(Theories.class)
+@RunWith(Parameterized.class)
 public class PoolIT {
   @Rule public final TestRule failurePrinter = new FailurePrinterTestRule();
   @Rule public final ExecutorTestRule executorTestRule = new ExecutorTestRule();
 
   private static final Timeout longTimeout = new Timeout(1, TimeUnit.MINUTES);
   private static final Timeout shortTimeout = new Timeout(1, TimeUnit.SECONDS);
+
+  @Parameters(name = "{0}")
+  public static Object[][] dataPoints() {
+    return new Object[][] {
+        {"blazePool", new BlazePoolFixture()},
+        {"queuePool", new QueuePoolFixture()}
+    };
+  }
+
+  private final PoolFixture fixture;
 
   // Initialised by setUp()
   private CountingAllocator allocator;
@@ -58,8 +65,9 @@ public class PoolIT {
   // Initialised in the tests
   private Pool<GenericPoolable> pool;
 
-  @DataPoint public static PoolFixture queuePool = new QueuePoolFixture();
-  @DataPoint public static PoolFixture blazePool = new BlazePoolFixture();
+  public PoolIT(String implementationName, PoolFixture fixture) {
+    this.fixture = fixture;
+  }
 
   @Before public void
   setUp() {
@@ -95,15 +103,13 @@ public class PoolIT {
     allocator = null;
   }
 
-  private void createPool(PoolFixture fixture) {
+  private void createPool() {
     pool = fixture.initPool(config);
   }
 
-  @Test(timeout = 16010)
-  @Theory public void
-  highContentionMustNotCausePoolLeakage(
-      PoolFixture fixture) throws Exception {
-    createPool(fixture);
+  @Test(timeout = 16010) public void
+  highContentionMustNotCausePoolLeakage() throws Exception {
+    createPool();
 
     Runnable runner = createTaskClaimReleaseUntilShutdown(pool);
 
@@ -137,13 +143,11 @@ public class PoolIT {
     };
   }
 
-  @Test(timeout = 16010)
-  @Theory public void
-  shutdownMustCompleteSuccessfullyEvenAtHighContention(
-      PoolFixture fixture) throws Exception {
+  @Test(timeout = 16010) public void
+  shutdownMustCompleteSuccessfullyEvenAtHighContention() throws Exception {
     int size = 100000;
     config.setSize(size);
-    createPool(fixture);
+    createPool();
 
     List<Future<?>> futures = new ArrayList<>();
     for (int i = 0; i < 64; i++) {
@@ -166,10 +170,8 @@ public class PoolIT {
     }
   }
 
-  @Test(timeout = 16010)
-  @Theory public void
-  highObjectChurnMustNotCausePoolLeakage(
-      PoolFixture fixture) throws Exception {
+  @Test(timeout = 16010) public void
+  highObjectChurnMustNotCausePoolLeakage() throws Exception {
     config.setSize(8);
     Action fallibleAction = new Action() {
       private final Random rnd = new Random();
@@ -198,7 +200,7 @@ public class PoolIT {
       return (x & 0x0F) < 0x02;
     });
 
-    createPool(fixture);
+    createPool();
 
     List<Future<?>> futures = new ArrayList<>();
     for (int i = 0; i < 64; i++) {
@@ -220,16 +222,14 @@ public class PoolIT {
     }
   }
 
-  @Test(timeout = 16010)
-  @Theory public void
-  backgroundExpirationMustDoNothingWhenPoolIsDepleted(
-      PoolFixture fixture) throws Exception {
+  @Test(timeout = 16010) public void
+  backgroundExpirationMustDoNothingWhenPoolIsDepleted() throws Exception {
     AtomicBoolean hasExpired = new AtomicBoolean();
     CountingExpiration expiration = expire($expiredIf(hasExpired));
     config.setExpiration(expiration);
     config.setBackgroundExpirationEnabled(true);
 
-    createPool(fixture);
+    createPool();
 
     // Do a thread-local reclaim, if applicable, to keep the object in
     // circulation
@@ -246,16 +246,15 @@ public class PoolIT {
     obj.release();
   }
 
-  @Test(timeout = 16010)
-  @Theory public void
-  backgroundExpirationMustNotFailWhenThereAreNoObjectsInCirculation(
-      PoolFixture fixture) throws Exception {
+  @Test(timeout = 16010) public void
+  backgroundExpirationMustNotFailWhenThereAreNoObjectsInCirculation()
+      throws Exception {
     AtomicBoolean hasExpired = new AtomicBoolean();
     CountingExpiration expiration = expire($expiredIf(hasExpired));
     config.setExpiration(expiration);
     config.setBackgroundExpirationEnabled(true);
 
-    createPool(fixture);
+    createPool();
 
     GenericPoolable obj = pool.claim(longTimeout);
     int expirationsCount = expiration.countExpirations();
@@ -269,9 +268,8 @@ public class PoolIT {
     obj.release();
   }
 
-  @Test(timeout = 160100)
-  @Theory public void
-  decreasingSizeOfDepletedPoolMustOnlyDeallocateAllocatedObjects(PoolFixture fixture)
+  @Test(timeout = 160100) public void
+  decreasingSizeOfDepletedPoolMustOnlyDeallocateAllocatedObjects()
       throws Exception {
     int startingSize = 256;
     CountDownLatch startLatch = new CountDownLatch(startingSize);
@@ -281,7 +279,7 @@ public class PoolIT {
         dealloc($release(semaphore, $null)));
     config.setSize(startingSize);
     config.setAllocator(allocator);
-    createPool(fixture);
+    createPool();
     startLatch.await();
     List<GenericPoolable> objs = new ArrayList<>();
     for (int i = 0; i < startingSize; i++) {
@@ -305,10 +303,8 @@ public class PoolIT {
     objs.get(startingSize - 1).release();
   }
 
-  @Test(timeout = 160100)
-  @Theory public void
-  mustNotDeallocateNullsFromLiveQueueDuringShutdown(PoolFixture fixture)
-      throws Exception {
+  @Test(timeout = 160100) public void
+  mustNotDeallocateNullsFromLiveQueueDuringShutdown() throws Exception {
     int startingSize = 256;
     CountDownLatch startLatch = new CountDownLatch(startingSize);
     Semaphore semaphore = new Semaphore(0);
@@ -317,7 +313,7 @@ public class PoolIT {
         dealloc($release(semaphore, $null)));
     config.setSize(startingSize);
     config.setAllocator(allocator);
-    createPool(fixture);
+    createPool();
     startLatch.await();
     List<GenericPoolable> objs = new ArrayList<>();
     for (int i = 0; i < startingSize; i++) {
