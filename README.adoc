@@ -5,19 +5,18 @@ Use it to recycle objects that are expensive to create.
 The library will take care of creating and destroying your objects in the
 background.
 
-Stormpot is very mature, is used in production, and has done over a trillion
-footnote:[Fermi estimate. The benchmark that produced the charts for the 2.1
-release blog post accounts for about 400 billion of those cycles.]
-claim-release cycles in testing.
+Stormpot is very mature, is used in production, and has done hundreds of
+trillions footnote:[Fermi estimate.] claim-release cycles in testing.
 It is faster and scales better than any competing pool.
 
  * Home page: http://chrisvest.github.io/stormpot/
  * Source code: https://github.com/chrisvest/stormpot/
  * API docs: http://chrisvest.github.io/stormpot/site/apidocs/index.html
  * Mailing list: http://groups.google.com/d/forum/stormpot
- * License: http://www.apache.org/licenses/LICENSE-2.0.html[The Apache Software License 2.0]
- * Simple versioning: X.Y where Y{plus}{plus} is backwards compatible, and X{plus}{plus} is
-   backwards incompatible.
+ * License: http://www.apache.org/licenses/LICENSE-2.0.html[The Apache Software
+   License 2.0]
+ * Simple versioning: X.Y where Y{plus}{plus} is backwards compatible, and
+   X{plus}{plus} is backwards incompatible.
 
 == Why choose Stormpot?
 
@@ -29,11 +28,11 @@ operation. Some of the things that sets Stormpot apart include:
    license].
  * Very high http://chrisvest.github.io/stormpot/site/jacoco/index.html[test
    coverage].
- * The https://medium.com/@chrisvest/released-stormpot-2-1-c31509142757[highest throughput and
-   lowest latency] in its class.
+ * The https://medium.com/@chrisvest/released-stormpot-2-1-c31509142757[highest
+   throughput and lowest latency] in its class.
    (since 2.1)
- * https://medium.com/@chrisvest/released-stormpot-2-2-ccd1e8639f07[Automatic recovery] from
-   sporadic backend (Allocator) failures.
+ * https://medium.com/@chrisvest/released-stormpot-2-2-ccd1e8639f07[Automatic
+   recovery] from sporadic backend (Allocator) failures.
    (since 2.2)
  * Precise object leak detection with virtually no overhead.
    (since 2.3)
@@ -43,7 +42,7 @@ operation. Some of the things that sets Stormpot apart include:
 
 == Installing
 
-Stormpot only depends on Java 6 or newer.
+Stormpot 2.4 only depends on Java 6 or newer.
 Add it as a Maven dependency to your projects:
 
 [source,xml]
@@ -56,14 +55,17 @@ Add it as a Maven dependency to your projects:
 --
 
 You can also build the latest snapshot from source with `mvn clean install`.
+Note that the next version, Stormpot 3.0, will require Java 8, so you need this
+version of Java to build a snapshot from the source code.
 
 == Getting Started
 
 Stormpot needs 3 things before it can pool objects for you:
 
- . A http://chrisvest.github.io/stormpot/site/apidocs/stormpot/Poolable.html[Poolable] type of objects it can pool. You have to implement this yourself.
- . An http://chrisvest.github.io/stormpot/site/apidocs/stormpot/Allocator.html[Allocator] to allocate and deallocate the Poolable objects. You have to implement this
-   yourself.
+ . A http://chrisvest.github.io/stormpot/site/apidocs/stormpot/Poolable.html[Poolable] type of objects it can pool.
+   You have to implement this yourself.
+ . An http://chrisvest.github.io/stormpot/site/apidocs/stormpot/Allocator.html[Allocator] to allocate and deallocate the Poolable objects.
+   You have to implement this yourself.
  . And a place where it all comes together:
 
 [source,java]
@@ -103,6 +105,7 @@ try {
    issue) and describe the approach and design you have in mind. Keep in mind
    that Stormpot is implemented with a very strict adherence to TDD.
    Finally, make sure to respect the existing indentation and formatting.
+   Use `mvn checkstyle:check` to check your formatting.
    If you are writing a test that takes more than a few hundred milliseconds to
    run, then put it in the `stormpot.slow` test package; either in the existing
    `PoolIT` suite, or in a new `\*IT` suite.
