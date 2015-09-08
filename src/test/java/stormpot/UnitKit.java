@@ -34,12 +34,9 @@ class UnitKit {
   
   public static Thread fork(Callable<?> procedure) {
     Thread thread = new Thread(asRunnable(procedure));
+    thread.setUncaughtExceptionHandler(new CatchingExceptionHandler());
     thread.start();
     return thread;
-  }
-  
-  public static <T> Future<T> forkFuture(Callable<T> proceduce) {
-    return executor.submit(proceduce);
   }
 
   public static Runnable asRunnable(final Callable<?> procedure) {
@@ -47,9 +44,37 @@ class UnitKit {
       try {
         procedure.call();
       } catch (Exception e) {
-        throw new RuntimeException(e);
+        throw new WrappedException(e);
       }
     };
+  }
+
+  private static class WrappedException extends RuntimeException {
+    public WrappedException(Throwable cause) {
+      super(cause);
+    }
+  }
+
+  private static class CatchingExceptionHandler
+      extends AtomicReference<Throwable>
+      implements Thread.UncaughtExceptionHandler {
+
+    @Override
+    public void uncaughtException(Thread t, Throwable e) {
+      if (e instanceof WrappedException) {
+        set(e.getCause());
+      } else {
+        set(e);
+      }
+    }
+  }
+
+  public static AtomicReference<Throwable> capture(Thread thread) {
+    return (CatchingExceptionHandler) thread.getUncaughtExceptionHandler();
+  }
+  
+  public static <T> Future<T> forkFuture(Callable<T> proceduce) {
+    return executor.submit(proceduce);
   }
 
   public static <T extends Poolable> Callable<T> $claim(
@@ -152,9 +177,19 @@ class UnitKit {
     }
   }
   
-  public static void join(Thread thread) {
+  public static void join(Thread thread) throws ExecutionException {
     try {
       thread.join();
+      Thread.UncaughtExceptionHandler handler =
+          thread.getUncaughtExceptionHandler();
+      if (handler instanceof CatchingExceptionHandler) {
+        CatchingExceptionHandler catchingHandler =
+            (CatchingExceptionHandler) handler;
+        Throwable th = catchingHandler.get();
+        if (th != null) {
+          throw new ExecutionException(th);
+        }
+      }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     }
