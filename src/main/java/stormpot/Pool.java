@@ -96,6 +96,21 @@ public abstract class Pool<T extends Poolable> {
    * be thrown when this method is called. Likewise if we are waiting for an
    * object to become available, and someone shuts the pool down.
    *
+   * Here's an example code snippet, where an object is claimed, printed to
+   * `System.out`, and then released back to the pool:
+   *
+   * [source,java]
+   * --
+   * Poolable obj = pool.claim(TIMEOUT);
+   * if (obj != null) {
+   *   try {
+   *     System.out.println(obj);
+   *   } finally {
+   *     obj.release();
+   *   }
+   * }
+   * --
+   *
    * Memory effects:
    *
    * * The {@link Poolable#release() release} of an object happens-before
