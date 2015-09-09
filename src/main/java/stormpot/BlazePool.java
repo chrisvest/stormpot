@@ -87,9 +87,7 @@ public final class BlazePool<T extends Poolable>
   @Override
   public T claim(Timeout timeout)
       throws PoolException, InterruptedException {
-    if (timeout == null) {
-      throw new IllegalArgumentException("Timeout cannot be null");
-    }
+    assertTimeoutNotNull(timeout);
     BSlot<T> slot = tlr.get();
     // Note that the TLR slot at this point might have been tried by another
     // thread, found to be expired, put on the dead-queue and deallocated.
@@ -123,6 +121,12 @@ public final class BlazePool<T extends Poolable>
     }
     // The thread-local claim failed, so we have to go through the slow-path.
     return slowClaim(timeout);
+  }
+
+  private void assertTimeoutNotNull(Timeout timeout) {
+    if (timeout == null) {
+      throw new IllegalArgumentException("Timeout cannot be null");
+    }
   }
 
   private T slowClaim(Timeout timeout)
