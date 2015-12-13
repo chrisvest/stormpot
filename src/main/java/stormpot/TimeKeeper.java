@@ -19,14 +19,18 @@ package stormpot;
  * Dedicated time-keeping thread started by the {@link BackgroundProcess}
  * upon initialisation. Only one is kept around per BackgroundProcess, and
  * it stopped when the BackgroundProcess reference count reaches zero.
+ *
+ * The BackgroundProcess constructs an {@link AsynchronousMonotonicTimeSource}
+ * and passes it to the TimeKeeper, which then updates the time source on
+ * regular intervals.
  */
 final class TimeKeeper implements Runnable {
   private static final long SLEEP_TIME = 10;
 
-  private final DriftAccountingMonotonicTimeSource timeSource;
+  private final AsynchronousMonotonicTimeSource timeSource;
   private volatile boolean stopped;
 
-  TimeKeeper(DriftAccountingMonotonicTimeSource timeSource) {
+  TimeKeeper(AsynchronousMonotonicTimeSource timeSource) {
     this.timeSource = timeSource;
   }
 
@@ -34,7 +38,7 @@ final class TimeKeeper implements Runnable {
   public void run() {
     timeSource.setAsync(true);
     while (!stopped) {
-      timeSource.updateTime(System.nanoTime(), SLEEP_TIME);
+      timeSource.updateTime();
       sleep();
     }
     timeSource.setAsync(false);

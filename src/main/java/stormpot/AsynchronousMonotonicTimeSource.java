@@ -15,9 +15,14 @@
  */
 package stormpot;
 
-// TODO testing
-class DriftAccountingMonotonicTimeSource implements MonotonicTimeSource {
-  // TODO add padding to ensure these fields end up on a private cache line
+/**
+ * This implementation of {@link MonotonicTimeSource} is meant to be updated
+ * asynchronously by a {@link TimeKeeper}.
+ */
+class AsynchronousMonotonicTimeSource
+    extends Padding1
+    implements MonotonicTimeSource {
+
   private volatile long currentTimeNanos;
   private volatile boolean async;
 
@@ -26,21 +31,24 @@ class DriftAccountingMonotonicTimeSource implements MonotonicTimeSource {
     if (async) {
       return currentTimeNanos;
     } else {
-      return System.nanoTime();
+      return getRealNanoTime();
     }
   }
 
   void setAsync(boolean makeAsync) {
+    if (makeAsync) {
+      // Make sure we don't accedentally expose a bogus value after we've the
+      // time source asynchronous, but before the first update has arrived.
+      currentTimeNanos = getRealNanoTime();
+    }
     async = makeAsync;
   }
 
-  void updateTime(long nanoTime, long sleepTime) {
-    // TODO use the sleep time to do controlled adjustments and drifting when
-    // TODO the clock moves backwards
+  void updateTime() {
     long last = currentTimeNanos;
+    long nanoTime = getRealNanoTime();
     long diff = nanoTime - last;
-    // Explicitly check for 0, because that's a signal to turn off async time.
-    if (diff == 0 && nanoTime != 0) {
+    if (diff == 0) {
       // We require a positive diff to uphold monotonicity. System.nanoTime
       // should already be providing us a monotonic clock, but on OS X that
       // clock can be observed to stand still between two consecutive calls.
@@ -49,9 +57,15 @@ class DriftAccountingMonotonicTimeSource implements MonotonicTimeSource {
       // unfortunately have to break our monotonicity contract here, because
       // we can't trust the clock at this point, and thus we have no idea how
       // much time we'd otherwise spend drifting the clock.
+      // That's why we check if the diff is *exactly* zero, instead of
+      // checking if it's less than one.
       currentTimeNanos = last + 1;
     } else {
       currentTimeNanos = nanoTime;
     }
+  }
+
+  private long getRealNanoTime() {
+    return System.nanoTime();
   }
 }

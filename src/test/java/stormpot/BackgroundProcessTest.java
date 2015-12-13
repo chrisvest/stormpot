@@ -66,6 +66,24 @@ public class BackgroundProcessTest {
     assertThat(c, lessThanOrEqualTo(d));
   }
 
+  @Test(expected = IllegalArgumentException.class) public void
+  mustThrowIfGivenThreadFactoryIsNull() throws Exception {
+    threadFactory = null;
+    createBackgroundProcess();
+  }
+
+  @Test(expected = IllegalArgumentException.class) public void
+  mustThrowIfMaxAllocationThreadsAreNotPositive() throws Exception {
+    maxThreads = 0;
+    createBackgroundProcess();
+  }
+
+  @Test public void
+  mustAcceptMaxAllocationThreadsOfOne() throws Exception {
+    maxThreads = 1;
+    createBackgroundProcess();
+  }
+
   @Test(timeout = TIMEOUT) public void
   mustNotRunAnyThreadsWhenReferenceCountIsZero() throws Exception {
     int firstCount = Thread.activeCount();
@@ -186,8 +204,8 @@ public class BackgroundProcessTest {
     }
   }
 
-  @Test(timeout = TIMEOUT)
-  public void backgroundTaskExecutionMustWorkAfterRestart() throws Exception {
+  @Test(timeout = TIMEOUT) public void
+  backgroundTaskExecutionMustWorkAfterRestart() throws Exception {
     createBackgroundProcess();
     backgroundProcess.incrementReferences();
     Semaphore semaphore = new Semaphore(0);
@@ -221,8 +239,8 @@ public class BackgroundProcessTest {
     }
   }
 
-  @Test(timeout = TIMEOUT)
-  public void mustScaleAllocationThreadsUpAsNeeded() throws Exception {
+  @Test(timeout = TIMEOUT) public void
+  mustScaleAllocationThreadsUpAsNeeded() throws Exception {
     // Issuing 10 allocations that each take 100 milliseconds to complete,
     // we should find that more than 5 threads are created... presumably
     createBackgroundProcess();

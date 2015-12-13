@@ -38,7 +38,7 @@ public final class BackgroundProcess {
 
   private final ThreadFactory factory;
   private final int maxThreads;
-  private final DriftAccountingMonotonicTimeSource timeSource;
+  private final AsynchronousMonotonicTimeSource timeSource;
 
   @SuppressWarnings("unused") // Accessed through Unsafe or ARFU
   private volatile TaskNode taskStack;
@@ -49,11 +49,18 @@ public final class BackgroundProcess {
   private Thread timeKeeperThread;
   private Thread processControllerThread;
 
-  public BackgroundProcess(ThreadFactory factory, int maxThreads) {
+  public BackgroundProcess(ThreadFactory factory, int maxAllocationThreads) {
+    if (factory == null) {
+      throw new IllegalArgumentException("factory cannot be null.");
+    }
+    if (maxAllocationThreads < 1) {
+      throw new IllegalArgumentException(
+          "maxAllocationThreads must be positive.");
+    }
     this.factory = factory;
-    this.maxThreads = maxThreads;
-    timeSource = new DriftAccountingMonotonicTimeSource();
-    taskStack = createControlProcessInitialiseTask();
+    this.maxThreads = maxAllocationThreads;
+    timeSource = new AsynchronousMonotonicTimeSource();
+    getAndSetTaskStack(createControlProcessInitialiseTask());
   }
 
   private StartControlThreadTaskNode createControlProcessInitialiseTask() {

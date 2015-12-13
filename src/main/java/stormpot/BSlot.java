@@ -183,11 +183,6 @@ Space losses: 4 bytes internal + 4 bytes external = 8 bytes total
  */
 // start checking line length
 
-abstract class Padding1 {
-  private int p0;
-  private long p1, p2, p3, p4, p5, p6;
-}
-
 abstract class PaddedAtomicInteger extends Padding1 {
   private static final long stateFieldOffset;
   private static final AtomicIntegerFieldUpdater<PaddedAtomicInteger> updater;
