@@ -69,14 +69,4 @@ final class UnsafeUtil {
   static void putOrderedInt(Object obj, long offset, int update) {
     unsafe.putOrderedInt(obj, offset, update);
   }
-
-  static Object getAndSetObject(
-      Object obj, long offset, Object replacement) {
-    return unsafe.getAndSetObject(obj, offset, replacement);
-  }
-
-  public static boolean compareAndSwapObject(
-      Object obj, long offset, Object expected, Object update) {
-    return unsafe.compareAndSwapObject(obj, offset, expected, update);
-  }
 }
