@@ -117,7 +117,7 @@ public final class Timeout {
   }
 
   private long now() {
-    return System.nanoTime();
+    return System.nanoTime(); // TODO use MonotonicTimeSource
   }
 
   @Override

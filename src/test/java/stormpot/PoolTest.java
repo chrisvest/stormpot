@@ -90,9 +90,10 @@ import static stormpot.UnitKit.*;
  */
 @RunWith(Parameterized.class)
 public class PoolTest {
+  @Rule
+  public final TestRule failurePrinter = new FailurePrinterTestRule();
+
   private static final int TIMEOUT = 42424;
-  @Rule public final TestRule failurePrinter = new FailurePrinterTestRule();
-  
   private static final Expiration<Poolable> oneMsTTL =
       new TimeExpiration<>(1, TimeUnit.MILLISECONDS);
   private static final Expiration<Poolable> fiveMsTTL =

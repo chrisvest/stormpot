@@ -160,7 +160,7 @@ class UnitKit {
   
   public static void waitForThreadState(Thread thread, Thread.State targetState) {
     long start = System.currentTimeMillis();
-    long check = start + 30;
+    long check = start + 100;
     State currentState = thread.getState();
     while (currentState != targetState) {
       assertThat(currentState, is(not(Thread.State.TERMINATED)));
@@ -172,7 +172,6 @@ class UnitKit {
             currentState);
         check = now + 30;
       }
-      Thread.yield();
       currentState = thread.getState();
     }
   }
