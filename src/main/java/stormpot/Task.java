@@ -20,9 +20,9 @@ package stormpot;
  * processing by the {@link BackgroundProcess}. This class is not used directly,
  * but internally by the BackgroundProcess.
  */
-abstract class TaskNode {
+abstract class Task {
   private final boolean isForegroundWork;
-  volatile TaskNode next;
+  volatile Task next;
 
   /**
    * Construct the TaskNode, specifying whether the work should be run in the
@@ -37,7 +37,7 @@ abstract class TaskNode {
    *                         the work should be scheduled to run in a background
    *                         thread by the ProcessController.
    */
-  TaskNode(boolean isForegroundWork) {
+  Task(boolean isForegroundWork) {
     this.isForegroundWork = isForegroundWork;
   }
 

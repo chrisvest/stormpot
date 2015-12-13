@@ -18,9 +18,9 @@ package stormpot;
 import java.util.concurrent.locks.LockSupport;
 
 /**
- * A {@link TaskNode} that runs in the foreground, and will unpark a thread.
+ * A {@link Task} that runs in the foreground, and will unpark a thread.
  */
-class BlockedTaskNode extends TaskNode {
+class BlockedTask extends Task {
   private final Thread thread;
   private volatile boolean unparked;
 
@@ -30,7 +30,7 @@ class BlockedTaskNode extends TaskNode {
    *
    * @param thread The thread to unpark.
    */
-  BlockedTaskNode(Thread thread) {
+  BlockedTask(Thread thread) {
     super(true);
     this.thread = thread;
   }

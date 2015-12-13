@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 final class BackgroundWorker implements Runnable {
-  private final BlockingQueue<TaskNode> queue;
+  private final BlockingQueue<Task> queue;
   private final boolean allowWorkerSelfTermination;
   private final Consumer<BackgroundWorker> workerTerminationCallback;
   private final long pollTimeoutMillis;
@@ -28,7 +28,7 @@ final class BackgroundWorker implements Runnable {
   private volatile Thread workerThread;
 
   BackgroundWorker(
-      BlockingQueue<TaskNode> queue,
+      BlockingQueue<Task> queue,
       boolean allowWorkerSelfTermination,
       Consumer<BackgroundWorker> workerTerminationCallback) {
     this.queue = queue;
@@ -43,7 +43,7 @@ final class BackgroundWorker implements Runnable {
     workerThread = Thread.currentThread();
     while (!stopped) {
       try {
-        TaskNode task = queue.poll(pollTimeoutMillis, TimeUnit.MILLISECONDS);
+        Task task = queue.poll(pollTimeoutMillis, TimeUnit.MILLISECONDS);
 
         if (task != null) {
           task.execute();

@@ -18,30 +18,18 @@ package stormpot;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
-public final class BackgroundProcess {
-  private static final long taskNodeOffset;
-  private static final AtomicReferenceFieldUpdater<BackgroundProcess, TaskNode> taskNodeUpdater;
+import static java.util.concurrent.atomic.AtomicReferenceFieldUpdater.newUpdater;
 
-  static {
-    long offset = 0;
-    AtomicReferenceFieldUpdater<BackgroundProcess, TaskNode> updater = null;
-    if (UnsafeUtil.hasUnsafe()) {
-      offset = UnsafeUtil.objectFieldOffset(
-          BackgroundProcess.class, "taskStack");
-    } else {
-      updater = AtomicReferenceFieldUpdater.newUpdater(
-          BackgroundProcess.class, TaskNode.class, "taskStack");
-    }
-    taskNodeOffset = offset;
-    taskNodeUpdater = updater;
-  }
+public final class BackgroundProcess {
+  private static final AtomicReferenceFieldUpdater<BackgroundProcess, Task> U =
+      newUpdater(BackgroundProcess.class, Task.class, "taskStack");
 
   private final ThreadFactory factory;
   private final int maxThreads;
   private final AsynchronousMonotonicTimeSource timeSource;
 
   @SuppressWarnings("unused") // Accessed through Unsafe or ARFU
-  private volatile TaskNode taskStack;
+  private volatile Task taskStack;
 
   private int referenceCount;
   private TimeKeeper timeKeeper;
@@ -63,8 +51,8 @@ public final class BackgroundProcess {
     getAndSetTaskStack(createControlProcessInitialiseTask());
   }
 
-  private StartControlThreadTaskNode createControlProcessInitialiseTask() {
-    return new StartControlThreadTaskNode(this::startControlThread);
+  private StartControlThreadTask createControlProcessInitialiseTask() {
+    return new StartControlThreadTask(this::startControlThread);
   }
 
   synchronized void incrementReferences() {
@@ -144,23 +132,18 @@ public final class BackgroundProcess {
   }
 
   void submit(Runnable runnable) {
-    enqueue(new ImmediateJobTaskNode(runnable));
+    enqueue(new ImmediateJobTask(runnable));
   }
 
-  private void enqueue(ImmediateJobTaskNode task) {
-    TaskNode prev = getAndSetTaskStack(task);
+  private void enqueue(ImmediateJobTask task) {
+    Task prev = getAndSetTaskStack(task);
     task.next = prev;
     if (prev.isForegroundWork()) {
       prev.execute();
     }
   }
 
-  private TaskNode getAndSetTaskStack(TaskNode replacement) {
-    if (UnsafeUtil.hasUnsafe()) {
-      return (TaskNode) UnsafeUtil.getAndSetObject(
-          this, taskNodeOffset, replacement);
-    } else {
-      return taskNodeUpdater.getAndSet(this, replacement);
-    }
+  private Task getAndSetTaskStack(Task replacement) {
+    return U.getAndSet(this, replacement);
   }
 }

@@ -25,19 +25,19 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 class ProcessController implements Runnable {
-  private final Function<TaskNode,TaskNode> getAndSetTaskStack;
-  private final Supplier<TaskNode> controlProcessInitialiser;
+  private final Function<Task, Task> getAndSetTaskStack;
+  private final Supplier<Task> controlProcessInitialiser;
   private final ThreadFactory factory;
   private final int maxThreads;
-  private final BlockingQueue<TaskNode> workQueue;
+  private final BlockingQueue<Task> workQueue;
   private final Collection<BackgroundWorker> workers;
   private final Consumer<BackgroundWorker> workerTerminationCallback;
   private volatile boolean stopped;
-  private volatile BlockedTaskNode blockedTaskNode;
+  private volatile BlockedTask blockedTaskNode;
 
   ProcessController(
-      Function<TaskNode, TaskNode> getAndSetTaskStack,
-      Supplier<TaskNode> controlProcessInitialiser,
+      Function<Task, Task> getAndSetTaskStack,
+      Supplier<Task> controlProcessInitialiser,
       ThreadFactory factory,
       int maxThreads) {
     this.getAndSetTaskStack = getAndSetTaskStack;
@@ -51,20 +51,20 @@ class ProcessController implements Runnable {
 
   @Override
   public void run() {
-    blockedTaskNode = new BlockedTaskNode(Thread.currentThread());
+    blockedTaskNode = new BlockedTask(Thread.currentThread());
 
     do {
-      TaskNode task = getAndSetTaskStack(blockedTaskNode);
+      Task task = getAndSetTaskStack(blockedTaskNode);
       processTasks(task);
       blockedTaskNode.park(this);
     } while (!stopped);
 
-    TaskNode task = getAndSetTaskStack(controlProcessInitialiser.get());
+    Task task = getAndSetTaskStack(controlProcessInitialiser.get());
     processTasks(task);
     workers.forEach(BackgroundWorker::stop);
   }
 
-  private void processTasks(TaskNode task) {
+  private void processTasks(Task task) {
     while (task != null) {
       if (!task.isForegroundWork()) {
         execute(task);
@@ -73,14 +73,14 @@ class ProcessController implements Runnable {
     }
   }
 
-  private void execute(TaskNode task) {
+  private void execute(Task task) {
     workQueue.offer(task);
     int workerCount = workers.size();
-    if (workerCount == 0 || (workQueue.size() > (workerCount + 2) && workerCount < maxThreads)) {
-      boolean allowWorkerSelftTermination = workerCount == 0;
+    if (workerCount == 0 || needMoreThreads(workerCount)) {
+      boolean allowWorkerSelfTermination = workerCount == 0;
       BackgroundWorker worker = new BackgroundWorker(
           workQueue,
-          allowWorkerSelftTermination,
+          allowWorkerSelfTermination,
           workerTerminationCallback);
       workers.add(worker);
       Thread thread = factory.newThread(worker);
@@ -88,13 +88,17 @@ class ProcessController implements Runnable {
     }
   }
 
-  private TaskNode getAndSetTaskStack(TaskNode taskNode) {
-    return getAndSetTaskStack.apply(taskNode);
+  private boolean needMoreThreads(int workerCount) {
+    return workQueue.size() > (workerCount + 2) && workerCount < maxThreads;
+  }
+
+  private Task getAndSetTaskStack(Task task) {
+    return getAndSetTaskStack.apply(task);
   }
 
   void stop() {
     stopped = true;
-    BlockedTaskNode node = blockedTaskNode;
+    BlockedTask node = blockedTaskNode;
     if (node != null) {
       node.execute();
     }

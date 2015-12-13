@@ -16,25 +16,23 @@
 package stormpot;
 
 /**
- * A foreground task that starts the {@link ProcessController}.
+ * A task node with a unit of work that should be executed in the background as
+ * soon as possible.
  */
-class StartControlThreadTaskNode extends TaskNode {
-  private final Runnable startControllerCallback;
+class ImmediateJobTask extends Task { // as opposed to scheduled job
+  final Runnable runnable;
 
   /**
-   * Construct a foreground task node that will start the background process
-   * control thread via the given callback.
-   *
-   * @param startControllerCallback The callback that, when run, will start the
-   *                                ProcessController.
+   * Construct the background task node with the given unit of work.
+   * @param runnable The work that should be run in the background.
    */
-  StartControlThreadTaskNode(Runnable startControllerCallback) {
-    super(true);
-    this.startControllerCallback = startControllerCallback;
+  ImmediateJobTask(Runnable runnable) {
+    super(false);
+    this.runnable = runnable;
   }
 
   @Override
   void execute() {
-    startControllerCallback.run();
+    runnable.run();
   }
 }
