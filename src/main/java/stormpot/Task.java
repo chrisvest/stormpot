@@ -56,6 +56,7 @@ abstract class Task {
 
   /**
    * Immediately execute the work contained in this task.
+   * @param controller
    */
-  abstract void execute();
+  abstract void execute(ProcessController controller);
 }

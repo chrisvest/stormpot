@@ -37,16 +37,17 @@ class BlockedTask extends Task {
 
   /**
    * Unparks the thread specified to the constructor.
+   * @param controller
    */
   @Override
-  void execute() {
+  void execute(ProcessController controller) {
     unparked = true;
     LockSupport.unpark(thread);
   }
 
-  void park(Object blocker) {
+  void park(Object blocker, long nanos) {
     if (!unparked) {
-      LockSupport.park(blocker);
+      LockSupport.parkNanos(blocker, nanos);
       unparked = false;
     }
   }

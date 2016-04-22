@@ -16,15 +16,19 @@
 package stormpot;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import java.lang.Thread.State;
 import java.util.Queue;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
 import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static stormpot.UnitKit.spinwait;
 import static stormpot.UnitKit.waitForThreadState;
 
 public class BackgroundProcessTest {
@@ -34,6 +38,10 @@ public class BackgroundProcessTest {
   private ThreadFactory threadFactory;
   private int maxThreads = 5;
   private BackgroundProcess backgroundProcess;
+
+  @Rule
+  public final FailurePrinterTestRule failurePrinterTestRule =
+      new FailurePrinterTestRule();
 
   @Before
   public void setUp() {
@@ -258,4 +266,55 @@ public class BackgroundProcessTest {
     backgroundProcess.decrementReferences();
     assertThat(size, greaterThan(3));
   }
+
+  @Test(timeout = TIMEOUT) public void
+  mustRunRecurringTaskUntilCancelled() throws Exception {
+    createBackgroundProcess();
+    backgroundProcess.incrementReferences();
+    Semaphore semaphore = new Semaphore(0);
+    long start = System.nanoTime();
+    ScheduledJobTask task = backgroundProcess.scheduleWithFixedDelay(
+        semaphore::release, 1, TimeUnit.MILLISECONDS);
+    semaphore.acquire(5);
+    task.stop();
+    long elapsedNanos = System.nanoTime() - start;
+    int elapsedMillis = (int) TimeUnit.NANOSECONDS.toMillis(elapsedNanos);
+    spinwait(10);
+    backgroundProcess.decrementReferences();
+    // The task has a tight schedule, so the cancel signal might come a few
+    // runs late. So if we try to grab a few MORE permits than what should have
+    // become available, then we should fail.
+    assertFalse(semaphore.tryAcquire((elapsedMillis - 10) + 3));
+  }
+
+  @Test(timeout = TIMEOUT) public void
+  mustRunRecurringTaskEvenIfItThrows() throws Exception {
+    createBackgroundProcess();
+    backgroundProcess.incrementReferences();
+    Semaphore semaphore = new Semaphore(0);
+    ScheduledJobTask task = backgroundProcess.scheduleWithFixedDelay(() -> {
+      semaphore.release();
+      throw new RuntimeException("boo");
+    }, 1, TimeUnit.MILLISECONDS);
+    semaphore.acquire(2); // assert this doesn't time out
+    task.stop();
+    backgroundProcess.decrementReferences();
+  }
+
+  @Test(timeout = TIMEOUT) public void
+  scheduledTasksMustStopWhenReferenceCountReachesZero() throws Exception {
+    createBackgroundProcess();
+    backgroundProcess.incrementReferences();
+    AtomicInteger counter = new AtomicInteger();
+    backgroundProcess.scheduleWithFixedDelay(
+        counter::incrementAndGet, 1, TimeUnit.MILLISECONDS);
+    //noinspection StatementWithEmptyBody
+    while (counter.get() < 5);
+    backgroundProcess.decrementReferences();
+    int a = counter.get();
+    spinwait(5);
+    int b = counter.get();
+    assertThat(a, is(b));
+  }
+  // TODO submitting and scheduling tasks when the background process is stopped
 }

@@ -34,7 +34,7 @@ class StartControlThreadTask extends Task {
   }
 
   @Override
-  void execute() {
+  void execute(ProcessController controller) {
     startControllerCallback.run();
   }
 }

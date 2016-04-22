@@ -16,6 +16,7 @@
 package stormpot;
 
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import static java.util.concurrent.atomic.AtomicReferenceFieldUpdater.newUpdater;
@@ -126,6 +127,7 @@ public final class BackgroundProcess {
         this::getAndSetTaskStack,
         this::createControlProcessInitialiseTask,
         factory,
+        timeSource,
         maxThreads);
     processControllerThread = factory.newThread(processController);
     processControllerThread.start();
@@ -135,15 +137,22 @@ public final class BackgroundProcess {
     enqueue(new ImmediateJobTask(runnable));
   }
 
-  private void enqueue(ImmediateJobTask task) {
+  private void enqueue(Task task) {
     Task prev = getAndSetTaskStack(task);
     task.next = prev;
     if (prev.isForegroundWork()) {
-      prev.execute();
+      prev.execute(processController);
     }
   }
 
   private Task getAndSetTaskStack(Task replacement) {
     return U.getAndSet(this, replacement);
+  }
+
+  public ScheduledJobTask scheduleWithFixedDelay(
+      Runnable runnable, long delay, TimeUnit unit) {
+    ScheduledJobTask task = new ScheduledJobTask(runnable, delay, unit);
+    enqueue(task);
+    return task;
   }
 }

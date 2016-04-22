@@ -17,17 +17,20 @@ package stormpot;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 class ProcessController implements Runnable {
+  private static final long DEFAULT_PARK_TIME_NANOS =
+      TimeUnit.MILLISECONDS.toNanos(100);
+
   private final Function<Task, Task> getAndSetTaskStack;
   private final Supplier<Task> controlProcessInitialiser;
   private final ThreadFactory factory;
+  private final PriorityBlockingQueue<DelayedTask> delayedTasks;
+  private final AsynchronousMonotonicTimeSource timeSource;
   private final int maxThreads;
   private final BlockingQueue<Task> workQueue;
   private final Collection<BackgroundWorker> workers;
@@ -39,10 +42,13 @@ class ProcessController implements Runnable {
       Function<Task, Task> getAndSetTaskStack,
       Supplier<Task> controlProcessInitialiser,
       ThreadFactory factory,
+      AsynchronousMonotonicTimeSource timeSource,
       int maxThreads) {
     this.getAndSetTaskStack = getAndSetTaskStack;
     this.controlProcessInitialiser = controlProcessInitialiser;
     this.factory = factory;
+    this.delayedTasks = new PriorityBlockingQueue<>();
+    this.timeSource = timeSource;
     this.maxThreads = maxThreads;
     workers = new ArrayList<>();
     workQueue = new LinkedBlockingQueue<>();
@@ -56,7 +62,16 @@ class ProcessController implements Runnable {
     do {
       Task task = getAndSetTaskStack(blockedTaskNode);
       processTasks(task);
-      blockedTaskNode.park(this);
+      long parkTimeNanos = DEFAULT_PARK_TIME_NANOS;
+      DelayedTask topDelayedTask = delayedTasks.peek();
+      if (topDelayedTask != null) {
+        long diff = timeSource.nanoTime() - topDelayedTask.getDeadline();
+        if (diff > 0) {
+          delayedTasks.poll();
+          execute(topDelayedTask);
+        }
+      }
+      blockedTaskNode.park(this, parkTimeNanos);
     } while (!stopped);
 
     Task task = getAndSetTaskStack(controlProcessInitialiser.get());
@@ -81,11 +96,17 @@ class ProcessController implements Runnable {
       BackgroundWorker worker = new BackgroundWorker(
           workQueue,
           allowWorkerSelfTermination,
-          workerTerminationCallback);
+          workerTerminationCallback,
+          this);
       workers.add(worker);
       Thread thread = factory.newThread(worker);
       thread.start();
     }
+  }
+
+  void enqueueDelayed(Runnable runnable, long delay, TimeUnit unit) {
+    long deadline = timeSource.nanoTime() + unit.toNanos(delay);
+    delayedTasks.add(new DelayedTask(runnable, deadline, delay, unit));
   }
 
   private boolean needMoreThreads(int workerCount) {
@@ -100,7 +121,7 @@ class ProcessController implements Runnable {
     stopped = true;
     BlockedTask node = blockedTaskNode;
     if (node != null) {
-      node.execute();
+      node.execute(this);
     }
   }
 }

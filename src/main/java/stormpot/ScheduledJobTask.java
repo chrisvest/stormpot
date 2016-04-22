@@ -15,24 +15,38 @@
  */
 package stormpot;
 
-/**
- * A task node with a unit of work that should be executed in the background as
- * soon as possible.
- */
-class ImmediateJobTask extends Task { // as opposed to scheduled job
-  final Runnable runnable;
+import java.util.concurrent.TimeUnit;
 
-  /**
-   * Construct the background task node with the given unit of work.
-   * @param runnable The work that should be run in the background.
-   */
-  ImmediateJobTask(Runnable runnable) {
+class ScheduledJobTask extends Task {
+  private final Runnable runnable;
+  private final long delay;
+  private final TimeUnit unit;
+  private volatile boolean stopped;
+
+  ScheduledJobTask(
+      Runnable runnable, long delay, TimeUnit unit) {
     super(false);
     this.runnable = runnable;
+    this.delay = delay;
+    this.unit = unit;
+  }
+
+  public void stop() {
+    stopped = true;
   }
 
   @Override
   void execute(ProcessController controller) {
-    runnable.run();
+    try {
+      runnable.run();
+    } finally {
+      enqueueDelayed(controller);
+    }
+  }
+
+  private void enqueueDelayed(ProcessController controller) {
+    if (!stopped) {
+      controller.enqueueDelayed(runnable, delay, unit);
+    }
   }
 }

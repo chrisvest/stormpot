@@ -24,16 +24,19 @@ final class BackgroundWorker implements Runnable {
   private final boolean allowWorkerSelfTermination;
   private final Consumer<BackgroundWorker> workerTerminationCallback;
   private final long pollTimeoutMillis;
+  private final ProcessController controller;
   private volatile boolean stopped;
   private volatile Thread workerThread;
 
   BackgroundWorker(
       BlockingQueue<Task> queue,
       boolean allowWorkerSelfTermination,
-      Consumer<BackgroundWorker> workerTerminationCallback) {
+      Consumer<BackgroundWorker> workerTerminationCallback,
+      ProcessController controller) {
     this.queue = queue;
     this.allowWorkerSelfTermination = allowWorkerSelfTermination;
     this.workerTerminationCallback = workerTerminationCallback;
+    this.controller = controller;
     pollTimeoutMillis = allowWorkerSelfTermination?
         TimeUnit.MINUTES.toMillis(1) : TimeUnit.MINUTES.toMillis(15);
   }
@@ -46,20 +49,16 @@ final class BackgroundWorker implements Runnable {
         Task task = queue.poll(pollTimeoutMillis, TimeUnit.MILLISECONDS);
 
         if (task != null) {
-          task.execute();
+          task.execute(controller);
         } else if (allowWorkerSelfTermination) {
           // Nothing for us to do. Let's terminate.
           break;
         }
 
-      } catch (InterruptedException ignore) {
+      } catch (Exception ignore) {
       }
     }
     workerTerminationCallback.accept(this);
-  }
-
-  int size() {
-    return queue.size();
   }
 
   void stop() {
