@@ -206,8 +206,8 @@ public abstract class Pool<T extends Poolable> {
    * {@link Optional#empty()} is returned instead. The `empty()` value is also
    * returned if the function returns `null`.
    *
-   * @param timeout The timeout of the maximum permitted time-slice to wait for
-   * an object to become available. A timeout with a value of zero or less
+   * @param timeout The timeout of the maximum permitted amount of time to wait
+   * for an object to become available. A timeout with a value of zero or less
    * means that the call will do no waiting, preferring instead to return early
    * if no objects are available.
    * @param function The function to apply to the claimed object, if any. The
@@ -240,8 +240,8 @@ public abstract class Pool<T extends Poolable> {
    * If an object cannot be claimed within the given timeout, then this method
    * returns `false`. Otherwise, if an object was claimed and supplied to the
    * consumer, the method returns `true`.
-   * @param timeout The timeout of the maximum permitted time-slice to wait for
-   * an object to become available. A timeout with a value of zero or less
+   * @param timeout The timeout of the maximum permitted amount of time to wait
+   * for an object to become available. A timeout with a value of zero or less
    * means that the call will do no waiting, preferring instead to return early
    * if no objects are available.
    * @param consumer The consumer to pass the claimed object to, if any. The

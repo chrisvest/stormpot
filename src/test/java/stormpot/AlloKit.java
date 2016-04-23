@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 
 import static java.util.Collections.synchronizedList;
@@ -329,6 +330,18 @@ public class AlloKit {
         return then.apply(slot, obj);
       }
       return alt.apply(slot, obj);
+    };
+  }
+
+  public static Action $incrementAnd(
+      final AtomicLong counter,
+      final Action action) {
+    return new Action() {
+      @Override
+      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
+        counter.getAndIncrement();
+        return action.apply(slot, obj);
+      }
     };
   }
 }

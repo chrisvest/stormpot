@@ -1382,6 +1382,7 @@ public class PoolTest {
       }
     } finally {
       thread.interrupt();
+      //noinspection ThrowFromFinallyBlock
       thread.join();
       lock.unlock();
     }
@@ -1487,6 +1488,22 @@ public class PoolTest {
     Pool<GenericPoolable> pool =
         givenPoolWithFailedAllocation(allocator);
     // must complete before the test timeout:
+    pool.shutdown().await(longTimeout);
+  }
+
+  @Test(timeout = TIMEOUT) public void
+  mustBeAbleToShutDownWhenAllocateAlwaysThrows() throws Exception {
+    AtomicLong counter = new AtomicLong();
+    allocator = allocator(alloc(
+        $incrementAnd(counter, $throw(new RuntimeException("boo")))));
+    config.setAllocator(allocator);
+    config.setSize(3);
+    createPool();
+    //noinspection StatementWithEmptyBody
+    while (counter.get() < 2)
+    {
+      // do nothing
+    }
     pool.shutdown().await(longTimeout);
   }
   
@@ -2813,9 +2830,10 @@ public class PoolTest {
   applyMustReturnResultOfFunction() throws Exception {
     createPool();
     String expectedResult = "Result!";
-    String actualResult = pool.apply(longTimeout,
-        (obj) -> expectedResult).get();
-    assertThat(actualResult, is(expectedResult));
+    Optional<String> actualResult =
+        pool.apply(longTimeout, (obj) -> expectedResult);
+    assertTrue(actualResult.isPresent());
+    assertThat(actualResult.get(), is(expectedResult));
   }
 
   @Test(timeout = TIMEOUT) public void
