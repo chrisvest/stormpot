@@ -60,7 +60,7 @@ public class Config<T extends Poolable> implements Cloneable {
   private MetricsRecorder metricsRecorder;
   private ThreadFactory threadFactory = StormpotThreadFactory.INSTANCE;
   private boolean preciseLeakDetectionEnabled = true;
-  private boolean backgroundExpirationEnabled = false;
+  private boolean backgroundExpirationEnabled = true;
 
   /**
    * Build a new empty Config object. Most settings have reasonable default

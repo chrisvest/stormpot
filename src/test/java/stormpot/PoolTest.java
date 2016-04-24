@@ -1699,6 +1699,7 @@ public class PoolTest {
     // try to reclaim it. The reclaim must not throw an exception because of
     // the cached poisoned slot.
     config.setSize(3);
+    config.setBackgroundExpirationEnabled(false);
 
     // Enough permits for each initial allocation:
     final Semaphore semaphore = new Semaphore(3);
@@ -1955,6 +1956,7 @@ public class PoolTest {
   mustNotLeakSlotsIfExpirationThrowsThrowableInsteadOfException()
       throws InterruptedException {
     final AtomicBoolean shouldThrow = new AtomicBoolean(true);
+    config.setBackgroundExpirationEnabled(false);
     config.setExpiration(expire(
         $if(shouldThrow,
             $throwExpire(new SomeRandomThrowable("Boom!")),

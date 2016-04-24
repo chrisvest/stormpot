@@ -22,7 +22,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-class ProcessController implements Runnable {
+final class ProcessController implements Runnable {
   private static final long DEFAULT_PARK_TIME_NANOS =
       TimeUnit.MILLISECONDS.toNanos(100);
 

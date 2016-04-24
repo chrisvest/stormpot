@@ -111,7 +111,7 @@ public final class BackgroundProcess {
    * time a much faster operation, at the cost of reduced precision.
    *
    * {@link System#nanoTime()} typically has a precision of somewhere between a
-   * fwe tens of nanoseconds, to a couple of microseconds, depending on the
+   * few tens of nanoseconds, to a couple of microseconds, depending on the
    * operating system. While the time source returned by this method will have
    * a precision of about 10 milliseconds. This precision is good enough for
    * the use cases in the Stormpot internals, but might not be good enough
@@ -149,7 +149,7 @@ public final class BackgroundProcess {
     return U.getAndSet(this, replacement);
   }
 
-  public ScheduledJobTask scheduleWithFixedDelay(
+  ScheduledJobTask scheduleWithFixedDelay(
       Runnable runnable, long delay, TimeUnit unit) {
     ScheduledJobTask task = new ScheduledJobTask(runnable, delay, unit);
     enqueue(task);

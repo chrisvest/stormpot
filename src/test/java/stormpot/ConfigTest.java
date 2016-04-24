@@ -296,8 +296,8 @@ public class ConfigTest {
   }
 
   @Test public void
-  backgroundExpirationIsDisabledByDefault() {
-    assertFalse(config.isBackgroundExpirationEnabled());
+  backgroundExpirationIsEnabledByDefault() {
+    assertTrue(config.isBackgroundExpirationEnabled());
   }
 
   @Test public void
