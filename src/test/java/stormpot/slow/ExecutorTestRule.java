@@ -26,11 +26,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-public class ExecutorTestRule implements TestRule {
+class ExecutorTestRule implements TestRule {
   private ExecutorService executor;
-  private List<Future<?>> futuresToPrintOnFailure = new ArrayList<Future<?>>();
+  private List<Future<?>> futuresToPrintOnFailure = new ArrayList<>();
 
-  public ExecutorService getExecutorService() {
+  ExecutorService getExecutorService() {
     return executor;
   }
 
@@ -59,15 +59,15 @@ public class ExecutorTestRule implements TestRule {
     };
   }
 
-  protected ExecutorService createExecutor(ThreadFactory threadFactory) {
+  private ExecutorService createExecutor(ThreadFactory threadFactory) {
     return Executors.newCachedThreadPool(threadFactory);
   }
 
-  public void printOnFailure(List<Future<?>> futures) {
+  void printOnFailure(List<Future<?>> futures) {
     futuresToPrintOnFailure.addAll(futures);
   }
 
-  public void printOnFailure(Future<?> future) {
+  void printOnFailure(Future<?> future) {
     futuresToPrintOnFailure.add(future);
   }
 
@@ -111,7 +111,7 @@ public class ExecutorTestRule implements TestRule {
       return thread;
     }
 
-    public void verifyAllThreadsTerminatedSuccessfully() {
+    void verifyAllThreadsTerminatedSuccessfully() {
       synchronized (threads) {
         for (Thread thread : threads) {
           // The Thread.State is updated asynchronously by the JVM,
@@ -141,7 +141,7 @@ public class ExecutorTestRule implements TestRule {
       }
     }
 
-    public void dumpAllThreads() throws Exception {
+    void dumpAllThreads() throws Exception {
       synchronized (threads) {
         System.err.println(
             "\n===[ Dumping stack traces for all created threads ]===\n");

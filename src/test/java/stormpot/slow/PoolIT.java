@@ -30,6 +30,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static java.lang.System.identityHashCode;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
@@ -65,6 +66,7 @@ public class PoolIT {
   // Initialised in the tests
   private Pool<GenericPoolable> pool;
 
+  @SuppressWarnings("UnusedParameters")
   public PoolIT(String implementationName, PoolFixture fixture) {
     this.fixture = fixture;
   }
@@ -85,7 +87,8 @@ public class PoolIT {
     List<GenericPoolable> deallocated = allocator.getDeallocations();
     // Synchronize to avoid ConcurrentModification with background thread
     synchronized (deallocated) {
-      Collections.sort(deallocated, new OrderByIdentityHashcode());
+      Collections.sort(deallocated, (a,b) ->
+          Integer.compare(identityHashCode(a), identityHashCode(b)));
       Iterator<GenericPoolable> iter = deallocated.iterator();
       List<GenericPoolable> duplicates = new ArrayList<>();
       if (iter.hasNext()) {

@@ -44,6 +44,10 @@ public class FailurePrinterTestRule implements TestRule {
         CompilationMXBean compilationMXBean = ManagementFactory.getCompilationMXBean();
         List<GarbageCollectorMXBean> garbageCollectorMXBeans = ManagementFactory.getGarbageCollectorMXBeans();
         OperatingSystemMXBean operatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean();
+        if (threadMXBean.isCurrentThreadCpuTimeSupported())
+        {
+          threadMXBean.setThreadCpuTimeEnabled(true);
+        }
 
         long startCpuTimeNs = getCpuTimeNs(threadMXBean);
         long startUserTimeNs = getUserTimeNs(threadMXBean);
