@@ -18,23 +18,20 @@ package stormpot;
 import java.util.concurrent.TimeUnit;
 
 class DelayedTask extends ScheduledJobTask implements Comparable<DelayedTask> {
-  private final Runnable runnable;
   private final long deadline;
 
   public DelayedTask(
       Runnable runnable, long deadline, long delay, TimeUnit unit) {
     super(runnable, delay, unit);
-    this.runnable = runnable;
     this.deadline = deadline;
   }
 
   @Override
   public int compareTo(DelayedTask o) {
-    long diff = deadline - o.deadline;
-    return diff > 0? 1 : diff < 0? -1 : 0;
+    return Long.compare(deadline, o.deadline);
   }
 
-  public long getDeadline() {
+  long getDeadline() {
     return deadline;
   }
 }
