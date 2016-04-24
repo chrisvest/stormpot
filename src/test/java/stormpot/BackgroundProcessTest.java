@@ -25,6 +25,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -254,7 +255,7 @@ public class BackgroundProcessTest {
     createBackgroundProcess();
     backgroundProcess.incrementReferences();
     int threadCount = 10;
-    long parkTimeNanos = TimeUnit.MILLISECONDS.toNanos(100);
+    long parkTimeNanos = MILLISECONDS.toNanos(100);
     Semaphore semaphore = new Semaphore(0);
     Runnable sleeper = () -> LockSupport.parkNanos(parkTimeNanos);
     for (int i = 0; i < threadCount; i++) {
@@ -274,7 +275,7 @@ public class BackgroundProcessTest {
     Semaphore semaphore = new Semaphore(0);
     long start = System.nanoTime();
     ScheduledJobTask task = backgroundProcess.scheduleWithFixedDelay(
-        semaphore::release, 1, TimeUnit.MILLISECONDS);
+        semaphore::release, 1, MILLISECONDS);
     semaphore.acquire(5);
     task.stop();
     long elapsedNanos = System.nanoTime() - start;
@@ -295,7 +296,7 @@ public class BackgroundProcessTest {
     ScheduledJobTask task = backgroundProcess.scheduleWithFixedDelay(() -> {
       semaphore.release();
       throw new RuntimeException("boo");
-    }, 1, TimeUnit.MILLISECONDS);
+    }, 1, MILLISECONDS);
     semaphore.acquire(2); // assert this doesn't time out
     task.stop();
     backgroundProcess.decrementReferences();
@@ -307,7 +308,7 @@ public class BackgroundProcessTest {
     backgroundProcess.incrementReferences();
     AtomicInteger counter = new AtomicInteger();
     backgroundProcess.scheduleWithFixedDelay(
-        counter::incrementAndGet, 1, TimeUnit.MILLISECONDS);
+        counter::incrementAndGet, 1, MILLISECONDS);
     //noinspection StatementWithEmptyBody
     while (counter.get() < 5);
     backgroundProcess.decrementReferences();
@@ -316,5 +317,17 @@ public class BackgroundProcessTest {
     int b = counter.get();
     assertThat(a, is(b));
   }
-  // TODO submitting and scheduling tasks when the background process is stopped
+
+  @Test(timeout = TIMEOUT, expected = IllegalStateException.class) public void
+  submittingScheduledTaskMustThrowIfBackgroundProcessHasBeenStopped()
+      throws InterruptedException {
+    createBackgroundProcess();
+    backgroundProcess.incrementReferences();
+    Semaphore semaphore = new Semaphore(0);
+    backgroundProcess.scheduleWithFixedDelay(
+        semaphore::release, 1, MILLISECONDS);
+    semaphore.acquire();
+    backgroundProcess.decrementReferences();
+    backgroundProcess.scheduleWithFixedDelay(() -> {}, 1, MILLISECONDS);
+  }
 }

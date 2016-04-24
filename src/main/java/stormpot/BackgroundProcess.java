@@ -32,7 +32,7 @@ public final class BackgroundProcess {
   @SuppressWarnings("unused") // Accessed through Unsafe or ARFU
   private volatile Task taskStack;
 
-  private int referenceCount;
+  private volatile int referenceCount;
   private TimeKeeper timeKeeper;
   private ProcessController processController;
   private Thread timeKeeperThread;
@@ -138,6 +138,10 @@ public final class BackgroundProcess {
   }
 
   private void enqueue(Task task) {
+    if (referenceCount < 1) {
+      throw new IllegalStateException(
+          "Background process is not running; reference count is zero.");
+    }
     Task prev = getAndSetTaskStack(task);
     task.next = prev;
     if (prev.isForegroundWork()) {

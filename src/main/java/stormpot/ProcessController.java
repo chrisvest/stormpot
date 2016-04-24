@@ -24,7 +24,7 @@ import java.util.function.Supplier;
 
 final class ProcessController implements Runnable {
   private static final long DEFAULT_PARK_TIME_NANOS =
-      TimeUnit.MILLISECONDS.toNanos(100);
+      TimeUnit.MILLISECONDS.toNanos(10);
 
   private final Function<Task, Task> getAndSetTaskStack;
   private final Supplier<Task> controlProcessInitialiser;
