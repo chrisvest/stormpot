@@ -23,6 +23,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
 
+@SuppressWarnings("ALL")
 // tag::defineClass[]
 public class DaoPoolExample {
   // end::defineClass[]

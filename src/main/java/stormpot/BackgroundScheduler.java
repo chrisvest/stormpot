@@ -135,6 +135,7 @@ public final class BackgroundScheduler {
       join(processControllerThread);
     }
     timeKeeper.stop();
+    timeKeeperThread.interrupt();
     join(timeKeeperThread);
   }
 

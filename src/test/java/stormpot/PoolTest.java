@@ -19,6 +19,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -93,6 +94,9 @@ public class PoolTest {
   @Rule
   public final TestRule failurePrinter = new FailurePrinterTestRule();
 
+  @Rule
+  public final TestName testName = new TestName();
+
   private static final int TIMEOUT = 42424;
   private static final Expiration<Poolable> oneMsTTL =
       new TimeExpiration<>(1, TimeUnit.MILLISECONDS);
@@ -103,6 +107,7 @@ public class PoolTest {
   private static final Timeout shortTimeout = new Timeout(1, TimeUnit.MILLISECONDS);
   private static final Timeout zeroTimeout = new Timeout(0, TimeUnit.MILLISECONDS);
 
+  private final String implementationName;
   private final PoolFixture fixture;
   private CountingAllocator allocator;
   private Config<GenericPoolable> config;
@@ -118,13 +123,32 @@ public class PoolTest {
 
   @SuppressWarnings("UnusedParameters")
   public PoolTest(String implementationName, PoolFixture fixture) {
+    this.implementationName = implementationName;
     this.fixture = fixture;
   }
+
+  private static boolean installedCustomThreadFactory = false;
+  private static AtomicReference<String> testNameRef = new AtomicReference<>();
 
   @Before public void
   setUp() {
     allocator = allocator();
-    config = new Config<GenericPoolable>().setSize(1).setAllocator(allocator);
+    if (!installedCustomThreadFactory) {
+      ThreadFactory threadFactory = r -> {
+        Thread thread = StormpotThreadFactory.INSTANCE.newThread(r);
+        thread.setName(thread.getName() +
+            "[" + testNameRef.get() + "]");
+        return thread;
+      };
+      BackgroundScheduler scheduler = new BackgroundScheduler(
+          threadFactory, Runtime.getRuntime().availableProcessors());
+      BackgroundScheduler.setDefaultInstance(scheduler);
+      installedCustomThreadFactory = true;
+    }
+    testNameRef.set(testName.getMethodName());
+    config = new Config<GenericPoolable>()
+        .setSize(1)
+        .setAllocator(allocator);
   }
 
   @After public void
@@ -231,6 +255,7 @@ public class PoolTest {
       waitForThreadState(thread, Thread.State.TIMED_WAITING);
     } finally {
       obj.release();
+      //noinspection ThrowFromFinallyBlock
       thread.join();
       ref.get().release();
     }
@@ -540,6 +565,7 @@ public class PoolTest {
       return true;
     };
     config.setExpiration(expiration);
+    config.setBackgroundExpirationEnabled(false);
     createPool();
 
     pool.claim(longTimeout).release();
@@ -1221,9 +1247,14 @@ public class PoolTest {
    */
   @Test(timeout = TIMEOUT, expected = PoolException.class) public void
   claimMustThrowIfAllocationReturnsNull() throws Exception {
-    Allocator<GenericPoolable> allocator = allocator(alloc($null));
-    Pool<GenericPoolable> pool = fixture.initPool(config.setAllocator(allocator));
-    pool.claim(longTimeout);
+    config.setAllocator(allocator(alloc($null)));
+    config.setBackgroundExpirationEnabled(false);
+    createPool();
+    GenericPoolable obj = pool.claim(longTimeout);
+    if (obj != null) {
+      obj.release();
+      fail("Did not expect to claim an object");
+    }
   }
 
   /**
@@ -2159,10 +2190,11 @@ public class PoolTest {
     config.setBackgroundScheduler(backgroundScheduler);
     createPool();
     pool.claim(longTimeout).release();
-    assertThat(createdThreads.size(), is(1));
+    int createdThreadCount = createdThreads.size();
+    assertThat(createdThreadCount, greaterThanOrEqualTo(1));
     assertTrue(createdThreads.get(0).isAlive());
     pool.shutdown().await(longTimeout);
-    assertThat(createdThreads.size(), is(1));
+    assertThat(createdThreads.size(), is(createdThreadCount));
     Thread thread = createdThreads.get(0);
     thread.join();
     assertFalse(thread.isAlive());
@@ -2426,6 +2458,8 @@ public class PoolTest {
   @Test(timeout = TIMEOUT) public void
   managedPoolMustCountLeakedObjects() throws Exception {
     config.setSize(2);
+    config.setBackgroundScheduler(new BackgroundScheduler(
+        StormpotThreadFactory.INSTANCE, 2));
     ManagedPool managedPool = assumeManagedPool();
     pool.claim(longTimeout); // leak!
     // Clear any thread-local reference to the leaked object:

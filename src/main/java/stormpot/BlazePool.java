@@ -17,7 +17,6 @@ package stormpot;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedTransferQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -51,7 +50,6 @@ public final class BlazePool<T extends Poolable>
   private final DisregardBPile<T> disregardPile;
   private final BAllocThread<T> allocator;
   private final ThreadLocal<BSlot<T>> tlr;
-  private final Thread allocatorThread;
   private final Expiration<? super T> deallocRule;
   private final MetricsRecorder metricsRecorder;
 
@@ -73,15 +71,17 @@ public final class BlazePool<T extends Poolable>
     poisonPill = new BSlot<>(live, null);
     poisonPill.poison = SHUTDOWN_POISON;
 
+    BackgroundScheduler scheduler;
     synchronized (config) {
       config.validate();
-      ThreadFactory factory = config.getBackgroundScheduler().getThreadFactory();
-      allocator = new BAllocThread<>(live, disregardPile, config, poisonPill);
-      allocatorThread = factory.newThread(allocator);
+      scheduler = config.getBackgroundScheduler();
+      allocator = new BAllocThread<>(
+          live, disregardPile, config, poisonPill, scheduler);
       deallocRule = config.getExpiration();
       metricsRecorder = config.getMetricsRecorder();
     }
-    allocatorThread.start();
+    scheduler.incrementReferences();
+    scheduler.submit(allocator);
   }
 
   @Override
@@ -245,7 +245,7 @@ public final class BlazePool<T extends Poolable>
   @Override
   public Completion shutdown() {
     shutdown = true;
-    return allocator.shutdown(allocatorThread);
+    return allocator.shutdown();
   }
 
   @Override
