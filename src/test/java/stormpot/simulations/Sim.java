@@ -270,7 +270,7 @@ public abstract class Sim {
     deps.add(config.getAllocator());
     deps.add(config.getExpiration());
     deps.add(config.getMetricsRecorder());
-    deps.add(config.getThreadFactory());
+    deps.add(config.getBackgroundScheduler());
     deps.add(output);
 
     String poolTypeName = ctor.getDeclaringClass().getSimpleName();
@@ -332,7 +332,7 @@ public abstract class Sim {
     boolean backgroundExpirationEnabled = config.isBackgroundExpirationEnabled();
     boolean preciseLeakDetectionEnabled = config.isPreciseLeakDetectionEnabled();
     MetricsRecorder metricsRecorder = config.getMetricsRecorder();
-    ThreadFactory threadFactory = config.getThreadFactory();
+    BackgroundScheduler backgroundScheduler = config.getBackgroundScheduler();
     return String.format(
         "{%n\tsize = %s" +
             "%n\texpiration = %s%n\t" +
@@ -341,7 +341,7 @@ public abstract class Sim {
             "metricsRecorder = %s%n\t" +
             "threadFactory = %s%n}",
         size, expiration, backgroundExpirationEnabled,
-        preciseLeakDetectionEnabled, metricsRecorder, threadFactory);
+        preciseLeakDetectionEnabled, metricsRecorder, backgroundScheduler);
   }
 
   private void run(

@@ -305,18 +305,19 @@ public class PoolTest {
   }
 
   /**
-   * Prevent the creation of pools with a null ThreadFactory.
-   * @see Config#setThreadFactory(java.util.concurrent.ThreadFactory)
+   * Prevent the creation of pools with a null BackgroundScheduler.
+   * @see Config#setBackgroundScheduler(BackgroundScheduler)
    */
   @Test(timeout = TIMEOUT, expected = IllegalArgumentException.class) public void
   constructorMustThrowOnNullThreadFactory() {
-    fixture.initPool(config.setThreadFactory(null));
+    fixture.initPool(config.setBackgroundScheduler(null));
   }
 
   @Test(timeout = TIMEOUT, expected = NullPointerException.class) public void
   constructorMustThrowIfConfiguredThreadFactoryReturnsNull() {
     ThreadFactory factory = r -> null;
-    config.setThreadFactory(factory);
+    BackgroundScheduler scheduler = new BackgroundScheduler(factory, 4);
+    config.setBackgroundScheduler(scheduler);
     createPool();
   }
   
@@ -2145,14 +2146,17 @@ public class PoolTest {
   @Test(timeout = TIMEOUT) public void
   poolMustUseConfiguredThreadFactoryWhenCreatingBackgroundThreads()
       throws InterruptedException {
-    final ThreadFactory delegateThreadFactory = config.getThreadFactory();
+    final ThreadFactory delegateThreadFactory = StormpotThreadFactory.INSTANCE;
     final List<Thread> createdThreads = new ArrayList<>();
     ThreadFactory factory = r -> {
       Thread thread = delegateThreadFactory.newThread(r);
       createdThreads.add(thread);
       return thread;
     };
-    config.setThreadFactory(factory);
+    int maxThreads = Runtime.getRuntime().availableProcessors();
+    BackgroundScheduler backgroundScheduler =
+        new BackgroundScheduler(factory, maxThreads);
+    config.setBackgroundScheduler(backgroundScheduler);
     createPool();
     pool.claim(longTimeout).release();
     assertThat(createdThreads.size(), is(1));

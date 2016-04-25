@@ -24,6 +24,7 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static java.lang.Double.NaN;
 import static org.hamcrest.Matchers.*;
@@ -272,16 +273,26 @@ public class ConfigTest {
 
   @Test public void
   defaultThreadFactoryMustCreateThreadsWithStormpotNameSignature() {
-    ThreadFactory factory = config.getThreadFactory();
-    Thread thread = factory.newThread(null);
-    assertThat(thread.getName(), containsString("Stormpot"));
+    BackgroundScheduler scheduler = config.getBackgroundScheduler();
+    scheduler.incrementReferences();
+    AtomicReference<String> threadName = new AtomicReference<>();
+    scheduler.submit(() -> {
+      threadName.set(Thread.currentThread().getName());
+    });
+    String name;
+    do {
+      name = threadName.get();
+    } while (name == null);
+    scheduler.decrementReferences();
+    assertThat(name, containsString("Stormpot"));
   }
 
   @Test public void
   threadFactoryMustBeSettable() {
-    ThreadFactory factory = r -> null;
-    config.setThreadFactory(factory);
-    assertThat(config.getThreadFactory(), sameInstance(factory));
+    BackgroundScheduler scheduler = new BackgroundScheduler(
+        StormpotThreadFactory.INSTANCE, 4);
+    config.setBackgroundScheduler(scheduler);
+    assertThat(config.getBackgroundScheduler(), sameInstance(scheduler));
   }
 
   @Test public void
@@ -320,7 +331,9 @@ public class ConfigTest {
       Class<?> parameterType = setter.getParameterTypes()[0];
       Object arg =
           parameterType == Boolean.TYPE? true :
-          parameterType == Integer.TYPE? 1 : null;
+          parameterType == Integer.TYPE? 1 :
+          parameterType == ThreadFactory.class? StormpotThreadFactory.INSTANCE :
+          null;
       Object result = setter.invoke(config, arg);
       assertThat("return value of setter " + setter,
           result, sameInstance((Object) config));
@@ -351,7 +364,8 @@ public class ConfigTest {
     CountingAllocator allocator = AlloKit.allocator();
     ExpireKit.CountingExpiration expiration = ExpireKit.expire();
     MetricsRecorder metricsRecorder = new LastSampleMetricsRecorder();
-    ThreadFactory factory = r -> null;
+    BackgroundScheduler backgroundScheduler = new BackgroundScheduler(
+        StormpotThreadFactory.INSTANCE, 4);
 
     config.setExpiration(expiration);
     config.setAllocator(allocator);
@@ -359,7 +373,7 @@ public class ConfigTest {
     config.setMetricsRecorder(metricsRecorder);
     config.setPreciseLeakDetectionEnabled(false);
     config.setSize(42);
-    config.setThreadFactory(factory);
+    config.setBackgroundScheduler(backgroundScheduler);
 
     Config<GenericPoolable> clone = config.clone();
 
@@ -369,6 +383,6 @@ public class ConfigTest {
     assertThat(clone.getMetricsRecorder(), sameInstance(metricsRecorder));
     assertFalse(clone.isPreciseLeakDetectionEnabled());
     assertThat(clone.getSize(), is(42));
-    assertThat(clone.getThreadFactory(), sameInstance(factory));
+    assertThat(clone.getBackgroundScheduler(), sameInstance(backgroundScheduler));
   }
 }

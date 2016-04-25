@@ -16,7 +16,7 @@
 package stormpot;
 
 /**
- * Dedicated time-keeping thread started by the {@link BackgroundProcess}
+ * Dedicated time-keeping thread started by the {@link BackgroundScheduler}
  * upon initialisation. Only one is kept around per BackgroundProcess, and
  * it stopped when the BackgroundProcess reference count reaches zero.
  *

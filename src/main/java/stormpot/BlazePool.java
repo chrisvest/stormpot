@@ -75,7 +75,7 @@ public final class BlazePool<T extends Poolable>
 
     synchronized (config) {
       config.validate();
-      ThreadFactory factory = config.getThreadFactory();
+      ThreadFactory factory = config.getBackgroundScheduler().getThreadFactory();
       allocator = new BAllocThread<>(live, disregardPile, config, poisonPill);
       allocatorThread = factory.newThread(allocator);
       deallocRule = config.getExpiration();

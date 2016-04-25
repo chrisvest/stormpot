@@ -21,9 +21,20 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import static java.util.concurrent.atomic.AtomicReferenceFieldUpdater.newUpdater;
 
-public final class BackgroundProcess {
-  private static final AtomicReferenceFieldUpdater<BackgroundProcess, Task> U =
-      newUpdater(BackgroundProcess.class, Task.class, "taskStack");
+/**
+ * The {@link BackgroundScheduler} is a thread-pool that can be shared among
+ * many Stormpot {@link Pool} instance, allowing them to schedule and run work
+ * in the background.
+ *
+ * The {@link BackgroundScheduler} is also in charge of maintaining a
+ * {@link MonotonicTimeSource}, which is used by the pool for telling time.
+ * This time source is for instance used for time-based expiration checking of
+ * objects in the pool, and for {@link Pool#claim(Timeout)} timeouts.
+ */
+public final class BackgroundScheduler {
+  private static final AtomicReferenceFieldUpdater<BackgroundScheduler, Task> U =
+      newUpdater(BackgroundScheduler.class, Task.class, "taskStack");
+  private static BackgroundScheduler DEFAULT_INSTANCE;
 
   private final ThreadFactory factory;
   private final int maxThreads;
@@ -38,7 +49,48 @@ public final class BackgroundProcess {
   private Thread timeKeeperThread;
   private Thread processControllerThread;
 
-  public BackgroundProcess(ThreadFactory factory, int maxAllocationThreads) {
+  /**
+   * Get the (shared) default {@link BackgroundScheduler} instance.
+   * @return The {@link BackgroundScheduler} that Stormpot pools will use
+   * unless configured otherwise.
+   */
+  public static synchronized BackgroundScheduler getDefaultInstance() {
+    if (DEFAULT_INSTANCE == null) {
+      DEFAULT_INSTANCE = new BackgroundScheduler(
+          StormpotThreadFactory.INSTANCE,
+          Runtime.getRuntime().availableProcessors());
+    }
+    return DEFAULT_INSTANCE;
+  }
+
+  /**
+   * Make the given {@link BackgroundScheduler} instance the new default
+   * instance that {@link #getDefaultInstance()} will return, and that new
+   * {@link Config} objects will start out being configured with.
+   *
+   * Note that this does not change the configuration of any existing
+   * {@link Pool} or {@link Config} instance.
+   * @param scheduler The new default {@link BackgroundScheduler} instance.
+   */
+  public static synchronized void setDefaultInstance(
+      BackgroundScheduler scheduler) {
+    if (scheduler == null) {
+      throw new IllegalArgumentException(
+          "The default BackgroundScheduler cannot be set to null");
+    }
+    DEFAULT_INSTANCE = scheduler;
+  }
+
+  /**
+   * Create a new {@link BackgroundScheduler} instance with the given
+   * {@link ThreadFactory} and given max thread count.
+   * @param factory The {@link ThreadFactory} that the
+   * {@link BackgroundScheduler} will use to create its background threads.
+   * @param maxAllocationThreads The maximum number of background threads the
+   *                             scheduler will have running at any point in
+   *                             time.
+   */
+  public BackgroundScheduler(ThreadFactory factory, int maxAllocationThreads) {
     if (factory == null) {
       throw new IllegalArgumentException("factory cannot be null.");
     }
@@ -131,6 +183,14 @@ public final class BackgroundProcess {
         maxThreads);
     processControllerThread = factory.newThread(processController);
     processControllerThread.start();
+  }
+
+  ThreadFactory getThreadFactory() {
+    return factory;
+  }
+
+  int getMaxThreads() {
+    return maxThreads;
   }
 
   void submit(Runnable runnable) {

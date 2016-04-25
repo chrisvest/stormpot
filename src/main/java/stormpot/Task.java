@@ -17,7 +17,7 @@ package stormpot;
 
 /**
  * The abstract class of tasks enqueued for background (or foreground)
- * processing by the {@link BackgroundProcess}. This class is not used directly,
+ * processing by the {@link BackgroundScheduler}. This class is not used directly,
  * but internally by the BackgroundProcess.
  */
 abstract class Task {
@@ -28,11 +28,11 @@ abstract class Task {
    * Construct the TaskNode, specifying whether the work should be run in the
    * foreground or in the background. Background work will be scheduled by the
    * {@link ProcessController} in an initialised
-   * {@link BackgroundProcess}.
+   * {@link BackgroundScheduler}.
    *
    * @param isForegroundWork {@code true} if this work should be run by the
    *                         threads that
-   *                         {@link BackgroundProcess#submit(Runnable) submit}
+   *                         {@link BackgroundScheduler#submit(Runnable) submit}
    *                         work to the BackgroundProcess, {@code false} if
    *                         the work should be scheduled to run in a background
    *                         thread by the ProcessController.
@@ -44,7 +44,7 @@ abstract class Task {
   /**
    * {@code true} if the work represented by this task node should be performed
    * in the foreground by the next thread that
-   * {@link BackgroundProcess#submit(Runnable) submit} a task to the
+   * {@link BackgroundScheduler#submit(Runnable) submit} a task to the
    * BackgroundProcess.
    *
    * @return {@code true} if this is foreground work rather than background
