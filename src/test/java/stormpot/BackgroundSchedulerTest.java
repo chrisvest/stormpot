@@ -274,7 +274,7 @@ public class BackgroundSchedulerTest {
     backgroundScheduler.incrementReferences();
     Semaphore semaphore = new Semaphore(0);
     long start = System.nanoTime();
-    ScheduledJobTask task = backgroundScheduler.scheduleWithFixedDelay(
+    BackgroundScheduler.Stoppable task = backgroundScheduler.scheduleWithFixedDelay(
         semaphore::release, 1, MILLISECONDS);
     semaphore.acquire(5);
     task.stop();
@@ -285,7 +285,8 @@ public class BackgroundSchedulerTest {
     // The task has a tight schedule, so the cancel signal might come a few
     // runs late. So if we try to grab a few MORE permits than what should have
     // become available, then we should fail.
-    assertFalse(semaphore.tryAcquire((elapsedMillis - 10) + 3));
+    int permits = (elapsedMillis - 5) + 3;
+    assertFalse(semaphore.tryAcquire(permits));
   }
 
   @Test(timeout = TIMEOUT) public void
@@ -293,9 +294,9 @@ public class BackgroundSchedulerTest {
     createBackgroundScheduler();
     backgroundScheduler.incrementReferences();
     Semaphore semaphore = new Semaphore(0);
-    ScheduledJobTask task = backgroundScheduler.scheduleWithFixedDelay(() -> {
+    BackgroundScheduler.Stoppable task = backgroundScheduler.scheduleWithFixedDelay(() -> {
       semaphore.release();
-      throw new RuntimeException("boo");
+      throw new SilentException("boo");
     }, 1, MILLISECONDS);
     semaphore.acquire(2); // assert this doesn't time out
     task.stop();
@@ -357,5 +358,16 @@ public class BackgroundSchedulerTest {
   @Test(expected = IllegalArgumentException.class) public void
   defaultBackgroundSchedulerInstanceCannotBeSetToNull() {
     BackgroundScheduler.setDefaultInstance(null);
+  }
+
+  @Test public void
+  startingAndStoppingTheBackgroundSchedulerRepeatedly() throws InterruptedException {
+    createBackgroundScheduler();
+    for (int i = 0; i < 1000; i++) {
+      backgroundScheduler.incrementReferences();
+      backgroundScheduler.submit(() -> spinwait(2));
+      spinwait(1);
+      backgroundScheduler.decrementReferences();
+    }
   }
 }

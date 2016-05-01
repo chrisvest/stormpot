@@ -15,11 +15,7 @@
  */
 package stormpot;
 
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
-
-import static java.util.concurrent.atomic.AtomicReferenceFieldUpdater.newUpdater;
+import java.util.concurrent.*;
 
 /**
  * The {@link BackgroundScheduler} is a thread-pool that can be shared among
@@ -32,25 +28,20 @@ import static java.util.concurrent.atomic.AtomicReferenceFieldUpdater.newUpdater
  * objects in the pool, and for {@link Pool#claim(Timeout)} timeouts.
  */
 public final class BackgroundScheduler {
-  private static final AtomicReferenceFieldUpdater<BackgroundScheduler, Task> U =
-      newUpdater(BackgroundScheduler.class, Task.class, "taskStack");
   private static BackgroundScheduler DEFAULT_INSTANCE;
 
   private final ThreadFactory factory;
   private final int maxThreads;
   private final AsynchronousMonotonicTimeSource timeSource;
 
-  @SuppressWarnings("unused") // Accessed through Unsafe or ARFU
-  private volatile Task taskStack;
-
   private volatile int referenceCount;
   private TimeKeeper timeKeeper;
-  private ProcessController processController;
   private Thread timeKeeperThread;
-  private Thread processControllerThread;
+  private ScheduledExecutorService executor;
 
   /**
    * Get the (shared) default {@link BackgroundScheduler} instance.
+   *
    * @return The {@link BackgroundScheduler} that Stormpot pools will use
    * unless configured otherwise.
    */
@@ -70,6 +61,7 @@ public final class BackgroundScheduler {
    *
    * Note that this does not change the configuration of any existing
    * {@link Pool} or {@link Config} instance.
+   *
    * @param scheduler The new default {@link BackgroundScheduler} instance.
    */
   public static synchronized void setDefaultInstance(
@@ -84,11 +76,11 @@ public final class BackgroundScheduler {
   /**
    * Create a new {@link BackgroundScheduler} instance with the given
    * {@link ThreadFactory} and given max thread count.
+   *
    * @param factory The {@link ThreadFactory} that the
    * {@link BackgroundScheduler} will use to create its background threads.
    * @param maxAllocationThreads The maximum number of background threads the
-   *                             scheduler will have running at any point in
-   *                             time.
+   * scheduler will have running at any point in time.
    */
   public BackgroundScheduler(ThreadFactory factory, int maxAllocationThreads) {
     if (factory == null) {
@@ -101,11 +93,6 @@ public final class BackgroundScheduler {
     this.factory = factory;
     this.maxThreads = maxAllocationThreads;
     timeSource = new AsynchronousMonotonicTimeSource();
-    getAndSetTaskStack(createControlProcessInitialiseTask());
-  }
-
-  private StartControlThreadTask createControlProcessInitialiseTask() {
-    return new StartControlThreadTask(this::startControlThread);
   }
 
   synchronized void incrementReferences() {
@@ -119,23 +106,22 @@ public final class BackgroundScheduler {
     timeKeeper = new TimeKeeper(timeSource);
     timeKeeperThread = factory.newThread(timeKeeper);
     timeKeeperThread.start();
+    executor = Executors.newScheduledThreadPool(maxThreads, factory);
   }
 
   synchronized void decrementReferences() {
     referenceCount--;
-    assert referenceCount >= 0: "Negative reference count";
+    assert referenceCount >= 0 : "Negative reference count";
     if (referenceCount == 0) {
       deinitialise();
     }
   }
 
   private void deinitialise() {
-    if (processController != null) {
-      processController.stop();
-      join(processControllerThread);
-    }
     timeKeeper.stop();
     timeKeeperThread.interrupt();
+    executor.shutdown();
+    executor = null;
     join(timeKeeperThread);
   }
 
@@ -169,21 +155,11 @@ public final class BackgroundScheduler {
    * a precision of about 10 milliseconds. This precision is good enough for
    * the use cases in the Stormpot internals, but might not be good enough
    * in other places where {@code System.nanoTime()} is used.
+   *
    * @return an asynchronous {@link MonotonicTimeSource} implementation.
    */
   public MonotonicTimeSource getAsynchronousMonotonicTimeSource() {
     return timeSource;
-  }
-
-  private synchronized void startControlThread() {
-    processController = new ProcessController(
-        this::getAndSetTaskStack,
-        this::createControlProcessInitialiseTask,
-        factory,
-        timeSource,
-        maxThreads);
-    processControllerThread = factory.newThread(processController);
-    processControllerThread.start();
   }
 
   ThreadFactory getThreadFactory() {
@@ -195,29 +171,32 @@ public final class BackgroundScheduler {
   }
 
   void submit(Runnable runnable) {
-    enqueue(new ImmediateJobTask(runnable));
+    checkIfStopped();
+    executor.submit(runnable);
   }
 
-  private void enqueue(Task task) {
+  private void checkIfStopped() {
     if (referenceCount < 1) {
       throw new IllegalStateException(
           "Background process is not running; reference count is zero.");
     }
-    Task prev = getAndSetTaskStack(task);
-    task.next = prev;
-    if (prev.isForegroundWork()) {
-      prev.execute(processController);
-    }
   }
 
-  private Task getAndSetTaskStack(Task replacement) {
-    return U.getAndSet(this, replacement);
-  }
-
-  ScheduledJobTask scheduleWithFixedDelay(
+  Stoppable scheduleWithFixedDelay(
       Runnable runnable, long delay, TimeUnit unit) {
-    ScheduledJobTask task = new ScheduledJobTask(runnable, delay, unit);
-    enqueue(task);
-    return task;
+    checkIfStopped();
+    Runnable task = () -> {
+      try {
+        runnable.run();
+      } catch (RuntimeException e) {
+        e.printStackTrace();
+      }
+    };
+    ScheduledFuture<?> future = executor.scheduleWithFixedDelay(task, 0, delay, unit);
+    return () -> future.cancel(true);
+  }
+
+  interface Stoppable {
+    void stop();
   }
 }

@@ -15,24 +15,12 @@
  */
 package stormpot;
 
-/**
- * A task node with a unit of work that should be executed in the background as
- * soon as possible.
- */
-class ImmediateJobTask extends Task { // as opposed to scheduled job
-  final Runnable runnable;
-
-  /**
-   * Construct the background task node with the given unit of work.
-   * @param runnable The work that should be run in the background.
-   */
-  ImmediateJobTask(Runnable runnable) {
-    super(false);
-    this.runnable = runnable;
+class SilentException extends RuntimeException {
+  SilentException(String message) {
+    super(message);
   }
 
   @Override
-  void execute(ProcessController controller) {
-    runnable.run();
+  public void printStackTrace() {
   }
 }
