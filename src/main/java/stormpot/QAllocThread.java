@@ -211,6 +211,9 @@ final class QAllocThread<T extends Poolable> implements Runnable {
 
   private void realloc(QSlot<T> slot) {
     if (slot.poison == null) {
+      if (slot.expired) {
+        poisonedSlots.getAndDecrement();
+      }
       try {
         slot.obj = allocator.reallocate(slot, slot.obj);
         if (slot.obj == null) {

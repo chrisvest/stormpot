@@ -262,6 +262,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   private void realloc(BSlot<T> slot) {
     if (slot.poison == BlazePool.EXPLICIT_EXPIRE_POISON) {
       slot.poison = null;
+      poisonedSlots.getAndDecrement();
     }
     if (slot.poison == null) {
       try {

@@ -27,14 +27,18 @@ import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import stormpot.*;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadMXBean;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static stormpot.AlloKit.$countDown;
 import static stormpot.AlloKit.*;
@@ -348,4 +352,51 @@ public class PoolIT {
     objs.get(startingSize - 1).release();
     assertTrue("shutdown timeout elapsed", completion.await(longTimeout));
   }
+
+  @Test
+  @Theory public void
+  explicitlyExpiredSlotsMustNotCauseBackgroundCPUBurn(final PoolFixture fixture)
+      throws InterruptedException {
+    final ThreadMXBean threads = ManagementFactory.getThreadMXBean();
+    final AtomicLong lastUserTimeIncrement = new AtomicLong();
+    assumeTrue(threads.isCurrentThreadCpuTimeSupported());
+    allocator = allocator(alloc(new Action() {
+      boolean first = true;
+
+      @Override
+      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
+        if (first) {
+          threads.setThreadCpuTimeEnabled(true);
+          first = false;
+        }
+        long cpuTime = threads.getCurrentThreadCpuTime();
+        long userTime = threads.getCurrentThreadUserTime();
+        lastUserTimeIncrement.set(userTime - lastUserTimeIncrement.get());
+        return $new.apply(slot, obj);
+      }
+    }));
+    config.setAllocator(allocator);
+    config.setSize(2);
+    createPool(fixture);
+    GenericPoolable a = pool.claim(longTimeout);
+    GenericPoolable b = pool.claim(longTimeout);
+    a.expire();
+    Thread.sleep(10);
+    a.release();
+    a = pool.claim(longTimeout);
+    long millisecondsAllowedToBurnCPU = 5000;
+    Thread.sleep(millisecondsAllowedToBurnCPU);
+    b.expire();
+    b.release();
+    b = pool.claim(longTimeout);
+    a.release();
+    b.release();
+    long millisecondsSpentBurningCPU =
+        TimeUnit.NANOSECONDS.toMillis(lastUserTimeIncrement.get());
+
+    assertThat(millisecondsSpentBurningCPU,
+        is(lessThan(millisecondsAllowedToBurnCPU / 2)));
+  }
+
+  // todo explicitly expired slots that are deallocated through pool shrinking must not cause background CPU burn
 }
