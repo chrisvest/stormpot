@@ -83,7 +83,7 @@ final class QAllocThread<T extends Poolable> implements Runnable {
       //noinspection InfiniteLoopStatement
       for (;;) {
         boolean weHaveWorkToDo = size != targetSize || poisonedSlots.get() > 0;
-        long deadPollTimeout = weHaveWorkToDo? 0 : 50;
+        long deadPollTimeout = weHaveWorkToDo? 1 : 50;
         if (size < targetSize) {
           QSlot<T> slot = new QSlot<T>(live, poisonedSlots);
           alloc(slot);
@@ -199,6 +199,9 @@ final class QAllocThread<T extends Poolable> implements Runnable {
       if (slot.poison == null) {
         recordObjectLifetimeSample(System.currentTimeMillis() - slot.created);
         allocator.deallocate(slot.obj);
+        if (slot.expired) {
+          poisonedSlots.getAndDecrement();
+        }
       } else {
         poisonedSlots.getAndDecrement();
       }
@@ -261,15 +264,15 @@ final class QAllocThread<T extends Poolable> implements Runnable {
     return new LatchCompletion(completionLatch);
   }
 
-  public long getAllocationCount() {
+  long getAllocationCount() {
     return allocationCount;
   }
 
-  public long getFailedAllocationCount() {
+  long getFailedAllocationCount() {
     return failedAllocationCount;
   }
 
-  public long countLeakedObjects() {
+  long countLeakedObjects() {
     if (leakDetector !=null) {
       return leakDetector.countLeakedObjects();
     }

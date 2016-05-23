@@ -97,7 +97,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
 
   private void replenishPool() throws InterruptedException {
     boolean weHaveWorkToDo = size != targetSize || poisonedSlots.get() > 0;
-    long deadPollTimeout = weHaveWorkToDo? 0 : 50;
+    long deadPollTimeout = weHaveWorkToDo? 1 : 50;
     if (size < targetSize) {
       increaseSizeByAllocating();
     }
@@ -309,22 +309,22 @@ final class BAllocThread<T extends Poolable> implements Runnable {
     return new LatchCompletion(completionLatch);
   }
 
-  public long getAllocationCount() {
+  long getAllocationCount() {
     return allocationCount;
   }
 
-  public long getFailedAllocationCount() {
+  long getFailedAllocationCount() {
     return failedAllocationCount;
   }
 
-  public long countLeakedObjects() {
+  long countLeakedObjects() {
     if (leakDetector != null) {
       return leakDetector.countLeakedObjects();
     }
     return -1;
   }
 
-  public void offerDeadSlot(BSlot<T> slot) {
+  void offerDeadSlot(BSlot<T> slot) {
     dead.offer(slot);
   }
 }
