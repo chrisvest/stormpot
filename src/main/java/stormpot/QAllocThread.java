@@ -50,6 +50,7 @@ final class QAllocThread<T extends Poolable> implements Runnable {
   private volatile long failedAllocationCount;
 
   private int size;
+  private boolean didAnythingLastIteration;
 
   public QAllocThread(
       BlockingQueue<QSlot<T>> live,
@@ -60,6 +61,7 @@ final class QAllocThread<T extends Poolable> implements Runnable {
     completionLatch = new CountDownLatch(1);
     this.allocator = config.getAdaptedReallocator();
     this.size = 0;
+    this.didAnythingLastIteration = true; // start out busy
     this.live = live;
     this.dead = dead;
     this.poisonPill = poisonPill;
@@ -83,11 +85,14 @@ final class QAllocThread<T extends Poolable> implements Runnable {
       //noinspection InfiniteLoopStatement
       for (;;) {
         boolean weHaveWorkToDo = size != targetSize || poisonedSlots.get() > 0;
-        long deadPollTimeout = weHaveWorkToDo? 1 : 50;
+        long deadPollTimeout = weHaveWorkToDo?
+            (didAnythingLastIteration? 0 : 10) : 50;
+        didAnythingLastIteration = false;
         if (size < targetSize) {
           QSlot<T> slot = new QSlot<T>(live, poisonedSlots);
           alloc(slot);
           registerWithLeakDetector(slot);
+          didAnythingLastIteration = true;
         }
         QSlot<T> slot = dead.poll(deadPollTimeout, TimeUnit.MILLISECONDS);
         if (size > targetSize) {
@@ -95,9 +100,11 @@ final class QAllocThread<T extends Poolable> implements Runnable {
           if (slot != null) {
             dealloc(slot);
             unregisterWithLeakDetector(slot);
+            didAnythingLastIteration = true;
           }
         } else if (slot != null) {
           realloc(slot);
+          didAnythingLastIteration = true;
         }
 
         if (shutdown) {
@@ -112,6 +119,7 @@ final class QAllocThread<T extends Poolable> implements Runnable {
               live.offer(slot);
             } else {
               realloc(slot);
+              didAnythingLastIteration = true;
             }
           }
         } else if (backgroundExpirationEnabled && !weHaveWorkToDo) {
@@ -120,12 +128,14 @@ final class QAllocThread<T extends Poolable> implements Runnable {
             if (slot != null) {
               if (slot.expired || expiration.hasExpired(slot)) {
                 dead.offer(slot);
+                didAnythingLastIteration = true;
               } else {
                 live.offer(slot);
               }
             }
           } catch (Exception e) {
             dead.offer(slot);
+            didAnythingLastIteration = true;
           }
         }
       }

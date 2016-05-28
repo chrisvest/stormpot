@@ -51,6 +51,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   private volatile long failedAllocationCount;
 
   private int size;
+  private boolean didAnythingLastIteration;
 
   public BAllocThread(
       BlockingQueue<BSlot<T>> live,
@@ -71,6 +72,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
     this.dead = QueueFactory.createUnboundedBlockingQueue();
     this.poisonedSlots = new AtomicInteger();
     this.size = 0;
+    this.didAnythingLastIteration = true; // start out busy
   }
 
   @Override
@@ -97,7 +99,9 @@ final class BAllocThread<T extends Poolable> implements Runnable {
 
   private void replenishPool() throws InterruptedException {
     boolean weHaveWorkToDo = size != targetSize || poisonedSlots.get() > 0;
-    long deadPollTimeout = weHaveWorkToDo? 1 : 50;
+    long deadPollTimeout = weHaveWorkToDo?
+        (didAnythingLastIteration? 0 : 10) : 50;
+    didAnythingLastIteration = false;
     if (size < targetSize) {
       increaseSizeByAllocating();
     }
@@ -180,6 +184,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
         if (expired) {
           slot.claim2dead(); // Not strictly necessary
           dead.offer(slot);
+          didAnythingLastIteration = true;
         } else {
           slot.claim2live();
           live.offer(slot);
@@ -233,6 +238,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
     size++;
     resetSlot(slot, System.currentTimeMillis());
     live.offer(slot);
+    didAnythingLastIteration = true;
   }
 
   private void resetSlot(BSlot<T> slot, long now) {
@@ -257,6 +263,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
     }
     slot.poison = null;
     slot.obj = null;
+    didAnythingLastIteration = true;
   }
 
   private void realloc(BSlot<T> slot) {
@@ -287,6 +294,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
       dealloc(slot);
       alloc(slot);
     }
+    didAnythingLastIteration = true;
   }
 
   private void recordObjectLifetimeSample(long milliseconds) {

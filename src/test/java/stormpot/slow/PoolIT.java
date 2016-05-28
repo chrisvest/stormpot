@@ -360,20 +360,8 @@ public class PoolIT {
     final ThreadMXBean threads = ManagementFactory.getThreadMXBean();
     final AtomicLong lastUserTimeIncrement = new AtomicLong();
     assumeTrue(threads.isCurrentThreadCpuTimeSupported());
-    allocator = allocator(alloc(new Action() {
-      boolean first = true;
-
-      @Override
-      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
-        if (first) {
-          threads.setThreadCpuTimeEnabled(true);
-          first = false;
-        }
-        long userTime = threads.getCurrentThreadUserTime();
-        lastUserTimeIncrement.set(userTime - lastUserTimeIncrement.get());
-        return $new.apply(slot, obj);
-      }
-    }));
+    allocator = allocator(alloc(
+        measureLastCPUTime(threads, lastUserTimeIncrement)));
     config.setAllocator(allocator);
     config.setSize(2);
     createPool(fixture);
@@ -395,6 +383,23 @@ public class PoolIT {
 
     assertThat(millisecondsSpentBurningCPU,
         is(lessThan(millisecondsAllowedToBurnCPU / 2)));
+  }
+
+  private Action measureLastCPUTime(final ThreadMXBean threads, final AtomicLong lastUserTimeIncrement) {
+    return new Action() {
+      boolean first = true;
+
+      @Override
+      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
+        if (first) {
+          threads.setThreadCpuTimeEnabled(true);
+          first = false;
+        }
+        long userTime = threads.getCurrentThreadUserTime();
+        lastUserTimeIncrement.set(userTime - lastUserTimeIncrement.get());
+        return $new.apply(slot, obj);
+      }
+    };
   }
 
   @Test
@@ -463,20 +468,8 @@ public class PoolIT {
     final ThreadMXBean threads = ManagementFactory.getThreadMXBean();
     final AtomicLong lastUserTimeIncrement = new AtomicLong();
     assumeTrue(threads.isCurrentThreadCpuTimeSupported());
-    allocator = allocator(alloc(new Action() {
-      boolean first = true;
-
-      @Override
-      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
-        if (first) {
-          threads.setThreadCpuTimeEnabled(true);
-          first = false;
-        }
-        long userTime = threads.getCurrentThreadUserTime();
-        lastUserTimeIncrement.set(userTime - lastUserTimeIncrement.get());
-        return $new.apply(slot, obj);
-      }
-    }));
+    allocator = allocator(alloc(
+        measureLastCPUTime(threads, lastUserTimeIncrement)));
     config.setAllocator(allocator);
     createPool(fixture);
     GenericPoolable a = pool.claim(longTimeout);
@@ -503,20 +496,8 @@ public class PoolIT {
     final AtomicLong lastUserTimeIncrement = new AtomicLong();
     int size = 20;
     assumeTrue(threads.isCurrentThreadCpuTimeSupported());
-    allocator = allocator(alloc(new Action() {
-      boolean first = true;
-
-      @Override
-      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
-        if (first) {
-          threads.setThreadCpuTimeEnabled(true);
-          first = false;
-        }
-        long userTime = threads.getCurrentThreadUserTime();
-        lastUserTimeIncrement.set(userTime - lastUserTimeIncrement.get());
-        return $new.apply(slot, obj);
-      }
-    }));
+    allocator = allocator(alloc(
+        measureLastCPUTime(threads, lastUserTimeIncrement)));
     config.setAllocator(allocator);
     config.setSize(size);
     createPool(fixture);
