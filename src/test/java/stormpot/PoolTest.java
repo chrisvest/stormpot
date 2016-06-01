@@ -1749,7 +1749,7 @@ public class PoolTest {
     while(observedFailedAllocation.get() < 1) {
       Thread.yield();
     }
-    spinwait(5); // Heuristically wait for the slot to become live
+    spinwait(15); // Heuristically wait for the slot to become live
 
     // Things no longer expire...
     hasExpired.set(false);

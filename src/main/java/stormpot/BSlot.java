@@ -39,6 +39,9 @@ final class BSlot<T extends Poolable>
   }
   
   public void release(Poolable obj) {
+    if (poison == BlazePool.EXPLICIT_EXPIRE_POISON) {
+      poisonedSlots.getAndIncrement();
+    }
     int slotState = getClaimState();
     lazySet(LIVING);
     if (slotState == CLAIMED) {
@@ -274,7 +277,6 @@ abstract class BSlotColdFields<T extends Poolable> extends Padding2 implements S
   public void expire(Poolable obj) {
     if (poison != BlazePool.EXPLICIT_EXPIRE_POISON) {
       poison = BlazePool.EXPLICIT_EXPIRE_POISON;
-      poisonedSlots.getAndIncrement();
     }
   }
 }
