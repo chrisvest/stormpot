@@ -5,3 +5,5 @@ jdk:
   - openjdk6
   - oraclejdk8
 script: "mvn verify"
+addons:
+  hostname: short-hostname
