@@ -98,7 +98,7 @@ final class BSlot<T extends Poolable>
 
   @Override
   public long getAgeMillis() {
-    return System.currentTimeMillis() - created;
+    return System.currentTimeMillis() - created; // TODO use MonotonicTimeSource
   }
 
   @Override
@@ -185,10 +185,6 @@ Instance size: 184 bytes (estimated, add this JAR via -javaagent: to get accurat
 Space losses: 4 bytes internal + 4 bytes external = 8 bytes total
  */
 // start checking line length
-abstract class Padding1 {
-  private int p0;
-  private long p1, p2, p3, p4, p5, p6;
-}
 
 abstract class PaddedAtomicInteger extends Padding1 {
   private static final long stateFieldOffset;
@@ -198,9 +194,11 @@ abstract class PaddedAtomicInteger extends Padding1 {
     long theStateFieldOffset = 0;
     AtomicIntegerFieldUpdater<PaddedAtomicInteger> theStateUpdater = null;
     if (UnsafeUtil.hasUnsafe()) {
-      theStateFieldOffset = UnsafeUtil.objectFieldOffset(PaddedAtomicInteger.class, "state");
+      theStateFieldOffset = UnsafeUtil.objectFieldOffset(
+          PaddedAtomicInteger.class, "state");
     } else {
-      theStateUpdater = AtomicIntegerFieldUpdater.newUpdater(PaddedAtomicInteger.class, "state");
+      theStateUpdater = AtomicIntegerFieldUpdater.newUpdater(
+          PaddedAtomicInteger.class, "state");
     }
     stateFieldOffset = theStateFieldOffset;
     updater = theStateUpdater;
@@ -214,7 +212,8 @@ abstract class PaddedAtomicInteger extends Padding1 {
 
   protected final boolean compareAndSet(int expected, int update) {
     if (UnsafeUtil.hasUnsafe()) {
-      return UnsafeUtil.compareAndSwapInt(this, stateFieldOffset, expected, update);
+      return UnsafeUtil.compareAndSwapInt(
+          this, stateFieldOffset, expected, update);
     } else {
       return updater.compareAndSet(this, expected, update);
     }
@@ -241,7 +240,8 @@ abstract class Padding2 extends PaddedAtomicInteger {
   }
 }
 
-abstract class BSlotColdFields<T extends Poolable> extends Padding2 implements Slot, SlotInfo<T> {
+abstract class BSlotColdFields<T extends Poolable>
+    extends Padding2 implements Slot, SlotInfo<T> {
   final BlockingQueue<BSlot<T>> live;
   final AtomicInteger poisonedSlots;
   long stamp;

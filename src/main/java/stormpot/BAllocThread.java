@@ -42,6 +42,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   private final CountDownLatch completionLatch;
   private final BlockingQueue<BSlot<T>> dead;
   private final AtomicInteger poisonedSlots;
+  private final BackgroundScheduler scheduler;
 
   // Single reader: this. Many writers.
   private volatile int targetSize;
@@ -50,6 +51,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   // Many readers. Single writer: this.
   private volatile long allocationCount;
   private volatile long failedAllocationCount;
+  private volatile Thread allocatorThread;
 
   private int size;
   private boolean didAnythingLastIteration;
@@ -58,7 +60,8 @@ final class BAllocThread<T extends Poolable> implements Runnable {
       BlockingQueue<BSlot<T>> live,
       DisregardBPile<T> disregardPile,
       Config<T> config,
-      BSlot<T> poisonPill) {
+      BSlot<T> poisonPill,
+      BackgroundScheduler scheduler) {
     this.live = live;
     this.disregardPile = disregardPile;
     this.allocator = config.getAdaptedReallocator();
@@ -72,15 +75,18 @@ final class BAllocThread<T extends Poolable> implements Runnable {
     this.completionLatch = new CountDownLatch(1);
     this.dead = new LinkedTransferQueue<>();
     this.poisonedSlots = new AtomicInteger();
+    this.scheduler = scheduler;
     this.size = 0;
     this.didAnythingLastIteration = true; // start out busy
   }
 
   @Override
   public void run() {
+    allocatorThread = Thread.currentThread();
     continuouslyReplenishPool();
     shutPoolDown();
     completionLatch.countDown();
+    scheduler.decrementReferences();
   }
 
   private void continuouslyReplenishPool() {
@@ -312,9 +318,12 @@ final class BAllocThread<T extends Poolable> implements Runnable {
     return targetSize;
   }
 
-  Completion shutdown(Thread allocatorThread) {
+  Completion shutdown() {
     shutdown = true;
-    allocatorThread.interrupt();
+    Thread thread = allocatorThread;
+    if (thread != null) {
+      thread.interrupt();
+    }
     return new LatchCompletion(completionLatch);
   }
 

@@ -15,7 +15,6 @@
  */
 package stormpot;
 
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -58,9 +57,10 @@ public class Config<T extends Poolable> implements Cloneable {
       new TimeSpreadExpiration<T>(480000, 600000, TimeUnit.MILLISECONDS); // 8 to 10 minutes
   private Allocator<?> allocator;
   private MetricsRecorder metricsRecorder;
-  private ThreadFactory threadFactory = StormpotThreadFactory.INSTANCE;
   private boolean preciseLeakDetectionEnabled = true;
-  private boolean backgroundExpirationEnabled = false;
+  private boolean backgroundExpirationEnabled = true;
+  private BackgroundScheduler backgroundScheduler =
+      BackgroundScheduler.getDefaultInstance();
 
   /**
    * Build a new empty Config object. Most settings have reasonable default
@@ -192,27 +192,28 @@ public class Config<T extends Poolable> implements Cloneable {
   }
 
   /**
-   * Get the ThreadFactory that has been configured, and will be used to create
-   * the background allocation threads for the pools. The default is similar to
-   * the {@link java.util.concurrent.Executors#defaultThreadFactory()}, except
-   * the string "Stormpot-" is prepended to the thread name.
-   * @return The configured thread factory.
+   * Set the BackgroundScheduler that the pools will use to schedule its
+   * background work with. The {@link BackgroundScheduler} is not allowed to be
+   * null, and creating a pool with a null {@link BackgroundScheduler} will throw
+   * an IllegalArgumentException.
+   * @param backgroundScheduler The BackgroundScheduler the pool should use to
+   * schedule its background work.
+   * @return This Config instance.
    */
-  public synchronized ThreadFactory getThreadFactory() {
-    return threadFactory;
+  public synchronized Config<T> setBackgroundScheduler(
+      BackgroundScheduler backgroundScheduler) {
+    this.backgroundScheduler = backgroundScheduler;
+    return this;
   }
 
   /**
-   * Set the ThreadFactory that the pools will use to create its background
-   * threads with. The ThreadFactory is not allowed to be null, and creating
-   * a pool with a null ThreadFactory will throw an IllegalArgumentException.
-   * @param factory The ThreadFactory the pool should use to create their
-   *                background threads.
-   * @return This Config instance.
+   * Get the background scheduler that Stormpot will use to schedule and execute
+   * background tasks, such as allocating or deallocating objects, and
+   * background expiration checking.
+   * @return The currently configured {@link BackgroundScheduler}.
    */
-  public synchronized Config<T> setThreadFactory(ThreadFactory factory) {
-    threadFactory = factory;
-    return this;
+  public synchronized BackgroundScheduler getBackgroundScheduler() {
+    return backgroundScheduler;
   }
 
   /**
@@ -310,7 +311,7 @@ public class Config<T extends Poolable> implements Cloneable {
     if (expiration == null) {
       throw new IllegalArgumentException("Expiration cannot be null");
     }
-    if (threadFactory == null) {
+    if (backgroundScheduler == null) {
       throw new IllegalArgumentException("ThreadFactory cannot be null");
     }
   }
