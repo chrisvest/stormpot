@@ -15,8 +15,8 @@
  */
 package stormpot.examples;
 
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.MetricRegistry;
+import io.dropwizard.metrics5.Histogram;
+import io.dropwizard.metrics5.MetricRegistry;
 import stormpot.MetricsRecorder;
 
 public class CodaHaleMetricsRecorder implements MetricsRecorder {
