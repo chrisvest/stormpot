@@ -21,7 +21,7 @@ class TimingReallocatingAdaptor<T extends Poolable>
 
   protected final MetricsRecorder metricsRecorder;
 
-  public TimingReallocatingAdaptor(
+  TimingReallocatingAdaptor(
       Allocator<T> allocator,
       MetricsRecorder metricsRecorder) {
     super(allocator);

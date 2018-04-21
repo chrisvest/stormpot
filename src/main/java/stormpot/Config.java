@@ -19,7 +19,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 /**
- * = The basic configuration "bean" class.
+ * == The basic configuration "bean" class.
  *
  * Instances of this class is passed to the constructors of {@link Pool pools}
  * so that they know how big they should be, how to allocate objects and when
@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
  * The various set* methods are made to return the Config instance itself, so
  * that the method calls may be chained if so desired.
  * 
- * = Standardised configuration
+ * == Standardised configuration
  *
  * The contract of the Config class, and how Pools will interpret it, is within
  * the context of a so-called standardised configuration. All pool and Config

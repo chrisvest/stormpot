@@ -29,9 +29,9 @@ package stormpot;
  * http://metrics.codahale.com/[Coda Hale's Metrics library]:
  *
  * [source,java]
- * --
+ * ----
  * include::src/test/java/stormpot/examples/CodaHaleMetricsRecorder.java[lines=16..-1]
- * --
+ * ----
  *
  * @since 2.3
  */

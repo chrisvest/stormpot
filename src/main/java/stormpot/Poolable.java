@@ -33,7 +33,7 @@ package stormpot;
  * like this:
  *
  * [source,java]
- * --
+ * ----
  * public class GenericPoolable implements Poolable {
  *   private final Slot slot;
  *   public GenericPoolable(Slot slot) {
@@ -44,7 +44,7 @@ package stormpot;
  *     slot.release(this);
  *   }
  * }
- * --
+ * ----
  *
  * Memory effects: The release of an object happens-before it is claimed
  * by another thread, or deallocated.

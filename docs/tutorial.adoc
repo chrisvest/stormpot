@@ -111,9 +111,9 @@ It is clear from the diagram and the explanation, that we need to do two things 
 The simplest possible implementation of this looks like this:
 
 [source,java]
---
+----
 include::../src/test/java/docs/MyPoolable.java[tag=mypoolable]
---
+----
 
 Objects of this class don't really do much, other than correctly implementing the `Poolable` interface.
 However, it is a skeleton to which we can add the functionality and the expensive resources that are the reason we are pooling these objects in the first place.
@@ -129,9 +129,9 @@ Likewise, if the objects expire and churn with a high rate, the allocation threa
 Here is what an `Allocator` that allocates the above objects, can look like:
 
 [source,java]
---
+----
 include::../src/test/java/docs/MyAllocator.java[tag=myallocator]
---
+----
 
 There's not much to it.
 The `allocate` method gets the `Slot` instance that the specific `Poolable` has to use, for informing the pool when it is released.
@@ -152,9 +152,9 @@ All that is left to do, is to configure and instantiate a pool, and put it to us
 Here's a simple example of what this could look like:
 
 [source,java]
---
+----
 include::../src/test/java/docs/MyApp.java[tag=usageMyApp]
---
+----
 
 The important bit is that a `Config` object is given the `Allocator` instance we want to use, and that this `Config` object is then given to the constructor of the `Pool` implementation we want to use.
 Once a pool object has been created, it is immediately ready for use, though the calls to `claim` might block until a sufficient number of objects has been created.

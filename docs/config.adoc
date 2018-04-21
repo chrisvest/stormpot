@@ -119,9 +119,9 @@ NOTE: The `MetricsRecorder` instance you build and configure _must_ be thread-sa
 Here's an example of what such an integration could look like:
 
 [source,java]
---
+----
 include::../src/test/java/stormpot/examples/CodaHaleMetricsRecorder.java[lines=16..-1]
---
+----
 
 Once you have your `MetricsRecorder` implementation, you just set an instance of it on your `Config` object with the `setMetricsRecorder` method.
 
@@ -175,6 +175,6 @@ As for the `Allocator`, the pool instances will get that from the `getAdaptedRea
 This helps ensure a uniform recording of some of the metrics, across `Pool` implementations.
 
 [source,java]
---
+----
 include::../src/main/java/stormpot/Config.java[]
---
+----

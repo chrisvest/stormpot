@@ -29,7 +29,7 @@ import java.util.function.Function;
  * common idiom to achieve this is with a `try-finally` clause:
  *
  * [source,java]
- * --
+ * ----
  * Timeout timeout = new Timeout(1, TimeUnit.SECONDS);
  * SomePoolable obj = pool.claim(timeout);
  * try {
@@ -40,7 +40,7 @@ import java.util.function.Function;
  *     obj.release();
  *   }
  * }
- * --
+ * ----
  *
  * The pools are resizable, and can have their capacity changed at any time
  * after they have been created.
@@ -100,7 +100,7 @@ public abstract class Pool<T extends Poolable> {
    * `System.out`, and then released back to the pool:
    *
    * [source,java]
-   * --
+   * ----
    * Poolable obj = pool.claim(TIMEOUT);
    * if (obj != null) {
    *   try {
@@ -109,7 +109,7 @@ public abstract class Pool<T extends Poolable> {
    *     obj.release();
    *   }
    * }
-   * --
+   * ----
    *
    * Memory effects:
    *
@@ -218,7 +218,8 @@ public abstract class Pool<T extends Poolable> {
    * given function to a claimed object, or empty if the timeout elapsed or
    * the function returned `null`.
    * @throws InterruptedException if the thread was interrupted.
-   * @see #claim(Timeout) for more details on failure modes and memory effects.
+   * @see #claim(Timeout) The `claim` method for more details on failure modes
+   * and memory effects.
    */
   public final <R> Optional<R> apply(Timeout timeout, Function<T, R> function)
       throws InterruptedException {
@@ -250,7 +251,8 @@ public abstract class Pool<T extends Poolable> {
    * @return `true` if an object could be claimed within the given timeout and
    * passed to the given consumer, or `false` otherwise.
    * @throws InterruptedException if the thread was interrupted.
-   * @see #claim(Timeout) for more details on failure modes and memory effects.
+   * @see #claim(Timeout) The `claim` method for more details on failure modes
+   * and memory effects.
    */
   public final boolean supply(Timeout timeout, Consumer<T> consumer)
       throws InterruptedException {

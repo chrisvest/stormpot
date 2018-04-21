@@ -2,7 +2,7 @@
 
 include::../README.adoc[]
 
-== Learn More
+=== Learn More
 
 There is more to learn about Stormpot, than what is presented on this page.
 Bellow are some additional resources that go more in depth.

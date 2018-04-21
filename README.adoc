@@ -1,4 +1,4 @@
-= Stormpot
+== Stormpot
 
 Stormpot is an object pooling library for Java.
 Use it to recycle objects that are expensive to create.
@@ -18,7 +18,7 @@ It is faster and scales better than any competing pool.
  * Simple versioning: X.Y where Y{plus}{plus} is backwards compatible, and
    X{plus}{plus} is backwards incompatible.
 
-== Why choose Stormpot?
+=== Why choose Stormpot?
 
 There are a number of options out there, when it comes to object pools on the
 JVM. Stormpot has been carefully designed for high performance, and robust
@@ -40,25 +40,25 @@ operation. Some of the things that sets Stormpot apart include:
    (since 2.3)
  * And other features that makes for a smooth runtime behaviour.
 
-== Installing
+=== Installing
 
 Stormpot 2.4 only depends on Java 6 or newer.
 Add it as a Maven dependency to your projects:
 
 [source,xml]
---
+----
 <dependency>
   <groupId>com.github.chrisvest</groupId>
   <artifactId>stormpot</artifactId>
   <version>2.4</version>
 </dependency>
---
+----
 
 You can also build the latest snapshot from source with `mvn clean install`.
 Note that the next version, Stormpot 3.0, will require Java 8, so you need this
 version of Java to build a snapshot from the source code.
 
-== Getting Started
+=== Getting Started
 
 Stormpot needs 3 things before it can pool objects for you:
 
@@ -69,7 +69,7 @@ Stormpot needs 3 things before it can pool objects for you:
  . And a place where it all comes together:
 
 [source,java]
---
+----
 MyAllocator allocator = new MyAllocator();
 Config<MyPoolable> config = new Config<MyPoolable>().setAllocator(allocator);
 Pool<MyPoolable> pool = new BlazePool<MyPoolable>(config);
@@ -84,9 +84,9 @@ try {
     object.release();
   }
 }
---
+----
 
-== Contributing
+=== Contributing
 
  * *Report bugs* preferably with a failing test. You can submit a pull-request
    that adds a failing test that demonstrates the behaviour you think is wrong

@@ -19,7 +19,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
 final class StormpotThreadFactory implements ThreadFactory {
-  public static final ThreadFactory INSTANCE = new StormpotThreadFactory();
+  static final ThreadFactory INSTANCE = new StormpotThreadFactory();
 
   private static ThreadFactory delegate = Executors.defaultThreadFactory();
 

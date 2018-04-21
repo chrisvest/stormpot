@@ -1,4 +1,4 @@
-= The Stormpot Release Process
+== The Stormpot Release Process
 
 This is not really documentation, but rather an "internal" document detailing the release process, so that I don't forget any steps.
 

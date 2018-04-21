@@ -1,5 +1,5 @@
 
-= Simulations
+== Simulations
 
 This package contain fully fledged programs, rather than tests.
 Their purpose is to explore and observe operational behaviours and effects.

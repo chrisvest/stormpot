@@ -14,12 +14,12 @@ For instance, if you expose a Stormpot pool through the so-called platform `MBea
 Here is an example how you could a pool through the platform `MBeanServer`:
 
 [source,java]
---
+----
 BlazePool<MyPoolable> pool = new BlazePool<MyPoolable>(...);
 MBeanServer server = ManagementFactory.getPlatformMBeanServer();
 ObjectName name = new ObjectName("com.myapp:objectpool=stormpot");
 server.registerMBean(pool, name);
---
+----
 
 Any `MBeanServer` can be used, though.
 Once the pool has been registered with the server, it can be managed through a JMX connection to that server.

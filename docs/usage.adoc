@@ -6,18 +6,18 @@ However, the requirements are quite benign, as this section is all about showing
 The objects that you manage with a Stormpot pool needs to implement the `Poolable` interface. The absolute minimum amount of code required for its implementation is this:
 
 [source,java]
---
+----
 include::../src/test/java/docs/MyPoolable.java[tag=mypoolable]
---
+----
 
 The object in essence just needs to keep its `Slot` instance around, and give itself as a parameter to the `Slot#release` method.
 Now that we have a class of objects to pool, we need some way to tell Stormpot how to create them.
 We do this by implementing the `Allocator` interface:
 
 [source,java]
---
+----
 include::../src/test/java/docs/MyAllocator.java[tag=myallocator]
---
+----
 
 That's it.
 Given a slot, create a `MyPoolable`.
@@ -26,9 +26,9 @@ And that is actually all the parts we need to start using Stormpot.
 All that is left is a little bit of configuration:
 
 [source,java]
---
+----
 include::../src/test/java/docs/MyApp.java[tag=usageMyApp]
---
+----
 
 Create a `Config` object and set the allocator, then create a pool with the configuration and off we go!
 The blocking methods `Pool#claim` and `Completion#await` both take `Timeout` objects as arguments.

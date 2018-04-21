@@ -15,7 +15,7 @@
  */
 
 /**
- * = Stormpot
+ * == Stormpot
  *
  * Stormpot is a generic, thread-safe and fast object pooling library.
  *

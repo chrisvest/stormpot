@@ -82,7 +82,7 @@ public interface Slot {
    * {@link Expiration#hasExpired(SlotInfo) hasExpired} method will not prevent
    * the object from being claimed, but will prevent it from being claimed
    * again after it's been released back to the pool. An Expiration policy that
-   * expires all objects with this method, is effectively allowed objects to
+   * expires all objects with this method, is effectively allowing objects to
    * only be claimed once.
    *
    * Pools are free to throw a PoolException if they detect any wrong uses,
