@@ -52,7 +52,7 @@ public final class QueuePool<T extends Poolable>
   /**
    * Special slot used to signal that the pool has been shut down.
    */
-  final QSlot<T> poisonPill = new QSlot<>(null, null);
+  private final QSlot<T> poisonPill = new QSlot<>(null, null);
 
   /**
    * Construct a new QueuePool instance based on the given {@link Config}.

@@ -21,22 +21,23 @@ import java.util.concurrent.atomic.AtomicReference;
 @SuppressWarnings("unchecked")
 final class DisregardBPile<T extends Poolable>
     extends AtomicReference<DisregardedBSlot<T>> {
+  private static final long serialVersionUID = 2374582348576873465L;
   private static final DisregardedBSlot<Poolable> STACK_END =
       new DisregardedBSlot<>(null);
 
   private final BlockingQueue<BSlot<T>> refillQueue;
 
-  public DisregardBPile(BlockingQueue<BSlot<T>> refillQueue) {
+  DisregardBPile(BlockingQueue<BSlot<T>> refillQueue) {
     this.refillQueue = refillQueue;
     set((DisregardedBSlot<T>) STACK_END);
   }
 
-  public void addSlot(BSlot<T> slot) {
-    DisregardedBSlot<T> element = new DisregardedBSlot<T>(slot);
+  void addSlot(BSlot<T> slot) {
+    DisregardedBSlot<T> element = new DisregardedBSlot<>(slot);
     element.next = getAndSet(element);
   }
 
-  public boolean refillQueue() {
+  boolean refillQueue() {
     DisregardedBSlot<T> stack = getAndSet((DisregardedBSlot<T>) STACK_END);
     int count = 0;
     while (stack != STACK_END) {

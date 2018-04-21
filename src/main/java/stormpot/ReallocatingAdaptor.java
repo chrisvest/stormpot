@@ -18,7 +18,7 @@ package stormpot;
 class ReallocatingAdaptor<T extends Poolable> implements Reallocator<T> {
   protected final Allocator<T> allocator;
 
-  public ReallocatingAdaptor(Allocator<T> allocator) {
+  ReallocatingAdaptor(Allocator<T> allocator) {
     this.allocator = allocator;
   }
 
@@ -42,7 +42,7 @@ class ReallocatingAdaptor<T extends Poolable> implements Reallocator<T> {
     allocator.deallocate(poolable);
   }
 
-  public Allocator<T> unwrap() {
+  Allocator<T> unwrap() {
     return allocator;
   }
 }

@@ -20,8 +20,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 final class QSlot<T extends Poolable> implements Slot, SlotInfo<T> {
-  final BlockingQueue<QSlot<T>> live;
-  final AtomicInteger poisonedSlots;
+  private final BlockingQueue<QSlot<T>> live;
+  private final AtomicInteger poisonedSlots;
   final AtomicBoolean claimed;
   T obj;
   Exception poison;
@@ -71,10 +71,10 @@ final class QSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   }
 
   // XorShift PRNG with a 2^128-1 period.
-  int x = System.identityHashCode(this);
-  int y = -938745813;
-  int z = 452465366;
-  int w = 1343246171;
+  private int x = System.identityHashCode(this);
+  private int y = -938745813;
+  private int z = 452465366;
+  private int w = 1343246171;
 
   @Override
   public int randomInt() {

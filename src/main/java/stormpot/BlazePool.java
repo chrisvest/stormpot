@@ -233,7 +233,7 @@ public final class BlazePool<T extends Poolable>
     // dead-queue. This helps ensure that a slot will only ever be in at most
     // one queue.
 
-    if (slot.getState() == BSlot.CLAIMED) {
+    if (slot.isClaimed()) {
       slot.claim2dead();
       allocator.offerDeadSlot(slot);
     } else {

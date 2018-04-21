@@ -22,6 +22,7 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
+@SuppressWarnings("ConstantConditions")
 final class UnsafeUtil {
   private static final Unsafe unsafe = getUnsafe();
 

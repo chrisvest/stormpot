@@ -54,8 +54,9 @@ import java.util.concurrent.TimeUnit;
 public class Config<T extends Poolable> implements Cloneable {
 
   private int size = 10;
+  // 8 to 10 minutes:
   private Expiration<? super T> expiration =
-      new TimeSpreadExpiration<T>(480000, 600000, TimeUnit.MILLISECONDS); // 8 to 10 minutes
+      new TimeSpreadExpiration<>(480000, 600000, TimeUnit.MILLISECONDS);
   private Allocator<?> allocator;
   private MetricsRecorder metricsRecorder;
   private ThreadFactory threadFactory = StormpotThreadFactory.INSTANCE;
@@ -142,7 +143,7 @@ public class Config<T extends Poolable> implements Cloneable {
     if (allocator instanceof Reallocator) {
       return (Reallocator<T>) allocator;
     }
-    return new ReallocatingAdaptor<T>((Allocator<T>) allocator);
+    return new ReallocatingAdaptor<>((Allocator<T>) allocator);
   }
 
   /**
@@ -210,6 +211,7 @@ public class Config<T extends Poolable> implements Cloneable {
    *                background threads.
    * @return This Config instance.
    */
+  @SuppressWarnings("WeakerAccess")
   public synchronized Config<T> setThreadFactory(ThreadFactory factory) {
     threadFactory = factory;
     return this;
@@ -245,6 +247,7 @@ public class Config<T extends Poolable> implements Cloneable {
    *                default) `false` to turn it off.
    * @return This Config instance.
    */
+  @SuppressWarnings("WeakerAccess")
   public synchronized Config<T> setPreciseLeakDetectionEnabled(boolean enabled) {
     this.preciseLeakDetectionEnabled = enabled;
     return this;
@@ -330,13 +333,13 @@ public class Config<T extends Poolable> implements Cloneable {
       if (allocator instanceof Reallocator) {
         return (Reallocator<T>) allocator;
       }
-      return new ReallocatingAdaptor<T>((Allocator<T>) allocator);
+      return new ReallocatingAdaptor<>((Allocator<T>) allocator);
     } else {
       if (allocator instanceof Reallocator) {
-        return new TimingReallocatorAdaptor<T>(
+        return new TimingReallocatorAdaptor<>(
             (Reallocator<T>) allocator, metricsRecorder);
       }
-      return new TimingReallocatingAdaptor<T>(
+      return new TimingReallocatingAdaptor<>(
           (Allocator<T>) allocator, metricsRecorder);
     }
   }

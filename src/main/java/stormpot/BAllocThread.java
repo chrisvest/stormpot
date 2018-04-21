@@ -54,7 +54,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   private int size;
   private boolean didAnythingLastIteration;
 
-  public BAllocThread(
+  BAllocThread(
       BlockingQueue<BSlot<T>> live,
       DisregardBPile<T> disregardPile,
       Config<T> config,

@@ -52,7 +52,7 @@ final class QAllocThread<T extends Poolable> implements Runnable {
   private int size;
   private boolean didAnythingLastIteration;
 
-  public QAllocThread(
+  QAllocThread(
       BlockingQueue<QSlot<T>> live,
       BlockingQueue<QSlot<T>> dead,
       Config<T> config,
@@ -89,7 +89,7 @@ final class QAllocThread<T extends Poolable> implements Runnable {
             (didAnythingLastIteration? 0 : 10) : 50;
         didAnythingLastIteration = false;
         if (size < targetSize) {
-          QSlot<T> slot = new QSlot<T>(live, poisonedSlots);
+          QSlot<T> slot = new QSlot<>(live, poisonedSlots);
           alloc(slot);
           registerWithLeakDetector(slot);
           didAnythingLastIteration = true;

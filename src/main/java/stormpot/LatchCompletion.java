@@ -20,7 +20,7 @@ import java.util.concurrent.CountDownLatch;
 final class LatchCompletion implements Completion {
   private final CountDownLatch completionLatch;
   
-  public LatchCompletion(CountDownLatch completionLatch) {
+  LatchCompletion(CountDownLatch completionLatch) {
     this.completionLatch = completionLatch;
   }
   

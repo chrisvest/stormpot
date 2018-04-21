@@ -26,7 +26,7 @@ final class PreciseLeakDetector {
   private static class WeakRef extends WeakReference<Object> {
     WeakRef next;
 
-    public WeakRef(Object referent) {
+    WeakRef(Object referent) {
       super(referent);
     }
   }

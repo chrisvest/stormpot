@@ -221,6 +221,7 @@ public abstract class Pool<T extends Poolable> {
    * @see #claim(Timeout) The `claim` method for more details on failure modes
    * and memory effects.
    */
+  @SuppressWarnings("WeakerAccess")
   public final <R> Optional<R> apply(Timeout timeout, Function<T, R> function)
       throws InterruptedException {
     T obj = claim(timeout);
@@ -254,6 +255,7 @@ public abstract class Pool<T extends Poolable> {
    * @see #claim(Timeout) The `claim` method for more details on failure modes
    * and memory effects.
    */
+  @SuppressWarnings("WeakerAccess")
   public final boolean supply(Timeout timeout, Consumer<T> consumer)
       throws InterruptedException {
     T obj = claim(timeout);

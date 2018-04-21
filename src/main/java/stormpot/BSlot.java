@@ -26,10 +26,10 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
  */
 final class BSlot<T extends Poolable>
     extends BSlotColdFields<T> {
-  static final int CLAIMED = 1;
-  static final int TLR_CLAIMED = 2;
-  static final int LIVING = 3;
-  static final int DEAD = 4;
+  private static final int CLAIMED = 1;
+  private static final int TLR_CLAIMED = 2;
+  private static final int LIVING = 3;
+  private static final int DEAD = 4;
 
   public BSlot(BlockingQueue<BSlot<T>> live, AtomicInteger poisonedSlots) {
     // Volatile write in the constructor: This object must be safely published,
@@ -68,31 +68,31 @@ final class BSlot<T extends Poolable>
         "You most likely called release() twice on the same object.");
   }
 
-  public void claim2live() {
+  void claim2live() {
     lazySet(LIVING);
   }
 
-  public void claimTlr2live() {
+  void claimTlr2live() {
     lazySet(LIVING);
   }
 
-  public void dead2live() {
+  void dead2live() {
     lazySet(LIVING);
   }
 
-  public void claim2dead() {
+  void claim2dead() {
     lazySet(DEAD);
   }
 
-  public boolean live2claim() {
+  boolean live2claim() {
     return compareAndSet(LIVING, CLAIMED);
   }
   
-  public boolean live2claimTlr() {
+  boolean live2claimTlr() {
     return compareAndSet(LIVING, TLR_CLAIMED);
   }
   
-  public boolean live2dead() {
+  boolean live2dead() {
     return compareAndSet(LIVING, DEAD);
   }
 
@@ -111,19 +111,19 @@ final class BSlot<T extends Poolable>
     return obj;
   }
 
-  public boolean isDead() {
+  boolean isDead() {
     return get() == DEAD;
   }
 
-  public boolean isLive() {
+  boolean isLive() {
     return get() == LIVING;
   }
 
-  public int getState() {
-    return get();
+  boolean isClaimed() {
+    return get() == CLAIMED;
   }
 
-  public void incrementClaims() {
+  void incrementClaims() {
     claims++;
   }
 
@@ -186,7 +186,9 @@ Space losses: 4 bytes internal + 4 bytes external = 8 bytes total
  */
 // start checking line length
 abstract class Padding1 {
+  @SuppressWarnings("unused")
   private int p0;
+  @SuppressWarnings("unused")
   private long p1, p2, p3, p4, p5, p6;
 }
 
@@ -208,11 +210,11 @@ abstract class PaddedAtomicInteger extends Padding1 {
 
   private volatile int state;
 
-  public PaddedAtomicInteger(int state) {
+  PaddedAtomicInteger(int state) {
     this.state = state;
   }
 
-  protected final boolean compareAndSet(int expected, int update) {
+  final boolean compareAndSet(int expected, int update) {
     if (UnsafeUtil.hasUnsafe()) {
       return UnsafeUtil.compareAndSwapInt(this, stateFieldOffset, expected, update);
     } else {
@@ -220,7 +222,7 @@ abstract class PaddedAtomicInteger extends Padding1 {
     }
   }
 
-  protected final void lazySet(int update) {
+  final void lazySet(int update) {
     if (UnsafeUtil.hasUnsafe()) {
       UnsafeUtil.putOrderedInt(this, stateFieldOffset, update);
     } else {
@@ -234,9 +236,10 @@ abstract class PaddedAtomicInteger extends Padding1 {
 }
 
 abstract class Padding2 extends PaddedAtomicInteger {
+  @SuppressWarnings("unused")
   private long p1, p2, p3, p4, p5, p6;
 
-  public Padding2(int state) {
+  Padding2(int state) {
     super(state);
   }
 }
@@ -250,7 +253,7 @@ abstract class BSlotColdFields<T extends Poolable> extends Padding2 implements S
   Exception poison;
   long claims;
 
-  public BSlotColdFields(
+  BSlotColdFields(
       int state,
       BlockingQueue<BSlot<T>> live,
       AtomicInteger poisonedSlots) {
@@ -260,10 +263,10 @@ abstract class BSlotColdFields<T extends Poolable> extends Padding2 implements S
   }
 
   // XorShift PRNG with a 2^128-1 period.
-  int x = System.identityHashCode(this);
-  int y = -938745813;
-  int z = 452465366;
-  int w = 1343246171;
+  private int x = System.identityHashCode(this);
+  private int y = -938745813;
+  private int z = 452465366;
+  private int w = 1343246171;
 
   @Override
   public int randomInt() {
