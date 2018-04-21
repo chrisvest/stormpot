@@ -45,7 +45,7 @@
   <properties>
     <outputEncoding>UTF-8</outputEncoding>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <java.version>1.8</java.version>
+    <java.version>9</java.version>
     <jacoco.version>0.8.1</jacoco.version>
     <javadoc.version>3.0.0</javadoc.version>
     <asciidoclet.version>1.5.4</asciidoclet.version>

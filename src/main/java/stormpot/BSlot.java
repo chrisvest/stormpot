@@ -15,9 +15,10 @@
  */
 package stormpot;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
 /**
  * This class is very sensitive to the memory layout, so be careful to measure
@@ -193,19 +194,14 @@ abstract class Padding1 {
 }
 
 abstract class PaddedAtomicInteger extends Padding1 {
-  private static final long stateFieldOffset;
-  private static final AtomicIntegerFieldUpdater<PaddedAtomicInteger> updater;
+  private static final VarHandle stateHandle;
 
   static {
-    long theStateFieldOffset = 0;
-    AtomicIntegerFieldUpdater<PaddedAtomicInteger> theStateUpdater = null;
-    if (UnsafeUtil.hasUnsafe()) {
-      theStateFieldOffset = UnsafeUtil.objectFieldOffset(PaddedAtomicInteger.class, "state");
-    } else {
-      theStateUpdater = AtomicIntegerFieldUpdater.newUpdater(PaddedAtomicInteger.class, "state");
+    try {
+      stateHandle = MethodHandles.lookup().findVarHandle(PaddedAtomicInteger.class, "state", int.class);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new AssertionError("Failed to initialise the state VarHandle.");
     }
-    stateFieldOffset = theStateFieldOffset;
-    updater = theStateUpdater;
   }
 
   private volatile int state;
@@ -215,19 +211,11 @@ abstract class PaddedAtomicInteger extends Padding1 {
   }
 
   final boolean compareAndSet(int expected, int update) {
-    if (UnsafeUtil.hasUnsafe()) {
-      return UnsafeUtil.compareAndSwapInt(this, stateFieldOffset, expected, update);
-    } else {
-      return updater.compareAndSet(this, expected, update);
-    }
+    return stateHandle.compareAndSet(this, expected, update);
   }
 
   final void lazySet(int update) {
-    if (UnsafeUtil.hasUnsafe()) {
-      UnsafeUtil.putOrderedInt(this, stateFieldOffset, update);
-    } else {
-      updater.lazySet(this, update);
-    }
+    stateHandle.setOpaque(this, update);
   }
 
   protected int get() {
