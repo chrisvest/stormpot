@@ -8,7 +8,7 @@
   <name>stormpot</name>
   <description>A fast object pool library.</description>
   <url>http://chrisvest.github.io/stormpot</url>
-  <inceptionYear>2011-2014</inceptionYear>
+  <inceptionYear>2011-2018</inceptionYear>
 
   <parent>
     <groupId>org.sonatype.oss</groupId>
@@ -159,7 +159,7 @@
       <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
-        <version>2.5</version>
+        <version>3.0</version>
         <configuration>
           <header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
           <properties>
