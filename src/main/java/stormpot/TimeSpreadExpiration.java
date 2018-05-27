@@ -15,6 +15,7 @@
  */
 package stormpot;
 
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -83,7 +84,8 @@ public final class TimeSpreadExpiration<T extends Poolable> implements Expiratio
     long expirationAge = info.getStamp();
     if (expirationAge == 0) {
       long maxDelta = upperBoundMillis - lowerBoundMillis;
-      expirationAge = lowerBoundMillis + Math.abs(info.randomInt() % maxDelta);
+      ThreadLocalRandom prng = ThreadLocalRandom.current();
+      expirationAge = lowerBoundMillis + Math.abs(prng.nextInt() % maxDelta);
       info.setStamp(expirationAge);
     }
     long age = info.getAgeMillis();

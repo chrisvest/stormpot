@@ -70,20 +70,6 @@ final class QSlot<T extends Poolable> implements Slot, SlotInfo<T> {
     return obj;
   }
 
-  // XorShift PRNG with a 2^128-1 period.
-  private int x = System.identityHashCode(this);
-  private int y = -938745813;
-  private int z = 452465366;
-  private int w = 1343246171;
-
-  @Override
-  public int randomInt() {
-    int t = x^(x<<15);
-    //noinspection SuspiciousNameCombination
-    x = y; y = z; z = w;
-    return w = (w^(w>>>21))^(t^(t>>>4));
-  }
-
   @Override
   public long getStamp() {
     return stamp;

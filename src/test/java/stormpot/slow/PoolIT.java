@@ -198,7 +198,7 @@ public class PoolIT {
         realloc(fallibleAction));
     config.setAllocator(allocator);
     config.setExpiration(info -> {
-      int x = info.randomInt();
+      int x = ThreadLocalRandom.current().nextInt();
       if ((x & 0xFF) > 250) {
         // About 3% of checks throw an exception
         throw new SomeRandomException();

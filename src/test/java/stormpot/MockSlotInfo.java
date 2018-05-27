@@ -16,18 +16,10 @@
 package stormpot;
 
 public class MockSlotInfo implements SlotInfo<GenericPoolable> {
-  private static int seed = 987623458;
-
-  private static int xorShift(int seed) {
-    seed ^= (seed << 6);
-    seed ^= (seed >>> 21);
-    return seed ^ (seed << 7);
-  }
-
   private long ageInMillis;
   private long stamp = 0;
 
-  public MockSlotInfo(long ageInMillis) {
+  MockSlotInfo(long ageInMillis) {
     this.ageInMillis = ageInMillis;
   }
 
@@ -36,7 +28,7 @@ public class MockSlotInfo implements SlotInfo<GenericPoolable> {
     return ageInMillis;
   }
 
-  public void setAgeInMillis(long ageInMillis) {
+  void setAgeInMillis(long ageInMillis) {
     this.ageInMillis = ageInMillis;
   }
 
@@ -51,11 +43,6 @@ public class MockSlotInfo implements SlotInfo<GenericPoolable> {
   }
 
   @Override
-  public int randomInt() {
-    return seed = xorShift(seed);
-  }
-
-  @Override
   public long getStamp() {
     return stamp;
   }
@@ -65,7 +52,7 @@ public class MockSlotInfo implements SlotInfo<GenericPoolable> {
     this.stamp = stamp;
   }
 
-  public static MockSlotInfo mockSlotInfoWithAge(long ageInMillis) {
+  static MockSlotInfo mockSlotInfoWithAge(long ageInMillis) {
     return new MockSlotInfo(ageInMillis);
   }
 }

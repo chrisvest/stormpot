@@ -61,20 +61,6 @@ public interface SlotInfo<T extends Poolable> {
   T getPoolable();
 
   /**
-   * Produce a random int number. This is useful for introducing spread, if the
-   * Expiration would otherwise have a tendency to cluster expirations close
-   * together in time, thereby causing the pool to suddenly have very few
-   * objects because of mass expirations.
-   *
-   * Putting this method on SlotInfo might seem weird at first, but it allows
-   * the implementation to have very little contention. This is important on
-   * Java versions that don't have ThreadLocalRandom.
-   *
-   * @return A pseudo-random 32 bit integer.
-   */
-  int randomInt();
-
-  /**
    * Get the stamp value that has been set on this SlotInfo, or 0 if none has
    * been set since the Poolable was allocated.
    *
