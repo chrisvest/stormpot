@@ -194,12 +194,12 @@ abstract class Padding1 {
 }
 
 abstract class PaddedAtomicInteger extends Padding1 {
-  private static final VarHandle stateHandle;
+  private static final VarHandle STATE;
 
   static {
     try {
       MethodHandles.Lookup lookup = MethodHandles.lookup();
-      stateHandle = lookup.findVarHandle(PaddedAtomicInteger.class, "state", int.class);
+      STATE = lookup.findVarHandle(PaddedAtomicInteger.class, "state", int.class);
     } catch (NoSuchFieldException | IllegalAccessException e) {
       throw new AssertionError("Failed to initialise the state VarHandle.");
     }
@@ -212,11 +212,11 @@ abstract class PaddedAtomicInteger extends Padding1 {
   }
 
   final boolean compareAndSet(int expected, int update) {
-    return stateHandle.compareAndSet(this, expected, update);
+    return STATE.compareAndSet(this, expected, update);
   }
 
   final void lazySet(int update) {
-    stateHandle.setOpaque(this, update);
+    STATE.setOpaque(this, update);
   }
 
   protected int get() {
