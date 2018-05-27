@@ -2145,6 +2145,12 @@ public class PoolTest {
       server.registerMBean(managedPool, name);
       ManagedPool proxy = JMX.newMBeanProxy(server, name, ManagedPool.class);
 
+      // Loop a few times, since the count is updated after slots are added to
+      // the live queue.
+      for (int i = 0; i < 1000 && proxy.getAllocationCount() < 3; i++) {
+        Thread.yield();
+      }
+
       assertThat(proxy.getAllocationCount(), is(3L));
     } finally {
       a.release();
@@ -2173,9 +2179,17 @@ public class PoolTest {
 
     pool.claim(longTimeout).release(); // expiration = false ; allocations = 2+
 
-    long allocationCount = managedPool.getAllocationCount();
-    long expectedCount =
-        reallocator.countAllocations() + reallocator.countReallocations();
+    // Loop a few times since the counts are updated after the slots are put on
+    // the live queue.
+    int i = 0;
+    long allocationCount;
+    long expectedCount;
+    do {
+      allocationCount = managedPool.getAllocationCount();
+      expectedCount = reallocator.countAllocations() + reallocator.countReallocations();
+      Thread.yield();
+    } while (allocationCount != expectedCount && i++ < 1000);
+
     assertThat(allocationCount, allOf(
         greaterThanOrEqualTo(2L), equalTo(expectedCount)));
   }
