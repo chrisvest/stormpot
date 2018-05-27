@@ -1665,10 +1665,10 @@ public class PoolTest {
     // Once we have observed a reallocation attempt at our primed slot, we
     // try to reclaim it. The reclaim must not throw an exception because of
     // the cached poisoned slot.
-    config.setSize(3);
+    config.setSize(1).setBackgroundExpirationEnabled(false);
 
     // Enough permits for each initial allocation:
-    final Semaphore semaphore = new Semaphore(3);
+    final Semaphore semaphore = new Semaphore(1);
 
     final AtomicBoolean hasExpired = new AtomicBoolean(false);
     config.setExpiration(expire($expiredIf(hasExpired)));
@@ -1680,6 +1680,7 @@ public class PoolTest {
     Action observeFailure = (slot, obj) -> {
       if (slot == failOnAllocatingSlot.get()) {
         observedFailedAllocation.incrementAndGet();
+        failOnAllocatingSlot.set(null);
         throw new RuntimeException(allocationCause);
       }
       return new GenericPoolable(slot);
@@ -1687,12 +1688,7 @@ public class PoolTest {
     allocator = allocator(alloc($acquire(semaphore, observeFailure)));
     config.setAllocator(allocator);
 
-    createPool();
-
-    // Wait for the pool to fill
-    while (allocator.countAllocations() < 3) {
-      Thread.yield();
-    }
+    ManagedPool managedPool = assumeManagedPool();
 
     // Prime any thread-local cache
     GenericPoolable obj = pool.claim(longTimeout);
@@ -1701,8 +1697,7 @@ public class PoolTest {
 
     // Expire all poolables
     hasExpired.set(true);
-    AtomicReference<GenericPoolable> ref =
-        new AtomicReference<>();
+    AtomicReference<GenericPoolable> ref = new AtomicReference<>();
     try {
       forkFuture(capture($claim(pool, shortTimeout), ref)).get();
     } catch (ExecutionException ignore) {
@@ -1711,13 +1706,15 @@ public class PoolTest {
     assertNull(ref.get());
 
     // Give the allocator enough permits to reallocate the whole pool, again
-    semaphore.release(3);
+    semaphore.release(Integer.MAX_VALUE);
 
     // Wait for our primed slot to get reallocated
-    while(observedFailedAllocation.get() < 1) {
+    while(managedPool.getAllocationCount() < 2) {
       Thread.yield();
     }
-    spinwait(15); // Heuristically wait for the slot to become live
+    while(managedPool.getFailedAllocationCount() < 1) {
+      Thread.yield();
+    }
 
     // Things no longer expire...
     hasExpired.set(false);

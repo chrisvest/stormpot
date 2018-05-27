@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
+@SuppressWarnings("NonAtomicOperationOnVolatileField")
 final class BAllocThread<T extends Poolable> implements Runnable {
   /**
    * The amount of time, in nanoseconds, to wait for more work when the
@@ -100,8 +101,8 @@ final class BAllocThread<T extends Poolable> implements Runnable {
 
   private void replenishPool() throws InterruptedException {
     boolean weHaveWorkToDo = size != targetSize || poisonedSlots.get() > 0;
-    long deadPollTimeout = weHaveWorkToDo?
-        (didAnythingLastIteration? 0 : 10) : 50;
+    long deadPollTimeout = weHaveWorkToDo ?
+        (didAnythingLastIteration ? 0 : 10) : 50;
     didAnythingLastIteration = false;
     if (size < targetSize) {
       increaseSizeByAllocating();
@@ -134,7 +135,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   }
 
   private void reduceSizeByDeallocating(BSlot<T> slot) {
-    slot = slot == null? live.poll() : slot;
+    slot = slot == null ? live.poll() : slot;
     if (slot != null) {
       if (slot.isDead() || slot.live2dead()) {
         dealloc(slot);
@@ -222,24 +223,32 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   }
 
   private void alloc(BSlot<T> slot) {
+    boolean success = false;
     try {
       slot.obj = allocator.allocate(slot);
       if (slot.obj == null) {
         poisonedSlots.getAndIncrement();
-        failedAllocationCount++;
         slot.poison = new NullPointerException("Allocation returned null");
       } else {
-        allocationCount++;
+        success = true;
       }
     } catch (Exception e) {
       poisonedSlots.getAndIncrement();
-      failedAllocationCount++;
       slot.poison = e;
     }
     size++;
     resetSlot(slot, System.currentTimeMillis());
     live.offer(slot);
+    incrementAllocationCounts(success);
     didAnythingLastIteration = true;
+  }
+
+  private void incrementAllocationCounts(boolean success) {
+    if (success) {
+      allocationCount++;
+    } else {
+      failedAllocationCount++;
+    }
   }
 
   private void resetSlot(BSlot<T> slot, long now) {
@@ -273,24 +282,24 @@ final class BAllocThread<T extends Poolable> implements Runnable {
       poisonedSlots.getAndDecrement();
     }
     if (slot.poison == null) {
+      boolean success = false;
       try {
         slot.obj = allocator.reallocate(slot, slot.obj);
         if (slot.obj == null) {
           poisonedSlots.getAndIncrement();
-          failedAllocationCount++;
           slot.poison = new NullPointerException("Reallocation returned null");
         } else {
-          allocationCount++;
+          success = true;
         }
       } catch (Exception e) {
         poisonedSlots.getAndIncrement();
-        failedAllocationCount++;
         slot.poison = e;
       }
       long now = System.currentTimeMillis();
       recordObjectLifetimeSample(now - slot.created);
       resetSlot(slot, now);
       live.offer(slot);
+      incrementAllocationCounts(success);
     } else {
       dealloc(slot);
       alloc(slot);

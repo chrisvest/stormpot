@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
+@SuppressWarnings("NonAtomicOperationOnVolatileField")
 final class QAllocThread<T extends Poolable> implements Runnable {
   /**
    * The amount of time, in nanoseconds, to wait for more work when the
@@ -180,18 +181,17 @@ final class QAllocThread<T extends Poolable> implements Runnable {
   }
 
   private void alloc(QSlot<T> slot) {
+    boolean success = false;
     try {
       slot.obj = allocator.allocate(slot);
       if (slot.obj == null) {
         poisonedSlots.getAndIncrement();
-        failedAllocationCount++;
         slot.poison = new NullPointerException("Allocation returned null");
       } else {
-        allocationCount++;
+        success = true;
       }
     } catch (Exception e) {
       poisonedSlots.getAndIncrement();
-      failedAllocationCount++;
       slot.poison = e;
     }
     size++;
@@ -201,6 +201,15 @@ final class QAllocThread<T extends Poolable> implements Runnable {
     slot.expired = false;
     slot.claimed.set(true);
     slot.release(slot.obj);
+    incrementAllocationCounts(success);
+  }
+
+  private void incrementAllocationCounts(boolean success) {
+    if (success) {
+      allocationCount++;
+    } else {
+      failedAllocationCount++;
+    }
   }
 
   private void dealloc(QSlot<T> slot) {
@@ -227,18 +236,17 @@ final class QAllocThread<T extends Poolable> implements Runnable {
       if (slot.expired) {
         poisonedSlots.getAndDecrement();
       }
+      boolean success = false;
       try {
         slot.obj = allocator.reallocate(slot, slot.obj);
         if (slot.obj == null) {
           poisonedSlots.getAndIncrement();
-          failedAllocationCount++;
           slot.poison = new NullPointerException("Reallocation returned null");
         } else {
-          allocationCount++;
+          success = true;
         }
       } catch (Exception e) {
         poisonedSlots.getAndIncrement();
-        failedAllocationCount++;
         slot.poison = e;
       }
       long now = System.currentTimeMillis();
@@ -248,6 +256,7 @@ final class QAllocThread<T extends Poolable> implements Runnable {
       slot.stamp = 0;
       slot.expired = false;
       live.offer(slot);
+      incrementAllocationCounts(success);
     } else {
       dealloc(slot);
       alloc(slot);
