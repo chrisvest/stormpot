@@ -2161,37 +2161,17 @@ public class PoolTest {
 
   @Test(timeout = TIMEOUT) public void
   managedPoolMustCountAllocations() throws InterruptedException {
-    AtomicBoolean hasExpired = new AtomicBoolean();
-    config.setExpiration(expire($expiredIf(hasExpired)));
-    CountingReallocator reallocator = reallocator();
-    config.setAllocator(reallocator);
     ManagedPool managedPool = assumeManagedPool();
 
-    pool.claim(longTimeout).release(); // expiration = false  ; allocations = 1
-    pool.claim(longTimeout).release(); // expiration = false  ; allocations = 1
+    for (int i = 0; i < 100; i++) {
+      GenericPoolable obj = pool.claim(longTimeout);
+      obj.slot.expire(obj);
+      obj.release();
+    }
 
-    hasExpired.set(true);
-    assertNull(pool.claim(zeroTimeout));
-    // expiration = true, false ; allocations = 2+
-    // we're racing with how quickly the allocation thread can replenish the
-    // pool, so we might get more than one allocation out of this
-    hasExpired.set(false);
-
-    pool.claim(longTimeout).release(); // expiration = false ; allocations = 2+
-
-    // Loop a few times since the counts are updated after the slots are put on
-    // the live queue.
-    int i = 0;
-    long allocationCount;
-    long expectedCount;
-    do {
-      allocationCount = managedPool.getAllocationCount();
-      expectedCount = reallocator.countAllocations() + reallocator.countReallocations();
-      Thread.yield();
-    } while (allocationCount != expectedCount && i++ < 1000);
-
-    assertThat(allocationCount, allOf(
-        greaterThanOrEqualTo(2L), equalTo(expectedCount)));
+    // We use "greater than 90" to allow some slack for a lazily updated
+    // counter.
+    assertThat(managedPool.getAllocationCount(), greaterThan(90L));
   }
 
   @Test(timeout = TIMEOUT) public void
