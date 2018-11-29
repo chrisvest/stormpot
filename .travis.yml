@@ -1,6 +1,6 @@
 language: java
 jdk:
-  - oraclejdk9
+  - openjdk11
 script: "mvn verify"
 sudo: false
 addons:
