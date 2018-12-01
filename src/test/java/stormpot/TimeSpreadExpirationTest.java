@@ -106,7 +106,7 @@ public class TimeSpreadExpirationTest {
     int top = base + span;
     int objectsPerMillis = 1000;
     int objects = span * objectsPerMillis;
-    int expirationCountTollerance = objectsPerMillis / 10;
+    int expirationCountTollerance = objectsPerMillis / 6;
     int expirationsMin = objectsPerMillis - expirationCountTollerance;
     int expirationsMax = objectsPerMillis + expirationCountTollerance;
 
@@ -134,7 +134,7 @@ public class TimeSpreadExpirationTest {
       if (expirations < expirationsMin || expirations > expirationsMax) {
         throw new AssertionError(
             "Expected expiration count at millisecond " + i + " to be " +
-            "between 900 and 1100, but it was " + expirations);
+            "between " + expirationsMin + " and " + expirationsMax + ", but it was " + expirations);
       }
     }
   }
