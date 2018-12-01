@@ -22,8 +22,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 import static stormpot.MockSlotInfo.mockSlotInfoWithAge;
 
@@ -99,8 +98,35 @@ public class TimeSpreadExpirationTest {
   }
 
   @Test public void
-  thePercentagesShouldNotChangeNoMatterHowManyTimesAnObjectIsChecked()
-      throws Exception {
+  expirationChancePercentageShouldBeFair() {
+    int lowerBound = 900;
+    int upperBound = 1100;
+    TimeSpreadExpiration<Poolable> expiration =
+        createExpiration(lowerBound, upperBound, TimeUnit.MILLISECONDS);
+
+    // The age of this object is right in the middle of the range.
+    // It should have a 50% chance of expiring.
+    MockSlotInfo info = new MockSlotInfo(1000);
+
+    int checks = 10_000;
+    int expectedExpirations = checks / 2;
+    int tolerance = expectedExpirations / 10;
+    int actualExpirations = 0;
+
+    for (int i = 0; i < checks; i++) {
+      info.setStamp(0);
+      if (expiration.hasExpired(info)) {
+        actualExpirations++;
+      }
+    }
+
+    assertThat(actualExpirations, allOf(
+        greaterThanOrEqualTo(expectedExpirations - tolerance),
+        lessThanOrEqualTo(expectedExpirations + tolerance)));
+  }
+
+  @Test public void
+  thePercentagesShouldNotChangeNoMatterHowManyTimesAnObjectIsChecked() {
     int span = 100;
     int base = 1000;
     int top = base + span;
