@@ -220,6 +220,8 @@
             <version>${asciidoclet.version}</version>
           </docletArtifact>
           <additionalOptions>--base-dir ${basedir}</additionalOptions>
+          <useStandardDocletOptions>false</useStandardDocletOptions>
+          <doclint>none</doclint>
         </configuration>
       </plugin>
       <plugin>
@@ -297,6 +299,8 @@
             <version>${asciidoclet.version}</version>
           </docletArtifact>
           <additionalOptions>--base-dir ${basedir}</additionalOptions>
+          <useStandardDocletOptions>false</useStandardDocletOptions>
+          <doclint>none</doclint>
         </configuration>
       </plugin>
       <plugin>
