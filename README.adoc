@@ -41,11 +41,13 @@ operation. Some of the things that sets Stormpot apart include:
    (since 2.3)
  * Optional background object expiration checking.
    (since 2.3)
+ * Explicit object expiration.
+   (since 2.4)
  * And other features that makes for a smooth runtime behaviour.
 
 === Installing
 
-Stormpot 2.4 only depends on Java 6 or newer.
+Stormpot 2.4.1 only depends on Java 6 or newer.
 Add it as a Maven dependency to your projects:
 
 [source,xml]
@@ -53,7 +55,7 @@ Add it as a Maven dependency to your projects:
 <dependency>
   <groupId>com.github.chrisvest</groupId>
   <artifactId>stormpot</artifactId>
-  <version>2.4</version>
+  <version>2.4.1</version>
 </dependency>
 ----
 
