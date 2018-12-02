@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit;
  * release objects over and over again. On the other hand, if the releasing
  * thread tends to differ from the claiming thread, then the major optimisation
  * in BlazePool is defeated, and performance regresses to a slow-path that is
- * a tad slower than {@link stormpot.QueuePool}.
+ * limited by contention on a blocking queue.
  *
  * @author Chris Vest <mr.chrisvest@gmail.com>
  * @param <T> The type of {@link Poolable} managed by this pool.

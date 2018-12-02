@@ -105,7 +105,7 @@ Care must be taken with implementing the `Reallocator`, though, since the return
 
 Stormpot has the ability to expose metrics and management handles through JMX.
 This is done by registering the pool with an `MBeanServer`.
-Both `QueuePool` and `BlazePool` implement the `ManagedPool` interface for this purpose.
+The `BlazePool` implement the `ManagedPool` interface for this purpose.
 You can read more about how to expose Stormpot through JMX in the link:jmx.html[JMX Guide].
 
 To expose the metrics, you first have to configure a `MetricsRecorder`.
@@ -168,8 +168,8 @@ In such a case it's nice that the API for awaiting on the completion of the shut
 === Complete Config Source
 
 For reference, the complete source for the `Config` class is listed below.
-When you instantiate a `Pool` instance, be it `QueuePool` or `BlazePool`, they will take the monitor-lock on the `Config` instance, thereby preventing it from being modified while they are looking at it.
-The pools will then call the `validate` method to make sure that they have a `Config` instance that can be used.
+When you instantiate a `Pool` instance, the constructor will take the monitor-lock on the `Config` instance, thereby preventing it from being modified while they are looking at it.
+The pool will then call the `validate` method to make sure that they have a `Config` instance that can be used.
 Then, they will grab the data they need.
 As for the `Allocator`, the pool instances will get that from the `getAdaptedReallocator` method.
 This helps ensure a uniform recording of some of the metrics, across `Pool` implementations.

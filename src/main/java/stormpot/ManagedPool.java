@@ -75,10 +75,6 @@ public interface ManagedPool {
    */
   long getLeakedObjectsCount();
 
-  // The *TargetSize methods are duplicated here, because we would otherwise
-  // have to provide a type parameter for the ResizablePool interface, if we
-  // were to extend it.
-
   /**
    * @param size The new target size.
    * @see Pool#setTargetSize(int)

@@ -115,7 +115,7 @@ public class DaoPoolExample {
     public MyDaoPool(DataSource dataSource) {
       MyDaoAllocator allocator = new MyDaoAllocator(dataSource);
       Config<MyDao> config = new Config<MyDao>().setAllocator(allocator);
-      pool = new QueuePool<>(config);
+      pool = new BlazePool<>(config);
     }
     // end::poolStart[]
 
@@ -127,7 +127,7 @@ public class DaoPoolExample {
         config.setExpiration(new TestQueryExpiration());
       }
 
-      pool = new QueuePool<>(config);
+      pool = new BlazePool<>(config);
     }
 
     // tag::poolClose[]

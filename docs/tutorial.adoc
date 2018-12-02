@@ -83,21 +83,21 @@ In essence, the central parts of the pool fit together like this:
 
 [ditaa]
 ----
-+-------------+                claim>              +------------------------+
-|             +----------------------------------->+                        |
-|  User code  |                                    |        BlazePool       |
-|             |           +------------+   <claim  |                        |
-|             |   ‹use›   |            +<----------+  +------------------+  |
-|             +---------->+  Poolable  |           |  | Allocator Thread |  |
-|             |           |            |           |  +--+---------------+  |
-|             |  release  |  +------+  |           |     |                  |
-|             +---------->+->+ Slot +--+---------->+     | allocate/        |
-|             |           |  +------+  |           |     | deallocate       |
-+-------------+           +------------+           |     v                  |
-                                                   |  +------------------+  |
-                                                   |  |    Allocator     |  |
-                                                   |  +------------------+  |
-                                                   +------------------------+
++-------------+                 claim>              +------------------------+
+:             +------------------------------------>|                        |
+|  User code  |                                     |        BlazePool       |
+|             |           +-------------+   <claim  |                        |
+|             |   ‹use›   |             +<----------+  +------------------+  |
+|             +=--------->+   Poolable  |           |  | Allocator Thread |  |
+|             |           |             |           |  +--+---------------+  |
+|             |  release  |   +------+  |           |     |                  |
+|             +---------->+-->+ Slot +--+---------->+     | allocate/        |
+|             |           |   +------+  |           |     | deallocate       |
++-------------+           |             |           |     v                  |
+                          +- - - - - - -+           |  +------------------+  |
+                                                    |  |    Allocator     |  |
+                                                    |  +------------------+  |
+                                                    +------------------------+
 ----
 
 === Object Pooling in Practice
@@ -187,11 +187,10 @@ Once released, the explicitly expired object cannot be claimed again, and it wil
 
 A pool is configured with an initial size, through the the size property of the `Config` object given to the pool upon construction.
 However, this size is not fixed.
-Both the `QueuePool` and the `BlazePool` implementations support dynamic resizing by implementing the `ResizablePool` interface.
-This means that their target size can be set and queried whenever desired.
+The target size can be set and queried whenever desired, using the relevant methods on the `Pool`.
 Changing the size on the `Config` object has no effect on pools that have already been constructed.
 
-The `ResizablePool` interface allows anyone with access to the pool instance, to grow or shrink it as they see fit.
+The `setTargetSize` method allows anyone with access to the pool instance, to grow or shrink the pool as they see fit.
 This works by immediately setting the target pool size to the new value.
 There is no way to tell when the pool will actually reach the new target size.
 Once a new target size has been set, the pool will work towards it at its own pace.
@@ -203,8 +202,7 @@ The resizing process itself works by simply allocating more objects than are dea
 
 ==== Shutting the Pool Down
 
-Calling the `shutdown` method on a `LifecycledPool` initiates the shutdown process, but does not wait for it to complete.
-Both `QueuePool` and `BlazePool` implements the `LifecycledPool` interface.
+Calling the `shutdown` method on a `Pool` initiates the shutdown process, but does not wait for it to complete.
 The pool is not fully shut down until all the objects in it have been deallocated.
 This can take a while, since objects that are claimed and in use cannot be deallocated until they are released back to the pool, and how long this takes depends entirely on the user code.
 It also means that if an object has leaked – that is, it has been claimed and then forgotten, never to be released back to the pool – then the shut down process will never complete.

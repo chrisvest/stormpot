@@ -119,6 +119,8 @@ try {
    `open target/site/jacoco/index.html`. Get mutation test coverage with
    `mvn clean test-compile org.pitest:pitest-maven:mutationCoverage` and
    `open target/pit-reports/*/index.html`.
+ * *Update* Maven plugins with `mvn versions:display-plugin-updates`, or other
+   dependencies with `versions:display-dependency-updates`.
  * *Add to the ecosystem* and make Stormpot more than just an object pool.
    This is a good thing to take on if you'd like to contribute code, but you
    find the Stormpot code base itself to be intimidating (which, by the way, I

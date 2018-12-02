@@ -73,7 +73,7 @@ public abstract class Sim {
   protected @interface Simulation {
     long measurementTime() default 10;
     TimeUnit measurementTimeUnit() default TimeUnit.SECONDS;
-    Class<? extends Pool>[] pools() default {QueuePool.class, BlazePool.class};
+    Class<? extends Pool>[] pools() default {BlazePool.class};
     Output output() default Output.detailed;
   }
 
@@ -137,9 +137,7 @@ public abstract class Sim {
         ctors.add((Constructor<Pool<GenericPoolable>>) constructor);
       }
     } else {
-      Constructor<?> constructor = QueuePool.class.getConstructor(Config.class);
-      ctors.add((Constructor<Pool<GenericPoolable>>) constructor);
-      constructor = BlazePool.class.getConstructor(Config.class);
+      Constructor<?> constructor = BlazePool.class.getConstructor(Config.class);
       ctors.add((Constructor<Pool<GenericPoolable>>) constructor);
     }
 

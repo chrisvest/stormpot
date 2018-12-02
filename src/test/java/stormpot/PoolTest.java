@@ -74,13 +74,6 @@ import static stormpot.UnitKit.*;
  * implementations. Each implementation must have a PoolFixture, which is
  * used to construct and initialise the pool, based on a {@link Config}.
  * <p>
- * The only assumptions used in this test, is whether the Pool is a
- * LifecycledPool or not. And most interesting pools are life-cycled.
- * LifecycledPools can be shut down. This is a required ability, in order to
- * test a number of behaviours, but also brings about its own set of new
- * behaviours and flows that needs to be tested for. Those tests are also
- * included in this test case.
- * <p>
  * <strong>Note:</strong> when adding, removing or modifying tests, also
  * remember to update the {@link Pool} javadoc - especially the part about
  * what promises are provided by the Pool interface and its implementations.
@@ -111,7 +104,6 @@ public class PoolTest {
   public static Object[][] dataPoints() {
     return new Object[][] {
         {"blazePool", new BlazePoolFixture()},
-        {"queuePool", new QueuePoolFixture()}
     };
   }
 

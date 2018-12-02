@@ -56,7 +56,6 @@ public class PoolIT {
   public static Object[][] dataPoints() {
     return new Object[][] {
         {"blazePool", new BlazePoolFixture()},
-        {"queuePool", new QueuePoolFixture()}
     };
   }
 

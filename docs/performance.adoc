@@ -4,18 +4,7 @@ Stormpot is fast.
 Very fast.
 However, there are a number of configurations and decisions, where you have to make the right choice, if you want to get the most out of it.
 
-That said, you mustn't forget the number one rule of performance optimisation: measurement is king.
-
-=== Choosing the Right Pool Implementation
-
-Stormpot comes with two Pool implementations, QueuePool and BlazePool, and BlazePool is generally the right choice.
-
-The BlazePool implementation is faster in most cases, but not in all.
-In particular, if the thread that claims an object is always different from the thread that releases it – a use case that is allowed, though discouraged – then the QueuePool will probably perform better than BlazePool.
-I say probably, because it is not guaranteed to be the case.
-BlazePool has a single-element thread-local cache, where it stores the object most recently claimed by the given thread.
-If this object happens to be available, then it will be claimed in preference to all the other objects in the pool.
-This means that if the releasing thread can release the object before the claimer thread wants to claim another object, then the magic of the thread-local cache will apply, and BlazePool will most likely perform better than QueuePool.
+That said, you mustn't forget the number one rule of performance optimisation: measurement and analysis is king.
 
 === Considerations for Custom Expiration Implementations
 

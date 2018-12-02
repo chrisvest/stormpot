@@ -9,3 +9,5 @@ hs_err_*.log
 .~lock.*
 .idea
 stormpot.iml
+.asciidoctor
+diag-*.png

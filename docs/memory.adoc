@@ -18,7 +18,7 @@ The _happens-before_ edges the pool introduces, are these:
 . The release of an object *happens-before* the deallocation, through `Allocator#deallocate`, of that object.
 . The reallocation, through `Reallocator#reallocate`, of an object *happens-before* any claim of that object.
 . The release of an object *happens-before* any reallocation, through `Reallocator#reallocate`, of that object.
-. For life-cycled pools, those that implement the `LifecycledPool` interface, the deallocation of all objects *happens-before* the `Completion#await` method successfully returns `true`.
+. The deallocation of all objects *happens-before* the `Completion#await` method successfully returns `true`.
 
 === Interruption
 
