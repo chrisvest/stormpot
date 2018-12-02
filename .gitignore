@@ -11,3 +11,4 @@ hs_err_*.log
 stormpot.iml
 .asciidoctor
 diag-*.png
+.attach_pid*
