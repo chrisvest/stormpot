@@ -60,7 +60,7 @@ Add it as a Maven dependency to your projects:
 ----
 
 You can also build the latest snapshot from source with `mvn clean install`.
-Note that the next version, Stormpot 3.0, will require Java 8, so you need this
+Note that the next version, Stormpot 3.0, will require Java 11, so you need this
 version of Java to build a snapshot from the source code.
 
 === Getting Started
