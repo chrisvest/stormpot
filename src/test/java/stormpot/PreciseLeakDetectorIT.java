@@ -19,17 +19,17 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import stormpot.slow.SlowTest;
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Random;
-import java.util.Set;
+import java.lang.management.GarbageCollectorMXBean;
+import java.util.*;
 
+import static java.lang.management.ManagementFactory.getGarbageCollectorMXBeans;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 @Category(SlowTest.class)
 public class PreciseLeakDetectorIT {
   private PreciseLeakDetector detector = new PreciseLeakDetector();
+  private List<GarbageCollectorMXBean> gcBeans = getGarbageCollectorMXBeans();
 
   @Test
   public void
@@ -61,12 +61,15 @@ public class PreciseLeakDetectorIT {
         // Count
         assertThat(detector.countLeakedObjects(), is(leaksCreated));
       } else {
+        long gcs = sumGarbageCollections();
         // Leak
         Object obj = removeRandom(objs);
         if (obj != null) {
           //noinspection UnusedAssignment : required for System.gc()
           obj = null;
-          System.gc();
+          do {
+            System.gc();
+          } while (gcs == sumGarbageCollections());
           leaksCreated++;
         }
       }
@@ -77,12 +80,20 @@ public class PreciseLeakDetectorIT {
     for (Object obj : objs) {
       detector.unregister(obj);
     }
+    long gcs = sumGarbageCollections();
     objs.clear();
     //noinspection UnusedAssignment : required for System.gc()
     objs = null;
 
-    System.gc();
+    do {
+      System.gc();
+    } while (gcs == sumGarbageCollections());
     assertThat(detector.countLeakedObjects(), is(leaksCreated));
+  }
+
+  private long sumGarbageCollections() {
+    return gcBeans.stream().mapToLong(
+        GarbageCollectorMXBean::getCollectionCount).sum();
   }
 
   private static void printProgress(int iterations, int i) {
