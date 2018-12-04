@@ -2915,8 +2915,14 @@ public class PoolTest {
   @Test(timeout = TIMEOUT, expected = InterruptedException.class) public void
   supplyMustThrowOnInterrupt() throws Exception {
     createPool();
+    // Exhaust the pool to ensure the next claim is blocking.
+    GenericPoolable obj = pool.claim(longTimeout);
     Thread.currentThread().interrupt();
-    pool.supply(longTimeout, nullConsumer);
+    try {
+      pool.supply(longTimeout, nullConsumer);
+    } finally {
+      obj.release();
+    }
   }
 
   @Test(timeout = TIMEOUT, expected = InterruptedException.class) public void
