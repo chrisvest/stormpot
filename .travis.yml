@@ -5,3 +5,5 @@ script: "mvn verify"
 sudo: false
 addons:
   hostname: short-hostname
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
