@@ -164,7 +164,7 @@ Once a pool object has been created, it is immediately ready for use, though the
 When it comes to object pooling with Stormpot specifically, there is more to it than the three central elements of the pool, the poolable objects and the allocator.
 We have already seen the slot object, and how it is used to inform the pool when an object is released.
 And we have seen the dedicated allocator thread, that uses the allocator to keep the pool filled with objects.
-We have also have also seen hints at the life cycle of the pooled objects: first they are allocated, then they are claimed and released a number of times, and finally they are deallocated.
+We have also seen hints at the life cycle of the pooled objects: first they are allocated, then they are claimed and released a number of times, and finally they are deallocated.
 
 There are three reasons an object can get deallocated: the object expired, the pool was resized to be smaller, or the pool was shut down.
 These three situations are particular to how Stormpot works.
