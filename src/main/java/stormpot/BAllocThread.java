@@ -173,6 +173,12 @@ final class BAllocThread<T extends Poolable> implements Runnable {
 
   private void backgroundExpirationCheck() {
     BSlot<T> slot = live.poll();
+    
+    if (slot == null) {
+      disregardPile.refillQueue();
+      slot = live.poll();
+    }
+    
     if (slot != null) {
       if (slot.isLive() && slot.live2claim()) {
         boolean expired;
