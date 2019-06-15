@@ -303,9 +303,9 @@ public class Config<T extends Poolable> implements Cloneable {
    */
   @Deprecated // TODO 3.0 make package private
   public synchronized void validate() throws IllegalArgumentException {
-    if (size < 1) {
+    if (size < 0) {
       throw new IllegalArgumentException(
-          "Size must be at least 1, but was " + size);
+          "Size must be at least 0, but was " + size);
     }
     if (allocator == null) {
       throw new IllegalArgumentException("Allocator cannot be null");
