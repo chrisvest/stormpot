@@ -15,20 +15,16 @@
  */
 package stormpot;
 
-public class GenericPoolable implements Poolable {
-  public final Slot slot;
+public class GenericPoolable extends BasePoolable {
+  @SuppressWarnings("WeakerAccess")
   public Thread lastReleaseBy; // readable in debuggers
 
   public GenericPoolable(Slot slot) {
-    this.slot = slot;
+    super(slot);
   }
 
   public void release() {
     lastReleaseBy = Thread.currentThread();
-    slot.release(this);
-  }
-
-  public void expire() {
-    slot.expire(this);
+    super.release();
   }
 }
