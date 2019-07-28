@@ -48,8 +48,16 @@
     <java.version>11</java.version>
     <jacoco.version>0.8.2</jacoco.version>
     <javadoc.version>3.0.1</javadoc.version>
-    <asciidoclet.version>2.0.0-SNAPSHOT</asciidoclet.version>
+    <asciidoclet.version>2.0.0</asciidoclet.version>
   </properties>
+
+  <repositories>
+    <repository>
+      <!-- Required for the asciidoclet fork. -->
+      <id>jitpack.io</id>
+      <url>https://jitpack.io</url>
+    </repository>
+  </repositories>
 
   <build>
     <plugins>
@@ -226,7 +234,7 @@
           </additionalJOptions>
           <doclet>org.asciidoctor.asciidoclet.Asciidoclet</doclet>
           <docletArtifact>
-            <groupId>org.asciidoctor</groupId>
+            <groupId>com.github.chrisvest</groupId>
             <artifactId>asciidoclet</artifactId>
             <version>${asciidoclet.version}</version>
           </docletArtifact>
@@ -307,7 +315,7 @@
           </additionalJOptions>
           <doclet>org.asciidoctor.asciidoclet.Asciidoclet</doclet>
           <docletArtifact>
-            <groupId>org.asciidoctor</groupId>
+            <groupId>com.github.chrisvest</groupId>
             <artifactId>asciidoclet</artifactId>
             <version>${asciidoclet.version}</version>
           </docletArtifact>
