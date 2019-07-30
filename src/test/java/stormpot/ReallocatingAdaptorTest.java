@@ -15,69 +15,62 @@
  */
 package stormpot;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static stormpot.AlloKit.*;
 
-public class ReallocatingAdaptorTest {
+@ExtendWith(FailurePrinterExtension.class)
+class ReallocatingAdaptorTest {
   private CountingAllocator allocator;
   private ReallocatingAdaptor<GenericPoolable> reallocator;
 
-  @Rule public final TestRule failurePrinter = new FailurePrinterTestRule();
-
-  @Before public void
-  setUp() {
+  @BeforeEach
+  void setUp() {
     allocator = allocator();
     reallocator = new ReallocatingAdaptor<>(allocator);
   }
 
   @Test
-  public void
-  mustBeAssignableAsAllocator() {
+  void mustBeAssignableAsAllocator() {
     Config<GenericPoolable> config = new Config<>();
     config.setAllocator(reallocator);
     Allocator<GenericPoolable> expectedInstance = reallocator;
-    assertThat(config.getAllocator(), sameInstance(expectedInstance));
+    assertThat(config.getAllocator()).isSameAs(expectedInstance);
   }
 
-  @Test public void
-  allocateMustDelegate() throws Exception {
+  @Test
+  void allocateMustDelegate() throws Exception {
     GenericPoolable obj = reallocator.allocate(new NullSlot());
-    assertThat(allocator.getAllocations(), is(singletonList(obj)));
-    assertThat(allocator.countAllocations(), is(1));
-    assertThat(allocator.countDeallocations(), is(0));
+    assertThat(allocator.getAllocations()).containsExactly(obj);
+    assertThat(allocator.countAllocations()).isOne();
+    assertThat(allocator.countDeallocations()).isZero();
   }
 
-  @Test public void
-  deallocateMustDelegate() throws Exception {
+  @Test
+  void deallocateMustDelegate() throws Exception {
     GenericPoolable obj = reallocator.allocate(new NullSlot());
     reallocator.deallocate(obj);
-    assertThat(allocator.getDeallocations(), is(singletonList(obj)));
-    assertThat(allocator.countAllocations(), is(1));
-    assertThat(allocator.countDeallocations(), is(1));
+    assertThat(allocator.getDeallocations()).containsExactly(obj);
+    assertThat(allocator.countAllocations()).isOne();
+    assertThat(allocator.countDeallocations()).isOne();
   }
 
-  @Test public void
-  reallocateMustDelegate() throws Exception {
+  @Test
+  void reallocateMustDelegate() throws Exception {
     Slot slot = new NullSlot();
     GenericPoolable obj1 = reallocator.allocate(slot);
     GenericPoolable obj2 = reallocator.reallocate(slot, obj1);
-    assertThat(allocator.getAllocations(), is(asList(obj1, obj2)));
-    assertThat(allocator.getDeallocations(), is(singletonList(obj1)));
-    assertThat(allocator.countAllocations(), is(2));
-    assertThat(allocator.countDeallocations(), is(1));
+    assertThat(allocator.getAllocations()).containsExactly(obj1, obj2);
+    assertThat(allocator.getDeallocations()).containsExactly(obj1);
+    assertThat(allocator.countAllocations()).isEqualTo(2);
+    assertThat(allocator.countDeallocations()).isOne();
   }
 
-  @Test public void
-  reallocateMustSwallowExceptionsThrownByDeallocate() throws Exception {
+  @Test
+  void reallocateMustSwallowExceptionsThrownByDeallocate() throws Exception {
     allocator = allocator(
         dealloc($throw(new AssertionError("Should have caught this"))));
     reallocator = new ReallocatingAdaptor<>(allocator);
@@ -86,9 +79,9 @@ public class ReallocatingAdaptorTest {
     reallocator.reallocate(slot, obj);
   }
 
-  @Test public void
-  unwrapMustReturnDelegate() {
+  @Test
+  void unwrapMustReturnDelegate() {
     Allocator<GenericPoolable> allocatorInstance = allocator;
-    assertThat(reallocator.unwrap(), sameInstance(allocatorInstance));
+    assertThat(reallocator.unwrap()).isSameAs(allocatorInstance);
   }
 }

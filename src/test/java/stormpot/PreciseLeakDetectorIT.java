@@ -15,25 +15,20 @@
  */
 package stormpot;
 
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import stormpot.slow.SlowTest;
+import org.junit.jupiter.api.Test;
 
 import java.lang.management.GarbageCollectorMXBean;
 import java.util.*;
 
 import static java.lang.management.ManagementFactory.getGarbageCollectorMXBeans;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
-@Category(SlowTest.class)
-public class PreciseLeakDetectorIT {
+class PreciseLeakDetectorIT {
   private PreciseLeakDetector detector = new PreciseLeakDetector();
   private List<GarbageCollectorMXBean> gcBeans = getGarbageCollectorMXBeans();
 
   @Test
-  public void
-  mustCountCorrectlyAfterRandomAddRemoveLeakAndCounts() {
+  void mustCountCorrectlyAfterRandomAddRemoveLeakAndCounts() {
     System.out.print(
         "NOTE: this test takes about 3 to 5 minutes to run...    ");
 
@@ -59,7 +54,7 @@ public class PreciseLeakDetectorIT {
         }
       } else if (choice < 90) {
         // Count
-        assertThat(detector.countLeakedObjects(), is(leaksCreated));
+        assertThat(detector.countLeakedObjects()).isEqualTo(leaksCreated);
       } else {
         long gcs = sumGarbageCollections();
         // Leak
@@ -88,7 +83,7 @@ public class PreciseLeakDetectorIT {
     do {
       System.gc();
     } while (gcs == sumGarbageCollections());
-    assertThat(detector.countLeakedObjects(), is(leaksCreated));
+    assertThat(detector.countLeakedObjects()).isEqualTo(leaksCreated);
   }
 
   private long sumGarbageCollections() {

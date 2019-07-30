@@ -15,18 +15,19 @@
  */
 package stormpot.slow;
 
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
-import org.junit.runners.model.Statement;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.Extension;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
-class ExecutorTestRule implements TestRule {
+class ExecutorExtension implements Extension, BeforeEachCallback, AfterEachCallback {
+  private TestThreadFactory threadFactory;
   private ExecutorService executor;
   private List<Future<?>> futuresToPrintOnFailure = new ArrayList<>();
 
@@ -35,28 +36,32 @@ class ExecutorTestRule implements TestRule {
   }
 
   @Override
-  public Statement apply(final Statement base, final Description description) {
-    return new Statement() {
-      @Override
-      public void evaluate() throws Throwable {
-        String testName = description.getDisplayName();
-        TestThreadFactory threadFactory = new TestThreadFactory(testName);
-        executor = createExecutor(threadFactory);
-        try {
-          base.evaluate();
-          executor.shutdown();
-          if (!executor.awaitTermination(5000, TimeUnit.SECONDS)) {
-            throw new Exception(
-                "ExecutorService.shutdown timed out after 5 second");
-          }
-          threadFactory.verifyAllThreadsTerminatedSuccessfully();
-        } catch (Throwable throwable) {
-          threadFactory.dumpAllThreads();
-          printFuturesForFailure();
-          throw throwable;
-        }
+  public void beforeEach(ExtensionContext context) {
+    String displayName = context.getDisplayName();
+    threadFactory = new TestThreadFactory(displayName);
+    executor = createExecutor(threadFactory);
+  }
+
+  @Override
+  public void afterEach(ExtensionContext context) throws Exception {
+    try {
+      executor.shutdown();
+      if (!executor.awaitTermination(5000, TimeUnit.SECONDS)) {
+        throw new Exception("ExecutorService.shutdown timed out after 5 second");
       }
-    };
+      threadFactory.verifyAllThreadsTerminatedSuccessfully();
+      if (context.getExecutionException().isPresent()) {
+        handleFailure();
+      }
+    } catch (Throwable throwable) {
+      handleFailure();
+      throw throwable;
+    }
+  }
+
+  private void handleFailure() {
+    threadFactory.dumpAllThreads();
+    printFuturesForFailure();
   }
 
   private ExecutorService createExecutor(ThreadFactory threadFactory) {
@@ -93,7 +98,7 @@ class ExecutorTestRule implements TestRule {
         "\n===[ End dumping all registered futures ]===\n");
   }
 
-  private class TestThreadFactory implements ThreadFactory {
+  private static class TestThreadFactory implements ThreadFactory {
     private final String testName;
     private final AtomicInteger threadCounter = new AtomicInteger();
     private final List<Thread> threads =
@@ -133,15 +138,13 @@ class ExecutorTestRule implements TestRule {
             System.gc();
             state = thread.getState();
           }
-          assertThat(
-              "Unexpected thread state: " + thread + " (id " + thread.getId() + ")",
-              state,
-              is(Thread.State.TERMINATED));
+          assertThat(state).as("Unexpected thread state: " + thread + " (id " + thread.getId() + ")")
+              .isEqualTo(Thread.State.TERMINATED);
         }
       }
     }
 
-    void dumpAllThreads() throws Exception {
+    void dumpAllThreads() {
       synchronized (threads) {
         System.err.println(
             "\n===[ Dumping stack traces for all created threads ]===\n");

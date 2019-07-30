@@ -15,59 +15,57 @@
  */
 package stormpot;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 import static stormpot.MockSlotInfo.mockSlotInfoWithAge;
 
-public class TimeExpirationTest {
+class TimeExpirationTest {
 
   private Expiration<Poolable> createExpiration(int ttl) {
     return new TimeExpiration<>(ttl, TimeUnit.MILLISECONDS);
   }
 
-  @Test(expected = IllegalArgumentException.class) public void
-  timeUnitCannotBeNull() {
-    new TimeExpiration<>(10, null);
+  @Test
+  void timeUnitCannotBeNull() {
+    assertThrows(IllegalArgumentException.class, () -> new TimeExpiration<>(10, null));
   }
   
-  @Test public void
-  youngSlotsAreNotInvalid() throws Exception {
+  @Test
+  void youngSlotsAreNotInvalid() throws Exception {
     Expiration<Poolable> expiration = createExpiration(2);
     SlotInfo<?> info = mockSlotInfoWithAge(1);
     assertFalse(expiration.hasExpired(info));
   }
 
-  @Test public void
-  slotsAtTheMaximumPermittedAgeAreNotInvalid() throws Exception {
+  @Test
+  void slotsAtTheMaximumPermittedAgeAreNotInvalid() throws Exception {
     Expiration<Poolable> expiration = createExpiration(2);
     SlotInfo<?> info = mockSlotInfoWithAge(2);
     assertFalse(expiration.hasExpired(info));
   }
   
-  @Test public void
-  slotsOlderThanTheMaximumPermittedAgeAreInvalid() throws Exception {
+  @Test
+  void slotsOlderThanTheMaximumPermittedAgeAreInvalid() throws Exception {
     Expiration<Poolable> expiration = createExpiration(2);
     SlotInfo<?> info = mockSlotInfoWithAge(3);
     assertTrue(expiration.hasExpired(info));
   }
   
-  @Test(expected = IllegalArgumentException.class) public void
-  maxPermittedAgeCannotBeLessThanOne() {
-    createExpiration(0);
+  @Test
+  void maxPermittedAgeCannotBeLessThanOne() {
+    assertThrows(IllegalArgumentException.class, () -> createExpiration(0));
   }
 
-  @Test public void
-  mustHaveNiceToString() {
+  @Test
+  void mustHaveNiceToString() {
     TimeExpiration<Poolable> a = new TimeExpiration<>(42, TimeUnit.DAYS);
-    assertThat(a.toString(), is("TimeExpiration(42 DAYS)"));
+    assertThat(a.toString()).isEqualTo("TimeExpiration(42 DAYS)");
 
     TimeExpiration<Poolable> b = new TimeExpiration<>(21, TimeUnit.MILLISECONDS);
-    assertThat(b.toString(), is("TimeExpiration(21 MILLISECONDS)"));
+    assertThat(b.toString()).isEqualTo("TimeExpiration(21 MILLISECONDS)");
   }
 }
