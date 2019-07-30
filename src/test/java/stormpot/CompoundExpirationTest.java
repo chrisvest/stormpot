@@ -15,27 +15,25 @@
  */
 package stormpot;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static stormpot.ExpireKit.$expired;
 import static stormpot.ExpireKit.$fresh;
 import static stormpot.ExpireKit.expire;
 
-public class CompoundExpirationTest {
+class CompoundExpirationTest {
 
   @Test
-  public void
-  expiresWhenBothExpirationsExpire() throws Exception {
+  void expiresWhenBothExpirationsExpire() throws Exception {
     CompoundExpiration<GenericPoolable> compoundExpiration = compoundExpiration(expire($expired), expire($expired));
 
     assertTrue(compoundExpiration.hasExpired(mockSlotInfo()));
   }
 
   @Test
-  public void
-  expiresWhenOneExpirationExpires() throws Exception {
+  void expiresWhenOneExpirationExpires() throws Exception {
     CompoundExpiration<GenericPoolable> compoundExpiration = compoundExpiration(expire($expired), expire($fresh));
 
     assertTrue(compoundExpiration.hasExpired(mockSlotInfo()));
@@ -46,8 +44,7 @@ public class CompoundExpirationTest {
   }
 
   @Test
-  public void
-  doesNotExpireWhenNoExpirationExpire() throws Exception {
+  void doesNotExpireWhenNoExpirationExpire() throws Exception {
     CompoundExpiration<GenericPoolable> compoundExpiration = compoundExpiration(expire($fresh), expire($fresh));
 
     assertFalse(compoundExpiration.hasExpired(mockSlotInfo()));
@@ -59,8 +56,7 @@ public class CompoundExpirationTest {
     return new CompoundExpiration<>(first, second);
   }
 
-  public MockSlotInfo mockSlotInfo() {
+  private MockSlotInfo mockSlotInfo() {
     return new MockSlotInfo(0);
   }
-
 }

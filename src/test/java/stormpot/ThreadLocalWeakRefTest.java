@@ -15,22 +15,22 @@
  */
 package stormpot;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.lang.ref.WeakReference;
 
-import static org.junit.Assert.assertNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public class ThreadLocalWeakRefTest {
+class ThreadLocalWeakRefTest {
   /**
    * Many Java web servers and containers go out of their way to find and null
    * out ThreadLocals that an application might have created. Question is, is
    * that really necessary?
    */
-  @Ignore
-  @Test public void
-  threadsWeaklyReferenceThreadLocalValues() {
+  @Disabled("This is just for demonstration purpose.")
+  @Test
+  void threadsWeaklyReferenceThreadLocalValues() {
     // Hypothesis: When we loose the reference to a ThreadLocal (e.g. by a
     // web app being redeployed and getting a soft restart), and no other
     // references to that object exists, then it should eventually be garbage
@@ -72,7 +72,7 @@ public class ThreadLocalWeakRefTest {
 
     // The obj has now been collected because all references are gone.
     // We observe this by the weakReference being null.
-    assertNull(weakReference.get());
+    assertThat(weakReference.get()).isNull();
 
     // This test passes on Java 6, 7 and 8, with default GC settings.
     // I haven't tried alternative GC settings, but you are welcome to do that.

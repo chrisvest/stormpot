@@ -15,90 +15,88 @@
  */
 package stormpot;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static stormpot.MockSlotInfo.mockSlotInfoWithAge;
 
-public class TimeSpreadExpirationTest {
+class TimeSpreadExpirationTest {
 
-  @Test(expected = IllegalArgumentException.class) public void
-  lowerExpirationBoundCannotBeLessThanOne() {
-    createExpiration(0, 2, TimeUnit.NANOSECONDS);
+  @Test
+  void lowerExpirationBoundCannotBeLessThanOne() {
+    assertThrows(IllegalArgumentException.class, () -> createExpiration(0, 2, TimeUnit.NANOSECONDS));
   }
   
-  @Test(expected = IllegalArgumentException.class) public void
-  upperExpirationBoundMustBeGreaterThanTheLowerBound() {
-    createExpiration(1, 1, TimeUnit.NANOSECONDS);
+  @Test
+  void upperExpirationBoundMustBeGreaterThanTheLowerBound() {
+    assertThrows(IllegalArgumentException.class, () -> createExpiration(1, 1, TimeUnit.NANOSECONDS));
   }
   
-  @Test(expected = IllegalArgumentException.class) public void
-  timeUnitCannotBeNull() {
-    createExpiration(1, 2, null);
+  @Test
+  void timeUnitCannotBeNull() {
+    assertThrows(IllegalArgumentException.class, () -> createExpiration(1, 2, null));
   }
   
-  @Test public void
-  slotsAtExactlyTheUpperExpirationBoundAreAlwaysInvalid() throws Exception {
+  @Test
+  void slotsAtExactlyTheUpperExpirationBoundAreAlwaysInvalid() throws Exception {
     TimeSpreadExpiration<Poolable> expiration =
         createExpiration(1, 2, TimeUnit.SECONDS);
     int percentage = expirationPercentage(expiration, 2000);
-    assertThat(percentage, is(100));
+    assertThat(percentage).isEqualTo(100);
   }
   
-  @Test public void
-  slotsYoungerThanTheLowerExpirationBoundAreNeverInvalid() throws Exception {
+  @Test
+  void slotsYoungerThanTheLowerExpirationBoundAreNeverInvalid() throws Exception {
     TimeSpreadExpiration<Poolable> expiration =
         createExpiration(1, 2, TimeUnit.SECONDS);
     int percentage = expirationPercentage(expiration, 999);
-    assertThat(percentage, is(0));
+    assertThat(percentage).isZero();
   }
   
-  @Test public void
-  slotsMidwayInBetweenTheLowerAndUpperBoundHave50PercentChanceOfBeingInvalid()
+  @Test
+  void slotsMidwayInBetweenTheLowerAndUpperBoundHave50PercentChanceOfBeingInvalid()
       throws Exception {
     TimeSpreadExpiration<Poolable> expiration =
         createExpiration(1, 2, TimeUnit.SECONDS);
     int percentage = expirationPercentage(expiration, 1500);
-    assertThat(Math.abs(percentage - 50), lessThan(2));
+    assertThat(Math.abs(percentage - 50)).isLessThan(2);
   }
   
-  @Test public void
-  slotsThatAre25PercentUpTheIntervalHave25PercentChanceOFBeingInvalid()
+  @Test
+  void slotsThatAre25PercentUpTheIntervalHave25PercentChanceOFBeingInvalid()
       throws Exception {
     TimeSpreadExpiration<Poolable> expiration =
         createExpiration(1, 2, TimeUnit.SECONDS);
     int percentage = expirationPercentage(expiration, 1250);
-    assertThat(Math.abs(percentage - 25), lessThan(2));
+    assertThat(Math.abs(percentage - 25)).isLessThan(2);
   }
   
-  @Test public void
-  slotsThatAre75PercentUpTheIntervalHave75PercentChanceOFBeingInvalid()
+  @Test
+  void slotsThatAre75PercentUpTheIntervalHave75PercentChanceOFBeingInvalid()
       throws Exception {
     TimeSpreadExpiration<Poolable> expiration =
         createExpiration(1, 2, TimeUnit.SECONDS);
     int percentage = expirationPercentage(expiration, 1750);
-    assertThat(Math.abs(percentage - 75), lessThan(2));
+    assertThat(Math.abs(percentage - 75)).isLessThan(2);
   }
 
-  @Test public void
-  mustHaveNiceToString() {
+  @Test
+  void mustHaveNiceToString() {
     TimeSpreadExpiration<Poolable> expiration =
         createExpiration(8, 10, TimeUnit.MINUTES);
-    assertThat(expiration.toString(),
-        is("TimeSpreadExpiration(8 to 10 MINUTES)"));
+    assertThat(expiration.toString()).isEqualTo("TimeSpreadExpiration(8 to 10 MINUTES)");
     expiration = createExpiration(60, 160, TimeUnit.MILLISECONDS);
-    assertThat(expiration.toString(),
-        is("TimeSpreadExpiration(60 to 160 MILLISECONDS)"));
+    assertThat(expiration.toString()).isEqualTo("TimeSpreadExpiration(60 to 160 MILLISECONDS)");
   }
 
-  @Test public void
-  expirationChancePercentageShouldBeFair() {
+  @Test
+  void expirationChancePercentageShouldBeFair() {
     int lowerBound = 900;
     int upperBound = 1100;
     TimeSpreadExpiration<Poolable> expiration =
@@ -120,21 +118,21 @@ public class TimeSpreadExpirationTest {
       }
     }
 
-    assertThat(actualExpirations, allOf(
-        greaterThanOrEqualTo(expectedExpirations - tolerance),
-        lessThanOrEqualTo(expectedExpirations + tolerance)));
+    assertThat(actualExpirations)
+        .isGreaterThanOrEqualTo(expectedExpirations - tolerance)
+        .isLessThanOrEqualTo(expectedExpirations + tolerance);
   }
 
-  @Test public void
-  thePercentagesShouldNotChangeNoMatterHowManyTimesAnObjectIsChecked() {
+  @Test
+  void thePercentagesShouldNotChangeNoMatterHowManyTimesAnObjectIsChecked() {
     int span = 100;
     int base = 1000;
     int top = base + span;
     int objectsPerMillis = 1000;
     int objects = span * objectsPerMillis;
-    int expirationCountTollerance = objectsPerMillis / 6;
-    int expirationsMin = objectsPerMillis - expirationCountTollerance;
-    int expirationsMax = objectsPerMillis + expirationCountTollerance;
+    int expirationCountTolerance = objectsPerMillis / 6;
+    int expirationsMin = objectsPerMillis - expirationCountTolerance;
+    int expirationsMax = objectsPerMillis + expirationCountTolerance;
 
     TimeSpreadExpiration<Poolable> expiration =
         createExpiration(base, top, TimeUnit.MILLISECONDS);

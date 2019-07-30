@@ -15,19 +15,15 @@
  */
 package stormpot;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import java.util.Iterator;
-import java.util.Set;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+class PreciseLeakDetectorTest {
+  private PreciseLeakDetector detector = new PreciseLeakDetector();
 
-public class PreciseLeakDetectorTest {
-  public PreciseLeakDetector detector = new PreciseLeakDetector();
-
-  @Test public void
-  mustHandleManyAddedReplacedAndRemovedObjects() {
+  @Test
+  void mustHandleManyAddedReplacedAndRemovedObjects() {
     Object[] objs = new Object[100000];
 
     // Adding
@@ -55,11 +51,11 @@ public class PreciseLeakDetectorTest {
     objs = null;
     System.gc();
 
-    assertThat(detector.countLeakedObjects(), is(0L));
+    assertThat(detector.countLeakedObjects()).isZero();
   }
 
-  @Test public void
-  mustCountCorrectlyAfterAddLeakAddLeakRemove() {
+  @Test
+  void mustCountCorrectlyAfterAddLeakAddLeakRemove() {
     Object[] first = new Object[1000];
     for (int i = 0; i < first.length; i++) {
       Object obj = new Object();
@@ -100,6 +96,6 @@ public class PreciseLeakDetectorTest {
     third[9000] = null;
     System.gc();
 
-    assertThat(detector.countLeakedObjects(), is(9L));
+    assertThat(detector.countLeakedObjects()).isEqualTo(9L);
   }
 }

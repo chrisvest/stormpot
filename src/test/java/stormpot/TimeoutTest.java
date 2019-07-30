@@ -15,132 +15,130 @@
  */
 package stormpot;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class TimeoutTest {
-  @Test(expected = IllegalArgumentException.class) public void
-  timeUnitCannotBeNull() {
-    new Timeout(1, null);
+class TimeoutTest {
+  @Test
+  void timeUnitCannotBeNull() {
+    assertThrows(IllegalArgumentException.class, () -> new Timeout(1, null));
   }
   
-  @Test public void
-  timeoutCanBeZeroOrLess() {
+  @Test
+  void timeoutCanBeZeroOrLess() {
     // because it means we don't want to do any waiting at all.
     new Timeout(0, TimeUnit.DAYS);
     new Timeout(-1, TimeUnit.DAYS);
   }
 
-  @Test public void
-  nonBaseValuesMustBeReproducible() {
+  @Test
+  void nonBaseValuesMustBeReproducible() {
     Timeout timeout = new Timeout(13, TimeUnit.MILLISECONDS);
-    assertThat(timeout.getTimeout(), is(13L));
-    assertThat(timeout.getUnit(), is(TimeUnit.MILLISECONDS));
+    assertThat(timeout.getTimeout()).isEqualTo(13L);
+    assertThat(timeout.getUnit()).isEqualTo(TimeUnit.MILLISECONDS);
   }
   
-  @Test public void
-  baseTimeUnitMustNotBeNull() {
-    assertNotNull("unexpectedly got null for the base unit",
-        new Timeout(1, TimeUnit.DAYS).getBaseUnit());
+  @Test
+  void baseTimeUnitMustNotBeNull() {
+    assertThat(new Timeout(1, TimeUnit.DAYS).getBaseUnit())
+        .as("unexpectedly got null for the base unit").isNotNull();
   }
   
-  @Test public void
-  timeoutsWithEqualValueButDifferentUnitsAreEqual() {
+  @Test
+  void timeoutsWithEqualValueButDifferentUnitsAreEqual() {
     Timeout a = new Timeout(1, TimeUnit.SECONDS);
     Timeout b = new Timeout(1000, TimeUnit.MILLISECONDS);
-    assertThat(a, equalTo(b));
+    assertThat(a).isEqualTo(b);
   }
   
-  @Test public void
-  differentTimeoutValuesAreNotEqual() {
+  @Test
+  void differentTimeoutValuesAreNotEqual() {
     Timeout a = new Timeout(1, TimeUnit.SECONDS);
     Timeout b =  new Timeout(1, TimeUnit.MILLISECONDS);
-    assertThat(a, not(equalTo(b)));
+    assertThat(a).isNotEqualTo(b);
   }
   
-  @Test public void
-  timeoutsAreNotEqualToObjectsOfDifferentClasses() {
+  @Test
+  void timeoutsAreNotEqualToObjectsOfDifferentClasses() {
     Object a = new Timeout(1, TimeUnit.SECONDS);
     Object b = "poke";
-    assertThat(a, not(equalTo(b)));
+    assertThat(a).isNotEqualTo(b);
   }
   
-  @Test public void
-  timeoutsAreNotEqualToNull() {
+  @Test
+  void timeoutsAreNotEqualToNull() {
     Timeout a = new Timeout(1, TimeUnit.SECONDS);
-    //noinspection ObjectEqualsNull
+    //noinspection SimplifiableJUnitAssertion,ConstantConditions
     assertFalse(a.equals(null));
   }
   
-  @Test public void
-  timeoutsAreEqualToThemselves() {
+  @Test
+  void timeoutsAreEqualToThemselves() {
     Timeout a = new Timeout(1, TimeUnit.SECONDS);
-    assertThat(a, equalTo(a));
+    assertThat(a).isEqualTo(a);
   }
   
-  @Test public void
-  sameValueAndUnitGivesSameHashCode() {
+  @Test
+  void sameValueAndUnitGivesSameHashCode() {
     Timeout a = new Timeout(1, TimeUnit.SECONDS);
     Timeout b = new Timeout(1, TimeUnit.SECONDS);
-    assertTrue(a.hashCode() == b.hashCode());
+    assertEquals(a.hashCode(), b.hashCode());
   }
   
-  @Test public void
-  differentValueGivesDifferentHashcode() {
+  @Test
+  void differentValueGivesDifferentHashcode() {
     Timeout a = new Timeout(1, TimeUnit.SECONDS);
     Timeout b = new Timeout(2, TimeUnit.SECONDS);
     assertTrue(a.hashCode() != b.hashCode());
   }
   
-  @Test public void
-  differentUnitsForSameValuesGivesSameHashcode() {
+  @Test
+  void differentUnitsForSameValuesGivesSameHashcode() {
     Timeout a = new Timeout(1, TimeUnit.SECONDS);
     Timeout b = new Timeout(1000, TimeUnit.MILLISECONDS);
-    assertTrue(a.hashCode() == b.hashCode());
+    assertEquals(a.hashCode(), b.hashCode());
   }
   
-  @Test public void
-  sameValuesOfDifferentUnitsGivesDifferentHashcode() {
+  @Test
+  void sameValuesOfDifferentUnitsGivesDifferentHashcode() {
     Timeout a = new Timeout(1, TimeUnit.SECONDS);
     Timeout b = new Timeout(1, TimeUnit.MILLISECONDS);
     assertTrue(a.hashCode() != b.hashCode());
   }
 
-  @Test public void
-  canGetTimeoutInBaseUnit() {
+  @Test
+  void canGetTimeoutInBaseUnit() {
     Timeout a = new Timeout(1, TimeUnit.SECONDS);
     Timeout b = new Timeout(1000, TimeUnit.MILLISECONDS);
     long timeoutBaseA = a.getTimeoutInBaseUnit();
     long timeoutBaseB = b.getTimeoutInBaseUnit();
-    assertTrue(timeoutBaseA == timeoutBaseB);
+    assertThat(timeoutBaseA).isEqualTo(timeoutBaseB);
   }
 
-  @Test public void
-  timeoutValueMustConvertExactlyToBaseUnit() {
+  @Test
+  void timeoutValueMustConvertExactlyToBaseUnit() {
     TimeUnit seconds = TimeUnit.SECONDS;
     int value = 1;
     Timeout timeout = new Timeout(value, seconds);
     long convertedValue = timeout.getBaseUnit().convert(value, seconds);
-    assertThat(timeout.getTimeoutInBaseUnit(), is(convertedValue));
+    assertThat(timeout.getTimeoutInBaseUnit()).isEqualTo(convertedValue);
   }
 
-  @Test public void
-  specifyingTimeoutInBaseUnitMustDoNoConversion() {
+  @Test
+  void specifyingTimeoutInBaseUnitMustDoNoConversion() {
     Timeout a = new Timeout(1, TimeUnit.SECONDS);
     long baseTimeout = a.getTimeoutInBaseUnit();
     Timeout b = new Timeout(baseTimeout, a.getBaseUnit());
-    assertThat(b.getTimeoutInBaseUnit(), is(b.getTimeout()));
+    assertThat(b.getTimeoutInBaseUnit()).isEqualTo(b.getTimeout());
   }
 
-  @Test public void
-  equalTimeoutsMustHaveSameHashCode() {
+  @Test
+  void equalTimeoutsMustHaveSameHashCode() {
     Random rng = new Random();
     TimeUnit[] units = TimeUnit.values();
     int[] magnitudes = new int[] {1, 24, 60, 1000};
@@ -154,7 +152,7 @@ public class TimeoutTest {
       Timeout timeoutB = new Timeout(magnitudeB, unitB);
 
       if (timeoutA.equals(timeoutB)) {
-        assertThat(timeoutA + " = " + timeoutB, timeoutA, equalTo(timeoutB));
+        assertThat(timeoutA).isEqualTo(timeoutB);
       }
     }
   }

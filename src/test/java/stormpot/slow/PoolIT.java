@@ -15,15 +15,11 @@
  */
 package stormpot.slow;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.rules.TestRule;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import stormpot.*;
 
 import java.lang.management.ManagementFactory;
@@ -33,33 +29,25 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static java.lang.System.identityHashCode;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
-import static org.junit.Assume.assumeTrue;
-import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.util.Arrays.asList;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static stormpot.AlloKit.$countDown;
 import static stormpot.AlloKit.*;
 import static stormpot.ExpireKit.*;
 
 @SuppressWarnings("unchecked")
-@Category(SlowTest.class)
-@RunWith(Parameterized.class)
-public class PoolIT {
-  @Rule public final TestRule failurePrinter = new FailurePrinterTestRule();
-  @Rule public final ExecutorTestRule executorTestRule = new ExecutorTestRule();
+@ExtendWith(FailurePrinterExtension.class)
+class PoolIT {
+  @RegisterExtension
+  static final ExecutorExtension EXECUTOR_EXTENSION = new ExecutorExtension();
 
   private static final Timeout longTimeout = new Timeout(1, TimeUnit.MINUTES);
   private static final Timeout shortTimeout = new Timeout(1, TimeUnit.SECONDS);
 
-  @Parameters(name = "{0}")
-  public static Object[][] dataPoints() {
-    return new Object[][] {
-        {"blazePool", new BlazePoolFixture()},
-    };
-  }
-
-  private final PoolFixture fixture;
+  private PoolFixture fixture;
 
   // Initialised by setUp()
   private CountingAllocator allocator;
@@ -69,29 +57,24 @@ public class PoolIT {
   // Initialised in the tests
   private Pool<GenericPoolable> pool;
 
-  @SuppressWarnings("UnusedParameters")
-  public PoolIT(String implementationName, PoolFixture fixture) {
-    this.fixture = fixture;
-  }
-
-  @Before public void
-  setUp() {
+  @BeforeEach
+  void setUp() {
+    fixture = new BlazePoolFixture();
     allocator = allocator();
     config = new Config<GenericPoolable>().setSize(1).setAllocator(allocator);
-    executor = executorTestRule.getExecutorService();
+    executor = EXECUTOR_EXTENSION.getExecutorService();
   }
 
-  @After public void
-  verifyObjectsAreNeverDeallocatedMoreThanOnce() throws InterruptedException {
-    assertTrue("pool should have been shut down by the test",
-        pool.shutdown().await(shortTimeout));
+  @AfterEach
+  void verifyObjectsAreNeverDeallocatedMoreThanOnce() throws InterruptedException {
+    assertTrue(pool.shutdown().await(shortTimeout), "pool should have been shut down by the test");
     pool = null;
 
     List<GenericPoolable> deallocated = allocator.getDeallocations();
     // Synchronize to avoid ConcurrentModification with background thread
+    //noinspection SynchronizationOnLocalVariableOrMethodParameter
     synchronized (deallocated) {
-      Collections.sort(deallocated, (a,b) ->
-          Integer.compare(identityHashCode(a), identityHashCode(b)));
+      deallocated.sort(Comparator.comparingInt(System::identityHashCode));
       Iterator<GenericPoolable> iter = deallocated.iterator();
       List<GenericPoolable> duplicates = new ArrayList<>();
       if (iter.hasNext()) {
@@ -104,7 +87,7 @@ public class PoolIT {
           a = b;
         }
       }
-      assertThat(duplicates, is(emptyIterableOf(GenericPoolable.class)));
+      assertThat(duplicates).isEmpty();
     }
     allocator = null;
   }
@@ -113,14 +96,15 @@ public class PoolIT {
     pool = fixture.initPool(config);
   }
 
-  @Test(timeout = 16010) public void
-  highContentionMustNotCausePoolLeakage() throws Exception {
+  @org.junit.jupiter.api.Timeout(16)
+  @Test
+  void highContentionMustNotCausePoolLeakage() throws Exception {
     createPool();
 
     Runnable runner = createTaskClaimReleaseUntilShutdown(pool);
 
     Future<?> future = executor.submit(runner);
-    executorTestRule.printOnFailure(future);
+    EXECUTOR_EXTENSION.printOnFailure(future);
 
     long deadline = System.currentTimeMillis() + 5000;
     do {
@@ -140,17 +124,18 @@ public class PoolIT {
         } catch (InterruptedException ignore) {
           // This is okay
         } catch (IllegalStateException e) {
-          assertThat(e, hasMessage(equalTo("Pool has been shut down")));
+          assertThat(e).hasMessage("Pool has been shut down");
           break;
         } catch (PoolException e) {
-          assertThat(e.getCause().getClass(), isOneOf(acceptableExceptions));
+          assertThat(e.getCause().getClass()).isIn(asList(acceptableExceptions));
         }
       }
     };
   }
 
-  @Test(timeout = 16010) public void
-  shutdownMustCompleteSuccessfullyEvenAtHighContention() throws Exception {
+  @org.junit.jupiter.api.Timeout(16)
+  @Test
+  void shutdownMustCompleteSuccessfullyEvenAtHighContention() throws Exception {
     int size = 100000;
     config.setSize(size);
     createPool();
@@ -160,7 +145,7 @@ public class PoolIT {
       Runnable runner = createTaskClaimReleaseUntilShutdown(pool);
       futures.add(executor.submit(runner));
     }
-    executorTestRule.printOnFailure(futures);
+    EXECUTOR_EXTENSION.printOnFailure(futures);
 
     // Wait for all the objects to be created
     while (allocator.countAllocations() < size) {
@@ -176,8 +161,9 @@ public class PoolIT {
     }
   }
 
-  @Test(timeout = 16010) public void
-  highObjectChurnMustNotCausePoolLeakage() throws Exception {
+  @org.junit.jupiter.api.Timeout(16)
+  @Test
+  void highObjectChurnMustNotCausePoolLeakage() throws Exception {
     config.setSize(8);
     Action fallibleAction = new Action() {
       private final Random rnd = new Random();
@@ -215,7 +201,7 @@ public class PoolIT {
           SomeRandomException.class);
       futures.add(executor.submit(runner));
     }
-    executorTestRule.printOnFailure(futures);
+    EXECUTOR_EXTENSION.printOnFailure(futures);
 
     Thread.sleep(5000);
 
@@ -228,8 +214,9 @@ public class PoolIT {
     }
   }
 
-  @Test(timeout = 16010) public void
-  backgroundExpirationMustDoNothingWhenPoolIsDepleted() throws Exception {
+  @org.junit.jupiter.api.Timeout(16)
+  @Test
+  void backgroundExpirationMustDoNothingWhenPoolIsDepleted() throws Exception {
     AtomicBoolean hasExpired = new AtomicBoolean();
     CountingExpiration expiration = expire($expiredIf(hasExpired));
     config.setExpiration(expiration);
@@ -247,13 +234,13 @@ public class PoolIT {
 
     Thread.sleep(1000);
 
-    assertThat(allocator.countDeallocations(), is(0));
-    assertThat(expiration.countExpirations(), is(expirationsCount));
+    assertThat(allocator.countDeallocations()).isZero();
+    assertThat(expiration.countExpirations()).isEqualTo(expirationsCount);
     obj.release();
   }
 
-  @Test(timeout = 16010) public void
-  backgroundExpirationMustNotFailWhenThereAreNoObjectsInCirculation()
+  @Test
+  void backgroundExpirationMustNotFailWhenThereAreNoObjectsInCirculation()
       throws Exception {
     AtomicBoolean hasExpired = new AtomicBoolean();
     CountingExpiration expiration = expire($expiredIf(hasExpired));
@@ -269,13 +256,14 @@ public class PoolIT {
 
     Thread.sleep(1000);
 
-    assertThat(allocator.countDeallocations(), is(0));
-    assertThat(expiration.countExpirations(), is(expirationsCount));
+    assertThat(allocator.countDeallocations()).isZero();
+    assertThat(expiration.countExpirations()).isEqualTo(expirationsCount);
     obj.release();
   }
 
-  @Test(timeout = 160100) public void
-  decreasingSizeOfDepletedPoolMustOnlyDeallocateAllocatedObjects()
+  @org.junit.jupiter.api.Timeout(160)
+  @Test
+  void decreasingSizeOfDepletedPoolMustOnlyDeallocateAllocatedObjects()
       throws Exception {
     int startingSize = 256;
     CountDownLatch startLatch = new CountDownLatch(startingSize);
@@ -304,13 +292,14 @@ public class PoolIT {
       semaphore.acquire();
     }
 
-    assertThat(allocator.getDeallocations(), equalTo(subList));
+    assertThat(allocator.getDeallocations()).containsExactlyElementsOf(subList);
 
     objs.get(startingSize - 1).release();
   }
 
-  @Test(timeout = 160100) public void
-  mustNotDeallocateNullsFromLiveQueueDuringShutdown() throws Exception {
+  @org.junit.jupiter.api.Timeout(160)
+  @Test
+  void mustNotDeallocateNullsFromLiveQueueDuringShutdown() throws Exception {
     int startingSize = 256;
     CountDownLatch startLatch = new CountDownLatch(startingSize);
     Semaphore semaphore = new Semaphore(0);
@@ -338,14 +327,14 @@ public class PoolIT {
       semaphore.acquire();
     }
 
-    assertThat(allocator.getDeallocations(), equalTo(subList));
+    assertThat(allocator.getDeallocations()).isEqualTo(subList);
 
     objs.get(startingSize - 1).release();
-    assertTrue("shutdown timeout elapsed", completion.await(longTimeout));
+    assertTrue(completion.await(longTimeout), "shutdown timeout elapsed");
   }
 
-  @Test public void
-  explicitlyExpiredSlotsMustNotCauseBackgroundCPUBurn()
+  @Test
+  void explicitlyExpiredSlotsMustNotCauseBackgroundCPUBurn()
       throws InterruptedException {
     final ThreadMXBean threads = ManagementFactory.getThreadMXBean();
     final AtomicLong lastUserTimeIncrement = new AtomicLong();
@@ -371,8 +360,7 @@ public class PoolIT {
     long millisecondsSpentBurningCPU =
         TimeUnit.NANOSECONDS.toMillis(lastUserTimeIncrement.get());
 
-    assertThat(millisecondsSpentBurningCPU,
-        is(lessThan(millisecondsAllowedToBurnCPU / 2)));
+    assertThat(millisecondsSpentBurningCPU).isLessThan(millisecondsAllowedToBurnCPU / 2);
   }
 
   private Action measureLastCPUTime(final ThreadMXBean threads, final AtomicLong lastUserTimeIncrement) {
@@ -392,8 +380,8 @@ public class PoolIT {
     };
   }
 
-  @Test public void
-  explicitlyExpiredSlotsThatAreDeallocatedThroughPoolShrinkingMustNotCauseBackgroundCPUBurn()
+  @Test
+  void explicitlyExpiredSlotsThatAreDeallocatedThroughPoolShrinkingMustNotCauseBackgroundCPUBurn()
       throws InterruptedException {
     final ThreadMXBean threads = ManagementFactory.getThreadMXBean();
     final AtomicLong lastUserTimeIncrement = new AtomicLong();
@@ -446,12 +434,11 @@ public class PoolIT {
     long millisecondsSpentBurningCPU =
         TimeUnit.NANOSECONDS.toMillis(maxUserTimeIncrement.get());
 
-    assertThat(millisecondsSpentBurningCPU,
-        is(lessThan(millisecondsAllowedToBurnCPU / 2)));
+    assertThat(millisecondsSpentBurningCPU).isLessThan(millisecondsAllowedToBurnCPU / 2);
   }
 
-  @Test public void
-  explicitlyExpiredButUnreleasedSlotsMustNotCauseBackgroundCPUBurn()
+  @Test
+  void explicitlyExpiredButUnreleasedSlotsMustNotCauseBackgroundCPUBurn()
       throws InterruptedException {
     final ThreadMXBean threads = ManagementFactory.getThreadMXBean();
     final AtomicLong lastUserTimeIncrement = new AtomicLong();
@@ -472,12 +459,11 @@ public class PoolIT {
     long millisecondsSpentBurningCPU =
         TimeUnit.NANOSECONDS.toMillis(lastUserTimeIncrement.get());
 
-    assertThat(millisecondsSpentBurningCPU,
-        is(lessThan(millisecondsAllowedToBurnCPU / 2)));
+    assertThat(millisecondsSpentBurningCPU).isLessThan(millisecondsAllowedToBurnCPU / 2);
   }
 
-  @Test public void
-  mustNotBurnTooMuchCPUWhileThePoolIsWorkingOnShrinking()
+  @Test
+  void mustNotBurnTooMuchCPUWhileThePoolIsWorkingOnShrinking()
       throws InterruptedException {
     final ThreadMXBean threads = ManagementFactory.getThreadMXBean();
     final AtomicLong lastUserTimeIncrement = new AtomicLong();
@@ -506,7 +492,6 @@ public class PoolIT {
     long millisecondsSpentBurningCPU =
         TimeUnit.NANOSECONDS.toMillis(lastUserTimeIncrement.get());
 
-    assertThat(millisecondsSpentBurningCPU,
-        is(lessThan(millisecondsAllowedToBurnCPU / 2)));
+    assertThat(millisecondsSpentBurningCPU).isLessThan(millisecondsAllowedToBurnCPU / 2);
   }
 }

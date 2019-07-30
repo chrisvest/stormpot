@@ -24,9 +24,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class UnitKit {
   private static final ExecutorService executor =
@@ -87,6 +85,18 @@ class UnitKit {
       }
     };
   }
+
+  public static <T extends Poolable> Callable<T> $claimRelease(
+      final Pool<T> pool, final Timeout timeout) {
+    return () -> {
+      try {
+        pool.claim(timeout).release();
+        return null;
+      } catch (InterruptedException e) {
+        throw new PoolException("Claim interrupted", e);
+      }
+    };
+  }
   
   public static <T> Callable<T> capture(
       final Callable<T> callable,
@@ -139,9 +149,7 @@ class UnitKit {
   }
   
   public static Callable<Void> $delayedReleases(
-      final Poolable[] objs,
-      final long delay,
-      final TimeUnit delayUnit) {
+      long delay, TimeUnit delayUnit, Poolable... objs) {
     return () -> {
       List<Poolable> list = new ArrayList<>(Arrays.asList(objs));
       try {
@@ -163,7 +171,7 @@ class UnitKit {
     long check = start + 30;
     State currentState = thread.getState();
     while (currentState != targetState) {
-      assertThat(currentState, is(not(Thread.State.TERMINATED)));
+      assertThat(currentState).isNotEqualTo(Thread.State.TERMINATED);
       long now = System.currentTimeMillis();
       if (now > check) {
         long elapsed = now - start;
