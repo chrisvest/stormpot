@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot;
+package extensions;
 
 
 import org.junit.jupiter.api.extension.AfterEachCallback;

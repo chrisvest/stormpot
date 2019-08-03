@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class UnitKit {
+public class UnitKit {
   private static final ExecutorService executor =
       Executors.newCachedThreadPool();
   

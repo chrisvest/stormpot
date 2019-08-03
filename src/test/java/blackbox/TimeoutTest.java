@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot;
+package blackbox;
 
 import org.junit.jupiter.api.Test;
+import stormpot.Timeout;
 
 import java.util.Random;
 import java.util.concurrent.TimeUnit;

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot.slow;
+package extensions;
 
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
@@ -26,12 +26,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ExecutorExtension implements Extension, BeforeEachCallback, AfterEachCallback {
+public class ExecutorExtension implements Extension, BeforeEachCallback, AfterEachCallback {
   private TestThreadFactory threadFactory;
   private ExecutorService executor;
   private List<Future<?>> futuresToPrintOnFailure = new ArrayList<>();
 
-  ExecutorService getExecutorService() {
+  public ExecutorService getExecutorService() {
     return executor;
   }
 
@@ -68,11 +68,11 @@ class ExecutorExtension implements Extension, BeforeEachCallback, AfterEachCallb
     return Executors.newCachedThreadPool(threadFactory);
   }
 
-  void printOnFailure(List<Future<?>> futures) {
+  public void printOnFailure(List<Future<?>> futures) {
     futuresToPrintOnFailure.addAll(futures);
   }
 
-  void printOnFailure(Future<?> future) {
+  public void printOnFailure(Future<?> future) {
     futuresToPrintOnFailure.add(future);
   }
 

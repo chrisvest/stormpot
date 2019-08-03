@@ -13,12 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot;
+package blackbox;
 
+import extensions.FailurePrinterExtension;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import stormpot.*;
 
 import javax.management.JMX;
 import javax.management.MBeanServer;
@@ -1710,7 +1712,7 @@ class PoolTest {
 
     // Prime any thread-local cache
     GenericPoolable obj = pool.claim(longTimeout);
-    failOnAllocatingSlot.set(obj.slot);
+    failOnAllocatingSlot.set(obj.getSlot());
     obj.release(); // Places slot at end of queue
 
     // Expire all poolables
@@ -2183,7 +2185,7 @@ class PoolTest {
 
     for (int i = 0; i < 100; i++) {
       GenericPoolable obj = pool.claim(longTimeout);
-      obj.slot.expire(obj);
+      obj.getSlot().expire(obj);
       obj.release();
     }
 

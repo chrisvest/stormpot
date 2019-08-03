@@ -27,4 +27,8 @@ public class GenericPoolable extends BasePoolable {
     lastReleaseBy = Thread.currentThread();
     super.release();
   }
+
+  public Slot getSlot() {
+    return slot;
+  }
 }

@@ -13,9 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot;
+package blackbox;
 
 import org.junit.jupiter.api.Test;
+import stormpot.CompoundExpiration;
+import stormpot.Expiration;
+import stormpot.GenericPoolable;
+import stormpot.MockSlotInfo;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;

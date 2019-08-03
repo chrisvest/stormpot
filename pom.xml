@@ -124,7 +124,11 @@
         <version>3.0.0-M1</version>
         <configuration>
           <trimStackTrace>false</trimStackTrace>
-          <argLine>--add-opens stormpot/stormpot=ALL-UNNAMED</argLine>
+          <argLine>
+            --add-opens stormpot/stormpot=ALL-UNNAMED
+            --add-opens stormpot/blackbox=ALL-UNNAMED
+            --add-opens stormpot/extensions=ALL-UNNAMED
+          </argLine>
         </configuration>
       </plugin>
       <plugin>
