@@ -29,21 +29,18 @@ package stormpot;
  * on the specific Slot object that it was allocated with, giving itself as the
  * Poolable parameter.
  *
- * The simplest possible correct implementation of the Poolable interface looks
- * like this:
+ * A simple correct implementation of the Poolable interface looks like this:
  *
  * [source,java]
  * ----
- * public class GenericPoolable implements Poolable {
- *   private final Slot slot;
- *   public GenericPoolable(Slot slot) {
- *     this.slot = slot;
- *   }
- *   
- *   public void release() {
- *     slot.release(this);
- *   }
- * }
+ * include::../src/test/java/examples/Examples.java[tag=poolableGenericExample]
+ * ----
+ *
+ * This can be shortened further by extending the {@link BasePoolable} class:
+ *
+ * [source,java]
+ * ----
+ * include::../src/test/java/examples/Examples.java[tag=poolableBaseExample]
  * ----
  *
  * Memory effects: The release of an object happens-before it is claimed

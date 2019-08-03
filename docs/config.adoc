@@ -120,7 +120,7 @@ Here's an example of what such an integration could look like:
 
 [source,java]
 ----
-include::../src/test/java/stormpot/examples/CodaHaleMetricsRecorder.java[lines=16..-1]
+include::../src/test/java/examples/CodaHaleMetricsRecorder.java[lines=16..-1]
 ----
 
 Once you have your `MetricsRecorder` implementation, you just set an instance of it on your `Config` object with the `setMetricsRecorder` method.

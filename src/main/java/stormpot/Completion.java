@@ -41,6 +41,7 @@ public interface Completion {
    * status is cleared.
    *
    * If the specified waiting time elapses, then the method returns `false`.
+   *
    * @param timeout The timeout delimiting the maximum time to wait for the
    * task to complete. Timeouts with zero or negative values will cause the
    * method to return immediately.

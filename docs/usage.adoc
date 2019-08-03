@@ -1,13 +1,23 @@
 == Simplest Possible Usage
 
-Stormpot has an invasive API which means that there is a minimum of things your
-code needs to do to use it.
+Stormpot has an invasive API which means that there is a minimum of things your code needs to do to use it.
 However, the requirements are quite benign, as this section is all about showing you.
-The objects that you manage with a Stormpot pool needs to implement the `Poolable` interface. The absolute minimum amount of code required for its implementation is this:
+The objects that you manage with a Stormpot pool needs to implement the `Poolable` interface.
+The absolute minimum amount of code required for its implementation is this:
 
 [source,java]
 ----
 include::../src/test/java/docs/MyPoolable.java[tag=mypoolable]
+----
+
+We extend the `BasePoolable` class, pass a `Slot` argument through to its constructor, and leave the rest of the implementation to the `BasePoolable` class.
+
+We can also implement the `Poolable` interface directly.
+Here is an example of how to do this.
+
+[source,java]
+----
+include::../src/test/java/docs/MyOtherPoolable.java[tag=myotherpoolable]
 ----
 
 The object in essence just needs to keep its `Slot` instance around, and give itself as a parameter to the `Slot#release` method.

@@ -30,16 +30,7 @@ import java.util.function.Function;
  *
  * [source,java]
  * ----
- * Timeout timeout = new Timeout(1, TimeUnit.SECONDS);
- * SomePoolable obj = pool.claim(timeout);
- * try {
- *   // Do useful things with 'obj'.
- *   // Note that 'obj' will be 'null' if 'claim' timed out.
- * } finally {
- *   if (obj != null) {
- *     obj.release();
- *   }
- * }
+ * include::../src/test/java/examples/Examples.java[tag=poolClaimExample]
  * ----
  *
  * The pools are resizable, and can have their capacity changed at any time
@@ -101,14 +92,7 @@ public abstract class Pool<T extends Poolable> {
    *
    * [source,java]
    * ----
-   * Poolable obj = pool.claim(TIMEOUT);
-   * if (obj != null) {
-   *   try {
-   *     System.out.println(obj);
-   *   } finally {
-   *     obj.release();
-   *   }
-   * }
+   * include::../src/test/java/examples/Examples.java[tag=poolClaimPrintExample]
    * ----
    *
    * Memory effects:
@@ -165,6 +149,7 @@ public abstract class Pool<T extends Poolable> {
    *
    * The shut down process is guaranteed to never deallocate objects that are
    * currently claimed. Their deallocation will wait until they are released.
+   *
    * @return A {@link Completion} instance that represents the shut down
    * process.
    */
@@ -186,6 +171,7 @@ public abstract class Pool<T extends Poolable> {
    * Pools that do not support a size less than 1 (which would deviate from the
    * standard configuration space) will throw an
    * {@link IllegalArgumentException} if passed 0 or less.
+   *
    * @param size The new target size of the pool
    */
   public abstract void setTargetSize(int size);
@@ -194,6 +180,7 @@ public abstract class Pool<T extends Poolable> {
    * Get the currently configured target size of the pool. Note that this is
    * _not_ the number of objects currently allocated by the pool - only
    * the number of allocations the pool strives to keep alive.
+   *
    * @return The current target size of this pool.
    */
   public abstract int getTargetSize();

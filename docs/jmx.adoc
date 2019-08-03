@@ -15,10 +15,7 @@ Here is an example how you could a pool through the platform `MBeanServer`:
 
 [source,java]
 ----
-BlazePool<MyPoolable> pool = new BlazePool<MyPoolable>(...);
-MBeanServer server = ManagementFactory.getPlatformMBeanServer();
-ObjectName name = new ObjectName("com.myapp:objectpool=stormpot");
-server.registerMBean(pool, name);
+include::../src/test/java/examples/Examples.java[tag=managedPoolExample]
 ----
 
 Any `MBeanServer` can be used, though.

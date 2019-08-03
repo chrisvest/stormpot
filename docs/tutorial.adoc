@@ -7,10 +7,10 @@ The aim is to gradually build up knowledge about object pooling in general, when
 
 === What is an Object Pool?
 
-An object pool is a homogenous collection of objects.
+An object pool is a homogeneous collection of objects.
 Whenever one such object is needed for something, it is taken from the pool, instead of being allocated anew.
 Once an object has served its purpose, it returns to the pool so that it can later be reused.
-We say the collection of pooled objects is homogenous, because it does not matter which of the objects are picked to be used in a given case.
+We say the collection of pooled objects is homogeneous, because it does not matter which of the objects are picked to be used in a given case.
 This is where pools differs from caches: in a cache, the objects are distinct, and have some identity by which they are looked up when needed.
 In a pool, there is nothing to look up by, and any object will do.
 

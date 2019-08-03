@@ -236,7 +236,7 @@
       <plugin>
         <groupId>org.asciidoctor</groupId>
         <artifactId>asciidoctor-maven-plugin</artifactId>
-        <version>1.5.7.1</version>
+        <version>1.6.0</version>
         <executions>
           <execution>
             <id>output-html</id>
@@ -251,7 +251,17 @@
           <outputDirectory>target/docs</outputDirectory>
           <backend>html</backend>
           <sourceHighlighter>coderay</sourceHighlighter>
+          <requires>
+            <require>asciidoctor-diagram</require>
+          </requires>
         </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.asciidoctor</groupId>
+            <artifactId>asciidoctorj-diagram</artifactId>
+            <version>1.5.18</version>
+          </dependency>
+        </dependencies>
       </plugin>
     </plugins>
   </build>

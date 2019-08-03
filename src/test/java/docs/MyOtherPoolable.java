@@ -15,14 +15,20 @@
  */
 package docs;
 
-// tag::mypoolable[]
-// MyPoolable.java - minimum Poolable implementation
-import stormpot.BasePoolable;
+// tag::myotherpoolable[]
+// MyOtherPoolable.java - explicit Poolable implementation
+import stormpot.Poolable;
 import stormpot.Slot;
 
-public class MyPoolable extends BasePoolable {
-  public MyPoolable(Slot slot) {
-    super(slot);
+public class MyOtherPoolable implements Poolable {
+  private final Slot slot;
+  public MyOtherPoolable(Slot slot) {
+    this.slot = slot;
+  }
+
+  @Override
+  public void release() {
+    slot.release(this);
   }
 }
-// end::mypoolable[]
+// end::myotherpoolable[]

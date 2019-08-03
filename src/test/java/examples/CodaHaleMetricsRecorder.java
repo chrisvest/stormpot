@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot.examples;
+package examples;
 
 import io.dropwizard.metrics5.Histogram;
 import io.dropwizard.metrics5.MetricRegistry;

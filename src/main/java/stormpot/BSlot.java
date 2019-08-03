@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * This class is very sensitive to the memory layout, so be careful to measure
  * the effect of even the tiniest changes!
- * False-sharing is a fickle and vengeful mistress.
+ * False-sharing can be quite sneaky.
  */
 final class BSlot<T extends Poolable>
     extends BSlotColdFields<T> {
@@ -32,7 +32,7 @@ final class BSlot<T extends Poolable>
   private static final int LIVING = 3;
   private static final int DEAD = 4;
 
-  public BSlot(BlockingQueue<BSlot<T>> live, AtomicInteger poisonedSlots) {
+  BSlot(BlockingQueue<BSlot<T>> live, AtomicInteger poisonedSlots) {
     // Volatile write in the constructor: This object must be safely published,
     // so that we are sure that the volatile write happens-before other
     // threads observe the pointer to this object.

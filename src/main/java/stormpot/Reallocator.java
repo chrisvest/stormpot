@@ -45,8 +45,7 @@ public interface Reallocator<T extends Poolable> extends Allocator<T> {
    *
    * [source,java]
    * --
-   * deallocate(poolable);
-   * return allocate(slot);
+   * include::src/test/java/examples/Examples.java[tag=reallocatorExample]
    * --
    *
    * With the only difference that it may, if possible, reuse the given

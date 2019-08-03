@@ -29,10 +29,7 @@ import javax.management.MXBean;
  *
  * [source,java]
  * ----
- * BlazePool<MyPoolable> pool = new BlazePool<MyPoolable>(...);
- * MBeanServer server = ManagementFactory.getPlatformMBeanServer();
- * ObjectName name = new ObjectName("com.myapp:objectpool=stormpot");
- * server.registerMBean(pool, name);
+ * include::../src/test/java/examples/Examples.java[tag=managedPoolExample]
  * ----
  *
  * Using the platform MBeanServer will make the pool visible to tools like
