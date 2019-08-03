@@ -32,7 +32,7 @@ final class PreciseLeakDetector {
   }
 
   // Both guarded by synchronized(this)
-  private Object[] probes;
+  private final Object[] probes;
   private int leakedObjectCount;
 
   PreciseLeakDetector() {

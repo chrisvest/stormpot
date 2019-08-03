@@ -325,7 +325,7 @@ public class Config<T extends Poolable> implements Cloneable {
    * If a `MetricsRecorder` has been configured, the return `Reallocator` will
    * automatically record allocation, reallocation and deallocation latencies.
    */
-  Reallocator<T> getAdaptedReallocator() {
+  synchronized Reallocator<T> getAdaptedReallocator() {
     if (allocator == null) {
       return null;
     }

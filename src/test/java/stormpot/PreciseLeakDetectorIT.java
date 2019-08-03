@@ -24,8 +24,8 @@ import static java.lang.management.ManagementFactory.getGarbageCollectorMXBeans;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PreciseLeakDetectorIT {
-  private PreciseLeakDetector detector = new PreciseLeakDetector();
-  private List<GarbageCollectorMXBean> gcBeans = getGarbageCollectorMXBeans();
+  private final PreciseLeakDetector detector = new PreciseLeakDetector();
+  private final List<GarbageCollectorMXBean> gcBeans = getGarbageCollectorMXBeans();
 
   @Test
   void mustCountCorrectlyAfterRandomAddRemoveLeakAndCounts() {

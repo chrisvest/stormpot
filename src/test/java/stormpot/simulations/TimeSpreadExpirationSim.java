@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
  * This simulation examines the difference that using TimeSpreadExpiration,
  * instead of TimeExpiration, can have on latency.
  */
-@Sim.Simulation(pools = {BlazePool.class}, measurementTime = 60, output = Sim.Output.summary)
+@Sim.Simulation(measurementTime = 60, output = Sim.Output.summary)
 public class TimeSpreadExpirationSim extends Sim {
   @SuppressWarnings("rawtypes") // Not possible to have a generic array. It might be possible to make @Conf work with a
                                 // java.util.Set instead, but that's probably not worth the effort.

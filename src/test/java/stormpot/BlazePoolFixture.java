@@ -18,6 +18,6 @@ package stormpot;
 public class BlazePoolFixture implements PoolFixture {
   @Override
   public <T extends Poolable> Pool<T> initPool(Config<T> config) {
-    return new stormpot.BlazePool<T>(config);
+    return new BlazePool<>(config);
   }
 }

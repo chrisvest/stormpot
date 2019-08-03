@@ -19,7 +19,7 @@ class TimingReallocatingAdaptor<T extends Poolable>
     extends ReallocatingAdaptor<T>
     implements Reallocator<T> {
 
-  protected final MetricsRecorder metricsRecorder;
+  final MetricsRecorder metricsRecorder;
 
   TimingReallocatingAdaptor(
       Allocator<T> allocator,

@@ -19,7 +19,6 @@ import java.lang.Thread.State;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -235,7 +234,7 @@ class UnitKit {
   }
 
   public static void sneakyThrow(Throwable throwable) {
-    UnitKit.<RuntimeException>_sneakyThrow(throwable);
+    UnitKit._sneakyThrow(throwable);
   }
 
   /**

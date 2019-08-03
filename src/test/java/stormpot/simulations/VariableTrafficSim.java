@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * A simulation that explores how the pool reacts to periods of low activity.
  */
-@Sim.Simulation(pools = {BlazePool.class}, measurementTime = 11, output = Sim.Output.summary)
+@Sim.Simulation(measurementTime = 11, output = Sim.Output.summary)
 public class VariableTrafficSim extends Sim {
   private static final Timeout timeout = new Timeout(1, TimeUnit.MINUTES);
   private volatile long startTime;
@@ -44,7 +44,7 @@ public class VariableTrafficSim extends Sim {
   }
 
   // ... that for an initial period are very busy ...
-  @AgentPause(unit = TimeUnit.MILLISECONDS)
+  @AgentPause()
   public long pause() {
     long now = System.currentTimeMillis() - startTime;
     if (now < 5000) {

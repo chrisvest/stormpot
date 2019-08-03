@@ -142,9 +142,4 @@ public class ExpireKit {
   public static SlotInfoCapture $claimCount(final AtomicLong count) {
     return info -> count.set(info.getClaimCount());
   }
-
-  public static SlotInfoCapture $slotInfo(
-      final AtomicReference<SlotInfo<? extends Poolable>> ref) {
-    return ref::set;
-  }
 }

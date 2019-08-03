@@ -172,7 +172,7 @@ abstract class PaddedAtomicInteger extends Padding1 {
     STATE.setOpaque(this, update);
   }
 
-  protected int get() {
+  int get() {
     return state;
   }
 }

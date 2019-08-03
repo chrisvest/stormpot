@@ -27,7 +27,7 @@ public class MyApp {
     // tag::usageMyApp[]
     MyAllocator allocator = new MyAllocator();
     Config<MyPoolable> config = new Config<MyPoolable>().setAllocator(allocator);
-    Pool<MyPoolable> pool = new BlazePool<MyPoolable>(config);
+    Pool<MyPoolable> pool = new BlazePool<>(config);
     Timeout timeout = new Timeout(1, TimeUnit.SECONDS);
 
     MyPoolable object = pool.claim(timeout);

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 module stormpot {
-  requires java.base;
   requires transitive java.management;
   requires static java.sql; // For testing only.
   exports stormpot;

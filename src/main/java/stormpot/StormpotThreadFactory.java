@@ -21,7 +21,7 @@ import java.util.concurrent.ThreadFactory;
 final class StormpotThreadFactory implements ThreadFactory {
   static final ThreadFactory INSTANCE = new StormpotThreadFactory();
 
-  private static ThreadFactory delegate = Executors.defaultThreadFactory();
+  private static final ThreadFactory delegate = Executors.defaultThreadFactory();
 
   private StormpotThreadFactory() {
   }
