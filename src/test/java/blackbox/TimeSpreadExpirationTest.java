@@ -13,9 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot;
+package blackbox;
 
 import org.junit.jupiter.api.Test;
+import stormpot.Expiration;
+import stormpot.MockSlotInfo;
+import stormpot.Poolable;
+import stormpot.TimeSpreadExpiration;
 
 import java.util.Iterator;
 import java.util.LinkedList;

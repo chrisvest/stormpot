@@ -211,7 +211,6 @@ public class Config<T extends Poolable> implements Cloneable {
    *                background threads.
    * @return This Config instance.
    */
-  @SuppressWarnings("WeakerAccess")
   public synchronized Config<T> setThreadFactory(ThreadFactory factory) {
     threadFactory = factory;
     return this;
@@ -247,7 +246,6 @@ public class Config<T extends Poolable> implements Cloneable {
    *                default) `false` to turn it off.
    * @return This Config instance.
    */
-  @SuppressWarnings("WeakerAccess")
   public synchronized Config<T> setPreciseLeakDetectionEnabled(boolean enabled) {
     this.preciseLeakDetectionEnabled = enabled;
     return this;

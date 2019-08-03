@@ -19,7 +19,7 @@ public class MockSlotInfo implements SlotInfo<GenericPoolable> {
   private long ageInMillis;
   private long stamp = 0;
 
-  MockSlotInfo(long ageInMillis) {
+  public MockSlotInfo(long ageInMillis) {
     this.ageInMillis = ageInMillis;
   }
 
@@ -28,7 +28,7 @@ public class MockSlotInfo implements SlotInfo<GenericPoolable> {
     return ageInMillis;
   }
 
-  void setAgeInMillis(long ageInMillis) {
+  public void setAgeInMillis(long ageInMillis) {
     this.ageInMillis = ageInMillis;
   }
 
@@ -52,7 +52,7 @@ public class MockSlotInfo implements SlotInfo<GenericPoolable> {
     this.stamp = stamp;
   }
 
-  static MockSlotInfo mockSlotInfoWithAge(long ageInMillis) {
+  public static MockSlotInfo mockSlotInfoWithAge(long ageInMillis) {
     return new MockSlotInfo(ageInMillis);
   }
 }
