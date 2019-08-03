@@ -70,7 +70,7 @@ public abstract class Sim {
 
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.TYPE)
-  protected @interface Simulation {
+  @interface Simulation {
     long measurementTime() default 10;
     TimeUnit measurementTimeUnit() default TimeUnit.SECONDS;
     Class<? extends Pool>[] pools() default {BlazePool.class};
@@ -79,13 +79,13 @@ public abstract class Sim {
 
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.FIELD)
-  protected @interface Conf {
+  @interface Conf {
     Param value();
   }
 
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.METHOD)
-  protected @interface Agent {
+  @interface Agent {
     String name() default "";
     long initialDelay() default 0;
     TimeUnit initialDelayUnit() default TimeUnit.MILLISECONDS;
@@ -93,20 +93,20 @@ public abstract class Sim {
 
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.METHOD)
-  protected @interface Agents {
+  @interface Agents {
     Agent[] value();
   }
 
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.METHOD)
-  protected @interface AgentPause {
+  @interface AgentPause {
     String name() default "";
     TimeUnit unit() default TimeUnit.MILLISECONDS;
   }
 
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.METHOD)
-  protected @interface AllocationCost {
+  @interface AllocationCost {
     TimeUnit value() default TimeUnit.MILLISECONDS;
   }
 
@@ -125,7 +125,7 @@ public abstract class Sim {
     long start = System.currentTimeMillis();
     String cmdClass = System.getProperty("sun.java.command").replaceFirst("^.*\\s+", "");
     Class<?> klass = Class.forName(cmdClass);
-    Sim sim = (Sim) klass.newInstance();
+    Sim sim = (Sim) klass.getConstructor().newInstance();
 
     // Find all the pool implementation constructors.
     List<Constructor<Pool<GenericPoolable>>> ctors =
@@ -171,11 +171,7 @@ public abstract class Sim {
       if (conf != null) {
         Param param = conf.value();
         Object value = field.get(sim);
-        List<Object> values = groups.get(param);
-        if (values == null) {
-          values = new LinkedList<>();
-          groups.put(param, values);
-        }
+        List<Object> values = groups.computeIfAbsent(param, k -> new LinkedList<>());
         values.add(value);
       }
     }
@@ -216,15 +212,12 @@ public abstract class Sim {
 
     final TimeUnit unit = allocationTimeUnit;
     final Method method = allocationTimeMethod;
-    return allocator(alloc(new Action() {
-      @Override
-      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
-        if (enableAllocationCost.get()) {
-          Number time = (Number) method.invoke(sim);
-          unit.sleep(time.longValue());
-        }
-        return $new.apply(slot, obj);
+    return allocator(alloc((slot, obj) -> {
+      if (enableAllocationCost.get()) {
+        Number time = (Number) method.invoke(sim);
+        unit.sleep(time.longValue());
       }
+      return $new.apply(slot, obj);
     }));
   }
 
@@ -285,7 +278,7 @@ public abstract class Sim {
       // Reset internal state.
       enableAllocationCost.set(false);
       Pool<GenericPoolable> pool = ctor.newInstance(config);
-      sim = sim.getClass().newInstance();
+      sim = sim.getClass().getConstructor().newInstance();
       deps.replace(pool);
 
       // Wait for the pool to boot up.
@@ -430,7 +423,7 @@ public abstract class Sim {
     private final Histogram histogram;
     private final Object[] argumentList;
 
-    public AgentRunner(
+    AgentRunner(
         ControlSignal controlSignal,
         DependencyResolver deps,
         Agent agent,
@@ -483,7 +476,7 @@ public abstract class Sim {
       }
     }
 
-    public void printResults() {
+    void printResults() {
       System.out.printf("Latency results for Agent[%s]:%n", agentName);
       printHistogram(histogram);
       System.out.println();
@@ -503,13 +496,13 @@ public abstract class Sim {
     private final Method pauseMethod;
     private final TimeUnit pauseUnit;
 
-    public IterationPause(AgentPause agentPause, Sim sim, Method pauseMethod) {
+    IterationPause(AgentPause agentPause, Sim sim, Method pauseMethod) {
       this.sim = sim;
       this.pauseMethod = pauseMethod;
       this.pauseUnit = agentPause.unit();
     }
 
-    public long pause(long spentTimeMicros) throws Exception {
+    long pause(long spentTimeMicros) throws Exception {
       Number result = (Number) pauseMethod.invoke(sim);
       long pauseTime = result.longValue();
       long upauseTime = pauseUnit.toMicros(pauseTime);
@@ -528,27 +521,27 @@ public abstract class Sim {
       doneCounter = new Semaphore(0);
     }
 
-    public void awaitStart() throws InterruptedException {
+    void awaitStart() throws InterruptedException {
       startLatch.await();
     }
 
-    public void start() {
+    void start() {
       startLatch.countDown();
     }
 
-    public boolean stopped() {
+    boolean stopped() {
       return stopped;
     }
 
-    public void stop() {
+    void stop() {
       stopped = true;
     }
 
-    public void done() {
+    void done() {
       doneCounter.release();
     }
 
-    public void awaitDone(int doneCounts) throws InterruptedException {
+    void awaitDone(int doneCounts) throws InterruptedException {
       doneCounter.acquire(doneCounts);
     }
   }
@@ -560,13 +553,13 @@ public abstract class Sim {
       dependencies = new ArrayList<>();
     }
 
-    public void add(Object obj) {
+    void add(Object obj) {
       if (obj != null) {
         dependencies.add(obj);
       }
     }
 
-    public Object[] resolve(Class<?>[] types) {
+    Object[] resolve(Class<?>[] types) {
       Object[] values = new Object[types.length];
       for (int i = 0; i < values.length; i++) {
         values[i] = resolve(types[i]);
@@ -583,7 +576,7 @@ public abstract class Sim {
       return null;
     }
 
-    public void replace(Object obj) {
+    void replace(Object obj) {
       int size = dependencies.size();
       for (int i = 0; i < size; i++) {
         if (dependencies.get(i).getClass() == obj.getClass()) {

@@ -89,16 +89,10 @@ public class DaoPoolExample {
     public boolean hasExpired(SlotInfo<? extends MyDao> info) {
       MyDao dao = info.getPoolable();
       Connection con = dao.connection;
-      Statement stmt = null;
       synchronized (con) {
         try {
-          try {
-            stmt = con.createStatement();
+          try (Statement stmt = con.createStatement()) {
             stmt.execute("select 1 from dual;");
-          } finally {
-            if (stmt != null) {
-              stmt.close();
-            }
           }
         } catch (SQLException e) {
           return true;

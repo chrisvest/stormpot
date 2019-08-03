@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PreciseLeakDetectorTest {
-  private PreciseLeakDetector detector = new PreciseLeakDetector();
+  private final PreciseLeakDetector detector = new PreciseLeakDetector();
 
   @Test
   void mustHandleManyAddedReplacedAndRemovedObjects() {
@@ -43,8 +43,8 @@ class PreciseLeakDetectorTest {
     }
 
     // Removing
-    for (int i = 0; i < objs.length; i++) {
-      detector.unregister(objs[i]);
+    for (Object obj : objs) {
+      detector.unregister(obj);
     }
 
     // We should see no leaks
@@ -78,8 +78,7 @@ class PreciseLeakDetectorTest {
     second[9000] = null;
     System.gc();
 
-    for (int i = 0; i < first.length; i++) {
-      Object obj = first[i];
+    for (Object obj : first) {
       if (obj != null) {
         detector.unregister(obj);
       }

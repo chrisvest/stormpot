@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
  * to a predictable, constant throughput, with or without background
  * expiration.
  */
-@Sim.Simulation(pools = {BlazePool.class}, measurementTime = 60)
+@Sim.Simulation(measurementTime = 60)
 public class ConstantTrafficBackgroundExpirationSim extends Sim {
 
   private static final Timeout timeout = new Timeout(1, TimeUnit.SECONDS);

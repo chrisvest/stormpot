@@ -41,7 +41,6 @@ public class AlloKit {
   public interface CountingReallocator
       extends CountingAllocator, Reallocator<GenericPoolable> {
     int countReallocations();
-    List<GenericPoolable> getReallocations();
   }
 
   static class ActionSeq {
@@ -157,11 +156,6 @@ public class AlloKit {
     }
 
     @Override
-    public List<GenericPoolable> getReallocations() {
-      return reallocations;
-    }
-
-    @Override
     public void clearLists() {
       super.clearLists();
       reallocations.clear();
@@ -218,20 +212,8 @@ public class AlloKit {
 
   public static CountingReallocator reallocator(
       OnAllocation onAllocation,
-      OnDeallocation onDeallocation) {
-    return reallocator(onAllocation, onDeallocation, realloc($new));
-  }
-
-  public static CountingReallocator reallocator(
-      OnAllocation onAllocation,
       OnReallocation onReallocation) {
     return reallocator(onAllocation, dealloc($null), onReallocation);
-  }
-
-  public static CountingReallocator reallocator(
-      OnDeallocation onDeallocation,
-      OnReallocation onReallocation) {
-    return reallocator(alloc($new), onDeallocation, onReallocation);
   }
 
   public static CountingReallocator reallocator(OnAllocation onAllocation) {
@@ -336,12 +318,9 @@ public class AlloKit {
   public static Action $incrementAnd(
       final AtomicLong counter,
       final Action action) {
-    return new Action() {
-      @Override
-      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
-        counter.getAndIncrement();
-        return action.apply(slot, obj);
-      }
+    return (slot, obj) -> {
+      counter.getAndIncrement();
+      return action.apply(slot, obj);
     };
   }
 }
