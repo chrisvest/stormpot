@@ -102,7 +102,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   private void replenishPool() throws InterruptedException {
     boolean weHaveWorkToDo = size != targetSize || poisonedSlots.get() > 0;
     long deadPollTimeout = weHaveWorkToDo ?
-        (didAnythingLastIteration ? 0 : 10) : 50;
+        (didAnythingLastIteration ? 0 : 10) : 100;
     didAnythingLastIteration = false;
     if (size < targetSize) {
       increaseSizeByAllocating();
@@ -174,6 +174,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   }
 
   private void backgroundExpirationCheck() {
+    disregardPile.refillQueue();
     BSlot<T> slot = live.poll();
     if (slot != null) {
       if (slot.isLive() && slot.live2claim()) {

@@ -2590,6 +2590,46 @@ class PoolTest {
   }
 
   @Test
+  void disregardPileMustNotPreventBackgroundExpirationFromCheckingObjects() throws Exception {
+    CountDownLatch firstThreadReady = new CountDownLatch(1);
+    CountDownLatch firstThreadPause = new CountDownLatch(1);
+    config.setBackgroundExpirationEnabled(true);
+    config.setSize(2);
+    createPool();
+
+    // Make the first object TLR claimed in another thread.
+    Future<?> firstThread = forkFuture(() -> {
+      pool.claim(longTimeout).release();
+      GenericPoolable obj = pool.claim(longTimeout);
+      firstThreadReady.countDown();
+      firstThreadPause.await();
+      obj.release();
+      return null;
+    });
+
+    firstThreadReady.await();
+
+    // Move the now TLR claimed object to the front of the queue.
+    forkFuture($claimRelease(pool, longTimeout)).get();
+
+    // Now this claim should move the first object into the disregard pile.
+    GenericPoolable obj = pool.claim(longTimeout);
+    obj.expire(); // Expire the slot, so expiration should pick it up.
+    obj.release();
+    firstThreadPause.countDown();
+    firstThread.get();
+    allocator.clearLists();
+
+    // By expiring the objects at this point, we should observe that
+    // the 'obj' gets deallocated.
+    boolean found;
+    do {
+      Thread.sleep(10);
+      found = allocator.getDeallocations().contains(obj);
+    } while (!found);
+  }
+
+  @Test
   void mustDeallocateExplicitlyExpiredObjects() throws Exception {
     int poolSize = 2;
     config.setSize(poolSize);
