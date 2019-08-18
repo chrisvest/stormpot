@@ -61,7 +61,7 @@ public class Config<T extends Poolable> implements Cloneable {
   private MetricsRecorder metricsRecorder;
   private ThreadFactory threadFactory = StormpotThreadFactory.INSTANCE;
   private boolean preciseLeakDetectionEnabled = true;
-  private boolean backgroundExpirationEnabled = false;
+  private boolean backgroundExpirationEnabled = true;
 
   /**
    * Build a new empty Config object. Most settings have reasonable default
@@ -262,15 +262,15 @@ public class Config<T extends Poolable> implements Cloneable {
   }
 
   /**
-   * Enable or disable background object expiration checking. This is disabled
-   * by default, because the pool does not know how expensive this check is.
+   * Enable or disable background object expiration checking. This is enabled
+   * by default, but can be turned off if the check is expensive.
    * The cost of the check matters because it might end up taking resources
    * away from the background thread and hinder its ability to keep up with the
    * demand for allocations and deallocations, even though these tasks always
    * take priority over any expiration checking.
    *
-   * @param enabled `true` to turn background expiration checking on, `false`
-   *                (the default) to turn it off.
+   * @param enabled `true` (the default) to turn background expiration checking on,
+   *               `false` to turn it off.
    * @return This Config instance.
    */
   public synchronized Config<T> setBackgroundExpirationEnabled(boolean enabled) {

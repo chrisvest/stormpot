@@ -111,14 +111,14 @@ class ConfigTest {
   }
 
   @Test
-  void backgroundExpirationIsDisabledByDefault() {
-    assertFalse(config.isBackgroundExpirationEnabled());
+  void backgroundExpirationIsEnabledByDefault() {
+    assertTrue(config.isBackgroundExpirationEnabled());
   }
 
   @Test
   void backgroundExpirationMystBeSettable() {
-    config.setBackgroundExpirationEnabled(true);
-    assertTrue(config.isBackgroundExpirationEnabled());
+    config.setBackgroundExpirationEnabled(false);
+    assertFalse(config.isBackgroundExpirationEnabled());
   }
 
   @Test
@@ -168,7 +168,7 @@ class ConfigTest {
 
     config.setExpiration(expiration);
     config.setAllocator(allocator);
-    config.setBackgroundExpirationEnabled(true);
+    config.setBackgroundExpirationEnabled(false);
     config.setMetricsRecorder(metricsRecorder);
     config.setPreciseLeakDetectionEnabled(false);
     config.setSize(42);
@@ -178,7 +178,7 @@ class ConfigTest {
 
     assertThat(clone.getExpiration()).isSameAs(expiration);
     assertThat(clone.getAllocator()).isSameAs(allocator);
-    assertTrue(clone.isBackgroundExpirationEnabled());
+    assertFalse(clone.isBackgroundExpirationEnabled());
     assertThat(clone.getMetricsRecorder()).isSameAs(metricsRecorder);
     assertFalse(clone.isPreciseLeakDetectionEnabled());
     assertThat(clone.getSize()).isEqualTo(42);
