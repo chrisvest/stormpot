@@ -74,14 +74,14 @@ In fact, it is so performance sensitive, that reading the time from the system c
 
 Every Stormpot pool starts a background thread to take care of all the allocation and deallocation that needs to happen.
 This background thread can also perform expiration checks on the objects in the pool, when it has nothing better to do.
-This is off by default, however, since the time it takes to do those checks might interfere with the pools ability to keep up with the demand for allocations and deallocations.
-The pool does not know how expensive those expiration checks are.
 
-On the other hand, background expiration checks are very useful for applications that may experience periods of low activity, so the objects in the pool don't get checked for expiration through the natural traffic to the pool.
+Background expiration checks are on by default, because they are very useful for applications that may experience periods of low activity.
+Checking for expired objects in the background, ensures that objects are steadily reallocated, even if they don't get checked for expiration through the natural traffic to the pool.
 The background expiration checks will then make sure that all the objects in the pool are kept fresh, for when the traffic picks up again.
 The application would otherwise have found itself with a pool full of expired objects, causing a reallocation storm, and high latencies to claim objects.
 
-While background expiration checking is turned off by default, it is recommended to turn it on when the check is something simple, like a `TimeExpiration` or a `TimeSpreadExpiration`, or when you are otherwise confident that it won't interfere with the pools ability to keep the pool saturated with fresh objects.
+However, it is possible to turn this off, since the time it takes to do the expiration checks might interfere with the pools ability to keep up with the demand for allocations and deallocations.
+The pool does not know how expensive those expiration checks are.
 
 === Allocator vs Reallocator
 

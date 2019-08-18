@@ -1943,6 +1943,7 @@ class PoolTest {
         $if(shouldThrow,
             $throwExpire(new SomeRandomThrowable("Boom!")),
             $fresh)));
+    config.setBackgroundExpirationEnabled(false);
 
     createPool();
     try {
@@ -2504,7 +2505,6 @@ class PoolTest {
     CountingExpiration expiration = expire($expired, $countDown(latch, $fresh));
     config.setExpiration(expiration);
     config.setAllocator(reallocator);
-    config.setBackgroundExpirationEnabled(true);
     createPool();
 
     latch.await();
@@ -2520,7 +2520,6 @@ class PoolTest {
     CountingExpiration expiration =
         expire($countDown(latch, $expired), $fresh);
     config.setExpiration(expiration);
-    config.setBackgroundExpirationEnabled(true);
     createPool();
 
     latch.await();
@@ -2535,7 +2534,6 @@ class PoolTest {
     CountingExpiration expiration = expire($countDown(latch, $fresh));
     CountingReallocator reallocator = reallocator();
     config.setExpiration(expiration);
-    config.setBackgroundExpirationEnabled(true);
     createPool();
 
     latch.await();
@@ -2551,7 +2549,6 @@ class PoolTest {
         $throwExpire(new Exception()),
         $countDown(latch, $fresh));
     config.setExpiration(expiration);
-    config.setBackgroundExpirationEnabled(true);
     createPool();
 
     latch.await();
@@ -2567,7 +2564,6 @@ class PoolTest {
     CountingExpiration expiration = expire(
         $countDown(latch, $expiredIf(hasExpired)));
     config.setExpiration(expiration);
-    config.setBackgroundExpirationEnabled(true);
     config.setSize(2);
     createPool();
 
@@ -2593,7 +2589,6 @@ class PoolTest {
   void disregardPileMustNotPreventBackgroundExpirationFromCheckingObjects() throws Exception {
     CountDownLatch firstThreadReady = new CountDownLatch(1);
     CountDownLatch firstThreadPause = new CountDownLatch(1);
-    config.setBackgroundExpirationEnabled(true);
     config.setSize(2);
     createPool();
 
@@ -2663,7 +2658,6 @@ class PoolTest {
     CountDownLatch latch = new CountDownLatch(2);
     allocator = allocator(alloc($countDown(latch, $new)));
     config.setAllocator(allocator).setSize(1);
-    config.setBackgroundExpirationEnabled(true);
     createPool();
 
     GenericPoolable obj = pool.claim(longTimeout);
