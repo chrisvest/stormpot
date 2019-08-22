@@ -36,10 +36,8 @@ class ReallocatingAdaptorTest {
 
   @Test
   void mustBeAssignableAsAllocator() {
-    Config<GenericPoolable> config = new Config<>();
-    config.setAllocator(reallocator);
-    Allocator<GenericPoolable> expectedInstance = reallocator;
-    assertThat(config.getAllocator()).isSameAs(expectedInstance);
+    PoolBuilder<GenericPoolable> builder = Pool.from(reallocator);
+    assertThat(builder.getAllocator()).isSameAs(reallocator);
   }
 
   @Test

@@ -13,7 +13,7 @@ include::../src/test/java/docs/MyPoolable.java[tag=mypoolable]
 We extend the `BasePoolable` class, pass a `Slot` argument through to its constructor, and leave the rest of the implementation to the `BasePoolable` class.
 
 We can also implement the `Poolable` interface directly.
-Here is an example of how to do this.
+Here is an example of how to do this:
 
 [source,java]
 ----
@@ -40,7 +40,8 @@ All that is left is a little bit of configuration:
 include::../src/test/java/docs/MyApp.java[tag=usageMyApp]
 ----
 
-Create a `Config` object and set the allocator, then create a pool with the configuration and off we go!
+We get a `PoolBuilder` via the `Pool.from` method, which takes an allocator.
+Then we use it to build a pool with the configuration we want, and off we go!
 The blocking methods `Pool#claim` and `Completion#await` both take `Timeout` objects as arguments.
 These are immutable, and can easily be put in `static final` constants.
 Note that `claim` returns `null` if the timeout elapses before an object can be claimed.

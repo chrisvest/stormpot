@@ -22,17 +22,3 @@ Then have the pool be configured with a `Reallocator` that does the expensive ch
 
 A less elaborate amortisation mechanism can be built, by storing a re-check deadline in the `stamp` of the `SlotInfo`.
 Then you just have to check if the current time is greater than the stamp, and if so, do the expensive check and put a new deadline in the stamp.
-
-=== Overriding the Default Queue Implementation
-
-NOTE: The internals of how Stormpot implements blocking behaviour, and the fact that it uses queues under the hood, is implementation and version specific, and by no means guaranteed to work the same way in future versions.
-This description is for version 2.3.
-
-Stormpot uses `BlockingQueue` objects under the hood, to transfer objects between the user threads and the dedicated allocation thread, and to implement its blocking behaviour.
-By default, it uses `j.u.c.LinkedTransferQueue` if it is available on the classpath, e.g. with Java 7 and beyond, but otherwise falls back to the `j.u.c.LinkedBlockingQueue`.
-LTQ is often faster than LBQ, but not always.
-Figuring out which one is most optimal requires careful measurement of their behaviour for your particular load and use case.
-
-If you want to override the BlockingQueue implementation that Stormpot uses, can be done globally for all pool instances, by setting the `stormpot.blocking.queue.impl` system property on JVM startup.
-For instance, to make Stormpot always use the LBQ implementation, you can add an `-Dstormpot.blocking.queue.impl=java.util.concurrent.LinkedBlockingQueue` argument to the `java` command invocation.
-Note that Stormpot expects the configured class to have a no-arguments constructor, and implement the `BlockingQueue` interface.

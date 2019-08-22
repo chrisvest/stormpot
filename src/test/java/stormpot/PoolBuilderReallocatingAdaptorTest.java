@@ -16,29 +16,22 @@
 package stormpot;
 
 import org.assertj.core.api.Condition;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import stormpot.AlloKit.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.condition.Not.not;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 import static stormpot.AlloKit.*;
 
-class ConfigReallocatingAdaptorTest {
-  private Config<GenericPoolable> config;
-
-  @BeforeEach
-  void setUp() {
-    config = new Config<>();
-  }
+class PoolBuilderReallocatingAdaptorTest {
+  private PoolBuilder<GenericPoolable> builder;
 
   @Test
   void mustAdaptAllocatorsToReallocators() {
     Allocator<GenericPoolable> allocator = allocator();
-    Config<GenericPoolable> cfg = config.setAllocator(allocator);
-    Reallocator<GenericPoolable> reallocator = cfg.getReallocator();
+    builder = Pool.from(allocator);
+    Reallocator<GenericPoolable> reallocator = builder.getReallocator();
     ReallocatingAdaptor<GenericPoolable> adaptor =
         (ReallocatingAdaptor<GenericPoolable>) reallocator;
     assertThat(adaptor.unwrap()).isSameAs(allocator);
@@ -48,28 +41,17 @@ class ConfigReallocatingAdaptorTest {
   void mustNotReAdaptConfiguredReallocators() {
     Reallocator<GenericPoolable> expected =
         new ReallocatingAdaptor<>(null);
-    config.setAllocator(expected);
-    Reallocator<GenericPoolable> actual = config.getReallocator();
+    builder = Pool.from(expected);
+    Reallocator<GenericPoolable> actual = builder.getReallocator();
     assertThat(actual).isSameAs(expected);
-  }
-
-  @Test
-  void getAdaptedReallocatorMustReturnNullIfNoAllocatorConfigured() {
-    assertNull(config.getAdaptedReallocator());
-  }
-
-  @Test
-  void getAdaptedReallocatorMustReturnNullWhenNoAllocatorConfiguredEvenIfMetricsRecorderIsConfigured() {
-    config.setMetricsRecorder(new LastSampleMetricsRecorder());
-    assertNull(config.getAdaptedReallocator());
   }
 
   @Test
   void getAdaptedReallocatorMustAdaptConfiguredAllocatorIfNoMetricsRecorderConfigured()
       throws Exception {
     AlloKit.CountingAllocator allocator = allocator();
-    config.setAllocator(allocator);
-    config.getAdaptedReallocator().allocate(new NullSlot());
+    builder = Pool.from(allocator);
+    builder.getAdaptedReallocator().allocate(new NullSlot());
     assertThat(allocator.countAllocations()).isOne();
   }
 
@@ -77,9 +59,9 @@ class ConfigReallocatingAdaptorTest {
   void getAdaptedReallocatorMustNotAdaptConfiguredReallocatorIfNoMetricsRecorderConfigured()
       throws Exception {
     CountingReallocator reallocator = reallocator();
-    config.setAllocator(reallocator);
+    builder = Pool.from(reallocator);
     Slot slot = new NullSlot();
-    Reallocator<GenericPoolable> adaptedReallocator = config.getAdaptedReallocator();
+    Reallocator<GenericPoolable> adaptedReallocator = builder.getAdaptedReallocator();
     GenericPoolable obj = adaptedReallocator.allocate(slot);
     adaptedReallocator.reallocate(slot, obj);
 
@@ -91,9 +73,10 @@ class ConfigReallocatingAdaptorTest {
   void getAdaptedReallocatorMustInstrumentAllocateMethodOnAllocatorIfMetricsRecorderConfigured()
       throws Exception {
     MetricsRecorder r = new LastSampleMetricsRecorder();
-    config.setMetricsRecorder(r);
-    config.setAllocator(allocator(alloc($new, $throw(new Exception()))));
-    Reallocator<GenericPoolable> adaptedReallocator = config.getAdaptedReallocator();
+    CountingAllocator allocator = allocator(alloc($new, $throw(new Exception())));
+    builder = Pool.from(allocator);
+    builder.setMetricsRecorder(r);
+    Reallocator<GenericPoolable> adaptedReallocator = builder.getAdaptedReallocator();
     verifyLatencies(r, isNaN(), isNaN(), isNaN(), isNaN(), isNaN());
     adaptedReallocator.allocate(new NullSlot());
     verifyLatencies(r, not(isNaN()), isNaN(), isNaN(), isNaN(), isNaN());
@@ -108,9 +91,10 @@ class ConfigReallocatingAdaptorTest {
   void getAdaptedReallocatorMustInstrumentAllocateMethodOnReallocatorIfMetricsRecorderConfigured()
       throws Exception {
     MetricsRecorder r = new LastSampleMetricsRecorder();
-    config.setMetricsRecorder(r);
-    config.setAllocator(reallocator(alloc($new, $throw(new Exception()))));
-    Reallocator<GenericPoolable> adaptedReallocator = config.getAdaptedReallocator();
+    CountingReallocator reallocator = reallocator(alloc($new, $throw(new Exception())));
+    builder = Pool.from(reallocator);
+    builder.setMetricsRecorder(r);
+    Reallocator<GenericPoolable> adaptedReallocator = builder.getAdaptedReallocator();
     verifyLatencies(r, isNaN(), isNaN(), isNaN(), isNaN(), isNaN());
     adaptedReallocator.allocate(new NullSlot());
     verifyLatencies(r, not(isNaN()), isNaN(), isNaN(), isNaN(), isNaN());
@@ -125,9 +109,10 @@ class ConfigReallocatingAdaptorTest {
   void getAdaptedReallocatorMustInstrumentDeallocateMethodOnAllocatorIfMetricsRecorderConfigured()
       throws Exception {
     MetricsRecorder r = new LastSampleMetricsRecorder();
-    config.setMetricsRecorder(r);
-    config.setAllocator(allocator());
-    Reallocator<GenericPoolable> adaptedReallocator = config.getAdaptedReallocator();
+    CountingAllocator allocator = allocator();
+    builder = Pool.from(allocator);
+    builder.setMetricsRecorder(r);
+    Reallocator<GenericPoolable> adaptedReallocator = builder.getAdaptedReallocator();
     verifyLatencies(r, isNaN(), isNaN(), isNaN(), isNaN(), isNaN());
     GenericPoolable obj = adaptedReallocator.allocate(new NullSlot());
     verifyLatencies(r, not(isNaN()), isNaN(), isNaN(), isNaN(), isNaN());
@@ -139,9 +124,10 @@ class ConfigReallocatingAdaptorTest {
   void getAdaptedReallocatorMustInstrumentThrowingDeallocateMethodOnAllocatorIfMetricsRecorderConfigured()
       throws Exception {
     MetricsRecorder r = new LastSampleMetricsRecorder();
-    config.setMetricsRecorder(r);
-    config.setAllocator(allocator(dealloc($throw(new Exception()))));
-    Reallocator<GenericPoolable> adaptedReallocator = config.getAdaptedReallocator();
+    CountingAllocator allocator = allocator(dealloc($throw(new Exception())));
+    builder = Pool.from(allocator);
+    builder.setMetricsRecorder(r);
+    Reallocator<GenericPoolable> adaptedReallocator = builder.getAdaptedReallocator();
     verifyLatencies(r, isNaN(), isNaN(), isNaN(), isNaN(), isNaN());
     GenericPoolable obj = adaptedReallocator.allocate(new NullSlot());
     verifyLatencies(r, not(isNaN()), isNaN(), isNaN(), isNaN(), isNaN());
@@ -158,9 +144,10 @@ class ConfigReallocatingAdaptorTest {
   void getAdaptedReallocatorMustInstrumentDeallocateMethodOnReallocatorIfMetricsRecorderConfigured()
       throws Exception {
     MetricsRecorder r = new LastSampleMetricsRecorder();
-    config.setMetricsRecorder(r);
-    config.setAllocator(reallocator());
-    Reallocator<GenericPoolable> adaptedReallocator = config.getAdaptedReallocator();
+    CountingReallocator reallocator = reallocator();
+    builder = Pool.from(reallocator);
+    builder.setMetricsRecorder(r);
+    Reallocator<GenericPoolable> adaptedReallocator = builder.getAdaptedReallocator();
     verifyLatencies(r, isNaN(), isNaN(), isNaN(), isNaN(), isNaN());
     GenericPoolable obj = adaptedReallocator.allocate(new NullSlot());
     verifyLatencies(r, not(isNaN()), isNaN(), isNaN(), isNaN(), isNaN());
@@ -172,9 +159,10 @@ class ConfigReallocatingAdaptorTest {
   void getAdaptedReallocatorMustInstrumentThrowingDeallocateMethodOnReallocatorIfMetricsRecorderConfigured()
       throws Exception {
     MetricsRecorder r = new LastSampleMetricsRecorder();
-    config.setMetricsRecorder(r);
-    config.setAllocator(reallocator(dealloc($throw(new Exception()))));
-    Reallocator<GenericPoolable> adaptedReallocator = config.getAdaptedReallocator();
+    CountingReallocator reallocator = reallocator(dealloc($throw(new Exception())));
+    builder = Pool.from(reallocator);
+    builder.setMetricsRecorder(r);
+    Reallocator<GenericPoolable> adaptedReallocator = builder.getAdaptedReallocator();
     verifyLatencies(r, isNaN(), isNaN(), isNaN(), isNaN(), isNaN());
     GenericPoolable obj = adaptedReallocator.allocate(new NullSlot());
     verifyLatencies(r, not(isNaN()), isNaN(), isNaN(), isNaN(), isNaN());
@@ -191,9 +179,10 @@ class ConfigReallocatingAdaptorTest {
   void getAdaptedReallocatorMustInstrumentReallocateMethodOnReallocatorIfMetricsRecorderConfigured()
       throws Exception {
     MetricsRecorder r = new LastSampleMetricsRecorder();
-    config.setMetricsRecorder(r);
-    config.setAllocator(reallocator(realloc($new, $throw(new Exception()))));
-    Reallocator<GenericPoolable> adaptedReallocator = config.getAdaptedReallocator();
+    CountingReallocator reallocator = reallocator(realloc($new, $throw(new Exception())));
+    builder = Pool.from(reallocator);
+    builder.setMetricsRecorder(r);
+    Reallocator<GenericPoolable> adaptedReallocator = builder.getAdaptedReallocator();
     verifyLatencies(r, isNaN(), isNaN(), isNaN(), isNaN(), isNaN());
     GenericPoolable obj = adaptedReallocator.allocate(new NullSlot());
     verifyLatencies(r, not(isNaN()), isNaN(), isNaN(), isNaN(), isNaN());

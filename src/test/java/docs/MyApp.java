@@ -15,19 +15,16 @@
  */
 package docs;
 
-import stormpot.BlazePool;
-import stormpot.Config;
 import stormpot.Pool;
 import stormpot.Timeout;
 
 import java.util.concurrent.TimeUnit;
 
 public class MyApp {
+  @SuppressWarnings("EmptyTryBlock")
   public static void main(String[] args) throws InterruptedException {
     // tag::usageMyApp[]
-    MyAllocator allocator = new MyAllocator();
-    Config<MyPoolable> config = new Config<MyPoolable>().setAllocator(allocator);
-    Pool<MyPoolable> pool = new BlazePool<>(config);
+    Pool<MyPoolable> pool = Pool.from(new MyAllocator()).build();
     Timeout timeout = new Timeout(1, TimeUnit.SECONDS);
 
     MyPoolable object = pool.claim(timeout);

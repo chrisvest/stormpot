@@ -1,8 +1,8 @@
 == Troubleshooting
 
 [qanda]
-Why does `Config.setSize(...)` not take effect?::
-  The configuration state of a `Config` object is only read in the constructor of the pool, so changing the configuration after the pool has been created has no effect.
+Why does `PoolBuilder.setSize(...)` not take effect?::
+  The configuration state of a `PoolBuilder` object is only read in the constructor of the pool, so changing the configuration after the pool has been created has no effect.
   Look at the `Pool#setTargetSize` method for changing the size of an existing pool.
 
 Why am I getting an `stormpot.PoolException: Slot release from bad state: 1` exception?::

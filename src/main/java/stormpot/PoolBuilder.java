@@ -15,6 +15,7 @@
  */
 package stormpot;
 
+import java.util.Objects;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
@@ -26,49 +27,53 @@ import java.util.concurrent.TimeUnit;
  * to deallocate objects.
  *
  * This class is made thread-safe by having the fields be protected by the
- * intrinsic object lock on the Config object itself. This way, pools can
- * `synchronize` on the config object to read the values out
- * atomically.
+ * intrinsic object lock on the `PoolBuilder` object itself. This way, pools
+ * can `synchronize` on the config object to read the values out atomically.
  *
- * The various set* methods are made to return the Config instance itself, so
- * that the method calls may be chained if so desired.
+ * The various set* methods are made to return the `PoolBuilder` instance
+ * itself, so that the method calls may be chained if so desired.
  * 
  * == Standardised configuration
  *
- * The contract of the Config class, and how Pools will interpret it, is within
- * the context of a so-called standardised configuration. All pool and Config
- * implementations must behave similarly in a standardised configuration.
+ * The contract of the `PoolBuilder` class, and how Pools will interpret it,
+ * is within the context of a so-called standardised configuration.
+ * All pool and `PoolBuilder` implementations must behave similarly in a
+ * standardised configuration.
  *
  * It is conceivable that some pool implementations will come with their own
- * sub-classes of Config, that allow greater control over the pools behaviour.
- * It is even permissible that these pool implementations may
- * deviate from the contract of the Pool interface. However, they are only
- * allowed to do so in a non-standard configuration. That is, any deviation
- * from the specified contracts must be explicitly enabled.
+ * sub-classes of `PoolBuilder`, that allow greater control over the pools
+ * behaviour.
+ * It is even permissible that these pool implementations may deviate from the
+ * contract of the Pool interface. However, they are only allowed to do so in
+ * a non-standard configuration. That is, any deviation from the specified
+ * contracts must be explicitly enabled.
  * 
  * @author Chris Vest <mr.chrisvest@gmail.com>
  * @param <T> The type of {@link Poolable} objects that a {@link Pool} based
- * on this Config will produce.
+ * on this `PoolBuilder` will produce.
  */
-@SuppressWarnings("unchecked")
-public class Config<T extends Poolable> implements Cloneable {
+public final class PoolBuilder<T extends Poolable> implements Cloneable {
 
   private int size = 10;
   // 8 to 10 minutes:
   private Expiration<? super T> expiration =
       new TimeSpreadExpiration<>(480000, 600000, TimeUnit.MILLISECONDS);
-  private Allocator<?> allocator;
+  private Allocator<T> allocator;
   private MetricsRecorder metricsRecorder;
   private ThreadFactory threadFactory = StormpotThreadFactory.INSTANCE;
   private boolean preciseLeakDetectionEnabled = true;
   private boolean backgroundExpirationEnabled = true;
 
   /**
-   * Build a new empty Config object. Most settings have reasonable default
-   * values. However, no {@link Allocator} is configured by default, and one
-   * must make sure to set one.
+   * Build a new empty `PoolBuilder` object.
    */
-  public Config() {
+  PoolBuilder(Allocator<T> allocator) {
+    requireNonNull(allocator);
+    this.allocator = allocator;
+  }
+
+  private void requireNonNull(Allocator<?> allocator) {
+    Objects.requireNonNull(allocator, "The Allocator cannot be null.");
   }
 
   /**
@@ -83,9 +88,9 @@ public class Config<T extends Poolable> implements Cloneable {
    * will throw an {@link IllegalArgumentException} from their constructor if
    * this is not the case.
    * @param size The target pool size. Must be at least 1.
-   * @return This Config instance.
+   * @return This `PoolBuilder` instance.
    */
-  public synchronized Config<T> setSize(int size) {
+  public synchronized PoolBuilder<T> setSize(int size) {
     this.size = size;
     return this;
   }
@@ -100,33 +105,33 @@ public class Config<T extends Poolable> implements Cloneable {
 
   /**
    * Set the {@link Allocator} or {@link Reallocator} to use for the pools we
-   * want to configure. This will change the type-parameter of the Config
+   * want to configure. This will change the type-parameter of the `PoolBuilder`
    * object to match that of the new Allocator.
    *
-   * The allocator is initially `null` in a new Config object, and can be set
-   * to `null` any time. However, in a standard configuration, it must be
-   * non-null when the Config is passed to a Pool constructor. Otherwise the
-   * constructor will throw an {@link IllegalArgumentException}.
+   * The allocator is initially specified by the {@link Pool#from(Allocator)}
+   * method, so there is usually no need to set it later.
+   *
    * @param allocator The allocator we want our pools to use.
+   * This cannot be `null`.
    * @param <X> The type of {@link Poolable} that is created by the allocator,
    * and the type of objects that the configured pools will contain.
-   * @return This Config instance, but with a generic type parameter that
+   * @return This `PoolBuilder` instance, but with a generic type parameter that
    * matches that of the allocator.
    */
-  public synchronized <X extends Poolable> Config<X> setAllocator(
+  @SuppressWarnings("unchecked")
+  public synchronized <X extends Poolable> PoolBuilder<X> setAllocator(
       Allocator<X> allocator) {
-    this.allocator = allocator;
-    return (Config<X>) this;
+    requireNonNull(allocator);
+    this.allocator = (Allocator<T>) allocator;
+    return (PoolBuilder<X>) this;
   }
 
   /**
-   * Get the configured {@link Allocator} instance. There is no configured
-   * allocator by default, so this must be {@link #setAllocator(Allocator) set}
-   * before instantiating any Pool implementations from this Config.
+   * Get the configured {@link Allocator} instance.
    * @return The configured Allocator instance, if any.
    */
   public synchronized Allocator<T> getAllocator() {
-    return (Allocator<T>) allocator;
+    return allocator;
   }
 
   /**
@@ -137,13 +142,10 @@ public class Config<T extends Poolable> implements Cloneable {
    * @return A configured or adapted Reallocator, if any.
    */
   public synchronized Reallocator<T> getReallocator() {
-    if (allocator == null) {
-      return null;
-    }
     if (allocator instanceof Reallocator) {
       return (Reallocator<T>) allocator;
     }
-    return new ReallocatingAdaptor<>((Allocator<T>) allocator);
+    return new ReallocatingAdaptor<>(allocator);
   }
 
   /**
@@ -155,9 +157,9 @@ public class Config<T extends Poolable> implements Cloneable {
    * invalidates the objects after they have been active for somewhere between
    * 8 to 10 minutes.
    * @param expiration The expiration we want our pools to use. Not null.
-   * @return This Config instance.
+   * @return This `PoolBuilder` instance.
    */
-  public synchronized Config<T> setExpiration(Expiration<? super T> expiration) {
+  public synchronized PoolBuilder<T> setExpiration(Expiration<? super T> expiration) {
     this.expiration = expiration;
     return this;
   }
@@ -176,9 +178,9 @@ public class Config<T extends Poolable> implements Cloneable {
    * Set the {@link MetricsRecorder} to use for the pools we want to configure.
    * @param metricsRecorder The MetricsRecorder to use, or null if we don't
    *                        want to use any.
-   * @return This Config instance.
+   * @return This `PoolBuilder` instance.
    */
-  public synchronized Config<T> setMetricsRecorder(MetricsRecorder metricsRecorder) {
+  public synchronized PoolBuilder<T> setMetricsRecorder(MetricsRecorder metricsRecorder) {
     this.metricsRecorder = metricsRecorder;
     return this;
   }
@@ -209,9 +211,9 @@ public class Config<T extends Poolable> implements Cloneable {
    * a pool with a null ThreadFactory will throw an IllegalArgumentException.
    * @param factory The ThreadFactory the pool should use to create their
    *                background threads.
-   * @return This Config instance.
+   * @return This `PoolBuilder` instance.
    */
-  public synchronized Config<T> setThreadFactory(ThreadFactory factory) {
+  public synchronized PoolBuilder<T> setThreadFactory(ThreadFactory factory) {
     threadFactory = factory;
     return this;
   }
@@ -244,9 +246,9 @@ public class Config<T extends Poolable> implements Cloneable {
    *
    * @param enabled `true` to turn on precise object leak detection (the
    *                default) `false` to turn it off.
-   * @return This Config instance.
+   * @return This `PoolBuilder` instance.
    */
-  public synchronized Config<T> setPreciseLeakDetectionEnabled(boolean enabled) {
+  public synchronized PoolBuilder<T> setPreciseLeakDetectionEnabled(boolean enabled) {
     this.preciseLeakDetectionEnabled = enabled;
     return this;
   }
@@ -271,25 +273,34 @@ public class Config<T extends Poolable> implements Cloneable {
    *
    * @param enabled `true` (the default) to turn background expiration checking on,
    *               `false` to turn it off.
-   * @return This Config instance.
+   * @return This `PoolBuilder` instance.
    */
-  public synchronized Config<T> setBackgroundExpirationEnabled(boolean enabled) {
+  public synchronized PoolBuilder<T> setBackgroundExpirationEnabled(boolean enabled) {
     backgroundExpirationEnabled = enabled;
     return this;
   }
 
   /**
-   * Returns a shallow copy of this Config object.
-   * @return A new Config object of the exact same type as this one, with
+   * Returns a shallow copy of this `PoolBuilder` object.
+   * @return A new `PoolBuilder` object of the exact same type as this one, with
    * identical values in all its fields.
    */
+  @SuppressWarnings("unchecked")
   @Override
-  public final synchronized Config<T> clone() {
+  public final synchronized PoolBuilder<T> clone() {
     try {
-      return (Config<T>) super.clone();
+      return (PoolBuilder<T>) super.clone();
     } catch (CloneNotSupportedException e) {
       throw new AssertionError(e);
     }
+  }
+
+  /**
+   * Build a {@link Pool} instance based on the collected configuration.
+   * @return A {@link Pool} instance as configured by this builder.
+   */
+  public synchronized Pool<T> build() {
+    return new BlazePool<>(this);
   }
 
   /**
@@ -304,9 +315,6 @@ public class Config<T extends Poolable> implements Cloneable {
     if (size < 1) {
       throw new IllegalArgumentException(
           "Size must be at least 1, but was " + size);
-    }
-    if (allocator == null) {
-      throw new IllegalArgumentException("Allocator cannot be null");
     }
     if (expiration == null) {
       throw new IllegalArgumentException("Expiration cannot be null");
@@ -324,21 +332,17 @@ public class Config<T extends Poolable> implements Cloneable {
    * automatically record allocation, reallocation and deallocation latencies.
    */
   synchronized Reallocator<T> getAdaptedReallocator() {
-    if (allocator == null) {
-      return null;
-    }
     if (metricsRecorder == null) {
       if (allocator instanceof Reallocator) {
         return (Reallocator<T>) allocator;
       }
-      return new ReallocatingAdaptor<>((Allocator<T>) allocator);
+      return new ReallocatingAdaptor<>(allocator);
     } else {
       if (allocator instanceof Reallocator) {
         return new TimingReallocatorAdaptor<>(
             (Reallocator<T>) allocator, metricsRecorder);
       }
-      return new TimingReallocatingAdaptor<>(
-          (Allocator<T>) allocator, metricsRecorder);
+      return new TimingReallocatingAdaptor<>(allocator, metricsRecorder);
     }
   }
 }

@@ -45,20 +45,18 @@ class Examples {
 
   @Test
   void managedPoolExample() throws Exception {
-    Config<MyPoolable> config = new Config<>().setAllocator(new MyAllocator());
     // tag::managedPoolExample[]
-    BlazePool<MyPoolable> pool = new BlazePool<>(config);
+    Pool<MyPoolable> pool = Pool.from(new MyAllocator()).build();
     MBeanServer server = ManagementFactory.getPlatformMBeanServer();
     ObjectName name = new ObjectName("com.myapp:objectpool=stormpot");
-    server.registerMBean(pool, name);
+    server.registerMBean(pool.getManagedPool(), name);
     // end::managedPoolExample[]
   }
 
   @SuppressWarnings("EmptyTryBlock")
   @Test
   void poolClaimExample() throws Exception {
-    Config<MyPoolable> config = new Config<>().setAllocator(new MyAllocator());
-    BlazePool<MyPoolable> pool = new BlazePool<>(config);
+    Pool<MyPoolable> pool = Pool.from(new MyAllocator()).build();
     // tag::poolClaimExample[]
     Timeout timeout = new Timeout(1, TimeUnit.SECONDS);
     MyPoolable obj = pool.claim(timeout);
@@ -75,8 +73,7 @@ class Examples {
 
   @Test
   void poolClaimPrintExample() throws Exception {
-    Config<MyPoolable> config = new Config<>().setAllocator(new MyAllocator());
-    BlazePool<MyPoolable> pool = new BlazePool<>(config);
+    Pool<MyPoolable> pool = Pool.from(new MyAllocator()).build();
 
     // tag::poolClaimPrintExample[]
     Poolable obj = pool.claim(TIMEOUT);
@@ -113,6 +110,7 @@ class Examples {
   }
   // end::poolableBaseExample[]
 
+  @SuppressWarnings("unused")
   static class ReallocatorExample<T extends Poolable> implements Reallocator<T> {
 
     @Override

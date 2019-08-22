@@ -39,7 +39,7 @@ import java.util.concurrent.TimeUnit;
  * @author Chris Vest <mr.chrisvest@gmail.com>
  * @param <T> The type of {@link Poolable} managed by this pool.
  */
-public final class BlazePool<T extends Poolable>
+final class BlazePool<T extends Poolable>
     extends Pool<T> implements ManagedPool {
 
   private static final Exception SHUTDOWN_POISON = new Exception();
@@ -61,24 +61,21 @@ public final class BlazePool<T extends Poolable>
   private volatile boolean shutdown;
 
   /**
-   * Construct a new BlazePool instance based on the given {@link Config}.
-   * @param config The pool configuration to use.
+   * Construct a new BlazePool instance based on the given {@link PoolBuilder}.
+   * @param builder The pool configuration to use.
    */
-  public BlazePool(Config<T> config) {
+  BlazePool(PoolBuilder<T> builder) {
+    builder.validate();
     live = new LinkedTransferQueue<>();
     disregardPile = new DisregardBPile<>(live);
     tlr = new ThreadLocal<>();
     poisonPill = new BSlot<>(live, null);
     poisonPill.poison = SHUTDOWN_POISON;
-
-    synchronized (config) {
-      config.validate();
-      ThreadFactory factory = config.getThreadFactory();
-      allocator = new BAllocThread<>(live, disregardPile, config, poisonPill);
-      allocatorThread = factory.newThread(allocator);
-      deallocRule = config.getExpiration();
-      metricsRecorder = config.getMetricsRecorder();
-    }
+    ThreadFactory factory = builder.getThreadFactory();
+    allocator = new BAllocThread<>(live, disregardPile, builder, poisonPill);
+    allocatorThread = factory.newThread(allocator);
+    deallocRule = builder.getExpiration();
+    metricsRecorder = builder.getMetricsRecorder();
     allocatorThread.start();
   }
 
@@ -261,6 +258,11 @@ public final class BlazePool<T extends Poolable>
   @Override
   public int getTargetSize() {
     return allocator.getTargetSize();
+  }
+
+  @Override
+  public ManagedPool getManagedPool() {
+    return this;
   }
 
   @Override

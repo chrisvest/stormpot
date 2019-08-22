@@ -58,17 +58,17 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   BAllocThread(
       BlockingQueue<BSlot<T>> live,
       DisregardBPile<T> disregardPile,
-      Config<T> config,
+      PoolBuilder<T> builder,
       BSlot<T> poisonPill) {
     this.live = live;
     this.disregardPile = disregardPile;
-    this.allocator = config.getAdaptedReallocator();
-    this.targetSize = config.getSize();
-    this.metricsRecorder = config.getMetricsRecorder();
+    this.allocator = builder.getAdaptedReallocator();
+    this.targetSize = builder.getSize();
+    this.metricsRecorder = builder.getMetricsRecorder();
     this.poisonPill = poisonPill;
-    this.expiration = config.getExpiration();
-    this.backgroundExpirationEnabled = config.isBackgroundExpirationEnabled();
-    this.leakDetector = config.isPreciseLeakDetectionEnabled() ?
+    this.expiration = builder.getExpiration();
+    this.backgroundExpirationEnabled = builder.isBackgroundExpirationEnabled();
+    this.leakDetector = builder.isPreciseLeakDetectionEnabled() ?
         new PreciseLeakDetector() : null;
     this.completionLatch = new CountDownLatch(1);
     this.dead = new LinkedTransferQueue<>();

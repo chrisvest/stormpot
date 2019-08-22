@@ -49,11 +49,9 @@ class PoolIT {
   private static final Timeout longTimeout = new Timeout(1, TimeUnit.MINUTES);
   private static final Timeout shortTimeout = new Timeout(1, TimeUnit.SECONDS);
 
-  private PoolFixture fixture;
-
   // Initialised by setUp()
   private CountingAllocator allocator;
-  private Config<GenericPoolable> config;
+  private PoolBuilder<GenericPoolable> builder;
   private ExecutorService executor;
 
   // Initialised in the tests
@@ -61,9 +59,8 @@ class PoolIT {
 
   @BeforeEach
   void setUp() {
-    fixture = new BlazePoolFixture();
     allocator = allocator();
-    config = new Config<GenericPoolable>().setSize(1).setAllocator(allocator);
+    builder = Pool.from(allocator).setSize(1);
     executor = EXECUTOR_EXTENSION.getExecutorService();
   }
 
@@ -95,7 +92,7 @@ class PoolIT {
   }
 
   private void createPool() {
-    pool = fixture.initPool(config);
+    pool = builder.build();
   }
 
   @org.junit.jupiter.api.Timeout(16)
@@ -139,7 +136,7 @@ class PoolIT {
   @Test
   void shutdownMustCompleteSuccessfullyEvenAtHighContention() throws Exception {
     int size = 100000;
-    config.setSize(size);
+    builder.setSize(size);
     createPool();
 
     List<Future<?>> futures = new ArrayList<>();
@@ -166,7 +163,7 @@ class PoolIT {
   @org.junit.jupiter.api.Timeout(16)
   @Test
   void highObjectChurnMustNotCausePoolLeakage() throws Exception {
-    config.setSize(8);
+    builder.setSize(8);
     Action fallibleAction = new Action() {
       private final Random rnd = new Random();
 
@@ -183,8 +180,8 @@ class PoolIT {
         alloc(fallibleAction),
         dealloc(fallibleAction),
         realloc(fallibleAction));
-    config.setAllocator(allocator);
-    config.setExpiration(info -> {
+    builder.setAllocator(allocator);
+    builder.setExpiration(info -> {
       int x = ThreadLocalRandom.current().nextInt();
       if ((x & 0xFF) > 250) {
         // About 3% of checks throw an exception
@@ -221,8 +218,8 @@ class PoolIT {
   void backgroundExpirationMustDoNothingWhenPoolIsDepleted() throws Exception {
     AtomicBoolean hasExpired = new AtomicBoolean();
     CountingExpiration expiration = expire($expiredIf(hasExpired));
-    config.setExpiration(expiration);
-    config.setBackgroundExpirationEnabled(true);
+    builder.setExpiration(expiration);
+    builder.setBackgroundExpirationEnabled(true);
 
     createPool();
 
@@ -246,8 +243,8 @@ class PoolIT {
       throws Exception {
     AtomicBoolean hasExpired = new AtomicBoolean();
     CountingExpiration expiration = expire($expiredIf(hasExpired));
-    config.setExpiration(expiration);
-    config.setBackgroundExpirationEnabled(true);
+    builder.setExpiration(expiration);
+    builder.setBackgroundExpirationEnabled(true);
 
     createPool();
 
@@ -273,8 +270,8 @@ class PoolIT {
     allocator = allocator(
         alloc($countDown(startLatch, $new)),
         dealloc($release(semaphore, $null)));
-    config.setSize(startingSize);
-    config.setAllocator(allocator);
+    builder.setSize(startingSize);
+    builder.setAllocator(allocator);
     createPool();
     startLatch.await();
     List<GenericPoolable> objs = new ArrayList<>();
@@ -308,8 +305,8 @@ class PoolIT {
     allocator = allocator(
         alloc($countDown(startLatch, $new)),
         dealloc($release(semaphore, $null)));
-    config.setSize(startingSize);
-    config.setAllocator(allocator);
+    builder.setSize(startingSize);
+    builder.setAllocator(allocator);
     createPool();
     startLatch.await();
     List<GenericPoolable> objs = new ArrayList<>();
@@ -343,8 +340,8 @@ class PoolIT {
     assumeTrue(threads.isCurrentThreadCpuTimeSupported());
     allocator = allocator(alloc(
         measureLastCPUTime(threads, lastUserTimeIncrement)));
-    config.setAllocator(allocator);
-    config.setSize(2);
+    builder.setAllocator(allocator);
+    builder.setSize(2);
     createPool();
     GenericPoolable a = pool.claim(longTimeout);
     GenericPoolable b = pool.claim(longTimeout);
@@ -409,9 +406,9 @@ class PoolIT {
         return $new.apply(slot, obj);
       }
     }));
-    config.setAllocator(allocator);
+    builder.setAllocator(allocator);
     int size = 30;
-    config.setSize(size);
+    builder.setSize(size);
     createPool();
     LinkedList<GenericPoolable> objs = new LinkedList<>();
     for (int i = 0; i < size; i++) {
@@ -447,7 +444,7 @@ class PoolIT {
     assumeTrue(threads.isCurrentThreadCpuTimeSupported());
     allocator = allocator(alloc(
         measureLastCPUTime(threads, lastUserTimeIncrement)));
-    config.setAllocator(allocator);
+    builder.setAllocator(allocator);
     createPool();
     GenericPoolable a = pool.claim(longTimeout);
     a.expire();
@@ -473,8 +470,8 @@ class PoolIT {
     assumeTrue(threads.isCurrentThreadCpuTimeSupported());
     allocator = allocator(alloc(
         measureLastCPUTime(threads, lastUserTimeIncrement)));
-    config.setAllocator(allocator);
-    config.setSize(size);
+    builder.setAllocator(allocator);
+    builder.setSize(size);
     createPool();
     LinkedList<GenericPoolable> objs = new LinkedList<>();
     for (int i = 0; i < size; i++) {

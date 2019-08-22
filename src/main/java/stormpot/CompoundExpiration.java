@@ -29,7 +29,6 @@ public class CompoundExpiration<T extends Poolable> implements Expiration<T> {
   private final Expiration<T> firstExpiration;
   private final Expiration<T> secondExpiration;
 
-  @SuppressWarnings("WeakerAccess")
   public CompoundExpiration(Expiration<T> firstExpiration, Expiration<T> secondExpiration) {
     this.firstExpiration = firstExpiration;
     this.secondExpiration = secondExpiration;

@@ -23,6 +23,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
 
+@SuppressWarnings({"WeakerAccess","unused",
+    "SynchronizationOnLocalVariableOrMethodParameter"})
 // tag::defineClass[]
 public class DaoPoolExample {
   // end::defineClass[]
@@ -108,20 +110,19 @@ public class DaoPoolExample {
     
     public MyDaoPool(DataSource dataSource) {
       MyDaoAllocator allocator = new MyDaoAllocator(dataSource);
-      Config<MyDao> config = new Config<MyDao>().setAllocator(allocator);
-      pool = new BlazePool<>(config);
+      pool = Pool.from(allocator).build();
     }
     // end::poolStart[]
 
     public MyDaoPool(DataSource dataSource, boolean verifyConnections) {
       MyDaoAllocator allocator = new MyDaoAllocator(dataSource);
-      Config<MyDao> config = new Config<MyDao>().setAllocator(allocator);
+      PoolBuilder<MyDao> builder = Pool.from(allocator);
 
       if (verifyConnections) {
-        config.setExpiration(new TestQueryExpiration());
+        builder.setExpiration(new TestQueryExpiration());
       }
 
-      pool = new BlazePool<>(config);
+      pool = builder.build();
     }
 
     // tag::poolClose[]

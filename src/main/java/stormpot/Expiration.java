@@ -30,7 +30,7 @@ package stormpot;
  * then they must do so in a thread-safe manner, unless the mutable state is
  * contained within the SlotInfo or Poolable objects – in this case, the
  * mutable state will be thread-local. Be aware that making the
- * {@link #hasExpired(SlotInfo) hasExpired} method {@code synchronized} will
+ * {@link #hasExpired(SlotInfo) hasExpired} method `synchronized` will
  * most likely severely reduce the performance and scalability of the pool.
  *
  * The Expiration can be invoked several times during a

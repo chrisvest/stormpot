@@ -30,49 +30,51 @@ import static org.junit.jupiter.api.Assertions.*;
 import static stormpot.AlloKit.CountingAllocator;
 import static stormpot.AlloKit.allocator;
 
-class ConfigTest {
-  private Config<GenericPoolable> config;
+class PoolBuilderTest {
+  private Allocator<GenericPoolable> allocator;
+  private PoolBuilder<GenericPoolable> builder;
 
   @BeforeEach
   void setUp() {
-    config = new Config<>();
+    allocator = allocator();
+    builder = Pool.from(allocator);
   }
 
   @Test
   void sizeMustBeSettable() {
-    config.setSize(123);
-    assertEquals(123, config.getSize());
+    builder.setSize(123);
+    assertEquals(123, builder.getSize());
   }
 
   @Test
-  void defaultAllocatorIsNull() {
-    assertThat(config.getAllocator()).isNull();
+  void allocatorIsGivenByPoolFrom() {
+    assertThat(builder.getAllocator()).isSameAs(allocator);
   }
 
   @Test
-  void defaultReallocatorIsNull() {
-    assertThat(config.getReallocator()).isNull();
+  void reallocatorIsNotNull() {
+    assertThat(builder.getReallocator()).isNotNull();
   }
 
   @Test
   void allocatorMustBeSettable() {
     Allocator<GenericPoolable> allocator = allocator();
-    Config<GenericPoolable> cfg = config.setAllocator(allocator);
+    PoolBuilder<GenericPoolable> cfg = builder.setAllocator(allocator);
     assertThat(cfg.getAllocator()).isSameAs(allocator);
   }
   
   @Test
   void mustHaveTimeBasedDeallocationRuleAsDefault() {
-    assertThat(config.getExpiration()).isInstanceOf(TimeSpreadExpiration.class);
+    assertThat(builder.getExpiration()).isInstanceOf(TimeSpreadExpiration.class);
   }
   
   @Test
   void deallocationRuleMustBeSettable() {
     Expiration<Poolable> expectedRule = info -> false;
-    config.setExpiration(expectedRule);
+    builder.setExpiration(expectedRule);
     @SuppressWarnings("unchecked")
     Expiration<Poolable> actualRule =
-        (Expiration<Poolable>) config.getExpiration();
+        (Expiration<Poolable>) builder.getExpiration();
     assertThat(actualRule).isEqualTo(expectedRule);
   }
 
@@ -80,14 +82,14 @@ class ConfigTest {
   void metricsRecorderMustBeSettable() {
     MetricsRecorder expected =
         new FixedMeanMetricsRecorder(1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
-    config.setMetricsRecorder(expected);
-    MetricsRecorder actual = config.getMetricsRecorder();
+    builder.setMetricsRecorder(expected);
+    MetricsRecorder actual = builder.getMetricsRecorder();
     assertThat(actual).isEqualTo(expected);
   }
 
   @Test
   void defaultThreadFactoryMustCreateThreadsWithStormpotNameSignature() {
-    ThreadFactory factory = config.getThreadFactory();
+    ThreadFactory factory = builder.getThreadFactory();
     Thread thread = factory.newThread(() -> {});
     assertThat(thread.getName()).contains("Stormpot");
   }
@@ -95,35 +97,35 @@ class ConfigTest {
   @Test
   void threadFactoryMustBeSettable() {
     ThreadFactory factory = r -> null;
-    config.setThreadFactory(factory);
-    assertThat(config.getThreadFactory()).isSameAs(factory);
+    builder.setThreadFactory(factory);
+    assertThat(builder.getThreadFactory()).isSameAs(factory);
   }
 
   @Test
   void preciseLeakDetectionMustBeEnabledByDefault() {
-    assertTrue(config.isPreciseLeakDetectionEnabled());
+    assertTrue(builder.isPreciseLeakDetectionEnabled());
   }
 
   @Test
   void preciseLeakDetectionMustBeSettable() {
-    config.setPreciseLeakDetectionEnabled(false);
-    assertFalse(config.isPreciseLeakDetectionEnabled());
+    builder.setPreciseLeakDetectionEnabled(false);
+    assertFalse(builder.isPreciseLeakDetectionEnabled());
   }
 
   @Test
   void backgroundExpirationIsEnabledByDefault() {
-    assertTrue(config.isBackgroundExpirationEnabled());
+    assertTrue(builder.isBackgroundExpirationEnabled());
   }
 
   @Test
-  void backgroundExpirationMystBeSettable() {
-    config.setBackgroundExpirationEnabled(false);
-    assertFalse(config.isBackgroundExpirationEnabled());
+  void backgroundExpirationMustBeSettable() {
+    builder.setBackgroundExpirationEnabled(false);
+    assertFalse(builder.isBackgroundExpirationEnabled());
   }
 
   @Test
-  void allSetterMethodsMustReturnTheSameConfigInstance() throws Exception {
-    Method[] methods = Config.class.getDeclaredMethods();
+  void allSetterMethodsMustReturnTheSameBuilderInstance() throws Exception {
+    Method[] methods = PoolBuilder.class.getDeclaredMethods();
     List<Method> setterMethods = new ArrayList<>();
     for (Method method : methods) {
       if (method.getName().startsWith("set")) {
@@ -135,18 +137,19 @@ class ConfigTest {
       Class<?> parameterType = setter.getParameterTypes()[0];
       Object arg =
           parameterType == Boolean.TYPE? true :
-          parameterType == Integer.TYPE? 1 : null;
-      Object result = setter.invoke(config, arg);
-      assertThat(result).as("return value of setter " + setter).isSameAs(config);
+          parameterType == Integer.TYPE? 1 :
+          parameterType == Allocator.class ? allocator() : null;
+      Object result = setter.invoke(builder, arg);
+      assertThat(result).as("return value of setter " + setter).isSameAs(builder);
     }
   }
 
   @Test
   void allPublicDeclaredMethodsMustBeSynchronized() {
     // We don't care about non-overridden public methods of the super-class
-    // (Object) because they don't operate on the state of the Config object
+    // (Object) because they don't operate on the state of the PoolBuilder object
     // anyway.
-    Method[] methods = Config.class.getDeclaredMethods();
+    Method[] methods = PoolBuilder.class.getDeclaredMethods();
     for (Method method : methods) {
       int modifiers = method.getModifiers();
       int IS_SYNTHETIC = 0x00001000;
@@ -160,21 +163,21 @@ class ConfigTest {
   }
 
   @Test
-  void configMustBeCloneable() {
+  void builderMustBeCloneable() {
     CountingAllocator allocator = AlloKit.allocator();
     ExpireKit.CountingExpiration expiration = ExpireKit.expire();
     MetricsRecorder metricsRecorder = new LastSampleMetricsRecorder();
     ThreadFactory factory = r -> null;
 
-    config.setExpiration(expiration);
-    config.setAllocator(allocator);
-    config.setBackgroundExpirationEnabled(false);
-    config.setMetricsRecorder(metricsRecorder);
-    config.setPreciseLeakDetectionEnabled(false);
-    config.setSize(42);
-    config.setThreadFactory(factory);
+    builder.setExpiration(expiration);
+    builder.setAllocator(allocator);
+    builder.setBackgroundExpirationEnabled(false);
+    builder.setMetricsRecorder(metricsRecorder);
+    builder.setPreciseLeakDetectionEnabled(false);
+    builder.setSize(42);
+    builder.setThreadFactory(factory);
 
-    Config<GenericPoolable> clone = config.clone();
+    PoolBuilder<GenericPoolable> clone = builder.clone();
 
     assertThat(clone.getExpiration()).isSameAs(expiration);
     assertThat(clone.getAllocator()).isSameAs(allocator);

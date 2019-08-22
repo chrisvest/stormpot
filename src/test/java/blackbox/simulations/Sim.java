@@ -23,7 +23,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -53,12 +52,12 @@ public abstract class Sim {
       this.type = type;
     }
 
-    void set(Config<GenericPoolable> config, Object value) throws Exception {
+    void set(PoolBuilder<GenericPoolable> builder, Object value) throws Exception {
       String firstNameChar = name().substring(0, 1);
       String restNameChars = name().substring(1);
       String setterName = "set" + firstNameChar.toUpperCase() + restNameChars;
-      Method setter = Config.class.getMethod(setterName, type);
-      setter.invoke(config, value);
+      Method setter = PoolBuilder.class.getMethod(setterName, type);
+      setter.invoke(builder, value);
     }
   }
 
@@ -73,7 +72,6 @@ public abstract class Sim {
   @interface Simulation {
     long measurementTime() default 10;
     TimeUnit measurementTimeUnit() default TimeUnit.SECONDS;
-    Class<? extends Pool>[] pools() default {BlazePool.class};
     Output output() default Output.detailed;
   }
 
@@ -120,49 +118,33 @@ public abstract class Sim {
     }
   }
 
-  @SuppressWarnings("unchecked")
   public static void main(String[] args) throws Exception {
     long start = System.currentTimeMillis();
     String cmdClass = System.getProperty("sun.java.command").replaceFirst("^.*\\s+", "");
     Class<?> klass = Class.forName(cmdClass);
     Sim sim = (Sim) klass.getConstructor().newInstance();
-
-    // Find all the pool implementation constructors.
-    List<Constructor<Pool<GenericPoolable>>> ctors =
-        new ArrayList<>();
     Simulation simulation = klass.getAnnotation(Simulation.class);
-    if (simulation != null) {
-      for (Class<? extends Pool> type : simulation.pools()) {
-        Constructor<?> constructor = type.getConstructor(Config.class);
-        ctors.add((Constructor<Pool<GenericPoolable>>) constructor);
-      }
-    } else {
-      Constructor<?> constructor = BlazePool.class.getConstructor(Config.class);
-      ctors.add((Constructor<Pool<GenericPoolable>>) constructor);
-    }
 
     // Go through all fields, constructing a set of configurations.
     // Run each configuration for each pool implementation.
 
     AtomicBoolean enableAllocationCost = new AtomicBoolean();
-    Collection<Config<GenericPoolable>> configurations =
+    Collection<PoolBuilder<GenericPoolable>> configurations =
         buildConfigurations(klass, sim, enableAllocationCost);
-    for (Config<GenericPoolable> config : configurations) {
-      for (Constructor<Pool<GenericPoolable>> ctor : ctors) {
-        Output output = simulation == null? Output.detailed : simulation.output();
-        simulate(sim, ctor, config, enableAllocationCost, output);
-      }
+    for (PoolBuilder<GenericPoolable> builder : configurations) {
+      Output output = simulation == null? Output.detailed : simulation.output();
+      simulate(sim, builder, enableAllocationCost, output);
     }
     long elapsedMillis = System.currentTimeMillis() - start;
     System.out.printf("Done, %.3f seconds.%n", elapsedMillis / 1000.0);
     System.exit(0);
   }
 
-  private static Collection<Config<GenericPoolable>> buildConfigurations(
+  private static Collection<PoolBuilder<GenericPoolable>> buildConfigurations(
       Class<?> klass, Sim sim, AtomicBoolean enableAllocationCost) throws Exception {
     // Find all fields annotated with @Conf
     // Group them by their Param category
-    // Produce a Config for every permutation of each group
+    // Produce a PoolBuilder for every permutation of each group
 
     // Building the groups
     EnumMap<Param, List<Object>> groups = new EnumMap<>(Param.class);
@@ -182,12 +164,10 @@ public abstract class Sim {
       head = new Link<>(head, entry);
     }
 
-    // Building Config permutations
-    Config<GenericPoolable> baseConfig = new Config<>();
+    // Building PoolBuilder permutations
     CountingAllocator allocator = buildAllocator(sim, enableAllocationCost);
-    baseConfig.setAllocator(allocator);
-    List<Config<GenericPoolable>> result = new LinkedList<>();
-    addConfigPermutations(head, baseConfig, result);
+    List<PoolBuilder<GenericPoolable>> result = new LinkedList<>();
+    addPoolBuilderPermutations(head, Pool.from(allocator), result);
     return result;
   }
 
@@ -221,13 +201,13 @@ public abstract class Sim {
     }));
   }
 
-  private static void addConfigPermutations(
+  private static void addPoolBuilderPermutations(
       Link<Map.Entry<Param, List<Object>>> head,
-      Config<GenericPoolable> baseConfig,
-      List<Config<GenericPoolable>> result) throws Exception {
+      PoolBuilder<GenericPoolable> builder,
+      List<PoolBuilder<GenericPoolable>> result) throws Exception {
     if (head == null) {
       // Base case
-      result.add(baseConfig);
+      result.add(builder);
     } else {
       // Reduction
       Param param = head.value.getKey();
@@ -237,14 +217,14 @@ public abstract class Sim {
         if (value.getClass().isArray()) {
           int length = Array.getLength(value);
           for (int i = 0; i < length; i++) {
-            Config<GenericPoolable> mutation = baseConfig.clone();
+            PoolBuilder<GenericPoolable> mutation = builder.clone();
             param.set(mutation, Array.get(value, i));
-            addConfigPermutations(head.tail, mutation, result);
+            addPoolBuilderPermutations(head.tail, mutation, result);
           }
         } else {
-          Config<GenericPoolable> mutation = baseConfig.clone();
+          PoolBuilder<GenericPoolable> mutation = builder.clone();
           param.set(mutation, value);
-          addConfigPermutations(head.tail, mutation, result);
+          addPoolBuilderPermutations(head.tail, mutation, result);
         }
       }
     }
@@ -252,21 +232,19 @@ public abstract class Sim {
 
   private static void simulate(
       Sim sim,
-      Constructor<Pool<GenericPoolable>> ctor,
-      Config<GenericPoolable> config,
+      PoolBuilder<GenericPoolable> builder,
       AtomicBoolean enableAllocationCost,
       Output output) throws Exception {
     DependencyResolver deps = new DependencyResolver();
-    deps.add(config);
-    deps.add(config.getAllocator());
-    deps.add(config.getExpiration());
-    deps.add(config.getMetricsRecorder());
-    deps.add(config.getThreadFactory());
+    deps.add(builder);
+    deps.add(builder.getAllocator());
+    deps.add(builder.getExpiration());
+    deps.add(builder.getMetricsRecorder());
+    deps.add(builder.getThreadFactory());
     deps.add(output);
 
-    String poolTypeName = ctor.getDeclaringClass().getSimpleName();
-    System.out.printf("Simulating %s %s for %s%n",
-        sim.getClass().getSimpleName(), describe(config), poolTypeName);
+    System.out.printf("Simulating %s %s%n",
+        sim.getClass().getSimpleName(), describe(builder));
 
     long measurementTimeMillis = getMeasurementTimeMillis(sim);
     int iterations = 100;
@@ -277,12 +255,12 @@ public abstract class Sim {
 
       // Reset internal state.
       enableAllocationCost.set(false);
-      Pool<GenericPoolable> pool = ctor.newInstance(config);
+      Pool<GenericPoolable> pool = builder.build();
       sim = sim.getClass().getConstructor().newInstance();
       deps.replace(pool);
 
       // Wait for the pool to boot up.
-      int size = config.getSize();
+      int size = builder.getSize();
       List<GenericPoolable> objs = new ArrayList<>();
       for (int j = 0; j < size; j++) {
         objs.add(pool.claim(new Timeout(30, TimeUnit.MINUTES)));
@@ -299,9 +277,8 @@ public abstract class Sim {
       if (!pool.shutdown().await(SHUTDOWN_TIMEOUT)) {
         ManagedPool managedPool = (ManagedPool) pool;
         System.err.printf(
-            "Shutdown timed out! Pool type = %s, config = %s, " +
-                "object leaks detected = %s%n",
-            poolTypeName, describe(config), managedPool.getLeakedObjectsCount());
+            "Shutdown timed out! Config = %s, object leaks detected = %s%n",
+            describe(builder), managedPool.getLeakedObjectsCount());
       }
     }
   }
@@ -317,13 +294,13 @@ public abstract class Sim {
     return 10000;
   }
 
-  private static String describe(Config<GenericPoolable> config) {
-    int size = config.getSize();
-    Expiration<? super GenericPoolable> expiration = config.getExpiration();
-    boolean backgroundExpirationEnabled = config.isBackgroundExpirationEnabled();
-    boolean preciseLeakDetectionEnabled = config.isPreciseLeakDetectionEnabled();
-    MetricsRecorder metricsRecorder = config.getMetricsRecorder();
-    ThreadFactory threadFactory = config.getThreadFactory();
+  private static String describe(PoolBuilder<GenericPoolable> builder) {
+    int size = builder.getSize();
+    Expiration<? super GenericPoolable> expiration = builder.getExpiration();
+    boolean backgroundExpirationEnabled = builder.isBackgroundExpirationEnabled();
+    boolean preciseLeakDetectionEnabled = builder.isPreciseLeakDetectionEnabled();
+    MetricsRecorder metricsRecorder = builder.getMetricsRecorder();
+    ThreadFactory threadFactory = builder.getThreadFactory();
     return String.format(
         "{%n\tsize = %s" +
             "%n\texpiration = %s%n\t" +

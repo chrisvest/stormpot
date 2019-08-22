@@ -55,9 +55,27 @@ import java.util.function.Function;
  *
  * @author Chris Vest <mr.chrisvest@gmail.com>
  * @param <T> the type of {@link Poolable} contained in the pool, as determined
- * by the {@link Config#setAllocator(Allocator) configured allocator}.
+ * by the {@linkplain Pool#from(Allocator) configured allocator}.
  */
 public abstract class Pool<T extends Poolable> {
+
+  /**
+   * Get a {@link PoolBuilder} based on the given {@link Allocator} or
+   * {@link Reallocator}, which can then in turn be used to
+   * {@linkplain PoolBuilder#build build} a {@link Pool} instance with the
+   * desired configuration.
+   *
+   * @param allocator The allocator we want our pools to use. This cannot be
+   * `null`.
+   * @param <T> The type of {@link Poolable} that is created by the allocator,
+   * and the type of objects that the configured pools will contain.
+   * @return A {@link PoolBuilder} that admits additional configurations,
+   * before the pool instance is {@linkplain PoolBuilder#build() built}.
+   */
+  public static <T extends Poolable> PoolBuilder<T> from(Allocator<T> allocator) {
+    return new PoolBuilder<>(allocator);
+  }
+
   /**
    * Claim the exclusive rights until released, to an object in the pool.
    * Possibly waiting up to the specified amount of time, as given by the
@@ -186,6 +204,12 @@ public abstract class Pool<T extends Poolable> {
   public abstract int getTargetSize();
 
   /**
+   * Get the {@link ManagedPool} instance that represents this pool.
+   * @return The {@link ManagedPool} instance for this pool.
+   */
+  public abstract ManagedPool getManagedPool();
+
+  /**
    * Claim an object from the pool and apply the given function to it, returning
    * the result and releasing the object back to the pool.
    *
@@ -208,7 +232,6 @@ public abstract class Pool<T extends Poolable> {
    * @see #claim(Timeout) The `claim` method for more details on failure modes
    * and memory effects.
    */
-  @SuppressWarnings("WeakerAccess")
   public final <R> Optional<R> apply(Timeout timeout, Function<T, R> function)
       throws InterruptedException {
     T obj = claim(timeout);
@@ -242,7 +265,6 @@ public abstract class Pool<T extends Poolable> {
    * @see #claim(Timeout) The `claim` method for more details on failure modes
    * and memory effects.
    */
-  @SuppressWarnings("WeakerAccess")
   public final boolean supply(Timeout timeout, Consumer<T> consumer)
       throws InterruptedException {
     T obj = claim(timeout);
