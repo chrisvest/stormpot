@@ -30,6 +30,7 @@ final class StormpotThreadFactory implements ThreadFactory {
   public Thread newThread(Runnable r) {
     Thread thread = delegate.newThread(r);
     thread.setName("Stormpot-" + thread.getName());
+    thread.setDaemon(true);
     return thread;
   }
 }
