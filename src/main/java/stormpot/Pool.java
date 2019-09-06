@@ -50,7 +50,7 @@ import java.util.function.Function;
  * when they are no longer needed.
  *
  * Note that Pools are not guaranteed to have overwritten the
- * {@link Object#finalize()} method. Pools are expected to rely on explicit
+ * {@code Object#finalize()} method. Pools are expected to rely on explicit
  * clean-up for releasing their resources.
  *
  * @author Chris Vest <mr.chrisvest@gmail.com>

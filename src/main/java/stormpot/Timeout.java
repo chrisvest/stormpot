@@ -67,7 +67,6 @@ public final class Timeout {
    * Get the unit for the {@link #getTimeout() timeout value}.
    * @return The {@link TimeUnit} of the timeout value. Never `null`.
    */
-  @SuppressWarnings("WeakerAccess")
   public TimeUnit getUnit() {
     return unit;
   }
@@ -92,7 +91,6 @@ public final class Timeout {
    * Get the timeout value in terms of the {@link #getBaseUnit() base unit}.
    * @return A numerical value of the timeout. Possibly zero or negative.
    */
-  @SuppressWarnings("WeakerAccess")
   public long getTimeoutInBaseUnit() {
     return timeoutBase;
   }
@@ -116,7 +114,6 @@ public final class Timeout {
    * {@link #getDeadline()} and {@link #getTimeLeft(long)}.
    * @return TimeUnit The unit of precision used by the clock in this Timeout.
    */
-  @SuppressWarnings("WeakerAccess")
   public TimeUnit getBaseUnit() {
     return TimeUnit.NANOSECONDS;
   }

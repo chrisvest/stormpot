@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@SuppressWarnings("MismatchedReadAndWriteOfArray")
 class PreciseLeakDetectorTest {
   private final PreciseLeakDetector detector = new PreciseLeakDetector();
 
@@ -48,6 +49,7 @@ class PreciseLeakDetectorTest {
     }
 
     // We should see no leaks
+    //noinspection UnusedAssignment
     objs = null;
     System.gc();
 

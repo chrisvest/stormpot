@@ -22,6 +22,7 @@ import java.lang.ref.WeakReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@SuppressWarnings("UnusedAssignment")
 class ThreadLocalWeakRefTest {
   /**
    * Many Java web servers and containers go out of their way to find and null

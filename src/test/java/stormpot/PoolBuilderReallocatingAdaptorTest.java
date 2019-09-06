@@ -17,7 +17,6 @@ package stormpot;
 
 import org.assertj.core.api.Condition;
 import org.junit.jupiter.api.Test;
-import stormpot.AlloKit.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.condition.Not.not;

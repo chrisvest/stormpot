@@ -29,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ExecutorExtension implements Extension, BeforeEachCallback, AfterEachCallback {
   private TestThreadFactory threadFactory;
   private ExecutorService executor;
-  private List<Future<?>> futuresToPrintOnFailure = new ArrayList<>();
+  private final List<Future<?>> futuresToPrintOnFailure = new ArrayList<>();
 
   public ExecutorService getExecutorService() {
     return executor;
