@@ -16,10 +16,11 @@
 package blackbox;
 
 import org.junit.jupiter.api.Test;
-import stormpot.CompoundExpiration;
 import stormpot.Expiration;
 import stormpot.GenericPoolable;
 import stormpot.MockSlotInfo;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -31,33 +32,39 @@ class CompoundExpirationTest {
 
   @Test
   void expiresWhenBothExpirationsExpire() throws Exception {
-    CompoundExpiration<GenericPoolable> compoundExpiration = compoundExpiration(expire($expired), expire($expired));
+    Expiration<GenericPoolable> expiration =
+        expire($expired).or(expire($expired));
 
-    assertTrue(compoundExpiration.hasExpired(mockSlotInfo()));
+    assertTrue(expiration.hasExpired(mockSlotInfo()));
   }
 
   @Test
   void expiresWhenOneExpirationExpires() throws Exception {
-    CompoundExpiration<GenericPoolable> compoundExpiration = compoundExpiration(expire($expired), expire($fresh));
+    Expiration<GenericPoolable> expiration =
+        expire($expired).or(expire($fresh));
 
-    assertTrue(compoundExpiration.hasExpired(mockSlotInfo()));
+    assertTrue(expiration.hasExpired(mockSlotInfo()));
 
-    compoundExpiration = compoundExpiration(expire($fresh), expire($expired));
+    expiration = expire($fresh).or(expire($expired));
 
-    assertTrue(compoundExpiration.hasExpired(mockSlotInfo()));
+    assertTrue(expiration.hasExpired(mockSlotInfo()));
   }
 
   @Test
   void doesNotExpireWhenNoExpirationExpire() throws Exception {
-    CompoundExpiration<GenericPoolable> compoundExpiration = compoundExpiration(expire($fresh), expire($fresh));
+    Expiration<GenericPoolable> expiration = expire($fresh).or(expire($fresh));
 
-    assertFalse(compoundExpiration.hasExpired(mockSlotInfo()));
+    assertFalse(expiration.hasExpired(mockSlotInfo()));
   }
 
-  private CompoundExpiration<GenericPoolable> compoundExpiration(
-          Expiration<GenericPoolable> first,
-          Expiration<GenericPoolable> second) {
-    return new CompoundExpiration<>(first, second);
+  @Test
+  void mustShortCircuit() throws Exception {
+    AtomicBoolean reached = new AtomicBoolean();
+    Expiration<GenericPoolable> expiration = expire($expired).or(
+        info -> reached.getAndSet(true));
+
+    assertTrue(expiration.hasExpired(mockSlotInfo()));
+    assertFalse(reached.get());
   }
 
   private MockSlotInfo mockSlotInfo() {

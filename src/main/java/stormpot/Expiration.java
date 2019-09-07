@@ -104,6 +104,23 @@ public interface Expiration<T extends Poolable> {
   }
 
   /**
+   * Construct a new Expiration that will invalidate objects if either this, or
+   * the given expiration, considers an object expired.
+   *
+   * This is a short-circuiting combinator, such that if this expiration
+   * invalidates the object, then the other expiration will not be checked.
+   *
+   * This makes it easy to have an expiration that expires both on time, and
+   * some other criteria.
+   *
+   * @param other The other expiration to compose with.
+   * @return A new expiration composed of this and the other expiration.
+   */
+  default Expiration<T> or(Expiration<T> other) {
+    return new CompoundExpiration<>(this, other);
+  }
+
+  /**
    * Test whether the Slot and Poolable object, represented by the given
    * {@link SlotInfo} object, is still valid, or if the pool should
    * deallocate it and allocate a replacement.
