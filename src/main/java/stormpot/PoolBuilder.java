@@ -19,6 +19,8 @@ import java.util.Objects;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 /**
  * == The basic configuration "bean" class.
  *
@@ -55,9 +57,7 @@ import java.util.concurrent.TimeUnit;
 public final class PoolBuilder<T extends Poolable> implements Cloneable {
 
   private int size = 10;
-  // 8 to 10 minutes:
-  private Expiration<? super T> expiration =
-      new TimeSpreadExpiration<>(480000, 600000, TimeUnit.MILLISECONDS);
+  private Expiration<? super T> expiration = Expiration.after(8, 10, MINUTES);
   private Allocator<T> allocator;
   private MetricsRecorder metricsRecorder;
   private ThreadFactory threadFactory = StormpotThreadFactory.INSTANCE;
@@ -153,9 +153,10 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * configure. The Expiration determines when a pooled object is valid
    * for claiming, or when the objects are invalid and should be deallocated.
    *
-   * The default Expiration is a {@link TimeSpreadExpiration} that
-   * invalidates the objects after they have been active for somewhere between
-   * 8 to 10 minutes.
+   * The default Expiration is an
+   * {@link Expiration#after(long, long, TimeUnit)} that invalidates the
+   * objects after they have been active for somewhere between 8 to 10 minutes.
+   *
    * @param expiration The expiration we want our pools to use. Not null.
    * @return This `PoolBuilder` instance.
    */
@@ -166,8 +167,9 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
 
   /**
    * Get the configured {@link Expiration} instance. The default is a
-   * {@link TimeSpreadExpiration} that expires objects after somewhere between
-   * 8 to 10 minutes.
+   * {@link Expiration#after(long, long, TimeUnit)} that expires objects after
+   * somewhere between 8 to 10 minutes.
+   *
    * @return The configured Expiration.
    */
   public synchronized Expiration<? super T> getExpiration() {

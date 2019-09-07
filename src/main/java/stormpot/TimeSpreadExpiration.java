@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
  * @author Chris Vest <mr.chrisvest@gmail.com>
  * @since 2.2
  */
-public final class TimeSpreadExpiration<T extends Poolable> implements Expiration<T> {
+final class TimeSpreadExpiration<T extends Poolable> implements Expiration<T> {
 
   private final long lowerBoundMillis;
   private final long upperBoundMillis;
@@ -47,7 +47,7 @@ public final class TimeSpreadExpiration<T extends Poolable> implements Expiratio
    *                   lowerBound.
    * @param unit The {@link TimeUnit} of the bounds values. Never `null`.
    */
-  public TimeSpreadExpiration(
+  TimeSpreadExpiration(
       long lowerBound,
       long upperBound,
       TimeUnit unit) {

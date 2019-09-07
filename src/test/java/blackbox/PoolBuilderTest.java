@@ -65,7 +65,8 @@ class PoolBuilderTest {
   
   @Test
   void mustHaveTimeBasedDeallocationRuleAsDefault() {
-    assertThat(builder.getExpiration()).isInstanceOf(TimeSpreadExpiration.class);
+    assertThat(builder.getExpiration().toString())
+        .isEqualTo("TimeSpreadExpiration(8 to 10 MINUTES)");
   }
   
   @Test

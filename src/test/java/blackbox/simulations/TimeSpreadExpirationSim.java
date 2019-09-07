@@ -15,7 +15,10 @@
  */
 package blackbox.simulations;
 
-import stormpot.*;
+import stormpot.Expiration;
+import stormpot.GenericPoolable;
+import stormpot.Pool;
+import stormpot.Timeout;
 
 import java.util.concurrent.TimeUnit;
 
@@ -30,7 +33,7 @@ public class TimeSpreadExpirationSim extends Sim {
   @Conf(Param.expiration)
   public Expiration[] expirations = {
       Expiration.after(2, TimeUnit.SECONDS),
-      new TimeSpreadExpiration<>(1, 2, TimeUnit.SECONDS)
+      Expiration.after(1, 2, TimeUnit.SECONDS)
   };
 
   @Agents({@Agent, @Agent, @Agent, @Agent, @Agent, @Agent, @Agent})

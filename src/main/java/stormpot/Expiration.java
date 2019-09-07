@@ -61,6 +61,9 @@ public interface Expiration<T extends Poolable> {
    * If the `time` is less than one, or the `unit` is `null`, then
    * an {@link IllegalArgumentException} will be thrown.
    *
+   * This expiration does not make use of the
+   * {@linkplain SlotInfo#getStamp() slot info stamp}.
+   *
    * @param time Poolables older than this, in the given unit, will
    *            be considered expired. This value must be at least 1.
    * @param unit The {@link TimeUnit} of the maximum permitted age.
@@ -70,6 +73,34 @@ public interface Expiration<T extends Poolable> {
    */
   static <T extends Poolable> Expiration<T> after(long time, TimeUnit unit) {
     return new TimeExpiration<>(time, unit);
+  }
+
+  /**
+   * Construct a new Expiration that will invalidate objects that are older
+   * than the given lower bound, before they get older than the upper bound,
+   * in the given time unit.
+   *
+   * If the `fromTime` is less than 1, the `toTime` is less than the
+   * `fromTime`, or the `unit` is `null`, then an
+   * {@link java.lang.IllegalArgumentException} will be thrown.
+   *
+   * The actual expiration time is chosen uniformly randomly within the
+   * given brackets, for each allocated object.
+   *
+   * This expiration make use of the
+   * {@linkplain SlotInfo#getStamp() slot info stamp} for storing the target
+   * expiration timestamp.
+   *
+   * @param fromTime Poolables younger than this, in the given unit, are not
+   *                 considered expired. This value must be at least 1.
+   * @param toTime Poolables older than this, in the given unit, are always
+   *               considered expired. This value must be greater than the
+   *               lowerBound.
+   * @param unit The {@link TimeUnit} of the bounds values. Never `null`.
+   */
+  static <T extends Poolable> Expiration<T> after(
+      long fromTime, long toTime, TimeUnit unit) {
+    return new TimeSpreadExpiration<>(fromTime, toTime, unit);
   }
 
   /**

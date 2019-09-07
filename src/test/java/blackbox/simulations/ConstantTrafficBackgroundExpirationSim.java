@@ -30,8 +30,8 @@ public class ConstantTrafficBackgroundExpirationSim extends Sim {
   private static final Timeout timeout = new Timeout(1, TimeUnit.SECONDS);
 
   @Conf(Param.expiration)
-  public TimeSpreadExpiration<Poolable> expiration =
-      new TimeSpreadExpiration<>(200, 1000, TimeUnit.MILLISECONDS);
+  public Expiration<Poolable> expiration =
+      Expiration.after(200, 1000, TimeUnit.MILLISECONDS);
 
   @Conf(Param.backgroundExpirationEnabled)
   public boolean[] backgroundExpiration = {true, false};
