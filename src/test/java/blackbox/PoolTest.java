@@ -82,9 +82,9 @@ import static stormpot.UnitKit.*;
 @ExtendWith(FailurePrinterExtension.class)
 class PoolTest {
   private static final Expiration<Poolable> oneMsTTL =
-      new TimeExpiration<>(1, TimeUnit.MILLISECONDS);
+      Expiration.after(1, TimeUnit.MILLISECONDS);
   private static final Expiration<Poolable> fiveMsTTL =
-      new TimeExpiration<>(5, TimeUnit.MILLISECONDS);
+      Expiration.after(5, TimeUnit.MILLISECONDS);
   private static final Timeout longTimeout = new Timeout(5, TimeUnit.MINUTES);
   private static final Timeout mediumTimeout = new Timeout(10, TimeUnit.MILLISECONDS);
   private static final Timeout shortTimeout = new Timeout(1, TimeUnit.MILLISECONDS);

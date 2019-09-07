@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
  * 
  * @author Chris Vest <mr.chrisvest@gmail.com>
  */
-public final class TimeExpiration<T extends Poolable> implements Expiration<T> {
+final class TimeExpiration<T extends Poolable> implements Expiration<T> {
 
   private final long maxPermittedAgeMillis;
   private final TimeUnit unit;
@@ -40,7 +40,7 @@ public final class TimeExpiration<T extends Poolable> implements Expiration<T> {
    * @param unit The {@link TimeUnit} of the maximum permitted age. Never
    * `null`.
    */
-  public TimeExpiration(long maxPermittedAge, TimeUnit unit) {
+  TimeExpiration(long maxPermittedAge, TimeUnit unit) {
     if (maxPermittedAge < 1) {
       throw new IllegalArgumentException(
           "Max permitted age cannot be less than 1");

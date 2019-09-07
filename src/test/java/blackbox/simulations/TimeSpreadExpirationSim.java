@@ -29,7 +29,7 @@ public class TimeSpreadExpirationSim extends Sim {
                                 // java.util.Set instead, but that's probably not worth the effort.
   @Conf(Param.expiration)
   public Expiration[] expirations = {
-      new TimeExpiration<>(2, TimeUnit.SECONDS),
+      Expiration.after(2, TimeUnit.SECONDS),
       new TimeSpreadExpiration<>(1, 2, TimeUnit.SECONDS)
   };
 

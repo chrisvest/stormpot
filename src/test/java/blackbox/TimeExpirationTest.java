@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import stormpot.Expiration;
 import stormpot.Poolable;
 import stormpot.SlotInfo;
-import stormpot.TimeExpiration;
 
 import java.util.concurrent.TimeUnit;
 
@@ -30,12 +29,12 @@ import static stormpot.MockSlotInfo.mockSlotInfoWithAge;
 class TimeExpirationTest {
 
   private Expiration<Poolable> createExpiration(int ttl) {
-    return new TimeExpiration<>(ttl, TimeUnit.MILLISECONDS);
+    return Expiration.after(ttl, TimeUnit.MILLISECONDS);
   }
 
   @Test
   void timeUnitCannotBeNull() {
-    assertThrows(IllegalArgumentException.class, () -> new TimeExpiration<>(10, null));
+    assertThrows(IllegalArgumentException.class, () -> Expiration.after(10, null));
   }
   
   @Test
@@ -66,10 +65,10 @@ class TimeExpirationTest {
 
   @Test
   void mustHaveNiceToString() {
-    TimeExpiration<Poolable> a = new TimeExpiration<>(42, TimeUnit.DAYS);
+    Expiration<Poolable> a = Expiration.after(42, TimeUnit.DAYS);
     assertThat(a.toString()).isEqualTo("TimeExpiration(42 DAYS)");
 
-    TimeExpiration<Poolable> b = new TimeExpiration<>(21, TimeUnit.MILLISECONDS);
+    Expiration<Poolable> b = Expiration.after(21, TimeUnit.MILLISECONDS);
     assertThat(b.toString()).isEqualTo("TimeExpiration(21 MILLISECONDS)");
   }
 }

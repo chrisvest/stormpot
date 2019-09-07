@@ -15,6 +15,8 @@
  */
 package stormpot;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * The expiration is used to determine if a given slot has expired, or
  * otherwise become invalid.
@@ -39,7 +41,7 @@ package stormpot;
  * performance of the pool.
  *
  * TIP: If the expiration is too slow, you can alternatively use a time-based
- * expiration, such as {@link stormpot.TimeExpiration}, that has been
+ * expiration, such as {@link #after(long, TimeUnit)}, that has been
  * configured with a very low expiration time, like a few seconds. Then you can
  * configure the pool to use a {@link stormpot.Reallocator}, where you do the
  * expensive expiration check in the
@@ -52,6 +54,24 @@ package stormpot;
  * @author Chris Vest <mr.chrisvest@gmail.com>
  */
 public interface Expiration<T extends Poolable> {
+  /**
+   * Construct a new Expiration that will invalidate objects that are older
+   * than the exact provided span of time in the given unit.
+   *
+   * If the `time` is less than one, or the `unit` is `null`, then
+   * an {@link IllegalArgumentException} will be thrown.
+   *
+   * @param time Poolables older than this, in the given unit, will
+   *            be considered expired. This value must be at least 1.
+   * @param unit The {@link TimeUnit} of the maximum permitted age.
+   *            Never `null`.
+   * @param <T> The type of {@link Poolable} to check.
+   * @return The specified time-based expiration policy.
+   */
+  static <T extends Poolable> Expiration<T> after(long time, TimeUnit unit) {
+    return new TimeExpiration<>(time, unit);
+  }
+
   /**
    * Test whether the Slot and Poolable object, represented by the given
    * {@link SlotInfo} object, is still valid, or if the pool should

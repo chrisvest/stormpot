@@ -15,12 +15,14 @@
  */
 package stormpot;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * Provides a way to compose {@link Expiration}s.
  *
  * Given two {@link Expiration}s, this class considers that a slot is expired if any of the
  * {@link Expiration} returns {@code true}. This makes it easy to have an {@link Expiration} that
- * expires both on time ({@link stormpot.TimeExpiration}) and some other criteria.
+ * expires both on time ({@link Expiration#after(long, TimeUnit)}) and some other criteria.
  *
  * @author Guillaume Lederrey <guillaume.lederrey@gmail.com>
  * @since 2.4
