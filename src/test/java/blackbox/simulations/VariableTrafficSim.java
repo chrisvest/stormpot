@@ -38,7 +38,7 @@ public class VariableTrafficSim extends Sim {
   @Agents({@Agent, @Agent, @Agent, @Agent})
   public void claimRelease(Pool<Poolable> pool) throws InterruptedException {
     if (startTime == 0) {
-      startTime = System.currentTimeMillis();
+      startTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
     }
     pool.claim(timeout).release();
   }
@@ -46,7 +46,7 @@ public class VariableTrafficSim extends Sim {
   // ... that for an initial period are very busy ...
   @AgentPause()
   public long pause() {
-    long now = System.currentTimeMillis() - startTime;
+    long now = TimeUnit.NANOSECONDS.toMillis(System.nanoTime()) - startTime;
     if (now < 5000) {
       return 100; // short pause for the first 5 seconds
     }

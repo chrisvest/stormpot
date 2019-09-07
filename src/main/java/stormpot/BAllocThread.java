@@ -238,7 +238,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
       slot.poison = e;
     }
     size++;
-    resetSlot(slot, System.currentTimeMillis());
+    resetSlot(slot, System.nanoTime());
     live.offer(slot);
     incrementAllocationCounts(success);
     didAnythingLastIteration = true;
@@ -253,7 +253,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   }
 
   private void resetSlot(BSlot<T> slot, long now) {
-    slot.created = now;
+    slot.createdNanos = now;
     slot.claims = 0;
     slot.stamp = 0;
     slot.dead2live();
@@ -263,8 +263,8 @@ final class BAllocThread<T extends Poolable> implements Runnable {
     size--;
     try {
       if (slot.poison == null) {
-        long now = System.currentTimeMillis();
-        recordObjectLifetimeSample(now - slot.created);
+        long now = System.nanoTime();
+        recordObjectLifetimeSample(now - slot.createdNanos);
         allocator.deallocate(slot.obj);
       } else {
         poisonedSlots.getAndDecrement();
@@ -296,8 +296,8 @@ final class BAllocThread<T extends Poolable> implements Runnable {
         poisonedSlots.getAndIncrement();
         slot.poison = e;
       }
-      long now = System.currentTimeMillis();
-      recordObjectLifetimeSample(now - slot.created);
+      long now = System.nanoTime();
+      recordObjectLifetimeSample(now - slot.createdNanos);
       resetSlot(slot, now);
       live.offer(slot);
       incrementAllocationCounts(success);
@@ -308,8 +308,9 @@ final class BAllocThread<T extends Poolable> implements Runnable {
     didAnythingLastIteration = true;
   }
 
-  private void recordObjectLifetimeSample(long milliseconds) {
+  private void recordObjectLifetimeSample(long nanoseconds) {
     if (metricsRecorder != null) {
+      long milliseconds = TimeUnit.NANOSECONDS.toMillis(nanoseconds);
       metricsRecorder.recordObjectLifetimeSampleMillis(milliseconds);
     }
   }

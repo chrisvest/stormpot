@@ -36,7 +36,7 @@ public class UnitKit {
     return thread;
   }
 
-  public static Runnable asRunnable(final Callable<?> procedure) {
+  private static Runnable asRunnable(final Callable<?> procedure) {
     return () -> {
       try {
         procedure.call();
@@ -47,7 +47,7 @@ public class UnitKit {
   }
 
   private static class WrappedException extends RuntimeException {
-    public WrappedException(Throwable cause) {
+    WrappedException(Throwable cause) {
       super(cause);
     }
   }
@@ -70,8 +70,8 @@ public class UnitKit {
     return (CatchingExceptionHandler) thread.getUncaughtExceptionHandler();
   }
   
-  public static <T> Future<T> forkFuture(Callable<T> proceduce) {
-    return executor.submit(proceduce);
+  public static <T> Future<T> forkFuture(Callable<T> procedure) {
+    return executor.submit(procedure);
   }
 
   public static <T extends Poolable> Callable<T> $claim(
@@ -166,12 +166,12 @@ public class UnitKit {
   }
   
   public static void waitForThreadState(Thread thread, Thread.State targetState) {
-    long start = System.currentTimeMillis();
+    long start = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
     long check = start + 30;
     State currentState = thread.getState();
     while (currentState != targetState) {
       assertThat(currentState).isNotEqualTo(Thread.State.TERMINATED);
-      long now = System.currentTimeMillis();
+      long now = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
       if (now > check) {
         long elapsed = now - start;
         System.err.println("Warning: Been waiting to observe thread state " +
@@ -233,7 +233,7 @@ public class UnitKit {
     }
   }
 
-  public static void sneakyThrow(Throwable throwable) {
+  static void sneakyThrow(Throwable throwable) {
     UnitKit._sneakyThrow(throwable);
   }
 

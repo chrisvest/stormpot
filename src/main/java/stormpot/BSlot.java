@@ -18,6 +18,7 @@ package stormpot;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -99,7 +100,7 @@ final class BSlot<T extends Poolable>
 
   @Override
   public long getAgeMillis() {
-    return System.currentTimeMillis() - created;
+    return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - createdNanos);
   }
 
   @Override
@@ -190,7 +191,7 @@ abstract class BSlotColdFields<T extends Poolable> extends Padding2 implements S
   final BlockingQueue<BSlot<T>> live;
   final AtomicInteger poisonedSlots;
   long stamp;
-  long created;
+  long createdNanos;
   T obj;
   Exception poison;
   long claims;

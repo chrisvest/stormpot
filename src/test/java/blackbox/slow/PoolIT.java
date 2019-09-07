@@ -105,10 +105,10 @@ class PoolIT {
     Future<?> future = executor.submit(runner);
     EXECUTOR_EXTENSION.printOnFailure(future);
 
-    long deadline = System.currentTimeMillis() + 5000;
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
     do {
       pool.claim(longTimeout).release();
-    } while (System.currentTimeMillis() < deadline);
+    } while (System.nanoTime() < deadline);
     assertTrue(pool.shutdown().await(longTimeout));
     future.get();
   }

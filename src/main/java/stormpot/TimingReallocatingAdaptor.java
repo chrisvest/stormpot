@@ -15,6 +15,8 @@
  */
 package stormpot;
 
+import java.util.concurrent.TimeUnit;
+
 class TimingReallocatingAdaptor<T extends Poolable>
     extends ReallocatingAdaptor<T>
     implements Reallocator<T> {
@@ -30,27 +32,30 @@ class TimingReallocatingAdaptor<T extends Poolable>
 
   @Override
   public T allocate(Slot slot) throws Exception {
-    long start = System.currentTimeMillis();
+    long start = System.nanoTime();
     try {
       T obj = super.allocate(slot);
-      long elapsed = System.currentTimeMillis() - start;
-      metricsRecorder.recordAllocationLatencySampleMillis(elapsed);
+      long elapsedNanos = System.nanoTime() - start;
+      long milliseconds = TimeUnit.NANOSECONDS.toMillis(elapsedNanos);
+      metricsRecorder.recordAllocationLatencySampleMillis(milliseconds);
       return obj;
     } catch (Exception e) {
-      long elapsed = System.currentTimeMillis() - start;
-      metricsRecorder.recordAllocationFailureLatencySampleMillis(elapsed);
+      long elapsedNanos = System.nanoTime() - start;
+      long milliseconds = TimeUnit.NANOSECONDS.toMillis(elapsedNanos);
+      metricsRecorder.recordAllocationFailureLatencySampleMillis(milliseconds);
       throw e;
     }
   }
 
   @Override
   public void deallocate(T poolable) throws Exception {
-    long start = System.currentTimeMillis();
+    long start = System.nanoTime();
     try {
       super.deallocate(poolable);
     } finally {
-      long elapsed = System.currentTimeMillis() - start;
-      metricsRecorder.recordDeallocationLatencySampleMillis(elapsed);
+      long elapsedNanos = System.nanoTime() - start;
+      long milliseconds = TimeUnit.NANOSECONDS.toMillis(elapsedNanos);
+      metricsRecorder.recordDeallocationLatencySampleMillis(milliseconds);
     }
   }
 }

@@ -66,7 +66,7 @@ The `SlotInfo` has a number of useful methods for implementing `Expiration` poli
 
 NOTE: The `hasExpired` method may be called several times during every call to `claim`.
 It is therefor _very_ critical to the performance of the pool, and you should take great care to make sure that it is fast.
-In fact, it is so performance sensitive, that reading the time from the system clock, e.g. with `System#currentTimeMillis`, can be a significant drag on the performance of the pool.
+In fact, it is so performance sensitive, that reading the time from the system clock, e.g. with `System#nanoTime`, can be a significant drag on the performance of the pool.
 
 === Background Expiration Checking
 

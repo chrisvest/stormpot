@@ -15,6 +15,8 @@
  */
 package stormpot;
 
+import java.util.concurrent.TimeUnit;
+
 final class TimingReallocatorAdaptor<T extends Poolable>
     extends TimingReallocatingAdaptor<T>
     implements Reallocator<T> {
@@ -25,15 +27,17 @@ final class TimingReallocatorAdaptor<T extends Poolable>
 
   @Override
   public T reallocate(Slot slot, T poolable) throws Exception {
-    long start = System.currentTimeMillis();
+    long start = System.nanoTime();
     try {
       T obj = ((Reallocator<T>) allocator).reallocate(slot, poolable);
-      long elapsed = System.currentTimeMillis() - start;
-      metricsRecorder.recordReallocationLatencySampleMillis(elapsed);
+      long elapsedNanos = System.nanoTime() - start;
+      long milliseconds = TimeUnit.NANOSECONDS.toMillis(elapsedNanos);
+      metricsRecorder.recordReallocationLatencySampleMillis(milliseconds);
       return obj;
     } catch (Exception e) {
-      long elapsed = System.currentTimeMillis() - start;
-      metricsRecorder.recordReallocationFailureLatencySampleMillis(elapsed);
+      long elapsedNanos = System.nanoTime() - start;
+      long milliseconds = TimeUnit.NANOSECONDS.toMillis(elapsedNanos);
+      metricsRecorder.recordReallocationFailureLatencySampleMillis(milliseconds);
       throw e;
     }
   }

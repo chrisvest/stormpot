@@ -119,7 +119,7 @@ public abstract class Sim {
   }
 
   public static void main(String[] args) throws Exception {
-    long start = System.currentTimeMillis();
+    long start = System.nanoTime();
     String cmdClass = System.getProperty("sun.java.command").replaceFirst("^.*\\s+", "");
     Class<?> klass = Class.forName(cmdClass);
     Sim sim = (Sim) klass.getConstructor().newInstance();
@@ -135,7 +135,7 @@ public abstract class Sim {
       Output output = simulation == null? Output.detailed : simulation.output();
       simulate(sim, builder, enableAllocationCost, output);
     }
-    long elapsedMillis = System.currentTimeMillis() - start;
+    long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
     System.out.printf("Done, %.3f seconds.%n", elapsedMillis / 1000.0);
     System.exit(0);
   }
