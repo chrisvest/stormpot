@@ -27,11 +27,11 @@ import java.util.concurrent.TimeUnit;
  * @author Guillaume Lederrey <guillaume.lederrey@gmail.com>
  * @since 2.4
  */
-class CompoundExpiration<T extends Poolable> implements Expiration<T> {
+class OrExpiration<T extends Poolable> implements Expiration<T> {
   private final Expiration<T> firstExpiration;
   private final Expiration<T> secondExpiration;
 
-  CompoundExpiration(Expiration<T> firstExpiration, Expiration<T> secondExpiration) {
+  OrExpiration(Expiration<T> firstExpiration, Expiration<T> secondExpiration) {
     this.firstExpiration = firstExpiration;
     this.secondExpiration = secondExpiration;
   }

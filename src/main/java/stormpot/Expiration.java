@@ -117,7 +117,7 @@ public interface Expiration<T extends Poolable> {
    * @return A new expiration composed of this and the other expiration.
    */
   default Expiration<T> or(Expiration<T> other) {
-    return new CompoundExpiration<>(this, other);
+    return new OrExpiration<>(this, other);
   }
 
   /**

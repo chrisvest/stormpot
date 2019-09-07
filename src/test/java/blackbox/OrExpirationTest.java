@@ -28,7 +28,7 @@ import static stormpot.ExpireKit.$expired;
 import static stormpot.ExpireKit.$fresh;
 import static stormpot.ExpireKit.expire;
 
-class CompoundExpirationTest {
+class OrExpirationTest {
 
   @Test
   void expiresWhenBothExpirationsExpire() throws Exception {
