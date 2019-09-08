@@ -94,8 +94,8 @@ public interface Expiration<T extends Poolable> {
    * @param fromTime Poolables younger than this, in the given unit, are not
    *                 considered expired. This value must be at least 1.
    * @param toTime Poolables older than this, in the given unit, are always
-   *               considered expired. This value must be greater than the
-   *               lowerBound.
+   *               considered expired. This value must be greater than or equal
+   *               to the lowerBound.
    * @param unit The {@link TimeUnit} of the bounds values. Never `null`.
    */
   static <T extends Poolable> Expiration<T> after(
@@ -118,6 +118,39 @@ public interface Expiration<T extends Poolable> {
    */
   default Expiration<T> or(Expiration<T> other) {
     return new OrExpiration<>(this, other);
+  }
+
+  /**
+   * Construct a new Expiration that is composed of a time-based expiration and
+   * this one, such that this expiration is only consulted at most once within
+   * the given time period.
+   *
+   * For instance, if an expiration is expensive, you can use this to only
+   * check it, say, every 5 seconds.
+   *
+   * @param time The time between checks.
+   * @param unit The unit of the time between checks.
+   * @return An expiration that only delegates to this one every so often.
+   */
+  default Expiration<T> every(long time, TimeUnit unit) {
+    return every(time, time, unit);
+  }
+
+  /**
+   * Construct a new Expiration that is composed of a time-based expiration and
+   * this one, such that this expiration is only consulted at most once within
+   * a time period based on the given `fromTime` and `toTime` brackets.
+   *
+   * For instance, if an expiration is expensive, you can use this to only
+   * check it, say, every 5 to 10 seconds.
+   *
+   * @param fromTime The minimum amount of time before a check becomes necessary.
+   * @param toTime The maximum amount of time before a check becomes necessary.
+   * @param unit The unit of the time between checks.
+   * @return An expiration that only delegates to this one every so often.
+   */
+  default Expiration<T> every(long fromTime, long toTime, TimeUnit unit) {
+    return new EveryExpiration<>(this, fromTime, toTime, unit);
   }
 
   /**

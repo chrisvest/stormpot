@@ -34,12 +34,22 @@ class TimeSpreadExpirationTest {
 
   @Test
   void lowerExpirationBoundCannotBeLessThanOne() {
-    assertThrows(IllegalArgumentException.class, () -> createExpiration(0, 2, TimeUnit.NANOSECONDS));
+    assertThrows(IllegalArgumentException.class,
+        () -> createExpiration(0, 2, TimeUnit.NANOSECONDS));
   }
   
   @Test
-  void upperExpirationBoundMustBeGreaterThanTheLowerBound() {
-    assertThrows(IllegalArgumentException.class, () -> createExpiration(1, 1, TimeUnit.NANOSECONDS));
+  void upperExpirationBoundMustBeGreaterThanOrEqualToTheLowerBound() {
+    assertThrows(IllegalArgumentException.class,
+        () -> createExpiration(100, 99, TimeUnit.NANOSECONDS));
+  }
+
+  @Test
+  void lowerAndUpperBoundCanBeEqual() throws Exception {
+    Expiration<Poolable> expiration = createExpiration(1, 1, SECONDS);
+    assertThat(expirationPercentage(expiration, 999)).isEqualTo(0);
+    assertThat(expirationPercentage(expiration, 1000)).isEqualTo(100);
+    assertThat(expirationPercentage(expiration, 1001)).isEqualTo(100);
   }
   
   @Test

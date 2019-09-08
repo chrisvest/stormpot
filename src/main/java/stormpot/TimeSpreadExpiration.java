@@ -55,9 +55,9 @@ final class TimeSpreadExpiration<T extends Poolable> implements Expiration<T> {
       throw new IllegalArgumentException(
           "The lower bound cannot be less than 1.");
     }
-    if (upperBound <= lowerBound) {
+    if (upperBound < lowerBound) {
       throw new IllegalArgumentException(
-          "The upper bound must be greater than the lower bound.");
+          "The upper bound must be greater than or equal to the lower bound.");
     }
     if (unit == null) {
       throw new IllegalArgumentException("The TimeUnit cannot be null.");
@@ -83,13 +83,18 @@ final class TimeSpreadExpiration<T extends Poolable> implements Expiration<T> {
   public boolean hasExpired(SlotInfo<? extends T> info) {
     long expirationAge = info.getStamp();
     if (expirationAge == 0) {
-      long maxDelta = upperBoundMillis - lowerBoundMillis;
-      ThreadLocalRandom prng = ThreadLocalRandom.current();
-      expirationAge = lowerBoundMillis + Math.abs(prng.nextInt() % maxDelta);
+      expirationAge = computeExpirationDeadline();
       info.setStamp(expirationAge);
     }
     long age = info.getAgeMillis();
     return age >= expirationAge;
+  }
+
+  long computeExpirationDeadline() {
+    long maxDelta = upperBoundMillis - lowerBoundMillis;
+    ThreadLocalRandom prng = ThreadLocalRandom.current();
+    long fudgeFactor = upperBoundMillis == lowerBoundMillis ? 0 : Math.abs(prng.nextInt() % maxDelta);
+    return lowerBoundMillis + fudgeFactor;
   }
 
   /**
