@@ -25,21 +25,21 @@ class ExpirationTest {
   @Test
   void youngSlotsAreNotInvalid() throws Exception {
     Expiration<Poolable> expiration = Expiration.after(2, MILLISECONDS);
-    SlotInfo<?> info = new MockSlotInfo(1);
+    SlotInfo<?> info = new SlotInfoStub(1);
     assertFalse(expiration.hasExpired(info));
   }
 
   @Test
   void slotsAtTheMaximumPermittedAgeAreNotInvalid() throws Exception {
     Expiration<Poolable> expiration = Expiration.after(2, MILLISECONDS);
-    SlotInfo<?> info = new MockSlotInfo(2);
+    SlotInfo<?> info = new SlotInfoStub(2);
     assertFalse(expiration.hasExpired(info));
   }
 
   @Test
   void slotsOlderThanTheMaximumPermittedAgeAreInvalid() throws Exception {
     Expiration<Poolable> expiration = Expiration.after(2, MILLISECONDS);
-    SlotInfo<?> info = new MockSlotInfo(3);
+    SlotInfo<?> info = new SlotInfoStub(3);
     assertTrue(expiration.hasExpired(info));
   }
 
@@ -128,7 +128,7 @@ class ExpirationTest {
 
     // The age of this object is right in the middle of the range.
     // It should have a 50% chance of expiring.
-    MockSlotInfo info = new MockSlotInfo(1000);
+    SlotInfoStub info = new SlotInfoStub(1000);
 
     int checks = 10_000;
     int expectedExpirations = checks / 2;
@@ -160,18 +160,18 @@ class ExpirationTest {
     int expirationsMax = objectsPerMillis + expirationCountTolerance;
 
     Expiration<Poolable> expiration = Expiration.after(from, to, MILLISECONDS);
-    List<MockSlotInfo> infos = new LinkedList<>();
+    List<SlotInfoStub> infos = new LinkedList<>();
 
     for (int i = 0; i < objects; i++) {
-      infos.add(new MockSlotInfo(from));
+      infos.add(new SlotInfoStub(from));
     }
 
     for (int i = 0; i < span; i++) {
-      Iterator<MockSlotInfo> itr = infos.iterator();
+      Iterator<SlotInfoStub> itr = infos.iterator();
       int expirations = 0;
 
       while (itr.hasNext()) {
-        MockSlotInfo info = itr.next();
+        SlotInfoStub info = itr.next();
         info.setAgeInMillis(from + i);
         if (expiration.hasExpired(info)) {
           expirations++;
@@ -191,7 +191,7 @@ class ExpirationTest {
       Expiration<Poolable> expiration, long ageInMillis) throws Exception {
     int expired = 0;
     for (int count = 0; count < 100000; count++) {
-      MockSlotInfo slotInfo = new MockSlotInfo(ageInMillis);
+      SlotInfoStub slotInfo = new SlotInfoStub(ageInMillis);
       if (expiration.hasExpired(slotInfo)) {
         expired++;
       }
@@ -204,7 +204,7 @@ class ExpirationTest {
     Expiration<GenericPoolable> expiration =
         expire($expired).or(expire($expired));
 
-    assertTrue(expiration.hasExpired(new MockSlotInfo()));
+    assertTrue(expiration.hasExpired(new SlotInfoStub()));
   }
 
   @Test
@@ -212,18 +212,18 @@ class ExpirationTest {
     Expiration<GenericPoolable> expiration =
         expire($expired).or(expire($fresh));
 
-    assertTrue(expiration.hasExpired(new MockSlotInfo()));
+    assertTrue(expiration.hasExpired(new SlotInfoStub()));
 
     expiration = expire($fresh).or(expire($expired));
 
-    assertTrue(expiration.hasExpired(new MockSlotInfo()));
+    assertTrue(expiration.hasExpired(new SlotInfoStub()));
   }
 
   @Test
   void doesNotExpireWhenNoExpirationExpire() throws Exception {
     Expiration<GenericPoolable> expiration = expire($fresh).or(expire($fresh));
 
-    assertFalse(expiration.hasExpired(new MockSlotInfo()));
+    assertFalse(expiration.hasExpired(new SlotInfoStub()));
   }
 
   @Test
@@ -232,7 +232,7 @@ class ExpirationTest {
     Expiration<GenericPoolable> expiration = expire($expired).or(
         info -> reached.getAndSet(true));
 
-    assertTrue(expiration.hasExpired(new MockSlotInfo()));
+    assertTrue(expiration.hasExpired(new SlotInfoStub()));
     assertFalse(reached.get());
   }
 
@@ -243,7 +243,7 @@ class ExpirationTest {
         info -> counter.incrementAndGet() > 0;
     expiration = expiration.every(1, SECONDS);
 
-    MockSlotInfo info = new MockSlotInfo(0);
+    SlotInfoStub info = new SlotInfoStub(0);
 
     assertFalse(expiration.hasExpired(info));
     assertThat(counter.get()).isEqualTo(0);
@@ -283,7 +283,7 @@ class ExpirationTest {
         info -> counter.incrementAndGet() > 0;
     expiration = expiration.every(3, 4, SECONDS);
 
-    MockSlotInfo info = new MockSlotInfo(0);
+    SlotInfoStub info = new SlotInfoStub(0);
 
     assertFalse(expiration.hasExpired(info));
     assertThat(counter.get()).isEqualTo(0);

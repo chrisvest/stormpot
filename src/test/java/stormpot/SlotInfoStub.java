@@ -15,14 +15,14 @@
  */
 package stormpot;
 
-public class MockSlotInfo implements SlotInfo<GenericPoolable> {
+public class SlotInfoStub implements SlotInfo<GenericPoolable> {
   private long ageInMillis;
   private long stamp = 0;
 
-  public MockSlotInfo() {
+  public SlotInfoStub() {
   }
 
-  public MockSlotInfo(long ageInMillis) {
+  public SlotInfoStub(long ageInMillis) {
     this.ageInMillis = ageInMillis;
   }
 
