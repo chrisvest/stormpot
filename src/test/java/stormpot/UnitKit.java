@@ -47,6 +47,8 @@ public class UnitKit {
   }
 
   private static class WrappedException extends RuntimeException {
+    private static final long serialVersionUID = 8268471823070464895L;
+
     WrappedException(Throwable cause) {
       super(cause);
     }
@@ -55,6 +57,8 @@ public class UnitKit {
   private static class CatchingExceptionHandler
       extends AtomicReference<Throwable>
       implements Thread.UncaughtExceptionHandler {
+
+    private static final long serialVersionUID = 2170391393239672337L;
 
     @Override
     public void uncaughtException(Thread t, Throwable e) {
@@ -152,7 +156,7 @@ public class UnitKit {
     return () -> {
       List<Poolable> list = new ArrayList<>(Arrays.asList(objs));
       try {
-        while (list.size() > 0) {
+        while (!list.isEmpty()) {
           delayUnit.sleep(delay);
           list.remove(0).release();
         }

@@ -54,5 +54,4 @@ public class SlotInfoStub implements SlotInfo<GenericPoolable> {
   public void setStamp(long stamp) {
     this.stamp = stamp;
   }
-
 }

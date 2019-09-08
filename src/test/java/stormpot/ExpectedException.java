@@ -16,4 +16,5 @@
 package stormpot;
 
 public class ExpectedException extends RuntimeException {
+  private static final long serialVersionUID = -7222172301643374026L;
 }

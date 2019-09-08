@@ -27,8 +27,8 @@ import java.util.concurrent.TimeUnit;
  */
 final class TimeSpreadExpiration<T extends Poolable> implements Expiration<T> {
 
-  private final long lowerBoundMillis;
-  private final long upperBoundMillis;
+  private final long fromMillis;
+  private final long toMillis;
   private final TimeUnit unit;
 
   /**
@@ -62,8 +62,8 @@ final class TimeSpreadExpiration<T extends Poolable> implements Expiration<T> {
     if (unit == null) {
       throw new IllegalArgumentException("The TimeUnit cannot be null.");
     }
-    this.lowerBoundMillis = unit.toMillis(lowerBound);
-    this.upperBoundMillis = unit.toMillis(upperBound);
+    this.fromMillis = unit.toMillis(lowerBound);
+    this.toMillis = unit.toMillis(upperBound);
     this.unit = unit;
   }
 
@@ -91,10 +91,10 @@ final class TimeSpreadExpiration<T extends Poolable> implements Expiration<T> {
   }
 
   long computeExpirationDeadline() {
-    long maxDelta = upperBoundMillis - lowerBoundMillis;
+    long maxDelta = toMillis - fromMillis;
     ThreadLocalRandom prng = ThreadLocalRandom.current();
-    long fudgeFactor = upperBoundMillis == lowerBoundMillis ? 0 : Math.abs(prng.nextInt() % maxDelta);
-    return lowerBoundMillis + fudgeFactor;
+    long fudgeFactor = fromMillis == toMillis ? 0 : Math.abs(prng.nextInt() % maxDelta);
+    return fromMillis + fudgeFactor;
   }
 
   /**
@@ -102,8 +102,8 @@ final class TimeSpreadExpiration<T extends Poolable> implements Expiration<T> {
    */
   @Override
   public String toString() {
-    long lower = unit.convert(lowerBoundMillis, TimeUnit.MILLISECONDS);
-    long upper = unit.convert(upperBoundMillis, TimeUnit.MILLISECONDS);
+    long lower = unit.convert(fromMillis, TimeUnit.MILLISECONDS);
+    long upper = unit.convert(toMillis, TimeUnit.MILLISECONDS);
     return "TimeSpreadExpiration(" + lower + " to " + upper + " " + unit + ")";
   }
 }

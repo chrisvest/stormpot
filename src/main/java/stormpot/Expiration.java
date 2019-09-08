@@ -40,16 +40,24 @@ import java.util.concurrent.TimeUnit;
  * Expiration is fast. It can easily be the dominating factor in the
  * performance of the pool.
  *
- * TIP: If the expiration is too slow, you can alternatively use a time-based
- * expiration, such as {@link #after(long, TimeUnit)}, that has been
- * configured with a very low expiration time, like a few seconds. Then you can
- * configure the pool to use a {@link stormpot.Reallocator}, where you do the
- * expensive expiration check in the
- * {@link stormpot.Reallocator#reallocate(Slot, Poolable) reallocate} method,
- * returning the same Poolable back if it hasn't expired.
+ * [TIP]
+ * --
+ * If the expiration is too slow, you can use
+ * {@link #every(long, TimeUnit)} or {@link #every(long, long, TimeUnit)} to
+ * make an expiration that only performs the slow expiration check every few
+ * seconds, for instance.
+ *
+ * You can alternatively use a time-based expiration, such as
+ * {@link #after(long, TimeUnit)}, that has been configured with a very low
+ * expiration time, like a few seconds. Then you can configure the pool to use
+ * a {@link stormpot.Reallocator}, where you do the expensive expiration check
+ * in the {@link stormpot.Reallocator#reallocate(Slot, Poolable) reallocate}
+ * method, returning the same Poolable back if it hasn't expired.
+ *
  * Be aware, though, that such a scheme has to be tuned to the load of the
  * application, such that the objects in the pool don't all expire at the same
  * time, leaving the pool empty.
+ * --
  *
  * @author Chris Vest <mr.chrisvest@gmail.com>
  */
@@ -97,6 +105,8 @@ public interface Expiration<T extends Poolable> {
    *               considered expired. This value must be greater than or equal
    *               to the lowerBound.
    * @param unit The {@link TimeUnit} of the bounds values. Never `null`.
+   * @param <T> The type of {@link Poolable} to check.
+   * @return The specified time-based expiration policy.
    */
   static <T extends Poolable> Expiration<T> after(
       long fromTime, long toTime, TimeUnit unit) {
