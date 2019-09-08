@@ -32,10 +32,9 @@ What it means for an object to be "expired" depends on what objects we are talki
 For instance, you might be pooling network connections that are closed by a firewall if they have been idle for too long, in which case it makes sense to have them reconnect before that happens.
 
 It is the `Expiration` policy that decides whether or not an object has expired, and it is configured with `setExpiration`.
-The default expiration policy is a `TimeSpreadExpiration` that expires objects after they've been circulating for somewhere between 8 to 10 minutes.
-The `TimeSpreadExpiration` is pretty handy, because it spreads the expirations out over time.
+The default expiration policy expires objects after they've been circulating for somewhere between 8 to 10 minutes.
+This is pretty handy, because it spreads the expirations out over time.
 This means that the objects in the pool don't all expire at the same time.
-This is an improvement over the simple `TimeExpiration`, because an object cannot be claimed once it has expired.
 
 If all objects expire at the same time, it could temporarily leave the pool completely empty, until all the expired objects have been reallocated.
 Such periods of "object drought" can lead to long stalls, aka. latencies in claiming objects from the pool, as the demand for objects is suddenly much higher than the availability.
@@ -45,9 +44,9 @@ In that case, a custom `Expiration` policy can be configured, that simply always
 
 ==== Custom Object Expiration
 
-You can do more advanced stuff with object expiration, though, than just choosing between `TimeSpreadExpiration` and `TimeExpiration`.
-You can implement your own policy by implementing the `Expiration` interface.
-Then return `true` from the `hasExpired` method, whenever you deem the given object needs to be reallocated.
+You can do more advanced stuff with object expiration, though, than just deciding how long objects are allowed to circulate.
+You can implement your own policy by implementing the `Expiration` interface, or by using its constructor and combinator methods.
+To implement the `Expiration` interface yourself, you will have to return `true` from the `hasExpired` method, whenever you deem the given object needs to be reallocated.
 The `hasExpired` method gets a `SlotInfo` object, that represents the `Poolable` being validated, and its `Slot`.
 
 NOTE: Your `Expiration` implementation needs to be thread-safe, since it will be used concurrently by many threads, to validate whatever objects they happen to be trying to claim at any given point in time.
@@ -56,11 +55,11 @@ This means that access to the associated `Poolable` instance is thread-safe.
 
 The `SlotInfo` has a number of useful methods for implementing `Expiration` policies:
 
-* For instance, the `getAgeMillis` is used by the `TimeExpiration` to determine if an object has expired.
-* The `setStamp` and `getStamp` methods can store any long your expiration desires.
+* For instance, the `getAgeMillis` is used by the `Expiration.after()` expirations, to determine if an object has expired.
+* The `setStamp` and `getStamp` methods can be used to store any state as a single long, that you might need in your expiration implementation.
   The stamp of a `SlotInfo` is always zero for newly allocated objects.
   Its value means whatever the expiration policy wants it to mean.
-  For instance, the `TimeSpreadExpiration` uses the stamp to store the deadline for when an object will expire.
+  For instance, the `after()` expiration, and `every()` combinator, uses the stamp to store the deadline for when an object will expire.
   This way, the number and frequency of claims does not influence the distribution of when objects expire.
 * The `getClaimCount` simply returns the number of times an object has been claimed.
 

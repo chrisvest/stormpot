@@ -177,7 +177,7 @@ If the `claim` method finds an object that has expired, then it is sent off to b
 The `hasExpired` method of the configured expiration is therefor very performance critical, as it may be called more than once for every call to the `claim` method.
 
 You can implement and configure your own `Expiration` implementation if you want, but Stormpot also comes with a couple of implementations of its own.
-The default expiration implementation is a `TimeSpreadExpiration` that is configured to expire objects after they have been live for somewhere between 8 to 10 minutes.
+The default expiration policy expires objects after they've been circulating for somewhere between 8 to 10 minutes.
 This implementation chooses the expiration age randomly on a per object bases, and thereby avoids expiring all objects at the same time.
 
 If something out of the ordinary happens, and an object expires while it is claimed (depending on what "expired" means for your use case), then the object can be explicitly expired with the `expire` method on the `Slot`.
