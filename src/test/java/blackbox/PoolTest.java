@@ -470,7 +470,7 @@ class PoolTest {
       }
       return true;
     };
-    builder.setExpiration(expiration);
+    builder.setExpiration(expiration).setBackgroundExpirationEnabled(false);
     createPool();
 
     pool.claim(longTimeout).release();
