@@ -502,7 +502,7 @@ class PoolTest {
     // Reallocations will fail, causing the slot to be poisoned.
     // Then, the poisoned slot will not be reallocated again, but rather
     // go through the deallocate-allocate cycle.
-    builder.setAllocator(reallocator(realloc($throw(new Exception()))));
+    builder.setAllocator(reallocator(realloc($throw(new Exception("boom")))));
     createPool();
     pool.claim(longTimeout).release();
     Thread.sleep(100); // time transpires
@@ -1806,7 +1806,7 @@ class PoolTest {
     }
     pool.setTargetSize(newSize);
     while (allocator.countDeallocations() != startingSize - newSize) {
-      if (objs.size() > 0) {
+      if (!objs.isEmpty()) {
         objs.remove(0).release(); // give the pool objects to deallocate
       } else {
         pool.claim(longTimeout).release(); // prod it & poke it
@@ -2539,7 +2539,7 @@ class PoolTest {
   void backgroundExpirationMustExpireObjectsWhenExpirationThrows() throws Exception {
     CountDownLatch latch = new CountDownLatch(1);
     CountingExpiration expiration = expire(
-        $throwExpire(new Exception()),
+        $throwExpire(new Exception("boom")),
         $countDown(latch, $fresh));
     builder.setExpiration(expiration);
     createPool();

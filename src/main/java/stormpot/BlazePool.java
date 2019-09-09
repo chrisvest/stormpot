@@ -42,8 +42,8 @@ import java.util.concurrent.TimeUnit;
 final class BlazePool<T extends Poolable>
     extends Pool<T> implements ManagedPool {
 
-  private static final Exception SHUTDOWN_POISON = new Exception();
-  static final Exception EXPLICIT_EXPIRE_POISON = new Exception();
+  private static final Exception SHUTDOWN_POISON = new Exception("Shutdown");
+  static final Exception EXPLICIT_EXPIRE_POISON = new Exception("Expired");
 
   private final BlockingQueue<BSlot<T>> live;
   private final DisregardBPile<T> disregardPile;
