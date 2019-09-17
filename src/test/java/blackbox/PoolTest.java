@@ -121,6 +121,39 @@ class PoolTest {
     createPool();
     assertThrows(IllegalArgumentException.class, () -> pool.claim(null));
   }
+
+  @Test
+  void threadSafePoolTapMustDelegateDirectlytoPool() throws Exception {
+    AtomicBoolean delegatedToPool = new AtomicBoolean();
+    Pool pool = new Pool() {
+      @Override
+      public Completion shutdown() {
+        return null;
+      }
+
+      @Override
+      public void setTargetSize(int size) {
+      }
+
+      @Override
+      public int getTargetSize() {
+        return 0;
+      }
+
+      @Override
+      public ManagedPool getManagedPool() {
+        return null;
+      }
+
+      @Override
+      public Poolable claim(Timeout timeout) {
+        delegatedToPool.set(true);
+        return null;
+      }
+    };
+    pool.getThreadSafeTap().claim(longTimeout);
+    assertTrue(delegatedToPool.get());
+  }
   
   /**
    * A call to claim must return before the timeout elapses if it
