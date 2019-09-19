@@ -2136,7 +2136,7 @@ class PoolTest {
     expired.set(false); // first claimed object is not expired
     pool.claim(longTimeout).release(); // first object is fully allocated
     expired.set(true); // the next object we claim is expired
-    GenericPoolable obj = pool.claim(zeroTimeout); // send back to reallocation TODO "boom" except can show up here.
+    GenericPoolable obj = pool.claim(zeroTimeout); // send back to reallocation
     assertThat(obj).isNull();
     allocationLatch.await();
     expired.set(false);

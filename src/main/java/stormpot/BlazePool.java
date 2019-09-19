@@ -143,7 +143,7 @@ final class BlazePool<T extends Poolable>
       slot = live.poll(Math.min(timeoutLeft, maxWaitQuantum), baseUnit);
       if (slot == null) {
         if (timeoutLeft <= 0) {
-          // we timed out while taking from the queue - just return null
+          // We timed out while taking from the queue - just return null
           return null;
         } else {
           timeoutLeft = timeout.getTimeLeft(deadline);
@@ -155,6 +155,10 @@ final class BlazePool<T extends Poolable>
       if (slot.live2claim()) {
         if (isInvalid(slot, false)) {
           timeoutLeft = timeout.getTimeLeft(deadline);
+          if (timeoutLeft <= 0) {
+            // There is no time left to poll the queue again - just return null
+            return null;
+          }
         } else {
           break;
         }
