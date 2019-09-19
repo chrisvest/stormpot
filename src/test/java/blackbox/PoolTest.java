@@ -20,6 +20,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import stormpot.*;
 
 import javax.management.JMX;
@@ -93,6 +95,31 @@ class PoolTest {
   private CountingAllocator allocator;
   private PoolBuilder<GenericPoolable> builder;
   private Pool<GenericPoolable> pool;
+  private PoolTap<GenericPoolable> threadSafeTap;
+  private PoolTap<GenericPoolable> threadLocalTap;
+
+  enum Taps {
+    POOL {
+      @Override
+      PoolTap<GenericPoolable> get(PoolTest test) {
+        return test.pool;
+      }
+    },
+    THREAD_SAFE {
+      @Override
+      PoolTap<GenericPoolable> get(PoolTest test) {
+        return test.threadSafeTap;
+      }
+    },
+    THREAD_LOCAL {
+      @Override
+      PoolTap<GenericPoolable> get(PoolTest test) {
+        return test.threadLocalTap;
+      }
+    };
+
+    abstract PoolTap<GenericPoolable> get(PoolTest test);
+  }
 
   @BeforeEach
   void setUp() {
@@ -113,17 +140,21 @@ class PoolTest {
   }
 
   private Pool<GenericPoolable> createPool() {
-    return pool = builder.build();
+    pool = builder.build();
+    threadSafeTap = pool.getThreadSafeTap();
+    threadLocalTap = pool.getThreadLocalTap();
+    return pool;
   }
 
-  @Test
-  void timeoutCannotBeNull() {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void timeoutCannotBeNull(Taps taps) {
     createPool();
-    assertThrows(IllegalArgumentException.class, () -> pool.claim(null));
+    assertThrows(IllegalArgumentException.class, () -> taps.get(this).claim(null));
   }
 
   @Test
-  void threadSafePoolTapMustDelegateDirectlytoPool() throws Exception {
+  void threadSafePoolTapMustDelegateDirectlyToPool() throws Exception {
     AtomicBoolean delegatedToPool = new AtomicBoolean();
     Pool pool = new Pool() {
       @Override
@@ -146,6 +177,11 @@ class PoolTest {
       }
 
       @Override
+      public PoolTap getThreadLocalTap() {
+        return null;
+      }
+
+      @Override
       public Poolable claim(Timeout timeout) {
         delegatedToPool.set(true);
         return null;
@@ -163,10 +199,11 @@ class PoolTest {
    * enough. If we do, then the pool does not correctly implement the timeout
    * behaviour.
    */
-  @Test
-  void claimMustReturnIfWithinTimeout() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void claimMustReturnIfWithinTimeout(Taps taps) throws Exception {
     createPool();
-    Poolable obj = pool.claim(longTimeout);
+    Poolable obj = taps.get(this).claim(longTimeout);
     try {
       assertThat(obj).isNotNull();
     } finally {
@@ -180,11 +217,13 @@ class PoolTest {
    * We test this by depleting a pool, and then make a call to claim with
    * a shot timeout. If that call returns <code>null</code>, then we're good.
    */
-  @Test
-  void claimMustReturnNullIfTimeoutElapses() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void claimMustReturnNullIfTimeoutElapses(Taps taps) throws Exception {
     createPool();
-    GenericPoolable a = pool.claim(longTimeout); // pool is now depleted
-    Poolable b = pool.claim(shortTimeout);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable a = tap.claim(longTimeout); // pool is now depleted
+    Poolable b = tap.claim(shortTimeout);
     try {
       assertThat(b).isNull();
     } finally {
@@ -203,10 +242,11 @@ class PoolTest {
    * source Allocator in a CountingAllocatorWrapper, but that is an
    * irrelevant detail.
    */
-  @Test
-  void mustGetPooledObjectsFromAllocator() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void mustGetPooledObjectsFromAllocator(Taps taps) throws Exception {
     createPool();
-    GenericPoolable obj = pool.claim(longTimeout);
+    GenericPoolable obj = taps.get(this).claim(longTimeout);
     try {
       assertThat(allocator.countAllocations()).isGreaterThan(0);
     } finally {
@@ -221,14 +261,16 @@ class PoolTest {
    * We test for this by observing that a thread that makes a claim-with-timeout
    * call to a depleted pool, will enter the TIMED_WAITING state.
    */
-  @Test
-  void blockingClaimWithTimeoutMustWaitIfPoolIsEmpty()
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void blockingClaimWithTimeoutMustWaitIfPoolIsEmpty(Taps taps)
       throws Exception {
     createPool();
-    GenericPoolable obj = pool.claim(longTimeout);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = tap.claim(longTimeout);
     assertNotNull(obj, "Did not deplete pool in time");
     AtomicReference<GenericPoolable> ref = new AtomicReference<>();
-    Thread thread = fork(capture($claim(pool, longTimeout), ref));
+    Thread thread = fork(capture($claim(tap, longTimeout), ref));
     try {
       waitForThreadState(thread, Thread.State.TIMED_WAITING);
     } finally {
@@ -245,14 +287,16 @@ class PoolTest {
    * then release an object back into the pool, then we must be able to join
    * to that thread.
    */
-  @Test
-  void blockingOnClaimWithTimeoutMustResumeWhenPoolablesAreReleased()
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void blockingOnClaimWithTimeoutMustResumeWhenPoolablesAreReleased(Taps taps)
       throws Exception {
     createPool();
-    Poolable obj = pool.claim(longTimeout);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    Poolable obj = tap.claim(longTimeout);
     assertNotNull(obj, "Did not deplete pool in time");
     AtomicReference<GenericPoolable> ref = new AtomicReference<>();
-    Thread thread = fork(capture($claim(pool, longTimeout), ref));
+    Thread thread = fork(capture($claim(tap, longTimeout), ref));
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     obj.release();
     join(thread);
@@ -269,11 +313,13 @@ class PoolTest {
    * allocation count - even for pools that like to eagerly saturate the
    * pool with objects.
    */
-  @Test
-  void mustReuseAllocatedObjects() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void mustReuseAllocatedObjects(Taps taps) throws Exception {
     createPool();
-    pool.claim(longTimeout).release();
-    pool.claim(longTimeout).release();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    tap.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
     assertThat(allocator.countAllocations()).isEqualTo(1);
   }
   
@@ -329,13 +375,15 @@ class PoolTest {
    * it is invoked. Then we claim an object and assert that the expiration
    * was invoked at least once, presumably for that object.
    */
-  @Test
-  void mustUseProvidedExpiration() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void mustUseProvidedExpiration(Taps taps) throws Exception {
     builder.setAllocator(allocator());
     CountingExpiration expiration = expire($fresh);
     builder.setExpiration(expiration);
     createPool();
-    pool.claim(longTimeout).release();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    tap.claim(longTimeout).release();
     assertThat(expiration.countExpirations()).isGreaterThanOrEqualTo(1);
   }
   
@@ -348,16 +396,18 @@ class PoolTest {
    * invoke the Expiration. Therefore we claim and release an object a
    * couple of times. That ought to do it.
    */
-  @Test
-  void exceptionsFromExpirationMustBubbleOut() {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void exceptionsFromExpirationMustBubbleOut(Taps taps) {
     builder.setExpiration(expire($throwExpire(new SomeRandomException())));
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
 
     PoolException e = assertThrows(PoolException.class, () -> {
       // make a couple of calls because pools might optimise for freshly
       // created objects
-      pool.claim(longTimeout).release();
-      pool.claim(longTimeout).release();
+      tap.claim(longTimeout).release();
+      tap.claim(longTimeout).release();
     });
     assertThat(e.getCause()).isInstanceOf(SomeRandomException.class);
   }
@@ -373,18 +423,17 @@ class PoolTest {
    * throws or not. All we're interested in, is whether the deallocation took
    * place.
    */
-  @Test
-  void slotsThatMakeTheExpirationThrowAreInvalid() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void slotsThatMakeTheExpirationThrowAreInvalid(Taps taps) {
     builder.setExpiration(expire($throwExpire(new SomeRandomException())));
     createPool();
-    PoolException e = assertThrows(PoolException.class, () -> pool.claim(longTimeout));
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    PoolException e = assertThrows(PoolException.class, () -> tap.claim(longTimeout));
     assertThat(e.getCause()).isInstanceOf(SomeRandomException.class);
     // second call to claim to ensure that the deallocation has taken place
-    try {
-      pool.claim(longTimeout);
-    } catch (PoolException e2) {
-      assertThat(e2.getCause()).isInstanceOf(SomeRandomException.class);
-    }
+    e = assertThrows(PoolException.class, () -> tap.claim(longTimeout));
+    assertThat(e.getCause()).isInstanceOf(SomeRandomException.class);
     // must have deallocated that object
     assertThat(allocator.countDeallocations()).isGreaterThanOrEqualTo(1);
   }
@@ -397,14 +446,16 @@ class PoolTest {
    * an atomic every time it is called. Then we make a couple of claims and
    * releases, and assert that the recorded count has gone up.
    */
-  @Test
-  void slotInfoClaimCountMustIncreaseWithClaims() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void slotInfoClaimCountMustIncreaseWithClaims(Taps taps) throws Exception {
     final AtomicLong claims = new AtomicLong();
     builder.setExpiration(expire($capture($claimCount(claims), $fresh)));
     createPool();
-    pool.claim(longTimeout).release();
-    pool.claim(longTimeout).release();
-    pool.claim(longTimeout).release();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    tap.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
     // We have made claims, and the expiration ought to have noted this.
     // We should observe a claim-count of 2, rather than 3, because the
     // expiration only gets to see past claims, not the one that is being
@@ -420,14 +471,16 @@ class PoolTest {
    * that puts the value into an atomic. Then we assert that the value of the
    * atomic is one of the claimed objects.
    */
-  @Test
-  void slotInfoMustHaveReferenceToItsPoolable() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void slotInfoMustHaveReferenceToItsPoolable(Taps taps) throws Exception {
     final AtomicReference<Poolable> lastPoolable = new AtomicReference<>();
     builder.setExpiration(expire($capture($poolable(lastPoolable), $fresh)));
     createPool();
-    GenericPoolable a = pool.claim(longTimeout);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable a = tap.claim(longTimeout);
     a.release();
-    GenericPoolable b = pool.claim(longTimeout);
+    GenericPoolable b = tap.claim(longTimeout);
     b.release();
     GenericPoolable poolable = (GenericPoolable) lastPoolable.get();
     assertThat(poolable).isIn(a, b);
@@ -442,8 +495,9 @@ class PoolTest {
    * claim count it observes in an atomic. Then we make more claims than this
    * limit, and observe that precisely one more than the max have been observed.
    */
-  @Test
-  void slotInfoClaimCountMustResetIfSlotsAreReused() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void slotInfoClaimCountMustResetIfSlotsAreReused(Taps taps) throws Exception {
     final AtomicLong maxClaimCount = new AtomicLong();
     Expiration<Poolable> expiration = info -> {
       maxClaimCount.set(Math.max(maxClaimCount.get(), info.getClaimCount()));
@@ -451,9 +505,10 @@ class PoolTest {
     };
     builder.setExpiration(expiration);
     createPool();
-    pool.claim(longTimeout).release();
-    pool.claim(longTimeout).release();
-    pool.claim(longTimeout).release();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    tap.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
     // we've made 3 claims, while all objects w/ claimCount > 1 are invalid
     assertThat(maxClaimCount.get()).isEqualTo(2L);
   }
@@ -466,8 +521,9 @@ class PoolTest {
    * we set it to. Then we claim and release a couple of times. If it works,
    * the second claim+release pair would have raised the flag.
    */
-  @Test
-  void slotInfoMustRememberStamp() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void slotInfoMustRememberStamp(Taps taps) throws Exception {
     final AtomicBoolean rememberedStamp = new AtomicBoolean();
     Expiration<Poolable> expiration = info -> {
       long stamp = info.getStamp();
@@ -480,8 +536,9 @@ class PoolTest {
     };
     builder.setExpiration(expiration);
     createPool();
-    pool.claim(longTimeout).release(); // First set it...
-    pool.claim(longTimeout).release(); // ... then get it.
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    tap.claim(longTimeout).release(); // First set it...
+    tap.claim(longTimeout).release(); // ... then get it.
     assertTrue(rememberedStamp.get());
   }
   
@@ -491,8 +548,9 @@ class PoolTest {
    * reallocate the Poolable, then we should observe that the stamp is now back
    * to zero again.
    */
-  @Test
-  void slotInfoStampMustResetIfSlotsAreReused() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void slotInfoStampMustResetIfSlotsAreReused(Taps taps) throws Exception {
     final AtomicLong zeroStampsCounted = new AtomicLong(0);
     Expiration<Poolable> expiration = info -> {
       long stamp = info.getStamp();
@@ -505,29 +563,33 @@ class PoolTest {
     };
     builder.setExpiration(expiration).setBackgroundExpirationEnabled(false);
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
 
-    pool.claim(longTimeout).release();
-    pool.claim(longTimeout).release();
-    pool.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
     
     assertThat(zeroStampsCounted.get()).isEqualTo(3L);
   }
 
-  @Test
-  void slotInfoMustHaveAgeInMillis() throws InterruptedException {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void slotInfoMustHaveAgeInMillis(Taps taps) throws InterruptedException {
     final AtomicLong age = new AtomicLong();
     builder.setExpiration(expire($capture($age(age), $fresh)));
     createPool();
-    pool.claim(longTimeout).release();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    tap.claim(longTimeout).release();
     long firstAge = age.get();
     spinwait(5);
-    pool.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
     long secondAge = age.get();
     assertThat(secondAge - firstAge).isGreaterThanOrEqualTo(5L);
   }
 
-  @Test
-  void slotInfoAgeMustResetAfterAllocation() throws InterruptedException {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void slotInfoAgeMustResetAfterAllocation(Taps taps) throws InterruptedException {
     final AtomicBoolean hasExpired = new AtomicBoolean();
     final AtomicLong age = new AtomicLong();
     builder.setExpiration(expire(
@@ -537,38 +599,41 @@ class PoolTest {
     // go through the deallocate-allocate cycle.
     builder.setAllocator(reallocator(realloc($throw(new Exception("boom")))));
     createPool();
-    pool.claim(longTimeout).release();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    tap.claim(longTimeout).release();
     Thread.sleep(100); // time transpires
-    pool.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
     long firstAge = age.get(); // age is now at least 5 ms
     hasExpired.set(true);
     try {
-      pool.claim(longTimeout).release();
+      tap.claim(longTimeout).release();
     } catch (Exception e) {
       // ignore
     }
     hasExpired.set(false);
     // new object should have a new age
-    pool.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
     long secondAge = age.get(); // age should be less than age of prev. obj.
     assertThat(secondAge).isLessThan(firstAge);
   }
 
-  @Test
-  void slotInfoAgeMustResetAfterReallocation() throws InterruptedException {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void slotInfoAgeMustResetAfterReallocation(Taps taps) throws InterruptedException {
     final AtomicBoolean hasExpired = new AtomicBoolean();
     final AtomicLong age = new AtomicLong();
     builder.setExpiration(expire(
         $capture($age(age), $expiredIf(hasExpired))));
     createPool();
-    pool.claim(longTimeout).release();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    tap.claim(longTimeout).release();
     Thread.sleep(100); // time transpires
-    pool.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
     long firstAge = age.get();
     hasExpired.set(true);
-    assertNull(pool.claim(zeroTimeout)); // cause reallocation
+    assertNull(tap.claim(zeroTimeout)); // cause reallocation
     hasExpired.set(false);
-    pool.claim(longTimeout).release(); // new object, new age
+    tap.claim(longTimeout).release(); // new object, new age
     long secondAge = age.get();
     assertThat(secondAge).isLessThan(firstAge);
   }
@@ -582,12 +647,14 @@ class PoolTest {
    * possible to implement in a thread-safe manner and not provide the
    * memory effects that we want.
    */
-  @Test
-  void preventClaimFromPoolThatIsShutDown() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void preventClaimFromPoolThatIsShutDown(Taps taps) throws Exception {
     createPool();
-    pool.claim(longTimeout).release();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    tap.claim(longTimeout).release();
     pool.shutdown();
-    assertThrows(IllegalStateException.class, () -> pool.claim(longTimeout));
+    assertThrows(IllegalStateException.class, () -> tap.claim(longTimeout));
   }
 
   /**
@@ -604,13 +671,15 @@ class PoolTest {
    * claim call can complete, and thus more than the expected two allocations
    * are possible. This is why we check for *at least* two allocations.
    */
-  @Test
-  void mustReplaceExpiredPoolables() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void mustReplaceExpiredPoolables(Taps taps) throws Exception {
     builder.setExpiration(oneMsTTL);
     createPool();
-    pool.claim(longTimeout).release();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    tap.claim(longTimeout).release();
     spinwait(2);
-    pool.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
     assertThat(allocator.countAllocations()).isGreaterThanOrEqualTo(2);
   }
   
@@ -630,13 +699,15 @@ class PoolTest {
    * check for *at least* one deallocation.
    * @see PoolBuilder#setSize(int)
    */
-  @Test
-  void mustDeallocateExpiredPoolablesAndStayWithinSizeLimit() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void mustDeallocateExpiredPoolablesAndStayWithinSizeLimit(Taps taps) throws Exception {
     builder.setExpiration(oneMsTTL);
     createPool();
-    pool.claim(longTimeout).release();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    tap.claim(longTimeout).release();
     spinwait(2);
-    pool.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
     assertThat(allocator.countDeallocations()).isGreaterThanOrEqualTo(1);
   }
   
@@ -654,12 +725,14 @@ class PoolTest {
    * wait for it to finish. After this, we must observe that exactly 2
    * deallocations have occurred.
    */
-  @Test
-  void mustDeallocateAllPoolablesBeforeShutdownTaskReturns() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void mustDeallocateAllPoolablesBeforeShutdownTaskReturns(Taps taps) throws Exception {
     builder.setSize(2);
     createPool();
-    Poolable p1 = pool.claim(longTimeout);
-    Poolable p2 = pool.claim(longTimeout);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    Poolable p1 = tap.claim(longTimeout);
+    Poolable p2 = tap.claim(longTimeout);
     p1.release();
     p2.release();
     pool.shutdown().await(longTimeout);
@@ -677,10 +750,12 @@ class PoolTest {
    * its completion. The test passes if this does not dead-lock, hence the
    * test timeout.
    */
-  @Test
-  void shutdownCallMustReturnFastIfPoolablesAreStillClaimed() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void shutdownCallMustReturnFastIfPoolablesAreStillClaimed(Taps taps) throws Exception {
     createPool();
-    GenericPoolable obj = pool.claim(longTimeout);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = tap.claim(longTimeout);
     try {
       pool.shutdown();
       assertNotNull(obj, "Did not deplete pool in time");
@@ -702,10 +777,12 @@ class PoolTest {
    * race that might otherwise be lurking. Then finally we assert that the
    * claimed object (the only one allocated) have not been deallocated.
    */
-  @Test
-  void shutdownMustNotDeallocateClaimedPoolables() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void shutdownMustNotDeallocateClaimedPoolables(Taps taps) throws Exception {
     createPool();
-    GenericPoolable obj = pool.claim(longTimeout);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = tap.claim(longTimeout);
     assertNotNull(obj, "Did not deplete pool in time");
     pool.shutdown().await(mediumTimeout);
     try {
@@ -730,10 +807,12 @@ class PoolTest {
    * another thread to do something that will let it resume. In our case,
    * the thread is waiting for someone to release the claimed object.
    */
-  @Test
-  void awaitOnShutdownMustReturnWhenClaimedObjectsAreReleased() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void awaitOnShutdownMustReturnWhenClaimedObjectsAreReleased(Taps taps) throws Exception {
     createPool();
-    Poolable obj = pool.claim(longTimeout);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    Poolable obj = tap.claim(longTimeout);
     Completion completion = pool.shutdown();
     Thread thread = fork($await(completion, longTimeout));
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
@@ -811,12 +890,14 @@ class PoolTest {
    * will be put in an AtomicReference, and we assert that it is indeed an
    * IllegalStateException.
    */
-  @Test
-  void blockedClaimMustThrowWhenPoolIsShutDown() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void blockedClaimMustThrowWhenPoolIsShutDown(Taps taps) throws Exception {
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     AtomicReference<Exception> caught = new AtomicReference<>();
-    Poolable obj = pool.claim(longTimeout);
-    Thread thread = fork($catchFrom($claim(pool, longTimeout), caught));
+    Poolable obj = tap.claim(longTimeout);
+    Thread thread = fork($catchFrom($claim(tap, longTimeout), caught));
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     pool.shutdown();
     obj.release();
@@ -835,11 +916,13 @@ class PoolTest {
    * when we check the deallocation list for duplicates. The test pass if we
    * don't find any.
    */
-  @Test
-  void mustNotDeallocateTheSameObjectMoreThanOnce() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void mustNotDeallocateTheSameObjectMoreThanOnce(Taps taps) throws Exception {
     builder.setExpiration(oneMsTTL);
     createPool();
-    Poolable obj = pool.claim(longTimeout);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    Poolable obj = tap.claim(longTimeout);
     spinwait(2);
     obj.release();
     for (int i = 0; i < 10; i++) {
@@ -850,7 +933,7 @@ class PoolTest {
         // we are still going to check with the Allocator.
       }
     }
-    pool.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
     // check if the deallocation list contains duplicates
     List<GenericPoolable> deallocations = allocator.getDeallocations();
     for (Poolable elm : deallocations) {
@@ -869,25 +952,29 @@ class PoolTest {
    * Then we shut the pool down. After the shut down procedure completes,
    * we check that no nulls were deallocated.
    */
-  @Test
-  void shutdownMustNotDeallocateEmptySlots() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void shutdownMustNotDeallocateEmptySlots(Taps taps) throws Exception {
     final AtomicBoolean wasNull = new AtomicBoolean();
     allocator = allocator(dealloc($observeNull(wasNull, $null)));
     builder.setAllocator(allocator).setExpiration(oneMsTTL);
     createPool();
-    pool.claim(longTimeout).release();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    tap.claim(longTimeout).release();
     pool.shutdown().await(longTimeout);
     assertFalse(wasNull.get());
   }
 
-  @Test
-  void shutdownMustEventuallyDeallocateAllPoolables() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void shutdownMustEventuallyDeallocateAllPoolables(Taps taps) throws Exception {
     int size = 10;
     builder.setSize(size);
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     List<GenericPoolable> objs = new ArrayList<>();
     for (int i = 0; i < size; i++) {
-      objs.add(pool.claim(longTimeout));
+      objs.add(tap.claim(longTimeout));
     }
     Completion completion = pool.shutdown();
     completion.await(shortTimeout);
@@ -904,14 +991,16 @@ class PoolTest {
    * then the pool must throw a PoolException through claim.
    * @see PoolException
    */
-  @Test
-  void mustPropagateExceptionsFromAllocateThroughClaim() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void mustPropagateExceptionsFromAllocateThroughClaim(Taps taps) throws Exception {
     final RuntimeException expectedException = new RuntimeException("boo");
     allocator = allocator(alloc($throw(expectedException)));
     builder.setAllocator(allocator);
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     try {
-      pool.claim(longTimeout);
+      tap.claim(longTimeout);
       fail("expected claim to throw");
     } catch (PoolException poolException) {
       assertThat(poolException.getCause()).isSameAs((Throwable) expectedException);
@@ -924,18 +1013,20 @@ class PoolTest {
    * then the pool must throw a PoolException through claim.
    * @see PoolException
    */
-  @Test
-  void mustPropagateExceptionsFromReallocateThroughClaim() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void mustPropagateExceptionsFromReallocateThroughClaim(Taps taps) throws Exception {
     final RuntimeException expectedException = new RuntimeException("boo");
     AtomicBoolean hasExpired = new AtomicBoolean();
     builder.setAllocator(reallocator(realloc($throw(expectedException))));
     builder.setExpiration(expire($expiredIf(hasExpired)));
     builder.setSize(2);
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     // Make sure the pool is fully allocated
     hasExpired.set(false);
-    GenericPoolable obj1 = pool.claim(longTimeout);
-    GenericPoolable obj2 = pool.claim(longTimeout);
+    GenericPoolable obj1 = tap.claim(longTimeout);
+    GenericPoolable obj2 = tap.claim(longTimeout);
     obj1.release();
     obj2.release();
     // Now consider it expired, send it back for reallocation,
@@ -946,7 +1037,7 @@ class PoolTest {
     // while the other one is being reallocated.
     hasExpired.set(true);
     try {
-      pool.claim(longTimeout);
+      tap.claim(longTimeout);
       fail("expected claim to throw");
     } catch (PoolException poolException) {
       assertThat(poolException.getCause()).isSameAs((Throwable) expectedException);
@@ -968,13 +1059,15 @@ class PoolTest {
    * assert on the exception, and make sure to release any object we might
    * get back.
    */
-  @Test
-  void mustStillBeUsableAfterExceptionInAllocate() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void mustStillBeUsableAfterExceptionInAllocate(Taps taps) throws Exception {
     allocator = allocator(alloc($throw(new RuntimeException("boo")), $new));
     builder.setAllocator(allocator);
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     try {
-      pool.claim(longTimeout).release();
+      tap.claim(longTimeout).release();
     } catch (PoolException ignore) {}
     GenericPoolable obj = pool.claim(longTimeout);
     assertThat(obj).isNotNull();
@@ -995,8 +1088,9 @@ class PoolTest {
    * fresh Poolable allocated anew. This new good Poolable is what we get out
    * of the last call to claim.
    */
-  @Test
-  void mustStillBeUsableAfterExceptionInReallocate() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void mustStillBeUsableAfterExceptionInReallocate(Taps taps) throws Exception {
     final AtomicBoolean throwInAllocate = new AtomicBoolean();
     final AtomicBoolean hasExpired = new AtomicBoolean();
     final CountDownLatch allocationLatch = new CountDownLatch(2);
@@ -1007,17 +1101,18 @@ class PoolTest {
         realloc($throw(new RuntimeException("boo")))));
     builder.setExpiration(expire($expiredIf(hasExpired)));
     createPool();
-    pool.claim(longTimeout).release(); // object now allocated
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    tap.claim(longTimeout).release(); // object now allocated
     throwInAllocate.set(true);
     hasExpired.set(true);
     try {
-      pool.claim(longTimeout);
+      tap.claim(longTimeout);
       fail("claim should have thrown");
     } catch (PoolException ignore) {}
     throwInAllocate.set(false);
     hasExpired.set(false);
     allocationLatch.await();
-    GenericPoolable claim = pool.claim(longTimeout);
+    GenericPoolable claim = tap.claim(longTimeout);
     assertThat(claim).isNotNull();
     claim.release();
   }
@@ -1038,15 +1133,17 @@ class PoolTest {
    * the deallocation of an expired object happens before the allocation
    * of its replacement.
    */
-  @Test
-  void mustSwallowExceptionsFromDeallocateThroughRelease() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void mustSwallowExceptionsFromDeallocateThroughRelease(Taps taps) throws Exception {
     allocator = allocator(dealloc($throw(new RuntimeException("boo"))));
     builder.setAllocator(allocator);
     builder.setExpiration(oneMsTTL);
     createPool();
-    pool.claim(longTimeout).release();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    tap.claim(longTimeout).release();
     spinwait(2);
-    pool.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
   }
   
   /**
@@ -1068,14 +1165,16 @@ class PoolTest {
    * The test passes if the shut down procedure completes without throwing
    * any exceptions, and we observe exactly 2 deallocations.
    */
-  @Test
-  void mustSwallowExceptionsFromDeallocateThroughShutdown() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void mustSwallowExceptionsFromDeallocateThroughShutdown(Taps taps) throws Exception {
     CountingAllocator allocator = allocator(
         dealloc($throw(new RuntimeException("boo"))));
     builder.setAllocator(allocator).setSize(2);
     createPool();
-    Poolable obj= pool.claim(longTimeout);
-    pool.claim(longTimeout).release();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    Poolable obj= tap.claim(longTimeout);
+    tap.claim(longTimeout).release();
     obj.release();
     pool.shutdown().await(longTimeout);
     assertThat(allocator.countDeallocations()).isEqualTo(2);
@@ -1182,11 +1281,14 @@ class PoolTest {
    * @see Allocator#allocate(Slot)
    * @see PoolException
    */
-  @Test
-  void claimMustThrowIfAllocationReturnsNull() {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void claimMustThrowIfAllocationReturnsNull(Taps taps) {
     Allocator<GenericPoolable> allocator = allocator(alloc($null));
-    Pool<GenericPoolable> pool = builder.setAllocator(allocator).build();
-    assertThrows(PoolException.class, () -> pool.claim(longTimeout));
+    builder = builder.setAllocator(allocator);
+    createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    assertThrows(PoolException.class, () -> tap.claim(longTimeout));
   }
 
   /**
@@ -1204,18 +1306,20 @@ class PoolTest {
    * @see Reallocator#reallocate(Slot, Poolable)
    * @see PoolException
    */
-  @Test
-  void claimMustThrowIfReallocationReturnsNull() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void claimMustThrowIfReallocationReturnsNull(Taps taps) throws Exception {
     allocator = reallocator(realloc($null));
     AtomicBoolean hasExpired = new AtomicBoolean();
     builder.setAllocator(allocator);
     builder.setExpiration(expire($expiredIf(hasExpired)));
     builder.setSize(2);
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     // Make sure the pool is fully allocated
     hasExpired.set(false);
-    GenericPoolable obj1 = pool.claim(longTimeout);
-    GenericPoolable obj2 = pool.claim(longTimeout);
+    GenericPoolable obj1 = tap.claim(longTimeout);
+    GenericPoolable obj2 = tap.claim(longTimeout);
     obj1.release();
     obj2.release();
     // Now consider it expired. This will send it back for reallocation,
@@ -1225,7 +1329,7 @@ class PoolTest {
     // so it should be highly probable that we are able to grab one of them
     // while the other one is being reallocated.
     hasExpired.set(true);
-    assertThrows(PoolException.class, () -> pool.claim(longTimeout));
+    assertThrows(PoolException.class, () -> tap.claim(longTimeout));
   }
   
   /**
@@ -1233,38 +1337,44 @@ class PoolTest {
    * not get an InterruptedException, unless they would actually end up blocking.
    * @see Pool
    */
-  @Test
-  void claimWhenInterruptedMustNotThrowIfObjectIsImmediatelyAvailable() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void claimWhenInterruptedMustNotThrowIfObjectIsImmediatelyAvailable(Taps taps) throws Exception {
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     // Ensure that the object is fully present in the pool.
-    join(fork($claimRelease(pool, longTimeout)));
+    join(fork($claimRelease(tap, longTimeout)));
     // Then claim while being interrupted.
     Thread.currentThread().interrupt();
-    pool.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
   }
 
   /**
-   * Same as {@link #claimWhenInterruptedMustNotThrowIfObjectIsImmediatelyAvailable()},
+   * Same as {@link #claimWhenInterruptedMustNotThrowIfObjectIsImmediatelyAvailable(Taps)},
    * but for when the object is available via thread-local cache.
    * @see Pool
    */
-  @Test
-  void claimWhenInterruptedMustNotThrowIfObjectIsAvailableViaCache() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void claimWhenInterruptedMustNotThrowIfObjectIsAvailableViaCache(Taps taps) throws Exception {
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     // Ensure that the object is fully present in the pool, and that the object is cached.
-    pool.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
     // Then claim while being interrupted.
     Thread.currentThread().interrupt();
-    pool.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
   }
 
-  @Test
-  void claimWhenInterruptedMustThrowInterruptedExceptionImmediatelyWhenNoObjectIsAvailable()
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void claimWhenInterruptedMustThrowInterruptedExceptionImmediatelyWhenNoObjectIsAvailable(Taps taps)
       throws Exception {
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     CountDownLatch claimLatch = new CountDownLatch(1);
     Thread thread = fork(() -> {
-      GenericPoolable obj = pool.claim(longTimeout);
+      GenericPoolable obj = tap.claim(longTimeout);
       claimLatch.countDown();
       try {
         Thread.sleep(TimeUnit.MINUTES.toMillis(1));
@@ -1278,7 +1388,7 @@ class PoolTest {
     claimLatch.await();
     Thread.currentThread().interrupt();
     try {
-      assertThrows(InterruptedException.class, () -> pool.claim(longTimeout));
+      assertThrows(InterruptedException.class, () -> tap.claim(longTimeout));
     } finally {
       thread.interrupt();
       join(thread);
@@ -1294,15 +1404,17 @@ class PoolTest {
    * appropriate claim method. If it throws an InterruptException, then the
    * test passes.
    */
-  @Test
-  void blockedClaimWithTimeoutMustThrowUponInterruption() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void blockedClaimWithTimeoutMustThrowUponInterruption(Taps taps) throws Exception {
     createPool();
-    GenericPoolable a = pool.claim(longTimeout);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable a = tap.claim(longTimeout);
     assertNotNull(a, "Did not deplete pool in time");
     forkFuture($interruptUponState(
         Thread.currentThread(), Thread.State.TIMED_WAITING));
     try {
-      assertThrows(InterruptedException.class, () -> pool.claim(longTimeout));
+      assertThrows(InterruptedException.class, () -> tap.claim(longTimeout));
     } finally {
       a.release();
     }
@@ -1313,15 +1425,17 @@ class PoolTest {
    * InterruptedException will clear the interrupted flag on the thread.
    * This must also hold for the claim methods.
    */
-  @Test
-  void throwingInterruptedExceptionFromClaimMustClearInterruptedFlag() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void throwingInterruptedExceptionFromClaimMustClearInterruptedFlag(Taps taps) throws Exception {
     createPool();
-    GenericPoolable a = pool.claim(longTimeout);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable a = tap.claim(longTimeout);
     assertNotNull(a, "Did not deplete pool in time");
     forkFuture($interruptUponState(
         Thread.currentThread(), Thread.State.TIMED_WAITING));
     try {
-      assertThrows(InterruptedException.class, () -> pool.claim(longTimeout));
+      assertThrows(InterruptedException.class, () -> tap.claim(longTimeout));
     } finally {
       a.release();
     }
@@ -1337,14 +1451,16 @@ class PoolTest {
    * itself elapses.
    * @see Pool
    */
-  @Test
-  void claimMustStayWithinDeadlineEvenIfAllocatorBlocks() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void claimMustStayWithinDeadlineEvenIfAllocatorBlocks(Taps taps) throws Exception {
     Semaphore semaphore = new Semaphore(0);
     allocator = allocator(alloc($acquire(semaphore, $new)));
     builder.setAllocator(allocator);
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     try {
-      pool.claim(shortTimeout);
+      tap.claim(shortTimeout);
     } finally {
       semaphore.release(10);
     }
@@ -1370,8 +1486,9 @@ class PoolTest {
    * blocked claim call must adhere to its specified timeout.
    * try to claim one more object
    */
-  @Test
-  void claimMustStayWithinTimeoutEvenIfExpiredObjectIsReleased() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void claimMustStayWithinTimeoutEvenIfExpiredObjectIsReleased(Taps taps) throws Exception {
     // NOTE: This test is a little slow and may hit the 42424 ms timeout even
     // if it was actually supposed to pass. Try running it again if there are
     // any problems. I may have to revisit this one in the future.
@@ -1382,15 +1499,16 @@ class PoolTest {
     builder.setExpiration(fiveMsTTL);
     builder.setSize(objs.length);
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     for (int i = 0; i < objs.length; i++) {
-      objs[i] = pool.claim(longTimeout);
+      objs[i] = tap.claim(longTimeout);
       assertNotNull(objs[i], "Did not claim an object in time");
     }
     lock.lock(); // prevent new allocations
     Thread thread = fork($delayedReleases(10, TimeUnit.MILLISECONDS, objs));
     try {
       // must return before test times out:
-      GenericPoolable obj = pool.claim(new Timeout(50, TimeUnit.MILLISECONDS));
+      GenericPoolable obj = tap.claim(new Timeout(50, TimeUnit.MILLISECONDS));
       if (obj != null) {
         obj.release();
       }
@@ -1411,13 +1529,15 @@ class PoolTest {
    * millisecond timeout on the test case.
    * @see Pool#claim(Timeout)
    */
-  @Test
-  void claimWithTimeoutValueLessThanOneMustReturnImmediately() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void claimWithTimeoutValueLessThanOneMustReturnImmediately(Taps taps) throws Exception {
     createPool();
-    GenericPoolable obj = pool.claim(longTimeout);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = tap.claim(longTimeout);
     assertNotNull(obj, "Did not deplete pool in time");
     try {
-      pool.claim(zeroTimeout);
+      tap.claim(zeroTimeout);
     } finally {
       obj.release();
     }
@@ -1561,15 +1681,17 @@ class PoolTest {
    * threads, then even biased objects must participate in the circulation.
    * If they don't, then some threads might starve.
    */
-  @Test
-  void mustUnbiasObjectsNoLongerClaimed() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void mustUnbiasObjectsNoLongerClaimed(Taps taps) throws Exception {
     createPool();
-    Poolable obj = pool.claim(longTimeout);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    Poolable obj = tap.claim(longTimeout);
     obj.release(); // item now biased to our thread
     // claiming in a different thread should give us the same object.
     AtomicReference<GenericPoolable> ref =
         new AtomicReference<>();
-    join(forkFuture(capture($claim(pool, longTimeout), ref)));
+    join(forkFuture(capture($claim(tap, longTimeout), ref)));
     try {
       assertThat(ref.get()).isSameAs(obj);
     } finally {
@@ -1586,15 +1708,17 @@ class PoolTest {
    * path through the code. And this new path needs to ensure that the object
    * is properly claimed, such that no other threads can claim it as well.
    */
-  @Test
-  void biasedClaimMustUpgradeToOrdinaryClaimIfTheObjectIsPulledFromTheQueue()
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void biasedClaimMustUpgradeToOrdinaryClaimIfTheObjectIsPulledFromTheQueue(Taps taps)
       throws Exception {
     createPool();
-    pool.claim(longTimeout).release(); // bias the object to our thread
-    GenericPoolable obj = pool.claim(longTimeout); // this is now our biased claim
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    tap.claim(longTimeout).release(); // bias the object to our thread
+    GenericPoolable obj = tap.claim(longTimeout); // this is now our biased claim
     AtomicReference<GenericPoolable> ref = new AtomicReference<>();
     // the biased claim will be upgraded to an ordinary claim:
-    join(forkFuture(capture($claim(pool, zeroTimeout), ref)));
+    join(forkFuture(capture($claim(tap, zeroTimeout), ref)));
     try {
       assertThat(ref.get()).isNull();
     } finally {
@@ -1608,13 +1732,15 @@ class PoolTest {
    * Importantly, it must not block the thread to wait for any objects to be
    * released.
    */
-  @Test
-  void depletedPoolThatHasBeenShutDownMustThrowUponClaim() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void depletedPoolThatHasBeenShutDownMustThrowUponClaim(Taps taps) throws Exception {
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     GenericPoolable obj = pool.claim(longTimeout); // depleted
     pool.shutdown();
     try {
-      assertThrows(IllegalStateException.class, () -> pool.claim(longTimeout));
+      assertThrows(IllegalStateException.class, () -> tap.claim(longTimeout));
     } finally {
       obj.release();
     }
@@ -1624,15 +1750,17 @@ class PoolTest {
    * Basically the same test as above, except now we wait for the shutdown
    * process to make a bit of progress. This might expose different race bugs.
    */
-  @Test
-  void depletedPoolThatHasBeenShutDownMustThrowUponClaimEvenAfterSomeTime()
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void depletedPoolThatHasBeenShutDownMustThrowUponClaimEvenAfterSomeTime(Taps taps)
       throws Exception {
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     GenericPoolable obj = pool.claim(longTimeout); // depleted
     pool.shutdown();
     spinwait(10);
     try {
-      assertThrows(IllegalStateException.class, () -> pool.claim(longTimeout));
+      assertThrows(IllegalStateException.class, () -> tap.claim(longTimeout));
     } finally {
       obj.release();
     }
@@ -1646,21 +1774,23 @@ class PoolTest {
    * precedence, because we don't know for how long the claimed object will be
    * held, or if there will be other biased claims in the future.
    */
-  @Test
-  void poolThatHasBeenShutDownMustThrowUponClaimEvenIfItHasAvailableUnbiasedObjects()
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void poolThatHasBeenShutDownMustThrowUponClaimEvenIfItHasAvailableUnbiasedObjects(Taps taps)
       throws Exception {
     builder.setSize(4);
     createPool();
-    GenericPoolable a = pool.claim(longTimeout);
-    GenericPoolable b = pool.claim(longTimeout);
-    GenericPoolable c = pool.claim(longTimeout);
-    GenericPoolable d = pool.claim(longTimeout);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable a = tap.claim(longTimeout);
+    GenericPoolable b = tap.claim(longTimeout);
+    GenericPoolable c = tap.claim(longTimeout);
+    GenericPoolable d = tap.claim(longTimeout);
     a.release(); // placed ahead of any poison pills
     pool.shutdown();
     b.release();
     c.release();
     d.release();
-    assertThrows(IllegalStateException.class, () -> pool.claim(longTimeout));
+    assertThrows(IllegalStateException.class, () -> tap.claim(longTimeout));
   }
   
   /**
@@ -1668,10 +1798,12 @@ class PoolTest {
    * into the pool, can be a different thread than the one that claimed the
    * particular object.
    */
-  @Test
-  void mustNotThrowWhenReleasingObjectClaimedByAnotherThread() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void mustNotThrowWhenReleasingObjectClaimedByAnotherThread(Taps taps) throws Exception {
     createPool();
-    GenericPoolable obj = forkFuture($claim(pool, longTimeout)).get();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = forkFuture($claim(tap, longTimeout)).get();
     obj.release();
   }
 
@@ -1702,8 +1834,9 @@ class PoolTest {
    *   ends in a thrown exception and a poisoned slot still left in the
    *   ThreadLocal cache.
    */
-  @Test
-  void mustNotCachePoisonedSlots() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void mustNotCachePoisonedSlots(Taps taps) throws Exception {
     // First we prime the possible thread-local cache to a particular object.
     // Then we instruct the allocator to always throw an exception when it is
     // told to allocate on that particular slot.
@@ -1735,9 +1868,10 @@ class PoolTest {
     builder.setAllocator(allocator);
 
     ManagedPool managedPool = createPool().getManagedPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
 
     // Prime any thread-local cache
-    GenericPoolable obj = pool.claim(longTimeout);
+    GenericPoolable obj = tap.claim(longTimeout);
     failOnAllocatingSlot.set(obj.getSlot());
     obj.release(); // Places slot at end of queue
 
@@ -1745,7 +1879,7 @@ class PoolTest {
     hasExpired.set(true);
     AtomicReference<GenericPoolable> ref = new AtomicReference<>();
     try {
-      forkFuture(capture($claim(pool, shortTimeout), ref)).get();
+      forkFuture(capture($claim(tap, shortTimeout), ref)).get();
     } catch (ExecutionException ignore) {
       // This is okay. We just got a failed reallocation
     }
@@ -1766,7 +1900,7 @@ class PoolTest {
     hasExpired.set(false);
 
     // ... so we should be able to claim without trouble
-    pool.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
   }
 
   @Test
@@ -1797,13 +1931,15 @@ class PoolTest {
    * again with a timeout that is longer than the timeout of the test. The test
    * pass if it does not timeout.
    */
-  @Test
-  void increasingSizeMustAllowMoreAllocations() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void increasingSizeMustAllowMoreAllocations(Taps taps) throws Exception {
     createPool();
-    GenericPoolable a = pool.claim(longTimeout); // depleted
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable a = tap.claim(longTimeout); // depleted
     pool.setTargetSize(2);
     // now this mustn't block:
-    GenericPoolable b = pool.claim(longTimeout);
+    GenericPoolable b = tap.claim(longTimeout);
     a.release();
     b.release();
   }
@@ -1824,25 +1960,27 @@ class PoolTest {
    * happen before the test times out. After that, we check that the difference
    * between the allocations and the deallocations matches the new target size.
    */
-  @Test
-  void decreasingSizeMustEventuallyDeallocateSurplusObjects() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void decreasingSizeMustEventuallyDeallocateSurplusObjects(Taps taps) throws Exception {
     int startingSize = 5;
     int newSize = 1;
     allocator = allocator();
     builder.setSize(startingSize);
     builder.setAllocator(allocator);
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     List<GenericPoolable> objs = new ArrayList<>();
 
     while (allocator.countAllocations() != startingSize) {
-      objs.add(pool.claim(longTimeout)); // force the pool to do work
+      objs.add(tap.claim(longTimeout)); // force the pool to do work
     }
     pool.setTargetSize(newSize);
     while (allocator.countDeallocations() != startingSize - newSize) {
       if (!objs.isEmpty()) {
         objs.remove(0).release(); // give the pool objects to deallocate
       } else {
-        pool.claim(longTimeout).release(); // prod it & poke it
+        tap.claim(longTimeout).release(); // prod it & poke it
       }
       LockSupport.parkNanos(10000000); // 10 millis
     }
@@ -1929,10 +2067,12 @@ class PoolTest {
    * flight. When all the background jobs complete, we should observe that the pool
    * ended up with exactly the target size number of items in it.
    */
-  @Test
-  void increasingAndDecreasingSizeInQuickSuccessionMustEventuallyReachTargetSize()
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void increasingAndDecreasingSizeInQuickSuccessionMustEventuallyReachTargetSize(Taps taps)
       throws Exception {
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
 
     // Fiddle with the target size.
     pool.setTargetSize(20);
@@ -1948,9 +2088,9 @@ class PoolTest {
     } while (allocations - deallocations > 1);
 
     // Now we should be left with exactly one object that we can claim:
-    GenericPoolable obj = pool.claim(longTimeout);
+    GenericPoolable obj = tap.claim(longTimeout);
     try {
-      assertThat(pool.claim(shortTimeout)).isNull();
+      assertThat(tap.claim(shortTimeout)).isNull();
     } finally {
       obj.release();
     }
@@ -1961,8 +2101,9 @@ class PoolTest {
    * Exceptions, but we also test with Throwable, just in case we might be able
    * to recover from them as well.
    */
-  @Test
-  void mustNotLeakSlotsIfExpirationThrowsThrowableInsteadOfException()
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void mustNotLeakSlotsIfExpirationThrowsThrowableInsteadOfException(Taps taps)
       throws InterruptedException {
     final AtomicBoolean shouldThrow = new AtomicBoolean(true);
     builder.setExpiration(expire(
@@ -1972,8 +2113,9 @@ class PoolTest {
     builder.setBackgroundExpirationEnabled(false);
 
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     try {
-      pool.claim(longTimeout);
+      tap.claim(longTimeout);
       fail("Expected claim to throw");
     } catch (PoolException pe) {
       assertThat(pe.getCause()).isInstanceOf(SomeRandomThrowable.class);
@@ -1981,7 +2123,7 @@ class PoolTest {
 
     // Now, the slot should not have leaked, so the next claim should succeed:
     shouldThrow.set(false);
-    pool.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
     pool.shutdown();
   }
 
@@ -2017,7 +2159,7 @@ class PoolTest {
     expired.set(false); // first claimed object is not expired
     pool.claim(longTimeout).release(); // first object is fully allocated
     expired.set(true); // the next object we claim is expired
-    GenericPoolable obj = pool.claim(zeroTimeout); // send back to reallocation
+    GenericPoolable obj = pool.claim(zeroTimeout); // send back to reallocation TODO "boom" except can show up here.
     assertThat(obj).isNull();
     allocationLatch.await();
     expired.set(false);
@@ -2121,33 +2263,35 @@ class PoolTest {
     pool.shutdown().await(longTimeout);
   }
 
-  @Test
-  void poolMustTolerateInterruptedExceptionFromAllocatorWhenNotShutDown()
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void poolMustTolerateInterruptedExceptionFromAllocatorWhenNotShutDown(Taps taps)
       throws InterruptedException {
     builder.setAllocator(
         allocator(alloc($throw(new InterruptedException("boom")), $new)));
     AtomicBoolean hasExpired = new AtomicBoolean();
     builder.setExpiration(expire($expiredIf(hasExpired)));
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
 
     // This will capture the failed allocation:
     try {
-      pool.claim(longTimeout).release();
+      tap.claim(longTimeout).release();
     } catch (PoolException e) {
       assertThat(e.getCause()).isInstanceOf(InterruptedException.class);
     }
 
     // This should succeed like nothing happened:
-    pool.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
 
     // Cause an extra reallocation to make sure that works:
     hasExpired.set(true);
-    assertNull(pool.claim(shortTimeout));
+    assertNull(tap.claim(shortTimeout));
     hasExpired.set(false);
 
     // These should again succeed like nothing happened:
-    pool.claim(longTimeout).release();
-    pool.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
     shutPoolDown();
   }
 
@@ -2540,17 +2684,19 @@ class PoolTest {
     assertThat(reallocator.countReallocations()).isOne();
   }
 
-  @Test
-  void objectMustBeClaimableAfterBackgroundReallocation() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void objectMustBeClaimableAfterBackgroundReallocation(Taps taps) throws Exception {
     CountDownLatch latch = new CountDownLatch(1);
     CountingExpiration expiration =
         expire($countDown(latch, $expired), $fresh);
     builder.setExpiration(expiration);
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
 
     latch.await();
 
-    pool.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
   }
 
   @Test
@@ -2583,8 +2729,9 @@ class PoolTest {
     assertThat(allocator.countDeallocations()).isOne();
   }
 
-  @Test
-  void backgroundExpirationMustNotExpireObjectsThatAreClaimed() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void backgroundExpirationMustNotExpireObjectsThatAreClaimed(Taps taps) throws Exception {
     AtomicBoolean hasExpired = new AtomicBoolean();
     CountDownLatch latch = new CountDownLatch(4);
     CountingExpiration expiration = expire(
@@ -2592,9 +2739,10 @@ class PoolTest {
     builder.setExpiration(expiration);
     builder.setSize(2);
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
 
     // If applicable, do a thread-local reclaim
-    pool.claim(longTimeout).release();
+    tap.claim(longTimeout).release();
     GenericPoolable obj = pool.claim(longTimeout);
     hasExpired.set(true);
 
@@ -2611,17 +2759,19 @@ class PoolTest {
     obj.release();
   }
 
-  @Test
-  void disregardPileMustNotPreventBackgroundExpirationFromCheckingObjects() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void disregardPileMustNotPreventBackgroundExpirationFromCheckingObjects(Taps taps) throws Exception {
     CountDownLatch firstThreadReady = new CountDownLatch(1);
     CountDownLatch firstThreadPause = new CountDownLatch(1);
     builder.setSize(2);
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
 
     // Make the first object TLR claimed in another thread.
     Future<?> firstThread = forkFuture(() -> {
-      pool.claim(longTimeout).release();
-      GenericPoolable obj = pool.claim(longTimeout);
+      tap.claim(longTimeout).release();
+      GenericPoolable obj = tap.claim(longTimeout);
       firstThreadReady.countDown();
       firstThreadPause.await();
       obj.release();
@@ -2631,10 +2781,10 @@ class PoolTest {
     firstThreadReady.await();
 
     // Move the now TLR claimed object to the front of the queue.
-    forkFuture($claimRelease(pool, longTimeout)).get();
+    forkFuture($claimRelease(tap, longTimeout)).get();
 
     // Now this claim should move the first object into the disregard pile.
-    GenericPoolable obj = pool.claim(longTimeout);
+    GenericPoolable obj = tap.claim(longTimeout);
     obj.expire(); // Expire the slot, so expiration should pick it up.
     obj.release();
     firstThreadPause.countDown();
@@ -2650,15 +2800,17 @@ class PoolTest {
     } while (!found);
   }
 
-  @Test
-  void mustDeallocateExplicitlyExpiredObjects() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void mustDeallocateExplicitlyExpiredObjects(Taps taps) throws Exception {
     int poolSize = 2;
     builder.setSize(poolSize);
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
 
     // Explicitly expire a pool size worth of objects
     for (int i = 0; i < poolSize; i++) {
-      GenericPoolable obj = pool.claim(longTimeout);
+      GenericPoolable obj = tap.claim(longTimeout);
       obj.expire();
       obj.release();
     }
@@ -2667,7 +2819,7 @@ class PoolTest {
     // the expired objects
     List<GenericPoolable> objs = new ArrayList<>();
     for (int i = 0; i < poolSize; i++) {
-      objs.add(pool.claim(longTimeout));
+      objs.add(tap.claim(longTimeout));
     }
     for (GenericPoolable obj : objs) {
       obj.release();
@@ -2709,48 +2861,54 @@ class PoolTest {
     latch.await();
   }
 
-  @Test
-  void mustReplaceExplicitlyExpiredObjectsEvenIfDeallocationFails()
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void mustReplaceExplicitlyExpiredObjectsEvenIfDeallocationFails(Taps taps)
       throws Exception {
     allocator = allocator(dealloc($throw(new Exception("Boom!"))));
     builder.setAllocator(allocator).setSize(1);
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
 
-    GenericPoolable a = pool.claim(longTimeout);
+    GenericPoolable a = tap.claim(longTimeout);
     a.expire();
     a.release();
 
-    GenericPoolable b = pool.claim(longTimeout);
+    GenericPoolable b = tap.claim(longTimeout);
     b.release();
 
     assertThat(a).isNotSameAs(b);
   }
 
-  @Test
-  void explicitExpiryFromExpirationMustAllowOneClaimPerObject() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void explicitExpiryFromExpirationMustAllowOneClaimPerObject(Taps taps) throws Exception {
     builder.setExpiration(expire($explicitExpire));
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
 
-    GenericPoolable a = pool.claim(longTimeout);
+    GenericPoolable a = tap.claim(longTimeout);
     a.release();
 
-    GenericPoolable b = pool.claim(longTimeout);
+    GenericPoolable b = tap.claim(longTimeout);
     b.release();
 
     assertThat(a).isNotSameAs(b);
   }
 
-  @Test
-  void explicitlyExpiryMustBeIdempotent() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void explicitlyExpiryMustBeIdempotent(Taps taps) throws Exception {
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
 
-    GenericPoolable a = pool.claim(longTimeout);
+    GenericPoolable a = tap.claim(longTimeout);
     a.expire();
     a.expire();
     a.expire();
     a.release();
 
-    GenericPoolable b = pool.claim(longTimeout);
+    GenericPoolable b = tap.claim(longTimeout);
     b.release();
 
     assertThat(a).isNotSameAs(b);
@@ -2760,132 +2918,161 @@ class PoolTest {
 
   private static final Consumer<GenericPoolable> nullConsumer = (obj) -> {};
 
-  @Test
-  void applyMustThrowOnNullTimeout() {
+
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void applyMustThrowOnNullTimeout(Taps taps) {
     createPool();
-    assertThrows(IllegalArgumentException.class, () -> pool.apply(null, identity()));
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    assertThrows(IllegalArgumentException.class, () -> tap.apply(null, identity()));
   }
 
-  @Test
-  void supplyMustThrowOnNullTimeout() {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void supplyMustThrowOnNullTimeout(Taps taps) {
     createPool();
-    assertThrows(IllegalArgumentException.class, () -> pool.supply(null, nullConsumer));
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    assertThrows(IllegalArgumentException.class, () -> tap.supply(null, nullConsumer));
   }
 
-  @Test
-  void applyMustThrowOnNullFunction() {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void applyMustThrowOnNullFunction(Taps taps) {
     createPool();
-    assertThrows(NullPointerException.class, () -> pool.apply(longTimeout, null));
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    assertThrows(NullPointerException.class, () -> tap.apply(longTimeout, null));
   }
 
-  @Test
-  void supplyMustThrowOnNullConsumer() {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void supplyMustThrowOnNullConsumer(Taps taps) {
     createPool();
-    assertThrows(NullPointerException.class, () -> pool.supply(longTimeout, null));
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    assertThrows(NullPointerException.class, () -> tap.supply(longTimeout, null));
   }
 
-  @Test
-  void applyMustReturnEmptyIfTimeoutElapses() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void applyMustReturnEmptyIfTimeoutElapses(Taps taps) throws Exception {
     createPool();
-    GenericPoolable obj = pool.claim(longTimeout);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = tap.claim(longTimeout);
     try {
-      assertFalse(pool.apply(shortTimeout, identity()).isPresent());
+      assertFalse(tap.apply(shortTimeout, identity()).isPresent());
     } finally {
       obj.release();
     }
   }
 
-  @Test
-  void supplyMustReturnFalseIfTimeoutElapses() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void supplyMustReturnFalseIfTimeoutElapses(Taps taps) throws Exception {
     createPool();
-    GenericPoolable obj = pool.claim(longTimeout);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = tap.claim(longTimeout);
     try {
-      assertFalse(pool.supply(shortTimeout, nullConsumer));
+      assertFalse(tap.supply(shortTimeout, nullConsumer));
     } finally {
       obj.release();
     }
   }
 
-  @Test
-  void applyMustNotCallFunctionIfTimeoutElapses() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void applyMustNotCallFunctionIfTimeoutElapses(Taps taps) throws Exception {
     createPool();
-    GenericPoolable obj = pool.claim(longTimeout);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = tap.claim(longTimeout);
     try {
       AtomicInteger counter = new AtomicInteger();
-      pool.apply(shortTimeout, (x) -> (Object) counter.incrementAndGet());
+      tap.apply(shortTimeout, (x) -> (Object) counter.incrementAndGet());
       assertThat(counter.get()).isZero();
     } finally {
       obj.release();
     }
   }
 
-  @Test
-  void supplyMustNotCallConsumerIfTimeoutElapses() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void supplyMustNotCallConsumerIfTimeoutElapses(Taps taps) throws Exception {
     createPool();
-    GenericPoolable obj = pool.claim(longTimeout);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = tap.claim(longTimeout);
     try {
       AtomicReference<GenericPoolable> ref = new AtomicReference<>();
-      pool.supply(shortTimeout, ref::set);
+      tap.supply(shortTimeout, ref::set);
       assertThat(ref.get()).isNull();
     } finally {
       obj.release();
     }
   }
 
-  @Test
-  void applyMustCallFunctionIfObjectClaimedWithinTimeout() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void applyMustCallFunctionIfObjectClaimedWithinTimeout(Taps taps) throws Exception {
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     AtomicInteger counter = new AtomicInteger();
-    pool.apply(longTimeout, (x) -> (Object) counter.incrementAndGet());
+    tap.apply(longTimeout, (x) -> (Object) counter.incrementAndGet());
     assertThat(counter.get()).isOne();
   }
 
-  @Test
-  void supplyMustCallConsumerIfObjectClaimedWithinTimeout() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void supplyMustCallConsumerIfObjectClaimedWithinTimeout(Taps taps) throws Exception {
     createPool();
-    GenericPoolable obj = pool.claim(longTimeout);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = tap.claim(longTimeout);
     obj.release();
     AtomicReference<GenericPoolable> ref = new AtomicReference<>();
-    pool.supply(shortTimeout, ref::set);
+    tap.supply(shortTimeout, ref::set);
     assertThat(ref.get()).isSameAs(obj);
   }
 
-  @Test
-  void applyMustReturnResultOfFunction() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void applyMustReturnResultOfFunction(Taps taps) throws Exception {
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     String expectedResult = "Result!";
     Optional<String> actualResult =
-        pool.apply(longTimeout, (obj) -> expectedResult);
+        tap.apply(longTimeout, (obj) -> expectedResult);
     assertTrue(actualResult.isPresent());
     assertThat(actualResult.get()).isEqualTo(expectedResult);
   }
 
-  @Test
-  void applyMustReturnEmptyIfFunctionReturnsNull() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void applyMustReturnEmptyIfFunctionReturnsNull(Taps taps) throws Exception {
     createPool();
-    assertThat(pool.apply(longTimeout, (obj) -> null)).isEmpty();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    assertThat(tap.apply(longTimeout, (obj) -> null)).isEmpty();
   }
 
-  @Test
-  void applyMustReleaseClaimedObject() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void applyMustReleaseClaimedObject(Taps taps) throws Exception {
     createPool();
-    pool.apply(longTimeout, identity());
-    pool.apply(longTimeout, identity());
-    fork(() -> pool.apply(longTimeout, identity())).join();
-    fork(() -> pool.apply(longTimeout, identity())).join();
-    pool.apply(longTimeout, identity());
-    pool.apply(longTimeout, identity());
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    tap.apply(longTimeout, identity());
+    tap.apply(longTimeout, identity());
+    fork(() -> tap.apply(longTimeout, identity())).join();
+    fork(() -> tap.apply(longTimeout, identity())).join();
+    tap.apply(longTimeout, identity());
+    tap.apply(longTimeout, identity());
   }
 
-  @Test
-  void supplyMustReleaseClaimedObject() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void supplyMustReleaseClaimedObject(Taps taps) throws Exception {
     createPool();
-    pool.supply(longTimeout, nullConsumer);
-    pool.supply(longTimeout, nullConsumer);
-    fork(() -> pool.supply(longTimeout, nullConsumer)).join();
-    fork(() -> pool.supply(longTimeout, nullConsumer)).join();
-    pool.supply(longTimeout, nullConsumer);
-    pool.supply(longTimeout, nullConsumer);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    tap.supply(longTimeout, nullConsumer);
+    tap.supply(longTimeout, nullConsumer);
+    fork(() -> tap.supply(longTimeout, nullConsumer)).join();
+    fork(() -> tap.supply(longTimeout, nullConsumer)).join();
+    tap.supply(longTimeout, nullConsumer);
+    tap.supply(longTimeout, nullConsumer);
   }
 
   private static Object expectException(Callable<?> callable) {
@@ -2900,55 +3087,65 @@ class PoolTest {
     return null;
   }
 
-  @Test
-  void applyMustReleaseClaimedObjectEvenIfFunctionThrows() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void applyMustReleaseClaimedObjectEvenIfFunctionThrows(Taps taps) throws Exception {
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     Function<GenericPoolable,Object> thrower = (obj) -> {
       throw new ExpectedException();
     };
 
-    expectException(() -> pool.apply(longTimeout, thrower));
-    expectException(() -> pool.apply(longTimeout, thrower));
-    fork(() -> expectException(() -> pool.apply(longTimeout, thrower))).join();
-    fork(() -> expectException(() -> pool.apply(longTimeout, thrower))).join();
-    expectException(() -> pool.apply(longTimeout, thrower));
-    expectException(() -> pool.apply(longTimeout, thrower));
+    expectException(() -> tap.apply(longTimeout, thrower));
+    expectException(() -> tap.apply(longTimeout, thrower));
+    fork(() -> expectException(() -> tap.apply(longTimeout, thrower))).join();
+    fork(() -> expectException(() -> tap.apply(longTimeout, thrower))).join();
+    expectException(() -> tap.apply(longTimeout, thrower));
+    expectException(() -> tap.apply(longTimeout, thrower));
   }
 
-  @Test
-  void supplyMustReleaseClaimedObjectEvenIfConsumerThrows() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void supplyMustReleaseClaimedObjectEvenIfConsumerThrows(Taps taps) throws Exception {
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     Consumer<GenericPoolable> thrower = (obj) -> {
       throw new ExpectedException();
     };
 
-    expectException(() -> pool.supply(longTimeout, thrower));
-    expectException(() -> pool.supply(longTimeout, thrower));
-    fork(() -> expectException(() -> pool.supply(longTimeout, thrower))).join();
-    fork(() -> expectException(() -> pool.supply(longTimeout, thrower))).join();
-    expectException(() -> pool.supply(longTimeout, thrower));
-    expectException(() -> pool.supply(longTimeout, thrower));
+    expectException(() -> tap.supply(longTimeout, thrower));
+    expectException(() -> tap.supply(longTimeout, thrower));
+    fork(() -> expectException(() -> tap.supply(longTimeout, thrower))).join();
+    fork(() -> expectException(() -> tap.supply(longTimeout, thrower))).join();
+    expectException(() -> tap.supply(longTimeout, thrower));
+    expectException(() -> tap.supply(longTimeout, thrower));
   }
 
-  @Test
-  void applyMustThrowIfThePoolIsShutDown() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void applyMustThrowIfThePoolIsShutDown(Taps taps) throws Exception {
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     pool.shutdown().await(longTimeout);
-    assertThrows(IllegalStateException.class, () -> pool.apply(longTimeout, identity()));
+    assertThrows(IllegalStateException.class, () -> tap.apply(longTimeout, identity()));
   }
 
-  @Test
-  void supplyMustThrowIfThePoolIsShutDown() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void supplyMustThrowIfThePoolIsShutDown(Taps taps) throws Exception {
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     pool.shutdown().await(longTimeout);
-    assertThrows(IllegalStateException.class, () -> pool.supply(longTimeout, nullConsumer));
+    assertThrows(IllegalStateException.class, () -> tap.supply(longTimeout, nullConsumer));
   }
 
-  @Test
-  void shuttingPoolDownMustUnblockApplyAndThrow() throws Throwable {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void shuttingPoolDownMustUnblockApplyAndThrow(Taps taps) throws Throwable {
     createPool();
-    GenericPoolable obj = pool.claim(longTimeout);
-    Thread thread = fork(() -> pool.apply(longTimeout, identity()));
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = tap.claim(longTimeout);
+    Thread thread = fork(() -> tap.apply(longTimeout, identity()));
     AtomicReference<Throwable> exception = capture(thread);
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     Completion shutdown = pool.shutdown();
@@ -2958,11 +3155,13 @@ class PoolTest {
     assertThat(exception.get()).isInstanceOf(IllegalStateException.class);
   }
 
-  @Test
-  void shuttingPoolDownMustUnblockSupplyAndThrow() throws Throwable {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void shuttingPoolDownMustUnblockSupplyAndThrow(Taps taps) throws Throwable {
     createPool();
-    GenericPoolable obj = pool.claim(longTimeout);
-    Thread thread = fork(() -> pool.supply(longTimeout, nullConsumer));
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = tap.claim(longTimeout);
+    Thread thread = fork(() -> tap.supply(longTimeout, nullConsumer));
     AtomicReference<Throwable> exception = capture(thread);
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     Completion shutdown = pool.shutdown();
@@ -2972,37 +3171,43 @@ class PoolTest {
     assertThat(exception.get()).isInstanceOf(IllegalStateException.class);
   }
 
-  @Test
-  void applyMustThrowOnInterrupt() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void applyMustThrowOnInterrupt(Taps taps) throws Exception {
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     // Exhaust the pool to ensure the next claim is blocking.
-    GenericPoolable obj = pool.claim(longTimeout);
+    GenericPoolable obj = tap.claim(longTimeout);
     Thread.currentThread().interrupt();
     try {
-      assertThrows(InterruptedException.class, () -> pool.apply(longTimeout, identity()));
+      assertThrows(InterruptedException.class, () -> tap.apply(longTimeout, identity()));
     } finally {
       obj.release();
     }
   }
 
-  @Test
-  void supplyMustThrowOnInterrupt() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void supplyMustThrowOnInterrupt(Taps taps) throws Exception {
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     // Exhaust the pool to ensure the next claim is blocking.
-    GenericPoolable obj = pool.claim(longTimeout);
+    GenericPoolable obj = tap.claim(longTimeout);
     Thread.currentThread().interrupt();
     try {
-      assertThrows(InterruptedException.class, () -> pool.supply(longTimeout, nullConsumer));
+      assertThrows(InterruptedException.class, () -> tap.supply(longTimeout, nullConsumer));
     } finally {
       obj.release();
     }
   }
 
-  @Test
-  void blockedApplyMustThrowOnInterrupt() throws Throwable {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void blockedApplyMustThrowOnInterrupt(Taps taps) throws Throwable {
     createPool();
-    GenericPoolable obj = pool.claim(longTimeout);
-    Thread thread = fork(() -> pool.apply(longTimeout, identity()));
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = tap.claim(longTimeout);
+    Thread thread = fork(() -> tap.apply(longTimeout, identity()));
     AtomicReference<Throwable> exception = capture(thread);
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     thread.interrupt();
@@ -3011,11 +3216,13 @@ class PoolTest {
     assertThat(exception.get()).isInstanceOf(InterruptedException.class);
   }
 
-  @Test
-  void blockedSupplyMustThrowOnInterrupt() throws Throwable {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void blockedSupplyMustThrowOnInterrupt(Taps taps) throws Throwable {
     createPool();
-    GenericPoolable obj = pool.claim(longTimeout);
-    Thread thread = fork(() -> pool.supply(longTimeout, nullConsumer));
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = tap.claim(longTimeout);
+    Thread thread = fork(() -> tap.supply(longTimeout, nullConsumer));
     AtomicReference<Throwable> exception = capture(thread);
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     thread.interrupt();
@@ -3024,21 +3231,25 @@ class PoolTest {
     assertThat(exception.get()).isInstanceOf(InterruptedException.class);
   }
 
-  @Test
-  void applyMustUnblockByConcurrentRelease() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void applyMustUnblockByConcurrentRelease(Taps taps) throws Exception {
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     GenericPoolable obj = pool.claim(longTimeout);
-    Thread thread = fork(() -> pool.apply(longTimeout, identity()));
+    Thread thread = fork(() -> tap.apply(longTimeout, identity()));
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     obj.release();
     join(thread);
   }
 
-  @Test
-  void supplyMustUnblockByConcurrentRelease() throws Exception {
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void supplyMustUnblockByConcurrentRelease(Taps taps) throws Exception {
     createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
     GenericPoolable obj = pool.claim(longTimeout);
-    Thread thread = fork(() -> pool.supply(longTimeout, nullConsumer));
+    Thread thread = fork(() -> tap.supply(longTimeout, nullConsumer));
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     obj.release();
     join(thread);

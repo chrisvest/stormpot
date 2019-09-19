@@ -48,7 +48,7 @@ final class BlazePool<T extends Poolable>
   private final BlockingQueue<BSlot<T>> live;
   private final DisregardBPile<T> disregardPile;
   private final BAllocThread<T> allocator;
-  private final ThreadLocal<BSlot<T>> tlr;
+  private final ThreadLocal<BSlotCache<T>> tlr;
   private final Thread allocatorThread;
   private final Expiration<? super T> deallocRule;
   private final MetricsRecorder metricsRecorder;
@@ -68,7 +68,7 @@ final class BlazePool<T extends Poolable>
     builder.validate();
     live = new LinkedTransferQueue<>();
     disregardPile = new DisregardBPile<>(live);
-    tlr = new ThreadLocal<>();
+    tlr = new ThreadLocalBSlotCache<>();
     poisonPill = new BSlot<>(live, null);
     poisonPill.poison = SHUTDOWN_POISON;
     ThreadFactory factory = builder.getThreadFactory();
@@ -82,8 +82,19 @@ final class BlazePool<T extends Poolable>
   @Override
   public T claim(Timeout timeout)
       throws PoolException, InterruptedException {
+    return tlrClaim(timeout, tlr.get());
+  }
+
+  private void assertTimeoutNotNull(Timeout timeout) {
+    if (timeout == null) {
+      throw new IllegalArgumentException("Timeout cannot be null");
+    }
+  }
+
+  T tlrClaim(Timeout timeout, BSlotCache<T> cache)
+      throws PoolException, InterruptedException {
     assertTimeoutNotNull(timeout);
-    BSlot<T> slot = tlr.get();
+    BSlot<T> slot = cache.slot;
     // Note that the TLR slot at this point might have been tried by another
     // thread, found to be expired, put on the dead-queue and deallocated.
     // We handle this because slots always transition to the dead state before
@@ -115,16 +126,10 @@ final class BlazePool<T extends Poolable>
       // leak on our hands.
     }
     // The thread-local claim failed, so we have to go through the slow-path.
-    return slowClaim(timeout);
+    return slowClaim(timeout, cache);
   }
 
-  private void assertTimeoutNotNull(Timeout timeout) {
-    if (timeout == null) {
-      throw new IllegalArgumentException("Timeout cannot be null");
-    }
-  }
-
-  private T slowClaim(Timeout timeout)
+  private T slowClaim(Timeout timeout, BSlotCache<T> cache)
       throws PoolException, InterruptedException {
     // The slow-path for claim is in its own method to allow the fast-path to
     // inline separately. At this point, taking a performance hit is
@@ -158,7 +163,7 @@ final class BlazePool<T extends Poolable>
       }
     }
     slot.incrementClaims();
-    tlr.set(slot);
+    cache.slot = slot;
     return slot.obj;
   }
 
@@ -233,7 +238,7 @@ final class BlazePool<T extends Poolable>
       allocator.offerDeadSlot(slot);
     } else {
       slot.claimTlr2live();
-      tlr.set(null);
+      tlr.get().slot = null;
     }
   }
 
@@ -263,6 +268,11 @@ final class BlazePool<T extends Poolable>
   @Override
   public ManagedPool getManagedPool() {
     return this;
+  }
+
+  @Override
+  public PoolTap<T> getThreadLocalTap() {
+    return new BlazePoolThreadLocalTap<>(this);
   }
 
   @Override

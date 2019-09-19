@@ -163,4 +163,20 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
       }
     };
   }
+
+  /**
+   * Get a {@link PoolTap} that only support access by one thread at a time.
+   * In other words, where {@link #claim(Timeout)} cannot be called
+   * concurrently in multiple threads *on the same tap*.
+   *
+   * The pool itself will still be thread-safe, but each thread that wishes to
+   * access the pool via a thread-local tap, must have their own tap instance.
+   *
+   * It is a use error to access these pool taps concurrently from multiple
+   * threads, or to transfer them from one thread to another without safe
+   * publication.
+   *
+   * @return A thread-locao {@link PoolTap}.
+   */
+  public abstract PoolTap<T> getThreadLocalTap();
 }

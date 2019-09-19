@@ -79,7 +79,7 @@ public class UnitKit {
   }
 
   public static <T extends Poolable> Callable<T> $claim(
-      final Pool<T> pool, final Timeout timeout) {
+      final PoolTap<T> pool, final Timeout timeout) {
     return () -> {
       try {
         return pool.claim(timeout);
@@ -90,7 +90,7 @@ public class UnitKit {
   }
 
   public static <T extends Poolable> Callable<T> $claimRelease(
-      final Pool<T> pool, final Timeout timeout) {
+      final PoolTap<T> pool, final Timeout timeout) {
     return () -> {
       try {
         pool.claim(timeout).release();
