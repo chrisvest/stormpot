@@ -47,12 +47,12 @@ import java.util.function.Function;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
-import static stormpot.AlloKit.*;
 import static stormpot.AlloKit.$countDown;
 import static stormpot.AlloKit.$if;
-import static stormpot.ExpireKit.*;
+import static stormpot.AlloKit.*;
 import static stormpot.ExpireKit.$countDown;
 import static stormpot.ExpireKit.$if;
+import static stormpot.ExpireKit.*;
 import static stormpot.UnitKit.*;
 
 /**
@@ -94,32 +94,9 @@ class PoolTest {
 
   private CountingAllocator allocator;
   private PoolBuilder<GenericPoolable> builder;
-  private Pool<GenericPoolable> pool;
-  private PoolTap<GenericPoolable> threadSafeTap;
-  private PoolTap<GenericPoolable> threadLocalTap;
-
-  enum Taps {
-    POOL {
-      @Override
-      PoolTap<GenericPoolable> get(PoolTest test) {
-        return test.pool;
-      }
-    },
-    THREAD_SAFE {
-      @Override
-      PoolTap<GenericPoolable> get(PoolTest test) {
-        return test.threadSafeTap;
-      }
-    },
-    THREAD_LOCAL {
-      @Override
-      PoolTap<GenericPoolable> get(PoolTest test) {
-        return test.threadLocalTap;
-      }
-    };
-
-    abstract PoolTap<GenericPoolable> get(PoolTest test);
-  }
+  Pool<GenericPoolable> pool;
+  PoolTap<GenericPoolable> threadSafeTap;
+  PoolTap<GenericPoolable> threadLocalTap;
 
   @BeforeEach
   void setUp() {
