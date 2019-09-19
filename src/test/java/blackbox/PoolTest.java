@@ -3255,6 +3255,57 @@ class PoolTest {
     join(thread);
   }
 
+  @Test
+  void threadLocalTapsCacheIndependentObjects() throws Exception {
+    builder.setSize(2);
+    createPool();
+    PoolTap<GenericPoolable> tap1 = pool.getThreadLocalTap();
+    PoolTap<GenericPoolable> tap2 = pool.getThreadLocalTap();
+    GenericPoolable a = tap1.claim(longTimeout);
+    GenericPoolable b = tap2.claim(longTimeout);
+    a.release();
+    b.release();
+    GenericPoolable c = tap1.claim(longTimeout);
+    c.release();
+    GenericPoolable d = tap2.claim(longTimeout);
+    d.release();
+    assertThat(c).isSameAs(a);
+    assertThat(d).isSameAs(b);
+  }
+
+  @Test
+  void threadLocalAndThreadSafeTapsCacheIndependentObjects() throws Exception {
+    builder.setSize(2);
+    createPool();
+    PoolTap<GenericPoolable> tap1 = pool.getThreadLocalTap();
+    PoolTap<GenericPoolable> tap2 = pool.getThreadSafeTap();
+    GenericPoolable a = tap1.claim(longTimeout);
+    GenericPoolable b = tap2.claim(longTimeout);
+    a.release();
+    b.release();
+    GenericPoolable c = tap1.claim(longTimeout);
+    c.release();
+    GenericPoolable d = tap2.claim(longTimeout);
+    d.release();
+    assertThat(c).isSameAs(a);
+    assertThat(d).isSameAs(b);
+  }
+
+  @Test
+  void threadSafeTapsCacheThreadBoundObjects() throws Exception {
+    builder.setSize(2);
+    createPool();
+    PoolTap<GenericPoolable> tap1 = pool.getThreadSafeTap();
+    PoolTap<GenericPoolable> tap2 = pool.getThreadSafeTap();
+    GenericPoolable a = tap1.claim(longTimeout);
+    GenericPoolable b = tap2.claim(longTimeout);
+    a.release();
+    b.release();
+    GenericPoolable c = tap1.claim(longTimeout);
+    c.release();
+    assertThat(c).isSameAs(b);
+  }
+
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the javadocs and docs pages.
 }
