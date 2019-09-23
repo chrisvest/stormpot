@@ -71,11 +71,11 @@ final class BlazePool<T extends Poolable>
     tlr = new ThreadLocalBSlotCache<>();
     poisonPill = new BSlot<>(live, null);
     poisonPill.poison = SHUTDOWN_POISON;
-    ThreadFactory factory = builder.getThreadFactory();
-    allocator = new BAllocThread<>(live, disregardPile, builder, poisonPill);
-    allocatorThread = factory.newThread(allocator);
     deallocRule = builder.getExpiration();
     metricsRecorder = builder.getMetricsRecorder();
+    allocator = new BAllocThread<>(live, disregardPile, builder, poisonPill);
+    ThreadFactory factory = builder.getThreadFactory();
+    allocatorThread = factory.newThread(allocator);
     allocatorThread.start();
   }
 

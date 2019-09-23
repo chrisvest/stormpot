@@ -29,7 +29,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
    * shutdown process has deallocated all the dead and live slots it could
    * get its hands on, but there are still (claimed) slots left.
    */
-  private final static long shutdownPauseNanos =
+  private static final long shutdownPauseNanos =
       TimeUnit.MILLISECONDS.toNanos(10);
 
   private final BlockingQueue<BSlot<T>> live;
