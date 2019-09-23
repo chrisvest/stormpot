@@ -326,4 +326,11 @@ class ExpirationTest {
     assertFalse(expiration.hasExpired(info));
     assertThat(counter.get()).isEqualTo(0);
   }
+
+  @Test
+  void neverExpirationNeverInvalidatesSlots() throws Exception {
+    Expiration<GenericPoolable> never = Expiration.never();
+    SlotInfoStub info = new SlotInfoStub(0);
+    assertFalse(never.hasExpired(info));
+  }
 }

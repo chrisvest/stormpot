@@ -114,6 +114,19 @@ public interface Expiration<T extends Poolable> {
   }
 
   /**
+   * Construct a new Expiration that never invalidates any objects.
+   *
+   * This is useful for effectively disabling object expiration,
+   * for cases where that makes sense.
+   *
+   * @param <T> The type of {@link Poolable} to check.
+   * @return An expiration that never invalidates objects.
+   */
+  static <T extends Poolable> Expiration<T> never() {
+    return info -> false;
+  }
+
+  /**
    * Construct a new Expiration that will invalidate objects if either this, or
    * the given expiration, considers an object expired.
    *
