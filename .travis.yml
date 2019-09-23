@@ -1,7 +1,7 @@
 language: java
 jdk:
   - openjdk11
-script: "mvn verify"
+script: "mvn verify -B"
 sudo: false
 addons:
   hostname: short-hostname
