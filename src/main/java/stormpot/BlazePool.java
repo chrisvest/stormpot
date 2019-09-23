@@ -108,7 +108,7 @@ final class BlazePool<T extends Poolable>
       // If we checked validity before claiming, then we might find that it
       // had expired, and throw it in the dead queue, causing a claimed
       // Poolable to be deallocated before it is released.
-      if (!isInvalid(slot, true)) {
+      if (!isInvalid(slot, cache, true)) {
         slot.incrementClaims();
         return slot.obj;
       }
@@ -153,7 +153,7 @@ final class BlazePool<T extends Poolable>
       }
 
       if (slot.live2claim()) {
-        if (isInvalid(slot, false)) {
+        if (isInvalid(slot, cache, false)) {
           timeoutLeft = timeout.getTimeLeft(deadline);
           if (timeoutLeft <= 0) {
             // There is no time left to poll the queue again - just return null
@@ -171,16 +171,16 @@ final class BlazePool<T extends Poolable>
     return slot.obj;
   }
 
-  private boolean isInvalid(BSlot<T> slot, boolean isTlr) {
+  private boolean isInvalid(BSlot<T> slot, BSlotCache<T> cache, boolean isTlr) {
     if (isUncommonlyInvalid(slot)) {
-      return handleUncommonInvalidation(slot, isTlr);
+      return handleUncommonInvalidation(slot, cache, isTlr);
     }
 
     try {
       return deallocRule.hasExpired(slot)
-          && handleCommonInvalidation(slot, null);
+          && handleCommonInvalidation(slot, cache, null);
     } catch (Throwable ex) {
-      return handleCommonInvalidation(slot, ex);
+      return handleCommonInvalidation(slot, cache, ex);
     }
   }
 
@@ -188,18 +188,20 @@ final class BlazePool<T extends Poolable>
     return shutdown | slot.poison != null;
   }
 
-  private boolean handleUncommonInvalidation(BSlot<T> slot, boolean isTlr) {
+  private boolean handleUncommonInvalidation(
+      BSlot<T> slot, BSlotCache<T> cache, boolean isTlr) {
     Exception poison = slot.poison;
     if (poison != null) {
-      return dealWithSlotPoison(slot, isTlr, poison);
+      return dealWithSlotPoison(slot, cache, isTlr, poison);
     } else {
-      kill(slot);
+      kill(slot, cache);
       throw new IllegalStateException("Pool has been shut down");
     }
   }
 
-  private boolean handleCommonInvalidation(BSlot<T> slot, Throwable exception) {
-    kill(slot);
+  private boolean handleCommonInvalidation(
+      BSlot<T> slot, BSlotCache<T> cache, Throwable exception) {
+    kill(slot, cache);
     if (exception != null) {
       String msg = "Got exception when checking whether an object had expired";
       throw new PoolException(msg, exception);
@@ -207,7 +209,8 @@ final class BlazePool<T extends Poolable>
     return true;
   }
 
-  private boolean dealWithSlotPoison(BSlot<T> slot, boolean isTlr, Exception poison) {
+  private boolean dealWithSlotPoison(
+      BSlot<T> slot, BSlotCache<T> cache, boolean isTlr, Exception poison) {
     if (poison == SHUTDOWN_POISON) {
       // The poison pill means the pool has been shut down. The pill was
       // transitioned from live to claimed just prior to this check, so we
@@ -220,7 +223,7 @@ final class BlazePool<T extends Poolable>
       live.offer(poisonPill);
       throw new IllegalStateException("Pool has been shut down");
     } else {
-      kill(slot);
+      kill(slot, cache);
       if (isTlr || poison == EXPLICIT_EXPIRE_POISON) {
         return true;
       } else {
@@ -229,7 +232,7 @@ final class BlazePool<T extends Poolable>
     }
   }
 
-  private void kill(BSlot<T> slot) {
+  private void kill(BSlot<T> slot, BSlotCache<T> cache) {
     // The use of claim2dead() here ensures that we don't put slots into the
     // dead-queue more than once. Many threads might have this as their
     // TLR-slot and try to tlr-claim it, but only when a slot has been normally
@@ -242,7 +245,7 @@ final class BlazePool<T extends Poolable>
       allocator.offerDeadSlot(slot);
     } else {
       slot.claimTlr2live();
-      tlr.get().slot = null;
+      cache.slot = null;
     }
   }
 
