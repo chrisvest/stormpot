@@ -87,34 +87,29 @@ public class ExpireKit {
     return false;
   };
 
-  public static Expire $if(
-      final AtomicBoolean cond,
-      final Expire then,
-      final Expire otherwise) {
+  public static Expire $if(AtomicBoolean cond, Expire then, Expire otherwise) {
     return info -> cond.get()?
         then.hasExpired(info) : otherwise.hasExpired(info);
   }
 
-  public static Expire $expiredIf(final AtomicBoolean cond) {
+  public static Expire $expiredIf(AtomicBoolean cond) {
     return $if(cond, $expired, $fresh);
   }
 
-  public static Expire $throwExpire(final Exception exception) {
+  public static Expire $throwExpire(Exception exception) {
     return info -> {
       throw exception;
     };
   }
 
-  public static Expire $throwExpire(final Throwable throwable) {
+  public static Expire $throwExpire(Throwable throwable) {
     return info -> {
       UnitKit.sneakyThrow(throwable);
       return false;
     };
   }
 
-  public static Expire $countDown(
-      final CountDownLatch latch,
-      final Expire then) {
+  public static Expire $countDown(CountDownLatch latch, Expire then) {
     return info -> {
       latch.countDown();
       return then.hasExpired(info);
@@ -130,16 +125,15 @@ public class ExpireKit {
     };
   }
 
-  public static SlotInfoCapture $age(final AtomicLong age) {
+  public static SlotInfoCapture $age(AtomicLong age) {
     return info -> age.set(info.getAgeMillis());
   }
 
-  public static SlotInfoCapture $poolable(
-      final AtomicReference<Poolable> ref) {
+  public static SlotInfoCapture $poolable(AtomicReference<Poolable> ref) {
     return info -> ref.set(info.getPoolable());
   }
 
-  public static SlotInfoCapture $claimCount(final AtomicLong count) {
+  public static SlotInfoCapture $claimCount(AtomicLong count) {
     return info -> count.set(info.getClaimCount());
   }
 }
