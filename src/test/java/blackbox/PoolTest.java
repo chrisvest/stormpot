@@ -597,19 +597,17 @@ class PoolTest {
   @ParameterizedTest
   @EnumSource(Taps.class)
   void slotInfoAgeMustResetAfterReallocation(Taps taps) throws InterruptedException {
-    final AtomicBoolean hasExpired = new AtomicBoolean();
     final AtomicLong age = new AtomicLong();
     builder.setExpiration(expire(
-        $capture($age(age), $expiredIf(hasExpired))));
+        $capture($age(age), $fresh)));
     createPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
     tap.claim(longTimeout).release();
     Thread.sleep(100); // time transpires
-    tap.claim(longTimeout).release();
+    GenericPoolable obj = tap.claim(longTimeout);
     long firstAge = age.get();
-    hasExpired.set(true);
-    assertNull(tap.claim(zeroTimeout)); // cause reallocation
-    hasExpired.set(false);
+    obj.expire(); // cause reallocation
+    obj.release();
     tap.claim(longTimeout).release(); // new object, new age
     long secondAge = age.get();
     assertThat(secondAge).isLessThan(firstAge);
