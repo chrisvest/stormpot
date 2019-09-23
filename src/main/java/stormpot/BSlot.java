@@ -155,7 +155,7 @@ abstract class PaddedAtomicInteger extends Padding1 {
       MethodHandles.Lookup lookup = MethodHandles.lookup();
       STATE = lookup.findVarHandle(PaddedAtomicInteger.class, "state", int.class);
     } catch (NoSuchFieldException | IllegalAccessException e) {
-      throw new AssertionError("Failed to initialise the state VarHandle.");
+      throw new AssertionError("Failed to initialise the state VarHandle.", e);
     }
   }
 
