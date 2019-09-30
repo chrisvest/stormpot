@@ -302,7 +302,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * @return A {@link Pool} instance as configured by this builder.
    */
   public synchronized Pool<T> build() {
-    return new BlazePool<>(this);
+    return new BlazePool<>(this, AllocatorProcessFactory.THREADED);
   }
 
   /**

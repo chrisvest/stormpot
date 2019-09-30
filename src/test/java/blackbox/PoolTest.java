@@ -133,7 +133,7 @@ class PoolTest {
   @Test
   void threadSafePoolTapMustDelegateDirectlyToPool() throws Exception {
     AtomicBoolean delegatedToPool = new AtomicBoolean();
-    Pool pool = new Pool() {
+    Pool<Poolable> pool = new Pool<>() {
       @Override
       public Completion shutdown() {
         return null;
@@ -154,7 +154,7 @@ class PoolTest {
       }
 
       @Override
-      public PoolTap getThreadLocalTap() {
+      public PoolTap<Poolable> getThreadLocalTap() {
         return null;
       }
 

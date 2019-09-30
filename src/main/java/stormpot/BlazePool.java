@@ -17,7 +17,6 @@ package stormpot;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedTransferQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -42,14 +41,13 @@ import java.util.concurrent.TimeUnit;
 final class BlazePool<T extends Poolable>
     extends Pool<T> implements ManagedPool {
 
-  private static final Exception SHUTDOWN_POISON = new Exception("Shutdown");
-  static final Exception EXPLICIT_EXPIRE_POISON = new Exception("Expired");
+  private static final Exception SHUTDOWN_POISON = new Exception("Stormpot Poison: Shutdown");
+  static final Exception EXPLICIT_EXPIRE_POISON = new Exception("Stormpot Poison: Expired");
 
   private final BlockingQueue<BSlot<T>> live;
   private final DisregardBPile<T> disregardPile;
-  private final BAllocThread<T> allocator;
+  private final AllocatorProcess<T> allocator;
   private final ThreadLocal<BSlotCache<T>> tlr;
-  private final Thread allocatorThread;
   private final Expiration<? super T> deallocRule;
   private final MetricsRecorder metricsRecorder;
 
@@ -64,7 +62,7 @@ final class BlazePool<T extends Poolable>
    * Construct a new BlazePool instance based on the given {@link PoolBuilder}.
    * @param builder The pool configuration to use.
    */
-  BlazePool(PoolBuilder<T> builder) {
+  BlazePool(PoolBuilder<T> builder, AllocatorProcessFactory allocatorProcessFactory) {
     builder.validate();
     live = new LinkedTransferQueue<>();
     disregardPile = new DisregardBPile<>(live);
@@ -73,10 +71,8 @@ final class BlazePool<T extends Poolable>
     poisonPill.poison = SHUTDOWN_POISON;
     deallocRule = builder.getExpiration();
     metricsRecorder = builder.getMetricsRecorder();
-    allocator = new BAllocThread<>(live, disregardPile, builder, poisonPill);
-    ThreadFactory factory = builder.getThreadFactory();
-    allocatorThread = factory.newThread(allocator);
-    allocatorThread.start();
+    allocator = allocatorProcessFactory.buildAllocator(
+        live, disregardPile, builder, poisonPill);
   }
 
   @Override
@@ -252,7 +248,7 @@ final class BlazePool<T extends Poolable>
   @Override
   public Completion shutdown() {
     shutdown = true;
-    return allocator.shutdown(allocatorThread);
+    return allocator.shutdown();
   }
 
   @Override
