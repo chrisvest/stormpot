@@ -41,8 +41,10 @@ import java.util.concurrent.TimeUnit;
 final class BlazePool<T extends Poolable>
     extends Pool<T> implements ManagedPool {
 
-  private static final Exception SHUTDOWN_POISON = new Exception("Stormpot Poison: Shutdown");
-  static final Exception EXPLICIT_EXPIRE_POISON = new Exception("Stormpot Poison: Expired");
+  private static final Exception SHUTDOWN_POISON =
+      new Exception("Stormpot Poison: Shutdown");
+  static final Exception EXPLICIT_EXPIRE_POISON =
+      new Exception("Stormpot Poison: Expired");
 
   private final BlockingQueue<BSlot<T>> live;
   private final DisregardBPile<T> disregardPile;
@@ -62,7 +64,7 @@ final class BlazePool<T extends Poolable>
    * Construct a new BlazePool instance based on the given {@link PoolBuilder}.
    * @param builder The pool configuration to use.
    */
-  BlazePool(PoolBuilder<T> builder, AllocatorProcessFactory allocatorProcessFactory) {
+  BlazePool(PoolBuilder<T> builder, AllocatorProcessFactory factory) {
     builder.validate();
     live = new LinkedTransferQueue<>();
     disregardPile = new DisregardBPile<>(live);
@@ -71,7 +73,7 @@ final class BlazePool<T extends Poolable>
     poisonPill.poison = SHUTDOWN_POISON;
     deallocRule = builder.getExpiration();
     metricsRecorder = builder.getMetricsRecorder();
-    allocator = allocatorProcessFactory.buildAllocator(
+    allocator = factory.buildAllocator(
         live, disregardPile, builder, poisonPill);
   }
 

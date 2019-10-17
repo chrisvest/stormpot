@@ -15,29 +15,29 @@
  */
 package blackbox;
 
-import stormpot.GenericPoolable;
 import stormpot.PoolTap;
+import stormpot.Poolable;
 
 @SuppressWarnings("unused")
 enum Taps {
   POOL {
     @Override
-    PoolTap<GenericPoolable> get(PoolTest test) {
+    <T extends Poolable> PoolTap<T> get(AbstractPoolTest<T> test) {
       return test.pool;
     }
   },
   THREAD_SAFE {
     @Override
-    PoolTap<GenericPoolable> get(PoolTest test) {
+    <T extends Poolable> PoolTap<T> get(AbstractPoolTest<T> test) {
       return test.threadSafeTap;
     }
   },
   THREAD_LOCAL {
     @Override
-    PoolTap<GenericPoolable> get(PoolTest test) {
+    <T extends Poolable> PoolTap<T> get(AbstractPoolTest<T> test) {
       return test.threadLocalTap;
     }
   };
 
-  abstract PoolTap<GenericPoolable> get(PoolTest test);
+  abstract <T extends Poolable> PoolTap<T> get(AbstractPoolTest<T> test);
 }

@@ -80,6 +80,26 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
     return new PoolBuilder<>(allocator);
   }
 
+  @SafeVarargs
+  public static <T> Pool<Pooled<T>> of(T... objects) {
+    Allocator<Pooled<T>> allocator = new Allocator<>() {
+      private int index;
+      @Override
+      public Pooled<T> allocate(Slot slot) {
+        return new Pooled<>(slot, objects[index++]);
+      }
+
+      @Override
+      public void deallocate(Pooled<T> poolable) {
+      }
+    };
+    PoolBuilder<Pooled<T>> builder = new PoolBuilder<>(allocator);
+    builder.setSize(objects.length);
+    builder.setBackgroundExpirationEnabled(false);
+    builder.setExpiration(Expiration.never());
+    return new BlazePool<>(builder, AllocatorProcessFactory.DIRECT);
+  }
+
   /**
    * Initiate the shut down process on this pool, and return a
    * {@link Completion} instance representing the shut down procedure.
@@ -128,6 +148,9 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
    * Pools that do not support a size less than 1 (which would deviate from the
    * standard configuration space) will throw an
    * {@link IllegalArgumentException} if passed 0 or less.
+   *
+   * Pools that do not support online resizing will throw an
+   * {@link UnsupportedOperationException}.
    *
    * @param size The new target size of the pool
    */
