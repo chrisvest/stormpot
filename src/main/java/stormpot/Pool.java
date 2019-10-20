@@ -80,6 +80,27 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
     return new PoolBuilder<>(allocator);
   }
 
+  /**
+   * Build a {@link Pool} instance that pools the given set of objects.
+   *
+   * The objects in the pool are never expired, and never deallocated.
+   * Explicitly expired objects simply return to the pool.
+   *
+   * This means that the returned pool has no background allocation thread,
+   * and has no expiration checking overhead when claiming objects.
+   *
+   * The given objects are wrapped in {@link Pooled} objects, which
+   * implement the {@link Poolable} interface.
+   *
+   * Shutting down the returned pool will not cause the given objects
+   * to be deallocated.
+   * The shut down process will complete as soon as the last claimed
+   * object is released back to the pool.
+   *
+   * @param objects The objects the pool should contain.
+   * @param <T> The type of objects being pooled.
+   * @return A pool of the given objects.
+   */
   @SafeVarargs
   public static <T> Pool<Pooled<T>> of(T... objects) {
     Allocator<Pooled<T>> allocator = new Allocator<>() {

@@ -25,6 +25,7 @@ class DirectAllocatorProcess<T extends Poolable> extends AllocatorProcess<T> {
   private final BSlot<T> poisonPill;
   private final int size;
   private final AtomicInteger shutdownState;
+  private final AtomicInteger poisonedSlots;
 
   DirectAllocatorProcess(
       BlockingQueue<BSlot<T>> live,
@@ -35,7 +36,7 @@ class DirectAllocatorProcess<T extends Poolable> extends AllocatorProcess<T> {
     this.disregardBPile = disregardBPile;
     this.poisonPill = poisonPill;
     this.size = builder.getSize();
-    AtomicInteger poisonedSlots = new AtomicInteger(0);
+    poisonedSlots = new AtomicInteger(0);
     Allocator<T> allocator = builder.getAllocator();
     for (int i = 0; i < size; i++) {
       BSlot<T> slot = new BSlot<>(live, poisonedSlots);
@@ -80,6 +81,10 @@ class DirectAllocatorProcess<T extends Poolable> extends AllocatorProcess<T> {
 
   @Override
   void offerDeadSlot(BSlot<T> slot) {
+    if (slot.poison != null) {
+      slot.poison = null;
+      poisonedSlots.getAndDecrement();
+    }
     slot.dead2live();
     live.offer(slot);
   }

@@ -59,7 +59,7 @@ class DirectPoolTest extends AbstractPoolTest<Pooled<String>> {
   }
 
   @Test
-  void pooledIsAutoCloseable() throws InterruptedException {
+  void pooledIsAutoCloseable() throws Exception {
     createOneObjectPool();
     try (Pooled<String> pooled = pool.claim(longTimeout)) {
       assertThat(pooled.object).isEqualTo("a");
@@ -67,5 +67,18 @@ class DirectPoolTest extends AbstractPoolTest<Pooled<String>> {
           object -> fail("Did not expect to claim object: " + object)));
     }
     assertTrue(pool.supply(shortTimeout, object -> {}));
+  }
+
+  @Test
+  void explicitlyExpiredObjectsReturnToThePool() throws Exception {
+    createOneObjectPool();
+    String claimedObject;
+    try (Pooled<String> object = pool.claim(longTimeout)) {
+      object.expire();
+      claimedObject = object.object;
+    }
+    try (Pooled<String> object = pool.claim(longTimeout)) {
+      assertThat(object.object).isSameAs(claimedObject);
+    }
   }
 }
