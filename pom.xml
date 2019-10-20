@@ -115,6 +115,7 @@
         <configuration>
           <trimStackTrace>false</trimStackTrace>
           <argLine>
+            @{argLine}
             --add-opens stormpot/stormpot=ALL-UNNAMED
             --add-opens stormpot/blackbox=ALL-UNNAMED
             --add-opens stormpot/extensions=ALL-UNNAMED
