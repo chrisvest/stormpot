@@ -128,6 +128,9 @@
             --add-opens stormpot/stormpot=ALL-UNNAMED
             --add-opens stormpot/blackbox=ALL-UNNAMED
             --add-opens stormpot/extensions=ALL-UNNAMED
+            -Djunit.jupiter.execution.parallel.enabled=true
+            -Djunit.jupiter.execution.parallel.mode.classes.default=concurrent
+            -Djunit.jupiter.execution.timeout.default=30m
           </argLine>
         </configuration>
       </plugin>
