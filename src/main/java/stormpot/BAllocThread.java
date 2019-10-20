@@ -239,8 +239,8 @@ final class BAllocThread<T extends Poolable> implements Runnable {
     }
     size++;
     resetSlot(slot, System.nanoTime());
-    live.offer(slot);
     incrementAllocationCounts(success);
+    live.offer(slot);
     didAnythingLastIteration = true;
   }
 
