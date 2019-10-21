@@ -54,6 +54,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
 
   private int size;
   private boolean didAnythingLastIteration;
+  private long consecutiveAllocationFailures;
 
   BAllocThread(
       BlockingQueue<BSlot<T>> live,
@@ -102,12 +103,12 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   private void replenishPool() throws InterruptedException {
     boolean weHaveWorkToDo = size != targetSize || poisonedSlots.get() > 0;
     long deadPollTimeout = weHaveWorkToDo ?
-        (didAnythingLastIteration ? 0 : 10) : 100;
+        (didAnythingLastIteration ? 0 : 10) + Math.min(consecutiveAllocationFailures, 90) : 100;
     didAnythingLastIteration = false;
+    BSlot<T> slot = dead.poll(deadPollTimeout, TimeUnit.MILLISECONDS);
     if (size < targetSize) {
       increaseSizeByAllocating();
     }
-    BSlot<T> slot = dead.poll(deadPollTimeout, TimeUnit.MILLISECONDS);
     if (size > targetSize) {
       reduceSizeByDeallocating(slot);
     } else if (slot != null) {
@@ -247,8 +248,10 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   private void incrementAllocationCounts(boolean success) {
     if (success) {
       allocationCount++;
+      consecutiveAllocationFailures = 0;
     } else {
       failedAllocationCount++;
+      consecutiveAllocationFailures++;
     }
   }
 
@@ -299,8 +302,8 @@ final class BAllocThread<T extends Poolable> implements Runnable {
       long now = System.nanoTime();
       recordObjectLifetimeSample(now - slot.createdNanos);
       resetSlot(slot, now);
-      live.offer(slot);
       incrementAllocationCounts(success);
+      live.offer(slot);
     } else {
       dealloc(slot);
       alloc(slot);

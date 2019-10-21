@@ -33,8 +33,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.util.Arrays.asList;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static stormpot.AlloKit.$countDown;
 import static stormpot.AlloKit.*;
@@ -492,5 +491,31 @@ class PoolIT {
         TimeUnit.NANOSECONDS.toMillis(lastUserTimeIncrement.get());
 
     assertThat(millisecondsSpentBurningCPU).isLessThan(millisecondsAllowedToBurnCPU / 2);
+  }
+
+  @Test
+  void mustGraduallyReduceAggressivenessInRepairingFailingAllocator() throws Exception {
+    AtomicLong counter = new AtomicLong();
+    allocator = allocator(alloc($new, (slot, obj) -> {
+      counter.getAndIncrement();
+      throw new RuntimeException("boom");
+    }));
+    builder.setAllocator(allocator);
+    createPool();
+    GenericPoolable obj = pool.claim(longTimeout);
+    obj.expire();
+    obj.release();
+    assertThrows(PoolException.class, () -> pool.claim(longTimeout).release());
+    long prev = 0, curr;
+    for (int i = 0; i < 50; i++) {
+      Thread.sleep(100);
+      curr = counter.get();
+      long delta = curr - prev;
+      prev = curr;
+      if (i > 40) {
+//        System.out.println("delta = " + delta);
+        assertThat(delta).isLessThanOrEqualTo(5);
+      }
+    }
   }
 }
