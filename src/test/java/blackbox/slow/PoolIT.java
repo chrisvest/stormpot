@@ -94,7 +94,7 @@ class PoolIT {
     pool = builder.build();
   }
 
-  @org.junit.jupiter.api.Timeout(16)
+  @org.junit.jupiter.api.Timeout(160)
   @Test
   void highContentionMustNotCausePoolLeakage() throws Exception {
     createPool();
@@ -131,7 +131,7 @@ class PoolIT {
     };
   }
 
-  @org.junit.jupiter.api.Timeout(16)
+  @org.junit.jupiter.api.Timeout(160)
   @Test
   void shutdownMustCompleteSuccessfullyEvenAtHighContention() throws Exception {
     int size = 100000;
@@ -159,7 +159,7 @@ class PoolIT {
     }
   }
 
-  @org.junit.jupiter.api.Timeout(16)
+  @org.junit.jupiter.api.Timeout(160)
   @Test
   void highObjectChurnMustNotCausePoolLeakage() throws Exception {
     builder.setSize(8);
@@ -212,7 +212,7 @@ class PoolIT {
     }
   }
 
-  @org.junit.jupiter.api.Timeout(16)
+  @org.junit.jupiter.api.Timeout(160)
   @Test
   void backgroundExpirationMustDoNothingWhenPoolIsDepleted() throws Exception {
     AtomicBoolean hasExpired = new AtomicBoolean();
