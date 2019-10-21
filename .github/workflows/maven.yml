@@ -14,4 +14,4 @@ jobs:
       with:
         java-version: 11
     - name: Build with Maven
-      run: mvn verify -B
+      run: mvn -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn verify -B
