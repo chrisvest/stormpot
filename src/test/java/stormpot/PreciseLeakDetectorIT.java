@@ -30,7 +30,7 @@ class PreciseLeakDetectorIT {
   @Test
   void mustCountCorrectlyAfterRandomAddRemoveLeakAndCounts() {
     System.out.print(
-        "NOTE: this test takes about 3 to 5 minutes to run...    ");
+        "NOTE: this test takes about 15 to 30 seconds to run...    ");
 
     // This particular seed seems to give pretty good coverage:
     Random rng = new Random(-6406176578229504295L);
@@ -38,7 +38,7 @@ class PreciseLeakDetectorIT {
     long leaksCreated = 0;
 
     // This distribution of the operations seems to give a good coverage:
-    int iterations = 120000;
+    int iterations = 12000;
     for (int i = 0; i < iterations; i++) {
       int choice = rng.nextInt(100);
       if (choice < 60) {
