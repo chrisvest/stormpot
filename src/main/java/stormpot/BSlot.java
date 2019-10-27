@@ -138,6 +138,24 @@ final class BSlot<T extends Poolable>
   public void setStamp(long stamp) {
     this.stamp = stamp;
   }
+
+  @Override
+  public String toString() {
+    int state = get();
+    String s;
+    if (state == CLAIMED) {
+      s = "CLAIMED";
+    } else if (state == TLR_CLAIMED) {
+      s = "TLR_CLAIMED";
+    } else if (state == LIVING) {
+      s = "LIVING";
+    } else if (state == DEAD) {
+      s = "DEAD";
+    } else {
+      s = "UnknownState(" + state + ")";
+    }
+    return "BSolt[" + s + ", obj = " + obj + ", poison = " + poison + "]";
+  }
 }
 
 abstract class Padding1 {
