@@ -22,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 @SuppressWarnings("NonAtomicOperationOnVolatileField")
 final class BAllocThread<T extends Poolable> implements Runnable {
   /**
@@ -29,8 +31,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
    * shutdown process has deallocated all the dead and live slots it could
    * get its hands on, but there are still (claimed) slots left.
    */
-  private static final long shutdownPauseNanos =
-      TimeUnit.MILLISECONDS.toNanos(10);
+  private static final long shutdownPauseNanos = MILLISECONDS.toNanos(10);
 
   private final BlockingQueue<BSlot<T>> live;
   private final DisregardBPile<T> disregardPile;
@@ -43,6 +44,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   private final CountDownLatch completionLatch;
   private final BlockingQueue<BSlot<T>> dead;
   private final AtomicInteger poisonedSlots;
+  private final long defaultDeadPollTimeout;
 
   // Single reader: this. Many writers.
   private volatile int targetSize;
@@ -74,6 +76,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
     this.completionLatch = new CountDownLatch(1);
     this.dead = new LinkedTransferQueue<>();
     this.poisonedSlots = new AtomicInteger();
+    this.defaultDeadPollTimeout = 100;
     this.size = 0;
     this.didAnythingLastIteration = true; // start out busy
   }
@@ -101,11 +104,8 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   }
 
   private void replenishPool() throws InterruptedException {
-    boolean weHaveWorkToDo = size != targetSize || poisonedSlots.get() > 0;
-    long deadPollTimeout = weHaveWorkToDo ?
-        (didAnythingLastIteration ? 0 : 10) + Math.min(consecutiveAllocationFailures, 90) : 100;
-    didAnythingLastIteration = false;
-    BSlot<T> slot = dead.poll(deadPollTimeout, TimeUnit.MILLISECONDS);
+    long deadPollTimeout = computeDeadPollTimeout();
+    BSlot<T> slot = dead.poll(deadPollTimeout, MILLISECONDS);
     if (size < targetSize) {
       increaseSizeByAllocating();
     }
@@ -124,9 +124,24 @@ final class BAllocThread<T extends Poolable> implements Runnable {
     if (poisonedSlots.get() > 0) {
       // Proactively seek out and try to heal poisoned slots
       proactivelyHealPoison();
-    } else if (backgroundExpirationEnabled && !weHaveWorkToDo) {
+    } else if (backgroundExpirationEnabled && size == targetSize) {
       backgroundExpirationCheck();
     }
+  }
+
+  private long computeDeadPollTimeout() {
+    // Default timeout.
+    long deadPollTimeout = defaultDeadPollTimeout;
+    if (size != targetSize || poisonedSlots.get() > 0) {
+      // Make timeout shorter if we have work piled up.
+      deadPollTimeout = (didAnythingLastIteration ? 0 : 10);
+      // Unless we have a lot of allocation failures.
+      // In that case, make the timeout longer to avoid wasting CPU.
+      deadPollTimeout += Math.min(consecutiveAllocationFailures,
+          defaultDeadPollTimeout - deadPollTimeout);
+    }
+    didAnythingLastIteration = false;
+    return deadPollTimeout;
   }
 
   private void increaseSizeByAllocating() {
