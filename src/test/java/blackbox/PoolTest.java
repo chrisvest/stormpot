@@ -1279,7 +1279,7 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
         $expired
     );
     builder.setExpiration(expiration).setAllocator(allocator);
-    builder.setSize(startingSize);
+    builder.setSize(startingSize).setBackgroundExpirationEnabled(false);
     createPool();
     List<GenericPoolable> objs = new ArrayList<>();
     for (int i = 0; i < startingSize; i++) {
