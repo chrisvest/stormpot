@@ -269,7 +269,7 @@ class PoolIT {
     allocator = allocator(
         alloc($countDown(startLatch, $new)),
         dealloc($release(semaphore, $null)));
-    builder.setSize(startingSize);
+    builder.setSize(startingSize).setBackgroundExpirationCheckDelay(10);
     builder.setAllocator(allocator);
     createPool();
     startLatch.await();
