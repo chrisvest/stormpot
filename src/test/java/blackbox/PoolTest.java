@@ -443,6 +443,7 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
     final AtomicLong age = new AtomicLong();
     builder.setExpiration(expire(
         $capture($age(age), $expiredIf(hasExpired))));
+    builder.setBackgroundExpirationEnabled(false);
     // Reallocations will fail, causing the slot to be poisoned.
     // Then, the poisoned slot will not be reallocated again, but rather
     // go through the deallocate-allocate cycle.
