@@ -76,7 +76,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
     this.completionLatch = new CountDownLatch(1);
     this.dead = new LinkedTransferQueue<>();
     this.poisonedSlots = new AtomicInteger();
-    this.defaultDeadPollTimeout = 100;
+    this.defaultDeadPollTimeout = builder.getBackgroundExpirationCheckDelay();
     this.size = 0;
     this.didAnythingLastIteration = true; // start out busy
   }

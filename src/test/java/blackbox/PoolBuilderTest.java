@@ -125,6 +125,12 @@ class PoolBuilderTest {
   }
 
   @Test
+  void backgroundExpirationCheckDelayMustBeSettable() {
+    builder.setBackgroundExpirationCheckDelay(142);
+    assertThat(builder.getBackgroundExpirationCheckDelay()).isEqualTo(142);
+  }
+
+  @Test
   void allSetterMethodsMustReturnTheSameBuilderInstance() throws Exception {
     Method[] methods = PoolBuilder.class.getDeclaredMethods();
     List<Method> setterMethods = new ArrayList<>();
@@ -173,6 +179,7 @@ class PoolBuilderTest {
     builder.setExpiration(expiration);
     builder.setAllocator(allocator);
     builder.setBackgroundExpirationEnabled(false);
+    builder.setBackgroundExpirationCheckDelay(1313);
     builder.setMetricsRecorder(metricsRecorder);
     builder.setPreciseLeakDetectionEnabled(false);
     builder.setSize(42);
@@ -183,6 +190,7 @@ class PoolBuilderTest {
     assertThat(clone.getExpiration()).isSameAs(expiration);
     assertThat(clone.getAllocator()).isSameAs(allocator);
     assertFalse(clone.isBackgroundExpirationEnabled());
+    assertThat(clone.getBackgroundExpirationCheckDelay()).isEqualTo(1313);
     assertThat(clone.getMetricsRecorder()).isSameAs(metricsRecorder);
     assertFalse(clone.isPreciseLeakDetectionEnabled());
     assertThat(clone.getSize()).isEqualTo(42);

@@ -63,6 +63,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
   private ThreadFactory threadFactory = StormpotThreadFactory.INSTANCE;
   private boolean preciseLeakDetectionEnabled = true;
   private boolean backgroundExpirationEnabled = true;
+  private int backgroundExpirationCheckDelay = 1000;
 
   /**
    * Build a new empty `PoolBuilder` object.
@@ -283,6 +284,38 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
   }
 
   /**
+   * Return the default approximate delay, in milliseconds, between background
+   * maintenance tasks, such as the background expiration checks and retrying
+   * failed allocations.
+   *
+   * @return the delay, in milliseconds, between background maintenance tasks.
+   */
+  public synchronized int getBackgroundExpirationCheckDelay() {
+    return backgroundExpirationCheckDelay;
+  }
+
+  /**
+   * Set the approximate delay, in milliseconds, between background maintenance tasks.
+   * These tasks include the background expiration checks, and retrying failed allocations.
+   *
+   * The default delay is 1.000 milliseconds (1 second). Lowering this value will
+   * improve the pools responsiveness to repairing failed allocations, and also increase
+   * the frequency of the background expiration checks. This comes at the cost of higher
+   * idle CPU usage.
+   *
+   * It is not recommended to set this value lower than 100 milliseconds. Values lower
+   * than this tend to have increased CPU and power usage, for very little gain in
+   * responsiveness for the background tasks.
+   *
+   * @param delay the desired delay, in milliseconds, between background maintenance tasks.
+   * @return This `PoolBuilder` instance.
+   */
+  public synchronized PoolBuilder<T> setBackgroundExpirationCheckDelay(int delay) {
+    backgroundExpirationCheckDelay = delay;
+    return this;
+  }
+
+  /**
    * Returns a shallow copy of this `PoolBuilder` object.
    * @return A new `PoolBuilder` object of the exact same type as this one, with
    * identical values in all its fields.
@@ -316,13 +349,16 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
   synchronized void validate() throws IllegalArgumentException {
     if (size < 1) {
       throw new IllegalArgumentException(
-          "Size must be at least 1, but was " + size);
+          "Size must be at least 1, but was " + size + ".");
     }
     if (expiration == null) {
-      throw new IllegalArgumentException("Expiration cannot be null");
+      throw new IllegalArgumentException("Expiration cannot be null.");
     }
     if (threadFactory == null) {
-      throw new IllegalArgumentException("ThreadFactory cannot be null");
+      throw new IllegalArgumentException("ThreadFactory cannot be null.");
+    }
+    if (backgroundExpirationCheckDelay < 0) {
+      throw new IllegalArgumentException("Background expiration check delay cannot be negative.");
     }
   }
 

@@ -216,6 +216,12 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
     builder.setThreadFactory(factory);
     assertThrows(NullPointerException.class, this::createPool);
   }
+
+  @Test
+  void constructorMustThrowIfBackgroundExpirationCheckDelayIsNegative() {
+    builder.setBackgroundExpirationCheckDelay(-1);
+    assertThrows(IllegalArgumentException.class, builder::build);
+  }
   
   /**
    * Pools must use the provided expiration to determine whether slots
@@ -1188,6 +1194,7 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
   @ParameterizedTest
   @EnumSource(Taps.class)
   void increasingSizeMustAllowMoreAllocations(Taps taps) throws Exception {
+    builder.setBackgroundExpirationCheckDelay(10);
     createPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
     GenericPoolable a = tap.claim(longTimeout); // depleted
@@ -1220,7 +1227,7 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
     int startingSize = 5;
     int newSize = 1;
     allocator = allocator();
-    builder.setSize(startingSize);
+    builder.setSize(startingSize).setBackgroundExpirationCheckDelay(10);
     builder.setAllocator(allocator);
     createPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
@@ -1705,7 +1712,7 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
       throws InterruptedException {
     CountDownLatch deallocLatch = new CountDownLatch(1);
     builder.setMetricsRecorder(new LastSampleMetricsRecorder());
-    builder.setSize(2);
+    builder.setSize(2).setBackgroundExpirationCheckDelay(10);
     builder.setAllocator(reallocator(dealloc($countDown(deallocLatch, $null))));
     ManagedPool managedPool = createPool().getManagedPool();
     GenericPoolable a = pool.claim(longTimeout);
@@ -1844,7 +1851,7 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
 
   @Test
   void managedPoolMustNotCountResizeAsLeak() throws Exception {
-    builder.setSize(2);
+    builder.setSize(2).setBackgroundExpirationCheckDelay(10);
     ManagedPool managedPool = createPool().getManagedPool();
     claimRelease(2, pool, longTimeout);
     managedPool.setTargetSize(4);
@@ -1870,7 +1877,7 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
   @Test
   void disabledLeakDetectionMustNotBreakResize() throws Exception {
     builder.setPreciseLeakDetectionEnabled(false);
-    builder.setSize(2);
+    builder.setSize(2).setBackgroundExpirationCheckDelay(10);
     ManagedPool managedPool = createPool().getManagedPool();
     claimRelease(2, pool, longTimeout);
     pool.setTargetSize(6);
@@ -1920,6 +1927,7 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
     CountingExpiration expiration = expire($countDown(latch, $fresh));
     CountingReallocator reallocator = reallocator();
     builder.setExpiration(expiration);
+    builder.setBackgroundExpirationCheckDelay(10);
     createPool();
 
     latch.await();
@@ -1950,7 +1958,7 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
     CountDownLatch latch = new CountDownLatch(4);
     CountingExpiration expiration = expire(
         $countDown(latch, $expiredIf(hasExpired)));
-    builder.setExpiration(expiration);
+    builder.setExpiration(expiration).setBackgroundExpirationCheckDelay(10);
     builder.setSize(2);
     createPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
@@ -1978,7 +1986,7 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
   void disregardPileMustNotPreventBackgroundExpirationFromCheckingObjects(Taps taps) throws Exception {
     CountDownLatch firstThreadReady = new CountDownLatch(1);
     CountDownLatch firstThreadPause = new CountDownLatch(1);
-    builder.setSize(2);
+    builder.setSize(2).setBackgroundExpirationCheckDelay(10);
     createPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
 
@@ -2049,7 +2057,7 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
       throws Exception {
     CountDownLatch latch = new CountDownLatch(2);
     allocator = allocator(alloc($countDown(latch, $new)));
-    builder.setAllocator(allocator).setSize(1);
+    builder.setAllocator(allocator).setSize(1).setBackgroundExpirationCheckDelay(10);
     createPool();
 
     GenericPoolable obj = pool.claim(longTimeout);
@@ -2065,7 +2073,7 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
     CountDownLatch latch = new CountDownLatch(2);
     allocator = allocator(alloc($countDown(latch, $new)));
     builder.setAllocator(allocator).setSize(1);
-    builder.setBackgroundExpirationEnabled(false);
+    builder.setBackgroundExpirationCheckDelay(10).setBackgroundExpirationEnabled(false);
     createPool();
 
     GenericPoolable obj = pool.claim(longTimeout);
