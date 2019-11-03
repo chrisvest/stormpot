@@ -1946,6 +1946,9 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
   @ParameterizedTest
   @EnumSource(Taps.class)
   void disregardPileMustNotPreventBackgroundExpirationFromCheckingObjects(Taps taps) throws Exception {
+    if (taps == Taps.THREAD_LOCAL) {
+      return; // It is not safe to use the thread local tap in this test.
+    }
     CountDownLatch firstThreadReady = new CountDownLatch(1);
     CountDownLatch firstThreadPause = new CountDownLatch(1);
     builder.setSize(2).setBackgroundExpirationCheckDelay(10);
@@ -1970,10 +1973,10 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
     // Now this claim should move the first object into the disregard pile.
     GenericPoolable obj = tap.claim(longTimeout);
     obj.expire(); // Expire the slot, so expiration should pick it up.
-    obj.release();
     firstThreadPause.countDown();
     firstThread.get();
     allocator.clearLists();
+    obj.release(); // And now we allow the allocator thread to get to it.
 
     // By expiring the objects at this point, we should observe that
     // the 'obj' gets deallocated.
