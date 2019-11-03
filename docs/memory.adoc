@@ -24,3 +24,6 @@ The _happens-before_ edges the pool introduces, are these:
 
 The (only two) blocking methods, `Pool#claim` and `Completion#await`, behave correctly with respect to interruption:
 If a thread is interrupted when it calls one of these methods, or the thread is interrupted while waiting in one these methods, then an `java.lang.InterruptedException` will be thrown, and the threads interruption flag will be cleared.
+
+When a pool is shut down, it may interrupt its background allocation thread, which may be interacting with the allocator at the time.
+For this reason, `Allocator` implementations should be interruption-safe.

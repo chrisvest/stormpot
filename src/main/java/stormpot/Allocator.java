@@ -35,6 +35,11 @@ package stormpot;
  *
  * A better approach to thread-safety is to not have any shared mutable state
  * in the allocator, if at all possible.
+ *
+ * Implementations must also be interruption-safe.
+ * When a pool is {@linkplain Pool#shutdown() shut down}, its background
+ * allocation thread may be interrupted, and this thread may be interacting
+ * with the allocator instance when this happens.
  * 
  * @author Chris Vest <mr.chrisvest@gmail.com>
  * @see stormpot.Reallocator

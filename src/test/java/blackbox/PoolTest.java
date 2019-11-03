@@ -96,44 +96,6 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
     builder.setSize(size);
     createPool();
   }
-
-  @Test
-  void threadSafePoolTapMustDelegateDirectlyToPool() throws Exception {
-    AtomicBoolean delegatedToPool = new AtomicBoolean();
-    Pool<Poolable> pool = new Pool<>() {
-      @Override
-      public Completion shutdown() {
-        return null;
-      }
-
-      @Override
-      public void setTargetSize(int size) {
-      }
-
-      @Override
-      public int getTargetSize() {
-        return 0;
-      }
-
-      @Override
-      public ManagedPool getManagedPool() {
-        return null;
-      }
-
-      @Override
-      public PoolTap<Poolable> getThreadLocalTap() {
-        return null;
-      }
-
-      @Override
-      public Poolable claim(Timeout timeout) {
-        delegatedToPool.set(true);
-        return null;
-      }
-    };
-    pool.getThreadSafeTap().claim(longTimeout);
-    assertTrue(delegatedToPool.get());
-  }
   
   /**
    * While the pool mustn't return null when we claim an object within the

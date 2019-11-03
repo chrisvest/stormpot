@@ -44,11 +44,21 @@ operation. Some of the things that sets Stormpot apart include:
    (since 2.3)
  * Explicit object expiration.
    (since 2.4)
+ * Gradual back-off for prolonged allocation failures.
+   (since 3.0)
+ * Support for Java Platform Module system.
+   (since 3.0)
+ * Support for a directly-allocating thread-less mode, via `Pool.of(...)`.
+   (since 3.0)
+ * Convenient lambda-based API.
+   (since 3.0)
+ * Control over the thread-local caching mechanics, via ``PoolTap``s.
+   (since 3.0)
  * And other features that makes for a smooth runtime behaviour.
 
 === Installing
 
-Stormpot 2.4.1 only depends on Java 6 or newer.
+Stormpot 3.0 only depends on Java 11 or newer.
 Add it as a Maven dependency to your projects:
 
 [source,xml]
@@ -56,7 +66,7 @@ Add it as a Maven dependency to your projects:
 <dependency>
   <groupId>com.github.chrisvest</groupId>
   <artifactId>stormpot</artifactId>
-  <version>2.4.1</version>
+  <version>3.0</version>
 </dependency>
 ----
 

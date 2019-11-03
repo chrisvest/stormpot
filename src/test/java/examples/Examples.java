@@ -21,7 +21,9 @@ import stormpot.*;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
-import java.util.concurrent.TimeUnit;
+
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class Examples {
   static class MyPoolable extends BasePoolable {
@@ -41,7 +43,7 @@ class Examples {
     }
   }
 
-  private static final Timeout TIMEOUT = new Timeout(1, TimeUnit.SECONDS);
+  private static final Timeout TIMEOUT = new Timeout(1, SECONDS);
 
   @Test
   void managedPoolExample() throws Exception {
@@ -58,7 +60,7 @@ class Examples {
   void poolClaimExample() throws Exception {
     Pool<MyPoolable> pool = Pool.from(new MyAllocator()).build();
     // tag::poolClaimExample[]
-    Timeout timeout = new Timeout(1, TimeUnit.SECONDS);
+    Timeout timeout = new Timeout(1, SECONDS);
     MyPoolable obj = pool.claim(timeout);
     try {
       // Do useful things with 'obj'.
@@ -85,6 +87,21 @@ class Examples {
       }
     }
     // end::poolClaimPrintExample[]
+  }
+
+  @Test
+  void directPoolExample() throws Exception {
+    // tag::directPoolExample[]
+    Object a = new Object();
+    Object b = new Object();
+    Object c = new Object();
+    Pool<Pooled<Object>> pool = Pool.of(a, b, c);
+    try (Pooled<Object> claim = pool.claim(TIMEOUT)) {
+      if (claim != null) {
+        System.out.println(claim.object);
+      }
+    }
+    // end::directPoolExample[]
   }
 
   @SuppressWarnings("InnerClassMayBeStatic")
@@ -129,5 +146,39 @@ class Examples {
     @Override
     public void deallocate(T poolable) {
     }
+  }
+
+  @Test
+  void expensiveExpirationWithEveryExample() {
+    class PooledConnection extends BasePoolable {
+      PooledConnection(Slot slot) {
+        super(slot);
+      }
+    }
+    class CheckConnectionExpiration implements Expiration<PooledConnection> {
+      @Override
+      public boolean hasExpired(SlotInfo<? extends PooledConnection> info) {
+        return false;
+      }
+    }
+    Allocator<PooledConnection> connectionAllocator = new Allocator<>() {
+      @Override
+      public PooledConnection allocate(Slot slot) {
+        return new PooledConnection(slot);
+      }
+
+      @Override
+      public void deallocate(PooledConnection poolable) {
+      }
+    };
+
+    // tag::expensiveExpirationWithEveryExample[]
+    Expiration<PooledConnection> checkConnection = new CheckConnectionExpiration()
+        .every(10, SECONDS); // <1>
+    Pool<PooledConnection> connectionPool = Pool.from(connectionAllocator)
+        .setExpiration(checkConnection)
+        .build();
+    // end::expensiveExpirationWithEveryExample[]
+    assertThat(connectionPool).isNotNull();
   }
 }

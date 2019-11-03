@@ -253,3 +253,25 @@ All the other configuration properties have somewhat reasonable default values.
 
 Other properties that might be interesting to configure, include the pool size, and the `Expiration` instance.
 See the link:config.html[configuration reference] page for more information on how to configure Stormpot.
+
+=== Directly Pooling Objects
+
+Stormpot comes with an alternative operating mode, where the objects to be pooled are directly given to the pool upon construction, rather than being allocated and maintained in the background.
+
+This mode is enabled by creating the pool with the `Pool.of(...)` method:
+
+[source,java]
+----
+include::../src/test/java/examples/Examples.java[tag=directPoolExample]
+----
+
+In this mode, all the given objects are immediately available to be claimed, instead of having to wait for a background thread to allocate them.
+The objects given are never expired, and never deallocated.
+Explicitly expired objects are simply returned to the pool.
+Precise leak detection is also turned off.
+
+This means that no background thread is started for pools created in this mode, which makes them much more light weight.
+This makes mode good for temporary and short-lived pools, or for when the objects are effectively immortal and can be allocated up-front.
+
+One drawback of this mode, is that the pool cannot be resized.
+The size of these pools are fixed, and given by the number of objects passed to the `Pool.of(...)` method.

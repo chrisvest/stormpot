@@ -8,7 +8,7 @@ That said, you mustn't forget the number one rule of performance optimisation: m
 
 === Considerations for Custom Expiration Implementations
 
-The Expiration is one of the most performance critical components of the pool.
+The `Expiration` is one of the most performance critical components of the pool.
 The `hasExpired` method is called at least once for every call to the `claim` method, and may be called several times if objects turn out to have expired.
 It is therefore important for the performance of the pool, that the expiration check is as fast as possible.
 
@@ -17,8 +17,16 @@ The only way to make an operation faster, is by having it do less work.
 One way to take this to heart, is by not doing the expensive part of the check – by not sending the validation query – on _every_ check, but only when it's been a while since the object was last checked.
 Essentially, we want to amortise the cost of the expensive check.
 
-One way we can accomplish this, is by pessimistically expiring objects after they have been live for only a short while, like a few seconds, for instance, depending on how much activity the pool is exposed to.
-Then have the pool be configured with a `Reallocator` that does the expensive check in its `reallocate` method, and returns the object back into the pool if it hadn't expired after all.
+One way we can accomplish this, is to use the `every` combinator method on the `Expiration` interface.
+Here is an example, where network connections are checked that they are still connected, but the check is only performed at most once every 5 seconds:
 
-A less elaborate amortisation mechanism can be built, by storing a re-check deadline in the `stamp` of the `SlotInfo`.
-Then you just have to check if the current time is greater than the stamp, and if so, do the expensive check and put a new deadline in the stamp.
+[source,java]
+----
+include::../src/test/java/examples/Examples.java[tag=expensiveExpirationWithEveryExample]
+----
+<1> Using the `every` combinator on the expensive expiration, will return a new expiration that only delegates to the expensive one every 5 seconds.
+
+It is also possible to forgo the expiration check entirely, by using the `Expiration.never()` expiration.
+This way, no check will be done at _claim_ time.
+You can instead optimistically try to use the objects, and in your own code detect if they are expired or not.
+If they are, you can explicitly expire them by making a call to the relevant `Slot.expire()` method.

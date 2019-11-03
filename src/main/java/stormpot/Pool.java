@@ -106,6 +106,13 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
    * The shut down process will complete as soon as the last claimed
    * object is released back to the pool.
    *
+   * [NOTE]
+   * --
+   * Passing duplicate objects to this method is not supported.
+   * The behaviour of the pool is unspecified if there are duplicates among
+   * the objects passed as arguments to this method.
+   * --
+   *
    * @param objects The objects the pool should contain.
    * @param <T> The type of objects being pooled.
    * @return A pool of the given objects.
@@ -125,6 +132,7 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
     };
     PoolBuilder<Pooled<T>> builder = new PoolBuilder<>(allocator);
     builder.setSize(objects.length);
+    builder.setPreciseLeakDetectionEnabled(false);
     builder.setBackgroundExpirationEnabled(false);
     builder.setExpiration(Expiration.never());
     return new BlazePool<>(builder, AllocatorProcessFactory.DIRECT);
