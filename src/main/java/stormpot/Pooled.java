@@ -18,12 +18,11 @@ package stormpot;
 /**
  * A reference to a pooled object.
  */
-public class Pooled<T> implements Poolable, AutoCloseable {
-  private final Slot slot;
+public class Pooled<T> extends BasePoolable implements Poolable, AutoCloseable {
   public final T object;
 
   public Pooled(Slot slot, T object) {
-    this.slot = slot;
+    super(slot);
     this.object = object;
   }
 
@@ -34,18 +33,5 @@ public class Pooled<T> implements Poolable, AutoCloseable {
   @Override
   public void close() {
     release();
-  }
-
-  @Override
-  public void release() {
-    slot.release(this);
-  }
-
-  /**
-   * Explicitly expire this pooled object.
-   * @see Slot#expire(Poolable)
-   */
-  public void expire() {
-    slot.expire(this);
   }
 }

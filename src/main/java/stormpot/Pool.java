@@ -49,6 +49,13 @@ package stormpot;
  * size, because it might depend on how long it takes for a certain number of
  * objects to be released back into the pool.
  *
+ * [NOTE]
+ * --
+ * Pools created with {@link Pool#of(Object[])} are _not_ resizable, and calling
+ * {@link Pool#setTargetSize(int)} or {@link ManagedPool#setTargetSize(int)} will
+ * cause an {@link UnsupportedOperationException} to be thrown.
+ * --
+ *
  * Pools are themselves lifecycled, and should be {@link #shutdown() shut down}
  * when they are no longer needed.
  *
@@ -62,6 +69,8 @@ package stormpot;
  * @see stormpot.PoolTap
  */
 public abstract class Pool<T extends Poolable> extends PoolTap<T> {
+  Pool() {
+  }
 
   /**
    * Get a {@link PoolBuilder} based on the given {@link Allocator} or

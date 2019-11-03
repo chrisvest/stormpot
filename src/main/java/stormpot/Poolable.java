@@ -43,11 +43,16 @@ package stormpot;
  * include::../src/test/java/examples/Examples.java[tag=poolableBaseExample]
  * ----
  *
+ * It is also possible to directly use the {@link Pooled} implementation, which
+ * implements both `Poolable` and {@link AutoCloseable}, and holds a
+ * reference to the actual object being pooled.
+ *
  * Memory effects: The release of an object happens-before it is claimed
  * by another thread, or deallocated.
  * 
  * @author Chris Vest <mr.chrisvest@gmail.com>
- *
+ * @see BasePoolable
+ * @see Pooled
  */
 public interface Poolable {
   /**

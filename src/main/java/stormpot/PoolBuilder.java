@@ -22,33 +22,19 @@ import java.util.concurrent.TimeUnit;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 /**
- * == The basic configuration "bean" class.
+ * The `PoolBuilder` collects information about how big a pool should be,
+ * and how it should allocate objects, an so on, and finally acts as the
+ * factory for building the pool instances themselves, with the
+ * {@link #build()} method.
  *
- * Instances of this class is passed to the constructors of {@link Pool pools}
- * so that they know how big they should be, how to allocate objects and when
- * to deallocate objects.
+ * Pool builder instances are obtained by calling {@link Pool#from(Allocator)}.
  *
  * This class is made thread-safe by having the fields be protected by the
  * intrinsic object lock on the `PoolBuilder` object itself. This way, pools
- * can `synchronize` on the config object to read the values out atomically.
+ * can `synchronize` on the builder object to read the values out atomically.
  *
  * The various set* methods are made to return the `PoolBuilder` instance
  * itself, so that the method calls may be chained if so desired.
- * 
- * == Standardised configuration
- *
- * The contract of the `PoolBuilder` class, and how Pools will interpret it,
- * is within the context of a so-called standardised configuration.
- * All pool and `PoolBuilder` implementations must behave similarly in a
- * standardised configuration.
- *
- * It is conceivable that some pool implementations will come with their own
- * sub-classes of `PoolBuilder`, that allow greater control over the pools
- * behaviour.
- * It is even permissible that these pool implementations may deviate from the
- * contract of the Pool interface. However, they are only allowed to do so in
- * a non-standard configuration. That is, any deviation from the specified
- * contracts must be explicitly enabled.
  * 
  * @author Chris Vest <mr.chrisvest@gmail.com>
  * @param <T> The type of {@link Poolable} objects that a {@link Pool} based
@@ -78,16 +64,21 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
   }
 
   /**
-   * Set the size of the pools we want to configure them with. Pools are
-   * required to control the allocations and deallocations, such that no more
-   * than this number of objects are allocated at any time.
+   * Set the size of the pool we are building.
+   *
+   * Pools are required to control the allocations and deallocations, such that
+   * no more than this number of objects are allocated at any time.
    *
    * This means that a pool of size 1, whose single object have expired, will
    * deallocate that one object before allocating a replacement.
    *
-   * The size must be at least one for standard pool configurations. A Pool
-   * will throw an {@link IllegalArgumentException} from their constructor if
-   * this is not the case.
+   * The size must be at least one, or an {@link IllegalArgumentException} will
+   * be thrown when building the pool.
+   *
+   * Note that the pool size can be modified after the pool has been built, by
+   * calling the {@link Pool#setTargetSize(int)} or
+   * {@link ManagedPool#setTargetSize(int)} methods.
+   *
    * @param size The target pool size. Must be at least 1.
    * @return This `PoolBuilder` instance.
    */
@@ -97,7 +88,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
   }
 
   /**
-   * Get the currently configured size. Default is 10.
+   * Get the currently configured size. The default is 10.
    * @return The configured pool size.
    */
   public synchronized int getSize() {
@@ -129,7 +120,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
 
   /**
    * Get the configured {@link Allocator} instance.
-   * @return The configured Allocator instance, if any.
+   * @return The configured Allocator instance.
    */
   public synchronized Allocator<T> getAllocator() {
     return allocator;
@@ -140,7 +131,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * {@link stormpot.Reallocator}. If the configured allocator implements the
    * Reallocator interface, then it is returned directly. Otherwise, the
    * allocator is wrapped in an adaptor.
-   * @return A configured or adapted Reallocator, if any.
+   * @return A configured or adapted Reallocator.
    */
   public synchronized Reallocator<T> getReallocator() {
     if (allocator instanceof Reallocator) {
@@ -239,9 +230,12 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * means that no false positives (counting objects as leaked, even though
    * they are not) are ever reported.
    *
-   * NOTE: While the pool is able to detect object leaks, it cannot prevent
+   * [NOTE]
+   * --
+   * While the pool is able to detect object leaks, it cannot prevent
    * them. All leaks are a sign that there is a bug in the system; most likely
    * a bug in your code, or in the way the pool is used.
+   * --
    *
    * Precise object leak detection incurs virtually no overhead, and is safe to
    * leave enabled at all times – even in the most demanding production
@@ -257,9 +251,10 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
   }
 
   /**
-   * Return whether or not background expiration is enabled, which it is not by
-   * default.
-   * @return `true` if background expiration has been enabled.
+   * Return whether or not background expiration is enabled.
+   * By default, background expiration is enabled.
+   *
+   * @return `true` if background expiration is enabled.
    * @see #setBackgroundExpirationEnabled(boolean)
    */
   public synchronized boolean isBackgroundExpirationEnabled() {
@@ -363,8 +358,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
   }
 
   /**
-   * Returns `null` if no allocator has been configured.
-   * Otherwise returns a `Reallocator`, possibly by adapting the configured
+   * Returns a `Reallocator`, possibly by adapting the configured
    * `Allocator` if need be.
    * If a `MetricsRecorder` has been configured, the return `Reallocator` will
    * automatically record allocation, reallocation and deallocation latencies.

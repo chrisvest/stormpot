@@ -2,6 +2,7 @@
 
 Stormpot has an invasive API which means that there is a minimum of things your code needs to do to use it.
 However, the requirements are quite benign, as this section is all about showing you.
+
 The objects that you manage with a Stormpot pool needs to implement the `Poolable` interface.
 The absolute minimum amount of code required for its implementation is this:
 
@@ -42,10 +43,13 @@ include::../src/test/java/docs/MyApp.java[tag=usageMyApp]
 
 We get a `PoolBuilder` via the `Pool.from` method, which takes an allocator.
 Then we use it to build a pool with the configuration we want, and off we go!
+
 The blocking methods `Pool#claim` and `Completion#await` both take `Timeout` objects as arguments.
 These are immutable, and can easily be put in `static final` constants.
+
 Note that `claim` returns `null` if the timeout elapses before an object can be claimed.
 Also, using `try-finally` is a great way to make sure that you don't forget to release the objects back into the pool.
+
 Stormpot cannot prevent objects from leaking in user code, so if you lose the reference to an object that hasn't been released back into the pool, it will not come back on its own.
 Leaked objects can also cause problems with shutting the pool down, because the shut down procedure does not complete until all allocated objects are deallocated.
 So if you have leaked objects, shutting the pool down will never complete normally.

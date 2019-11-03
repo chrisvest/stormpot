@@ -32,6 +32,8 @@ import java.util.function.Function;
  * @see stormpot.Pool
  */
 public abstract class PoolTap<T extends Poolable> {
+  PoolTap() {
+  }
 
   /**
    * Claim the exclusive rights until released, to an object in the pool.

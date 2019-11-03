@@ -66,11 +66,11 @@ public interface Expiration<T extends Poolable> {
    * Construct a new Expiration that will invalidate objects that are older
    * than the exact provided span of time in the given unit.
    *
-   * If the `time` is less than one, or the `unit` is `null`, then
-   * an {@link IllegalArgumentException} will be thrown.
-   *
    * This expiration does not make use of the
    * {@linkplain SlotInfo#getStamp() slot info stamp}.
+   *
+   * If the `time` is less than one, or the `unit` is `null`, then
+   * an {@link IllegalArgumentException} will be thrown.
    *
    * @param time Poolables older than this, in the given unit, will
    *            be considered expired. This value must be at least 1.
@@ -88,16 +88,16 @@ public interface Expiration<T extends Poolable> {
    * than the given lower bound, before they get older than the upper bound,
    * in the given time unit.
    *
-   * If the `fromTime` is less than 1, the `toTime` is less than the
-   * `fromTime`, or the `unit` is `null`, then an
-   * {@link java.lang.IllegalArgumentException} will be thrown.
-   *
    * The actual expiration time is chosen uniformly randomly within the
    * given brackets, for each allocated object.
    *
    * This expiration make use of the
    * {@linkplain SlotInfo#getStamp() slot info stamp} for storing the target
    * expiration timestamp.
+   *
+   * If the `fromTime` is less than 1, the `toTime` is less than the
+   * `fromTime`, or the `unit` is `null`, then an
+   * {@link java.lang.IllegalArgumentException} will be thrown.
    *
    * @param fromTime Poolables younger than this, in the given unit, are not
    *                 considered expired. This value must be at least 1.
@@ -190,6 +190,11 @@ public interface Expiration<T extends Poolable> {
    * Note that this method can be called as often as several times per
    * {@link Pool#claim(Timeout) claim}. The performance of this method therefor
    * has a big influence on the perceived performance of the pool.
+   *
+   * If this implementation ends up being expensive, then the
+   * {@link #every(long, long, TimeUnit) every-combinator} can be used to
+   * construct a new expiration object that only performs the expensive check
+   * every so often.
    *
    * @param info An informative representative of the slot being tested.
    * Never `null`.

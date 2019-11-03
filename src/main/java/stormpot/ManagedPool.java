@@ -22,7 +22,7 @@ import javax.management.MXBean;
  *
  * Using this interface, pools can be exposed to external management as an
  * MXBean. Since its an MXBean, and not just an MBean, it imposes no
- * requirement that external parties knows about the Stormpot types.
+ * special requirements on 3rd party JMX integrators.
  *
  * Once you have created your pool, it is easy to expose it through the platform
  * MBeanServer, or any MBeanServer you like:
@@ -40,6 +40,7 @@ import javax.management.MXBean;
 public interface ManagedPool {
   /**
    * Return the number of objects the pool has allocated since it was created.
+   *
    * @return The number of Poolable objects ever created by this pool.
    */
   long getAllocationCount();
@@ -48,6 +49,7 @@ public interface ManagedPool {
    * Return the number of allocations that has failed, either because the
    * allocator threw an exception or because it returned null, since the pool
    * was created.
+   *
    * @return The number of allocations that have failed for one reason or
    * another.
    */
@@ -73,12 +75,16 @@ public interface ManagedPool {
   long getLeakedObjectsCount();
 
   /**
+   * Set a new target size of the pool.
+   *
    * @param size The new target size.
    * @see Pool#setTargetSize(int)
    */
   void setTargetSize(int size);
 
   /**
+   * Get the current target size of the pool.
+   *
    * @return The current target size.
    * @see Pool#getTargetSize()
    */
@@ -93,6 +99,9 @@ public interface ManagedPool {
   boolean isShutDown();
 
   /**
+   * Get the approximate object lifetime, in milliseconds, for the given
+   * percentile/quantile.
+   *
    * @see stormpot.MetricsRecorder#getObjectLifetimePercentile(double)
    * @param percentile The percentile to get, as a decimal, e.g. a number
    *                   between 0.0 and 1.0.
@@ -103,6 +112,10 @@ public interface ManagedPool {
   double getObjectLifetimePercentile(double percentile);
 
   /**
+   * Get the approximate Poolable object allocation latency value, in
+   * milliseconds, of the given percentile/quantile of the values recorded so
+   * far.
+   *
    * @see stormpot.MetricsRecorder#getAllocationLatencyPercentile(double)
    * @param percentile The percentile to get, as a decimal, e.g. a number
    *                   between 0.0 and 1.0.
@@ -113,6 +126,10 @@ public interface ManagedPool {
   double getAllocationLatencyPercentile(double percentile);
 
   /**
+   * Get the approximate latency value, in milliseconds, for failed allocation
+   * latencies within the given percentile/quantile of what has been recorded
+   * so far.
+   *
    * @see stormpot.MetricsRecorder#getAllocationFailureLatencyPercentile(double)
    * @param percentile The percentile to get, as a decimal, e.g. a number
    *                   between 0.0 and 1.0.
@@ -123,6 +140,10 @@ public interface ManagedPool {
   double getAllocationFailureLatencyPercentile(double percentile);
 
   /**
+   * Get the approximate latency value, in milliseconds, for reallocation
+   * latencies within the given percentile/quantile of what has been recorded
+   * so far.
+   *
    * @see stormpot.MetricsRecorder#getReallocationLatencyPercentile(double)
    * @param percentile The percentile to get, as a decimal, e.g. a number
    *                   between 0.0 and 1.0.
@@ -133,6 +154,10 @@ public interface ManagedPool {
   double getReallocationLatencyPercentile(double percentile);
 
   /**
+   * Get the approximate latency value, in milliseconds, for failed
+   * reallocation latencies within the given percentile/quantile of what has
+   * been recorded so far.
+   *
    * @see stormpot.MetricsRecorder#getReallocationFailurePercentile(double)
    * @param percentile The percentile to get, as a decimal, e.g. a number
    *                   between 0.0 and 1.0.
@@ -143,6 +168,10 @@ public interface ManagedPool {
   double getReallocationFailureLatencyPercentile(double percentile);
 
   /**
+   * Get the approximate latency value, in milliseconds, for deallocation
+   * latencies within the given percentile/quantile of what has been recorded
+   * so far.
+   *
    * @see stormpot.MetricsRecorder#getDeallocationLatencyPercentile(double)
    * @param percentile The percentile to get, as a decimal, e.g. a number
    *                   between 0.0 and 1.0.
