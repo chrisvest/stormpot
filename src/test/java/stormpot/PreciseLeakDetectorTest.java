@@ -15,13 +15,23 @@
  */
 package stormpot;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.ManagementFactory;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SuppressWarnings("MismatchedReadAndWriteOfArray")
 class PreciseLeakDetectorTest {
-  private final PreciseLeakDetector detector = new PreciseLeakDetector();
+  private PreciseLeakDetector detector;
+
+  @BeforeEach
+  void setUp() {
+    detector = new PreciseLeakDetector();
+  }
 
   @Test
   void mustHandleManyAddedReplacedAndRemovedObjects() {
@@ -51,7 +61,7 @@ class PreciseLeakDetectorTest {
     // We should see no leaks
     //noinspection UnusedAssignment
     objs = null;
-    System.gc();
+    gc();
 
     assertThat(detector.countLeakedObjects()).isZero();
   }
@@ -67,7 +77,7 @@ class PreciseLeakDetectorTest {
     first[100] = null;
     first[500] = null;
     first[900] = null;
-    System.gc();
+    gc();
 
     Object[] second = new Object[10000];
     for (int i = 0; i < second.length; i++) {
@@ -78,7 +88,7 @@ class PreciseLeakDetectorTest {
     second[1000] = null;
     second[5000] = null;
     second[9000] = null;
-    System.gc();
+    gc();
 
     for (Object obj : first) {
       if (obj != null) {
@@ -95,8 +105,23 @@ class PreciseLeakDetectorTest {
     third[1000] = null;
     third[5000] = null;
     third[9000] = null;
-    System.gc();
+    gc();
 
     assertThat(detector.countLeakedObjects()).isEqualTo(9L);
+  }
+
+  private void gc() {
+    List<GarbageCollectorMXBean> collectors = ManagementFactory.getGarbageCollectorMXBeans();
+    long collectionsBefore = collectors.stream().mapToLong(GarbageCollectorMXBean::getCollectionCount).sum();
+    System.gc();
+    long collectionsAfter = collectors.stream().mapToLong(GarbageCollectorMXBean::getCollectionCount).sum();
+    while (collectionsAfter == collectionsBefore) {
+      try {
+        Thread.sleep(10);
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+      collectionsAfter = collectors.stream().mapToLong(GarbageCollectorMXBean::getCollectionCount).sum();
+    }
   }
 }
