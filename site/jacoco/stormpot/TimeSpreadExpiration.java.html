@@ -1,11 +1,11 @@
-<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>TimeSpreadExpiration.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.source.html" class="el_package">stormpot</a> &gt; <span class="el_source">TimeSpreadExpiration.java</span></div><h1>TimeSpreadExpiration.java</h1><pre class="source lang-java linenums">/*
- * Copyright (C) 2011-2014 Chris Vest (mr.chrisvest@gmail.com)
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TimeSpreadExpiration.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.source.html" class="el_package">stormpot</a> &gt; <span class="el_source">TimeSpreadExpiration.java</span></div><h1>TimeSpreadExpiration.java</h1><pre class="source lang-java linenums">/*
+ * Copyright © 2011-2019 Chris Vest (mr.chrisvest@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
@@ -15,6 +15,7 @@
  */
 package stormpot;
 
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -24,11 +25,10 @@ import java.util.concurrent.TimeUnit;
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  * @since 2.2
  */
-// TODO 3.0 make class final
-public class TimeSpreadExpiration&lt;T extends Poolable&gt; implements Expiration&lt;T&gt; {
+final class TimeSpreadExpiration&lt;T extends Poolable&gt; implements Expiration&lt;T&gt; {
 
-  private final long lowerBoundMillis;
-  private final long upperBoundMillis;
+  private final long fromMillis;
+  private final long toMillis;
   private final TimeUnit unit;
 
   /**
@@ -47,7 +47,7 @@ public class TimeSpreadExpiration&lt;T extends Poolable&gt; implements Expiratio
    *                   lowerBound.
    * @param unit The {@link TimeUnit} of the bounds values. Never `null`.
    */
-  public TimeSpreadExpiration(
+  TimeSpreadExpiration(
       long lowerBound,
       long upperBound,
 <span class="fc" id="L53">      TimeUnit unit) {</span>
@@ -55,15 +55,15 @@ public class TimeSpreadExpiration&lt;T extends Poolable&gt; implements Expiratio
 <span class="fc" id="L55">      throw new IllegalArgumentException(</span>
           &quot;The lower bound cannot be less than 1.&quot;);
     }
-<span class="fc bfc" id="L58" title="All 2 branches covered.">    if (upperBound &lt;= lowerBound) {</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">    if (upperBound &lt; lowerBound) {</span>
 <span class="fc" id="L59">      throw new IllegalArgumentException(</span>
-          &quot;The upper bound must be greater than the lower bound.&quot;);
+          &quot;The upper bound must be greater than or equal to the lower bound.&quot;);
     }
 <span class="fc bfc" id="L62" title="All 2 branches covered.">    if (unit == null) {</span>
 <span class="fc" id="L63">      throw new IllegalArgumentException(&quot;The TimeUnit cannot be null.&quot;);</span>
     }
-<span class="fc" id="L65">    this.lowerBoundMillis = unit.toMillis(lowerBound);</span>
-<span class="fc" id="L66">    this.upperBoundMillis = unit.toMillis(upperBound);</span>
+<span class="fc" id="L65">    this.fromMillis = unit.toMillis(lowerBound);</span>
+<span class="fc" id="L66">    this.toMillis = unit.toMillis(upperBound);</span>
 <span class="fc" id="L67">    this.unit = unit;</span>
 <span class="fc" id="L68">  }</span>
 
@@ -83,12 +83,18 @@ public class TimeSpreadExpiration&lt;T extends Poolable&gt; implements Expiratio
   public boolean hasExpired(SlotInfo&lt;? extends T&gt; info) {
 <span class="fc" id="L84">    long expirationAge = info.getStamp();</span>
 <span class="fc bfc" id="L85" title="All 2 branches covered.">    if (expirationAge == 0) {</span>
-<span class="fc" id="L86">      long maxDelta = upperBoundMillis - lowerBoundMillis;</span>
-<span class="fc" id="L87">      expirationAge = lowerBoundMillis + Math.abs(info.randomInt() % maxDelta);</span>
-<span class="fc" id="L88">      info.setStamp(expirationAge);</span>
+<span class="fc" id="L86">      expirationAge = computeExpirationDeadline();</span>
+<span class="fc" id="L87">      info.setStamp(expirationAge);</span>
     }
-<span class="fc" id="L90">    long age = info.getAgeMillis();</span>
-<span class="fc bfc" id="L91" title="All 2 branches covered.">    return age &gt;= expirationAge;</span>
+<span class="fc" id="L89">    long age = info.getAgeMillis();</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">    return age &gt;= expirationAge;</span>
+  }
+
+  long computeExpirationDeadline() {
+<span class="fc" id="L94">    long maxDelta = toMillis - fromMillis;</span>
+<span class="fc" id="L95">    ThreadLocalRandom prng = ThreadLocalRandom.current();</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">    long fudgeFactor = fromMillis == toMillis ? 0 : Math.abs(prng.nextInt() % maxDelta);</span>
+<span class="fc" id="L97">    return fromMillis + fudgeFactor;</span>
   }
 
   /**
@@ -96,9 +102,9 @@ public class TimeSpreadExpiration&lt;T extends Poolable&gt; implements Expiratio
    */
   @Override
   public String toString() {
-<span class="fc" id="L99">    long lower = unit.convert(lowerBoundMillis, TimeUnit.MILLISECONDS);</span>
-<span class="fc" id="L100">    long upper = unit.convert(upperBoundMillis, TimeUnit.MILLISECONDS);</span>
-<span class="fc" id="L101">    return &quot;TimeSpreadExpiration(&quot; + lower + &quot; to &quot; + upper + &quot; &quot; + unit + &quot;)&quot;;</span>
+<span class="fc" id="L105">    long lower = unit.convert(fromMillis, TimeUnit.MILLISECONDS);</span>
+<span class="fc" id="L106">    long upper = unit.convert(toMillis, TimeUnit.MILLISECONDS);</span>
+<span class="fc" id="L107">    return &quot;TimeSpreadExpiration(&quot; + lower + &quot; to &quot; + upper + &quot; &quot; + unit + &quot;)&quot;;</span>
   }
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.2.201409121644</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>

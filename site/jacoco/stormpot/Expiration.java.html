@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Expiration.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.source.html" class="el_package">stormpot</a> &gt; <span class="el_source">Expiration.java</span></div><h1>Expiration.java</h1><pre class="source lang-java linenums">/*
+ * Copyright © 2011-2019 Chris Vest (mr.chrisvest@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package stormpot;
+
+import java.util.concurrent.TimeUnit;
+
+/**
+ * The expiration is used to determine if a given slot has expired, or
+ * otherwise become invalid.
+ *
+ * Note that Expiration instances must be thread-safe, as they may be
+ * accessed concurrently by multiple threads. However, for a given
+ * {@link SlotInfo} and {@link Poolable} instance, only a single thread will
+ * invoke the expiration at a time. This means that there is no need to
+ * synchronise on the SlotInfo or Poolable objects.
+ *
+ * The easiest way to ensure that an Expiration implementation is thread-safe,
+ * is to make sure that they never mutate any state. If they do, however,
+ * then they must do so in a thread-safe manner, unless the mutable state is
+ * contained within the SlotInfo or Poolable objects – in this case, the
+ * mutable state will be thread-local. Be aware that making the
+ * {@link #hasExpired(SlotInfo) hasExpired} method `synchronized` will
+ * most likely severely reduce the performance and scalability of the pool.
+ *
+ * The Expiration can be invoked several times during a
+ * {@link Pool#claim(Timeout) claim} call, so it is important that the
+ * Expiration is fast. It can easily be the dominating factor in the
+ * performance of the pool.
+ *
+ * [TIP]
+ * --
+ * If the expiration is too slow, you can use
+ * {@link #every(long, TimeUnit)} or {@link #every(long, long, TimeUnit)} to
+ * make an expiration that only performs the slow expiration check every few
+ * seconds, for instance.
+ *
+ * You can alternatively use a time-based expiration, such as
+ * {@link #after(long, TimeUnit)}, that has been configured with a very low
+ * expiration time, like a few seconds. Then you can configure the pool to use
+ * a {@link stormpot.Reallocator}, where you do the expensive expiration check
+ * in the {@link stormpot.Reallocator#reallocate(Slot, Poolable) reallocate}
+ * method, returning the same Poolable back if it hasn't expired.
+ *
+ * Be aware, though, that such a scheme has to be tuned to the load of the
+ * application, such that the objects in the pool don't all expire at the same
+ * time, leaving the pool empty.
+ * --
+ *
+ * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
+ */
+public interface Expiration&lt;T extends Poolable&gt; {
+  /**
+   * Construct a new Expiration that will invalidate objects that are older
+   * than the exact provided span of time in the given unit.
+   *
+   * This expiration does not make use of the
+   * {@linkplain SlotInfo#getStamp() slot info stamp}.
+   *
+   * If the `time` is less than one, or the `unit` is `null`, then
+   * an {@link IllegalArgumentException} will be thrown.
+   *
+   * @param time Poolables older than this, in the given unit, will
+   *            be considered expired. This value must be at least 1.
+   * @param unit The {@link TimeUnit} of the maximum permitted age.
+   *            Never `null`.
+   * @param &lt;T&gt; The type of {@link Poolable} to check.
+   * @return The specified time-based expiration policy.
+   */
+  static &lt;T extends Poolable&gt; Expiration&lt;T&gt; after(long time, TimeUnit unit) {
+<span class="fc" id="L83">    return new TimeExpiration&lt;&gt;(time, unit);</span>
+  }
+
+  /**
+   * Construct a new Expiration that will invalidate objects that are older
+   * than the given lower bound, before they get older than the upper bound,
+   * in the given time unit.
+   *
+   * The actual expiration time is chosen uniformly randomly within the
+   * given brackets, for each allocated object.
+   *
+   * This expiration make use of the
+   * {@linkplain SlotInfo#getStamp() slot info stamp} for storing the target
+   * expiration timestamp.
+   *
+   * If the `fromTime` is less than 1, the `toTime` is less than the
+   * `fromTime`, or the `unit` is `null`, then an
+   * {@link java.lang.IllegalArgumentException} will be thrown.
+   *
+   * @param fromTime Poolables younger than this, in the given unit, are not
+   *                 considered expired. This value must be at least 1.
+   * @param toTime Poolables older than this, in the given unit, are always
+   *               considered expired. This value must be greater than or equal
+   *               to the lowerBound.
+   * @param unit The {@link TimeUnit} of the bounds values. Never `null`.
+   * @param &lt;T&gt; The type of {@link Poolable} to check.
+   * @return The specified time-based expiration policy.
+   */
+  static &lt;T extends Poolable&gt; Expiration&lt;T&gt; after(
+      long fromTime, long toTime, TimeUnit unit) {
+<span class="fc" id="L113">    return new TimeSpreadExpiration&lt;&gt;(fromTime, toTime, unit);</span>
+  }
+
+  /**
+   * Construct a new Expiration that never invalidates any objects.
+   *
+   * This is useful for effectively disabling object expiration,
+   * for cases where that makes sense.
+   *
+   * @param &lt;T&gt; The type of {@link Poolable} to check.
+   * @return An expiration that never invalidates objects.
+   */
+  static &lt;T extends Poolable&gt; Expiration&lt;T&gt; never() {
+<span class="fc" id="L126">    return info -&gt; false;</span>
+  }
+
+  /**
+   * Construct a new Expiration that will invalidate objects if either this, or
+   * the given expiration, considers an object expired.
+   *
+   * This is a short-circuiting combinator, such that if this expiration
+   * invalidates the object, then the other expiration will not be checked.
+   *
+   * This makes it easy to have an expiration that expires both on time, and
+   * some other criteria.
+   *
+   * @param other The other expiration to compose with.
+   * @return A new expiration composed of this and the other expiration.
+   */
+  default Expiration&lt;T&gt; or(Expiration&lt;T&gt; other) {
+<span class="fc" id="L143">    return new OrExpiration&lt;&gt;(this, other);</span>
+  }
+
+  /**
+   * Construct a new Expiration that is composed of a time-based expiration and
+   * this one, such that this expiration is only consulted at most once within
+   * the given time period.
+   *
+   * For instance, if an expiration is expensive, you can use this to only
+   * check it, say, every 5 seconds.
+   *
+   * @param time The time between checks.
+   * @param unit The unit of the time between checks.
+   * @return An expiration that only delegates to this one every so often.
+   */
+  default Expiration&lt;T&gt; every(long time, TimeUnit unit) {
+<span class="fc" id="L159">    return every(time, time, unit);</span>
+  }
+
+  /**
+   * Construct a new Expiration that is composed of a time-based expiration and
+   * this one, such that this expiration is only consulted at most once within
+   * a time period based on the given `fromTime` and `toTime` brackets.
+   *
+   * For instance, if an expiration is expensive, you can use this to only
+   * check it, say, every 5 to 10 seconds.
+   *
+   * @param fromTime The minimum amount of time before a check becomes necessary.
+   * @param toTime The maximum amount of time before a check becomes necessary.
+   * @param unit The unit of the time between checks.
+   * @return An expiration that only delegates to this one every so often.
+   */
+  default Expiration&lt;T&gt; every(long fromTime, long toTime, TimeUnit unit) {
+<span class="fc" id="L176">    return new EveryExpiration&lt;&gt;(this, fromTime, toTime, unit);</span>
+  }
+
+  /**
+   * Test whether the Slot and Poolable object, represented by the given
+   * {@link SlotInfo} object, is still valid, or if the pool should
+   * deallocate it and allocate a replacement.
+   *
+   * If the method throws an exception, then that is taken to mean that the
+   * slot is invalid. The exception will bubble out of the
+   * {@link Pool#claim(Timeout) claim} method, but the mechanism is
+   * implementation specific. For this reason, it is generally advised that
+   * Expirations do not throw exceptions.
+   *
+   * Note that this method can be called as often as several times per
+   * {@link Pool#claim(Timeout) claim}. The performance of this method therefor
+   * has a big influence on the perceived performance of the pool.
+   *
+   * If this implementation ends up being expensive, then the
+   * {@link #every(long, long, TimeUnit) every-combinator} can be used to
+   * construct a new expiration object that only performs the expensive check
+   * every so often.
+   *
+   * @param info An informative representative of the slot being tested.
+   * Never `null`.
+   * @return `true` if the Slot and Poolable in question should be
+   * deallocated, `false` if it is valid and eligible for claiming.
+   * @throws Exception If checking the validity of the Slot or Poolable somehow
+   * went wrong. In this case, the Poolable will be assumed to be expired.
+   */
+  boolean hasExpired(SlotInfo&lt;? extends T&gt; info) throws Exception;
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>

@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Pool.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.source.html" class="el_package">stormpot</a> &gt; <span class="el_source">Pool.java</span></div><h1>Pool.java</h1><pre class="source lang-java linenums">/*
+ * Copyright © 2011-2019 Chris Vest (mr.chrisvest@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package stormpot;
+
+/**
+ * A Pool is a self-renewable set of objects from which one can claim exclusive
+ * access to elements, until they are released back into the pool.
+ *
+ * Pools are thread-safe, and their {@link #claim(Timeout)} methods can be
+ * called concurrently from multiple threads.
+ * This is a strictly stronger guarantee than {@link PoolTap} provides.
+ *
+ * Pools extend the {@link PoolTap} class, which provides the API for accessing
+ * the objects contained in the pool.
+ *
+ * Pools contain {@link Poolable} objects. When you claim an object in a pool,
+ * you also take upon yourself the responsibility of eventually
+ * {@link Poolable#release() releasing} that object again. By far the most
+ * common idiom to achieve this is with a `try-finally` clause:
+ *
+ * [source,java]
+ * ----
+ * include::../src/test/java/examples/Examples.java[tag=poolClaimExample]
+ * ----
+ *
+ * The pools are resizable, and can have their capacity changed at any time
+ * after they have been created.
+ *
+ * All pools are configured with a certain size, the number of objects that the
+ * pool will have allocated at any one time, and they can change this number on
+ * the fly using the {@link #setTargetSize(int)} method. The change does not
+ * take effect immediately, but instead moves the &quot;goal post&quot; and leaves the
+ * pool to move towards it at its own pace.
+ *
+ * No guarantees can be made about when the pool will actually reach the target
+ * size, because it might depend on how long it takes for a certain number of
+ * objects to be released back into the pool.
+ *
+ * [NOTE]
+ * --
+ * Pools created with {@link Pool#of(Object[])} are _not_ resizable, and calling
+ * {@link Pool#setTargetSize(int)} or {@link ManagedPool#setTargetSize(int)} will
+ * cause an {@link UnsupportedOperationException} to be thrown.
+ * --
+ *
+ * Pools are themselves lifecycled, and should be {@link #shutdown() shut down}
+ * when they are no longer needed.
+ *
+ * Note that Pools are not guaranteed to have overwritten the
+ * {@code Object#finalize()} method. Pools are expected to rely on explicit
+ * clean-up for releasing their resources.
+ *
+ * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
+ * @param &lt;T&gt; the type of {@link Poolable} contained in the pool, as determined
+ * by the {@linkplain Pool#from(Allocator) configured allocator}.
+ * @see stormpot.PoolTap
+ */
+public abstract class Pool&lt;T extends Poolable&gt; extends PoolTap&lt;T&gt; {
+<span class="fc" id="L72">  Pool() {</span>
+<span class="fc" id="L73">  }</span>
+
+  /**
+   * Get a {@link PoolBuilder} based on the given {@link Allocator} or
+   * {@link Reallocator}, which can then in turn be used to
+   * {@linkplain PoolBuilder#build build} a {@link Pool} instance with the
+   * desired configuration.
+   *
+   * @param allocator The allocator we want our pools to use. This cannot be
+   * `null`.
+   * @param &lt;T&gt; The type of {@link Poolable} that is created by the allocator,
+   * and the type of objects that the configured pools will contain.
+   * @return A {@link PoolBuilder} that admits additional configurations,
+   * before the pool instance is {@linkplain PoolBuilder#build() built}.
+   */
+  public static &lt;T extends Poolable&gt; PoolBuilder&lt;T&gt; from(Allocator&lt;T&gt; allocator) {
+<span class="fc" id="L89">    return new PoolBuilder&lt;&gt;(allocator);</span>
+  }
+
+  /**
+   * Build a {@link Pool} instance that pools the given set of objects.
+   *
+   * The objects in the pool are never expired, and never deallocated.
+   * Explicitly expired objects simply return to the pool.
+   *
+   * This means that the returned pool has no background allocation thread,
+   * and has no expiration checking overhead when claiming objects.
+   *
+   * The given objects are wrapped in {@link Pooled} objects, which
+   * implement the {@link Poolable} interface.
+   *
+   * Shutting down the returned pool will not cause the given objects
+   * to be deallocated.
+   * The shut down process will complete as soon as the last claimed
+   * object is released back to the pool.
+   *
+   * [NOTE]
+   * --
+   * Passing duplicate objects to this method is not supported.
+   * The behaviour of the pool is unspecified if there are duplicates among
+   * the objects passed as arguments to this method.
+   * --
+   *
+   * @param objects The objects the pool should contain.
+   * @param &lt;T&gt; The type of objects being pooled.
+   * @return A pool of the given objects.
+   */
+  @SafeVarargs
+  public static &lt;T&gt; Pool&lt;Pooled&lt;T&gt;&gt; of(T... objects) {
+<span class="fc" id="L122">    Allocator&lt;Pooled&lt;T&gt;&gt; allocator = new Allocator&lt;&gt;() {</span>
+      private int index;
+      @Override
+      public Pooled&lt;T&gt; allocate(Slot slot) {
+<span class="fc" id="L126">        return new Pooled&lt;&gt;(slot, objects[index++]);</span>
+      }
+
+      @Override
+      public void deallocate(Pooled&lt;T&gt; poolable) {
+<span class="nc" id="L131">      }</span>
+    };
+<span class="fc" id="L133">    PoolBuilder&lt;Pooled&lt;T&gt;&gt; builder = new PoolBuilder&lt;&gt;(allocator);</span>
+<span class="fc" id="L134">    builder.setSize(objects.length);</span>
+<span class="fc" id="L135">    builder.setPreciseLeakDetectionEnabled(false);</span>
+<span class="fc" id="L136">    builder.setBackgroundExpirationEnabled(false);</span>
+<span class="fc" id="L137">    builder.setExpiration(Expiration.never());</span>
+<span class="fc" id="L138">    return new BlazePool&lt;&gt;(builder, AllocatorProcessFactory.DIRECT);</span>
+  }
+
+  /**
+   * Initiate the shut down process on this pool, and return a
+   * {@link Completion} instance representing the shut down procedure.
+   *
+   * The shut down process is asynchronous, and the shutdown method is
+   * guaranteed to not wait for any claimed {@link Poolable Poolables} to
+   * be released.
+   *
+   * The shut down process cannot complete before all Poolables are released
+   * back into the pool and {@link Allocator#deallocate(Poolable) deallocated},
+   * and all internal resources (such as threads, for instance) have been
+   * released as well. Only when all of these things have been taken care of,
+   * does the await methods of the Completion return.
+   *
+   * Once the shut down process has been initiated, that is, as soon as this
+   * method is called, the pool can no longer be used and all calls to
+   * {@link #claim(Timeout)} will throw an {@link IllegalStateException}.
+   * Threads that are already waiting for objects in the claim method, will
+   * also wake up and receive an {@link IllegalStateException}.
+   *
+   * All objects that are already claimed when this method is called,
+   * will continue to function until they are
+   * {@link Poolable#release() released}.
+   *
+   * The shut down process is guaranteed to never deallocate objects that are
+   * currently claimed. Their deallocation will wait until they are released.
+   *
+   * @return A {@link Completion} instance that represents the shut down
+   * process.
+   */
+  public abstract Completion shutdown();
+
+  /**
+   * Set the target size for this pool. The pool will strive to keep this many
+   * objects allocated at any one time.
+   *
+   * If the new target size is greater than the old one, the pool will allocate
+   * more objects until it reaches the target size. If, on the other hand, the
+   * new target size is less than the old one, the pool will deallocate more
+   * and allocate less, until the new target size is reached.
+   *
+   * No guarantees are made about when the pool actually reaches the target
+   * size. In fact, it may never happen as the target size can be changed as
+   * often as one sees fit.
+   *
+   * Pools that do not support a size less than 1 (which would deviate from the
+   * standard configuration space) will throw an
+   * {@link IllegalArgumentException} if passed 0 or less.
+   *
+   * Pools that do not support online resizing will throw an
+   * {@link UnsupportedOperationException}.
+   *
+   * @param size The new target size of the pool
+   */
+  public abstract void setTargetSize(int size);
+
+  /**
+   * Get the currently configured target size of the pool. Note that this is
+   * _not_ the number of objects currently allocated by the pool - only
+   * the number of allocations the pool strives to keep alive.
+   *
+   * @return The current target size of this pool.
+   */
+  public abstract int getTargetSize();
+
+  /**
+   * Get the {@link ManagedPool} instance that represents this pool.
+   * @return The {@link ManagedPool} instance for this pool.
+   */
+  public abstract ManagedPool getManagedPool();
+
+  /**
+   * Get a thread-safe {@link PoolTap} implementation for this pool, which can
+   * be freely shared among multiple threads.
+   * @return A thread-safe {@link PoolTap}.
+   */
+  public final PoolTap&lt;T&gt; getThreadSafeTap() {
+    // We use the anonymous inner class to enforce encapsulation, which is
+    // probably the only reason anyone would wan to use this.
+<span class="fc" id="L220">    return new PoolTap&lt;&gt;() {</span>
+      @Override
+      public T claim(Timeout timeout) throws PoolException, InterruptedException {
+<span class="fc" id="L223">        return Pool.this.claim(timeout);</span>
+      }
+    };
+  }
+
+  /**
+   * Get a {@link PoolTap} that only support access by one thread at a time.
+   * In other words, where {@link #claim(Timeout)} cannot be called
+   * concurrently in multiple threads *on the same tap*.
+   *
+   * The pool itself will still be thread-safe, but each thread that wishes to
+   * access the pool via a thread-local tap, must have their own tap instance.
+   *
+   * It is a use error to access these pool taps concurrently from multiple
+   * threads, or to transfer them from one thread to another without safe
+   * publication.
+   *
+   * @return A thread-locao {@link PoolTap}.
+   */
+  public abstract PoolTap&lt;T&gt; getThreadLocalTap();
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>

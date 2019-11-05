@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PoolBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.source.html" class="el_package">stormpot</a> &gt; <span class="el_source">PoolBuilder.java</span></div><h1>PoolBuilder.java</h1><pre class="source lang-java linenums">/*
+ * Copyright © 2011-2019 Chris Vest (mr.chrisvest@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package stormpot;
+
+import java.util.Objects;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+
+import static java.util.concurrent.TimeUnit.MINUTES;
+
+/**
+ * The `PoolBuilder` collects information about how big a pool should be,
+ * and how it should allocate objects, an so on, and finally acts as the
+ * factory for building the pool instances themselves, with the
+ * {@link #build()} method.
+ *
+ * Pool builder instances are obtained by calling {@link Pool#from(Allocator)}.
+ *
+ * This class is made thread-safe by having the fields be protected by the
+ * intrinsic object lock on the `PoolBuilder` object itself. This way, pools
+ * can `synchronize` on the builder object to read the values out atomically.
+ *
+ * The various set* methods are made to return the `PoolBuilder` instance
+ * itself, so that the method calls may be chained if so desired.
+ * 
+ * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
+ * @param &lt;T&gt; The type of {@link Poolable} objects that a {@link Pool} based
+ * on this `PoolBuilder` will produce.
+ */
+public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
+
+<span class="fc" id="L45">  private int size = 10;</span>
+<span class="fc" id="L46">  private Expiration&lt;? super T&gt; expiration = Expiration.after(8, 10, MINUTES);</span>
+  private Allocator&lt;T&gt; allocator;
+  private MetricsRecorder metricsRecorder;
+<span class="fc" id="L49">  private ThreadFactory threadFactory = StormpotThreadFactory.INSTANCE;</span>
+<span class="fc" id="L50">  private boolean preciseLeakDetectionEnabled = true;</span>
+<span class="fc" id="L51">  private boolean backgroundExpirationEnabled = true;</span>
+<span class="fc" id="L52">  private int backgroundExpirationCheckDelay = 1000;</span>
+
+  /**
+   * Build a new empty `PoolBuilder` object.
+   */
+<span class="fc" id="L57">  PoolBuilder(Allocator&lt;T&gt; allocator) {</span>
+<span class="fc" id="L58">    requireNonNull(allocator);</span>
+<span class="fc" id="L59">    this.allocator = allocator;</span>
+<span class="fc" id="L60">  }</span>
+
+  private void requireNonNull(Allocator&lt;?&gt; allocator) {
+<span class="fc" id="L63">    Objects.requireNonNull(allocator, &quot;The Allocator cannot be null.&quot;);</span>
+<span class="fc" id="L64">  }</span>
+
+  /**
+   * Set the size of the pool we are building.
+   *
+   * Pools are required to control the allocations and deallocations, such that
+   * no more than this number of objects are allocated at any time.
+   *
+   * This means that a pool of size 1, whose single object have expired, will
+   * deallocate that one object before allocating a replacement.
+   *
+   * The size must be at least one, or an {@link IllegalArgumentException} will
+   * be thrown when building the pool.
+   *
+   * Note that the pool size can be modified after the pool has been built, by
+   * calling the {@link Pool#setTargetSize(int)} or
+   * {@link ManagedPool#setTargetSize(int)} methods.
+   *
+   * @param size The target pool size. Must be at least 1.
+   * @return This `PoolBuilder` instance.
+   */
+  public synchronized PoolBuilder&lt;T&gt; setSize(int size) {
+<span class="fc" id="L86">    this.size = size;</span>
+<span class="fc" id="L87">    return this;</span>
+  }
+
+  /**
+   * Get the currently configured size. The default is 10.
+   * @return The configured pool size.
+   */
+  public synchronized int getSize() {
+<span class="fc" id="L95">    return size;</span>
+  }
+
+  /**
+   * Set the {@link Allocator} or {@link Reallocator} to use for the pools we
+   * want to configure. This will change the type-parameter of the `PoolBuilder`
+   * object to match that of the new Allocator.
+   *
+   * The allocator is initially specified by the {@link Pool#from(Allocator)}
+   * method, so there is usually no need to set it later.
+   *
+   * @param allocator The allocator we want our pools to use.
+   * This cannot be `null`.
+   * @param &lt;X&gt; The type of {@link Poolable} that is created by the allocator,
+   * and the type of objects that the configured pools will contain.
+   * @return This `PoolBuilder` instance, but with a generic type parameter that
+   * matches that of the allocator.
+   */
+  @SuppressWarnings(&quot;unchecked&quot;)
+  public synchronized &lt;X extends Poolable&gt; PoolBuilder&lt;X&gt; setAllocator(
+      Allocator&lt;X&gt; allocator) {
+<span class="fc" id="L116">    requireNonNull(allocator);</span>
+<span class="fc" id="L117">    this.allocator = (Allocator&lt;T&gt;) allocator;</span>
+<span class="fc" id="L118">    return (PoolBuilder&lt;X&gt;) this;</span>
+  }
+
+  /**
+   * Get the configured {@link Allocator} instance.
+   * @return The configured Allocator instance.
+   */
+  public synchronized Allocator&lt;T&gt; getAllocator() {
+<span class="fc" id="L126">    return allocator;</span>
+  }
+
+  /**
+   * Get the configured {@link stormpot.Allocator} instance as a
+   * {@link stormpot.Reallocator}. If the configured allocator implements the
+   * Reallocator interface, then it is returned directly. Otherwise, the
+   * allocator is wrapped in an adaptor.
+   * @return A configured or adapted Reallocator.
+   */
+  public synchronized Reallocator&lt;T&gt; getReallocator() {
+<span class="fc bfc" id="L137" title="All 2 branches covered.">    if (allocator instanceof Reallocator) {</span>
+<span class="fc" id="L138">      return (Reallocator&lt;T&gt;) allocator;</span>
+    }
+<span class="fc" id="L140">    return new ReallocatingAdaptor&lt;&gt;(allocator);</span>
+  }
+
+  /**
+   * Set the {@link Expiration} to use for the pools we want to
+   * configure. The Expiration determines when a pooled object is valid
+   * for claiming, or when the objects are invalid and should be deallocated.
+   *
+   * The default Expiration is an
+   * {@link Expiration#after(long, long, TimeUnit)} that invalidates the
+   * objects after they have been active for somewhere between 8 to 10 minutes.
+   *
+   * @param expiration The expiration we want our pools to use. Not null.
+   * @return This `PoolBuilder` instance.
+   */
+  public synchronized PoolBuilder&lt;T&gt; setExpiration(Expiration&lt;? super T&gt; expiration) {
+<span class="fc" id="L156">    this.expiration = expiration;</span>
+<span class="fc" id="L157">    return this;</span>
+  }
+
+  /**
+   * Get the configured {@link Expiration} instance. The default is a
+   * {@link Expiration#after(long, long, TimeUnit)} that expires objects after
+   * somewhere between 8 to 10 minutes.
+   *
+   * @return The configured Expiration.
+   */
+  public synchronized Expiration&lt;? super T&gt; getExpiration() {
+<span class="fc" id="L168">    return expiration;</span>
+  }
+
+  /**
+   * Set the {@link MetricsRecorder} to use for the pools we want to configure.
+   * @param metricsRecorder The MetricsRecorder to use, or null if we don't
+   *                        want to use any.
+   * @return This `PoolBuilder` instance.
+   */
+  public synchronized PoolBuilder&lt;T&gt; setMetricsRecorder(MetricsRecorder metricsRecorder) {
+<span class="fc" id="L178">    this.metricsRecorder = metricsRecorder;</span>
+<span class="fc" id="L179">    return this;</span>
+  }
+
+  /**
+   * Get the configured {@link MetricsRecorder} instance, or null if none has
+   * been configured.
+   * @return The configured MetricsRecorder.
+   */
+  public synchronized MetricsRecorder getMetricsRecorder() {
+<span class="fc" id="L188">    return metricsRecorder;</span>
+  }
+
+  /**
+   * Get the ThreadFactory that has been configured, and will be used to create
+   * the background allocation threads for the pools. The default is similar to
+   * the {@link java.util.concurrent.Executors#defaultThreadFactory()}, except
+   * the string &quot;Stormpot-&quot; is prepended to the thread name.
+   * @return The configured thread factory.
+   */
+  public synchronized ThreadFactory getThreadFactory() {
+<span class="fc" id="L199">    return threadFactory;</span>
+  }
+
+  /**
+   * Set the ThreadFactory that the pools will use to create its background
+   * threads with. The ThreadFactory is not allowed to be null, and creating
+   * a pool with a null ThreadFactory will throw an IllegalArgumentException.
+   * @param factory The ThreadFactory the pool should use to create their
+   *                background threads.
+   * @return This `PoolBuilder` instance.
+   */
+  public synchronized PoolBuilder&lt;T&gt; setThreadFactory(ThreadFactory factory) {
+<span class="fc" id="L211">    threadFactory = factory;</span>
+<span class="fc" id="L212">    return this;</span>
+  }
+
+  /**
+   * Return whether or not precise object leak detection is enabled, which is
+   * the case by default.
+   * @return `true` if precise object leak detection is enabled.
+   * @see #setPreciseLeakDetectionEnabled(boolean)
+   */
+  public synchronized boolean isPreciseLeakDetectionEnabled() {
+<span class="fc" id="L222">    return preciseLeakDetectionEnabled;</span>
+  }
+
+  /**
+   * Enable or disable precise object leak detection. It is enabled by default.
+   * Precise object leak detection makes the pool keep an eye on the allocated
+   * Poolables, such that it notices if they get garbage collected without
+   * first being deallocated. Using the garbage collector for this purpose,
+   * means that no false positives (counting objects as leaked, even though
+   * they are not) are ever reported.
+   *
+   * [NOTE]
+   * --
+   * While the pool is able to detect object leaks, it cannot prevent
+   * them. All leaks are a sign that there is a bug in the system; most likely
+   * a bug in your code, or in the way the pool is used.
+   * --
+   *
+   * Precise object leak detection incurs virtually no overhead, and is safe to
+   * leave enabled at all times – even in the most demanding production
+   * environments.
+   *
+   * @param enabled `true` to turn on precise object leak detection (the
+   *                default) `false` to turn it off.
+   * @return This `PoolBuilder` instance.
+   */
+  public synchronized PoolBuilder&lt;T&gt; setPreciseLeakDetectionEnabled(boolean enabled) {
+<span class="fc" id="L249">    this.preciseLeakDetectionEnabled = enabled;</span>
+<span class="fc" id="L250">    return this;</span>
+  }
+
+  /**
+   * Return whether or not background expiration is enabled.
+   * By default, background expiration is enabled.
+   *
+   * @return `true` if background expiration is enabled.
+   * @see #setBackgroundExpirationEnabled(boolean)
+   */
+  public synchronized boolean isBackgroundExpirationEnabled() {
+<span class="fc" id="L261">    return backgroundExpirationEnabled;</span>
+  }
+
+  /**
+   * Enable or disable background object expiration checking. This is enabled
+   * by default, but can be turned off if the check is expensive.
+   * The cost of the check matters because it might end up taking resources
+   * away from the background thread and hinder its ability to keep up with the
+   * demand for allocations and deallocations, even though these tasks always
+   * take priority over any expiration checking.
+   *
+   * @param enabled `true` (the default) to turn background expiration checking on,
+   *               `false` to turn it off.
+   * @return This `PoolBuilder` instance.
+   */
+  public synchronized PoolBuilder&lt;T&gt; setBackgroundExpirationEnabled(boolean enabled) {
+<span class="fc" id="L277">    backgroundExpirationEnabled = enabled;</span>
+<span class="fc" id="L278">    return this;</span>
+  }
+
+  /**
+   * Return the default approximate delay, in milliseconds, between background
+   * maintenance tasks, such as the background expiration checks and retrying
+   * failed allocations.
+   *
+   * @return the delay, in milliseconds, between background maintenance tasks.
+   */
+  public synchronized int getBackgroundExpirationCheckDelay() {
+<span class="fc" id="L289">    return backgroundExpirationCheckDelay;</span>
+  }
+
+  /**
+   * Set the approximate delay, in milliseconds, between background maintenance tasks.
+   * These tasks include the background expiration checks, and retrying failed allocations.
+   *
+   * The default delay is 1.000 milliseconds (1 second). Lowering this value will
+   * improve the pools responsiveness to repairing failed allocations, and also increase
+   * the frequency of the background expiration checks. This comes at the cost of higher
+   * idle CPU usage.
+   *
+   * It is not recommended to set this value lower than 100 milliseconds. Values lower
+   * than this tend to have increased CPU and power usage, for very little gain in
+   * responsiveness for the background tasks.
+   *
+   * @param delay the desired delay, in milliseconds, between background maintenance tasks.
+   * @return This `PoolBuilder` instance.
+   */
+  public synchronized PoolBuilder&lt;T&gt; setBackgroundExpirationCheckDelay(int delay) {
+<span class="fc" id="L309">    backgroundExpirationCheckDelay = delay;</span>
+<span class="fc" id="L310">    return this;</span>
+  }
+
+  /**
+   * Returns a shallow copy of this `PoolBuilder` object.
+   * @return A new `PoolBuilder` object of the exact same type as this one, with
+   * identical values in all its fields.
+   */
+  @SuppressWarnings(&quot;unchecked&quot;)
+  @Override
+  public final synchronized PoolBuilder&lt;T&gt; clone() {
+    try {
+<span class="fc" id="L322">      return (PoolBuilder&lt;T&gt;) super.clone();</span>
+<span class="nc" id="L323">    } catch (CloneNotSupportedException e) {</span>
+<span class="nc" id="L324">      throw new AssertionError(e);</span>
+    }
+  }
+
+  /**
+   * Build a {@link Pool} instance based on the collected configuration.
+   * @return A {@link Pool} instance as configured by this builder.
+   */
+  public synchronized Pool&lt;T&gt; build() {
+<span class="fc" id="L333">    return new BlazePool&lt;&gt;(this, AllocatorProcessFactory.THREADED);</span>
+  }
+
+  /**
+   * Check that the configuration is valid in terms of the *standard
+   * configuration*. This method is useful in the
+   * Pool implementation constructors.
+   * @throws IllegalArgumentException If the size is less than one, if the
+   * {@link Expiration} is `null`, if the {@link Allocator} is `null`, or if
+   * the ThreadFactory is `null`.
+   */
+  synchronized void validate() throws IllegalArgumentException {
+<span class="fc bfc" id="L345" title="All 2 branches covered.">    if (size &lt; 1) {</span>
+<span class="fc" id="L346">      throw new IllegalArgumentException(</span>
+          &quot;Size must be at least 1, but was &quot; + size + &quot;.&quot;);
+    }
+<span class="fc bfc" id="L349" title="All 2 branches covered.">    if (expiration == null) {</span>
+<span class="fc" id="L350">      throw new IllegalArgumentException(&quot;Expiration cannot be null.&quot;);</span>
+    }
+<span class="fc bfc" id="L352" title="All 2 branches covered.">    if (threadFactory == null) {</span>
+<span class="fc" id="L353">      throw new IllegalArgumentException(&quot;ThreadFactory cannot be null.&quot;);</span>
+    }
+<span class="fc bfc" id="L355" title="All 2 branches covered.">    if (backgroundExpirationCheckDelay &lt; 0) {</span>
+<span class="fc" id="L356">      throw new IllegalArgumentException(&quot;Background expiration check delay cannot be negative.&quot;);</span>
+    }
+<span class="fc" id="L358">  }</span>
+
+  /**
+   * Returns a `Reallocator`, possibly by adapting the configured
+   * `Allocator` if need be.
+   * If a `MetricsRecorder` has been configured, the return `Reallocator` will
+   * automatically record allocation, reallocation and deallocation latencies.
+   */
+  synchronized Reallocator&lt;T&gt; getAdaptedReallocator() {
+<span class="fc bfc" id="L367" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc bfc" id="L368" title="All 2 branches covered.">      if (allocator instanceof Reallocator) {</span>
+<span class="fc" id="L369">        return (Reallocator&lt;T&gt;) allocator;</span>
+      }
+<span class="fc" id="L371">      return new ReallocatingAdaptor&lt;&gt;(allocator);</span>
+    } else {
+<span class="fc bfc" id="L373" title="All 2 branches covered.">      if (allocator instanceof Reallocator) {</span>
+<span class="fc" id="L374">        return new TimingReallocatorAdaptor&lt;&gt;(</span>
+            (Reallocator&lt;T&gt;) allocator, metricsRecorder);
+      }
+<span class="fc" id="L377">      return new TimingReallocatingAdaptor&lt;&gt;(allocator, metricsRecorder);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>

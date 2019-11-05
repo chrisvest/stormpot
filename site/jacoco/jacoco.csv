@@ -1,34 +1,38 @@
 GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
-stormpot,stormpot.qpool,QueuePool,0,4,0,0,0,2,0,1,0,1
+stormpot,stormpot,PoolTap,0,37,0,4,0,13,0,5,0,3
 stormpot,stormpot,Padding1,0,3,0,0,0,1,0,1,0,1
-stormpot,stormpot,BAllocThread,10,588,6,78,2,168,6,61,0,25
-stormpot,stormpot,TimingReallocatingAdaptor,0,60,0,0,0,18,0,3,0,3
-stormpot,stormpot,BlazePool,6,405,1,51,2,104,1,48,0,23
+stormpot,stormpot,BAllocThread,10,647,5,81,2,188,5,65,0,27
+stormpot,stormpot,TimingReallocatingAdaptor,0,60,0,0,0,20,0,3,0,3
+stormpot,stormpot,AllocatorProcess,0,3,0,0,0,1,0,1,0,1
+stormpot,stormpot,BlazePool,6,411,1,53,1,107,1,53,0,27
 stormpot,stormpot,Padding2,0,4,0,0,0,2,0,1,0,1
-stormpot,stormpot,TimingReallocatorAdaptor,0,35,0,0,0,11,0,2,0,2
-stormpot,stormpot,UnsafeUtil.new PrivilegedExceptionAction() {...},4,37,2,2,1,7,2,2,0,2
-stormpot,stormpot,PreciseLeakDetector,0,315,0,34,0,89,0,26,0,9
+stormpot,stormpot,TimingReallocatorAdaptor,0,43,0,0,0,13,0,2,0,2
+stormpot,stormpot,BlazePoolThreadLocalTap,0,18,0,0,0,5,0,2,0,2
+stormpot,stormpot,AllocatorProcessFactory,0,5,0,0,0,2,0,1,0,1
+stormpot,stormpot,ThreadedAllocatorProcess,0,56,0,0,0,15,0,8,0,8
+stormpot,stormpot,PreciseLeakDetector,0,312,0,34,0,89,0,26,0,9
+stormpot,stormpot,BasePoolable,0,20,0,0,0,8,0,3,0,3
 stormpot,stormpot,DisregardedBSlot,0,6,0,0,0,3,0,1,0,1
-stormpot,stormpot,QueueFactory,43,47,6,2,9,17,6,2,2,2
-stormpot,stormpot,PaddedAtomicInteger,14,41,3,3,3,16,3,5,0,5
-stormpot,stormpot,TimeSpreadExpiration,0,112,0,10,0,21,0,8,0,3
-stormpot,stormpot,DisregardBPile,0,58,1,5,0,18,1,6,0,4
+stormpot,stormpot,TimeSpreadExpiration,0,113,0,12,0,24,0,10,0,4
+stormpot,stormpot,PaddedAtomicInteger,7,30,0,0,2,11,0,5,0,5
+stormpot,stormpot,DisregardBPile,0,58,0,6,0,18,0,7,0,4
+stormpot,stormpot,Expiration,0,37,0,0,0,6,0,7,0,7
 stormpot,stormpot,PreciseLeakDetector.WeakRef,0,4,0,0,0,2,0,1,0,1
+stormpot,stormpot,DirectAllocatorProcess,9,175,1,15,3,43,2,15,1,8
 stormpot,stormpot,ReallocatingAdaptor,0,30,0,0,0,11,0,5,0,5
-stormpot,stormpot,CompoundExpiration,0,23,0,4,0,6,0,4,0,2
-stormpot,stormpot,BSlot,14,129,2,9,2,36,2,24,0,20
-stormpot,stormpot,Config,6,187,0,20,2,52,0,29,0,19
-stormpot,stormpot,QueueFactory.FactoryChoiceReason,24,77,0,0,1,10,3,2,3,2
-stormpot,stormpot,BSlotColdFields,0,72,0,2,0,15,0,4,0,3
-stormpot,stormpot,TimeExpiration,0,60,0,6,0,11,0,6,0,3
+stormpot,stormpot,BSlot,43,134,10,13,13,38,7,26,1,20
+stormpot,stormpot,EveryExpiration,0,34,0,2,0,8,0,3,0,2
+stormpot,stormpot,BSlotColdFields,0,18,0,2,0,7,0,3,0,2
+stormpot,stormpot,Pool.new Allocator() {...},1,21,0,0,1,2,1,2,1,2
+stormpot,stormpot,BSlotCache,0,3,0,0,0,1,0,1,0,1
+stormpot,stormpot,Pool.new PoolTap() {...},0,11,0,0,0,2,0,2,0,2
+stormpot,stormpot,TimeExpiration,0,49,0,6,0,11,0,6,0,3
 stormpot,stormpot,LatchCompletion,0,21,0,2,0,6,0,3,0,2
-stormpot,stormpot,QueueFactory.new QueueFactory.Factory() {...},21,13,0,0,4,2,0,2,0,2
-stormpot,stormpot,QueueFactory.new QueueFactory.Factory() {...},7,0,0,0,2,0,2,0,2,0
 stormpot,stormpot,PoolException,0,9,0,0,0,4,0,2,0,2
-stormpot,stormpot,QSlot,0,117,0,4,0,28,0,12,0,10
-stormpot,stormpot,QueuePool,0,291,0,32,0,81,0,33,0,17
-stormpot,stormpot,QAllocThread,0,511,1,61,0,141,1,47,0,17
-stormpot,stormpot,StormpotThreadFactory,0,27,0,0,0,7,0,3,0,3
+stormpot,stormpot,Pooled,0,10,0,0,0,5,0,2,0,2
+stormpot,stormpot,PoolBuilder,6,200,0,16,2,58,0,31,0,23
+stormpot,stormpot,ThreadLocalBSlotCache,0,7,0,0,0,2,0,2,0,2
+stormpot,stormpot,StormpotThreadFactory,0,21,0,0,0,6,0,2,0,2
+stormpot,stormpot,OrExpiration,0,23,0,4,0,6,0,4,0,2
+stormpot,stormpot,Pool,0,46,0,0,0,11,0,4,0,4
 stormpot,stormpot,Timeout,0,78,0,6,0,19,0,13,0,10
-stormpot,stormpot,UnsafeUtil,23,37,2,2,6,9,3,6,1,6
-stormpot,stormpot.bpool,BlazePool,0,4,0,0,0,2,0,1,0,1

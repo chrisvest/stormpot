@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DirectAllocatorProcess.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">stormpot</a> &gt; <a href="index.source.html" class="el_package">stormpot</a> &gt; <span class="el_source">DirectAllocatorProcess.java</span></div><h1>DirectAllocatorProcess.java</h1><pre class="source lang-java linenums">/*
+ * Copyright © 2011-2019 Chris Vest (mr.chrisvest@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package stormpot;
+
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+class DirectAllocatorProcess&lt;T extends Poolable&gt; extends AllocatorProcess&lt;T&gt; {
+  private final BlockingQueue&lt;BSlot&lt;T&gt;&gt; live;
+  private final DisregardBPile&lt;T&gt; disregardBPile;
+  private final BSlot&lt;T&gt; poisonPill;
+  private final int size;
+  private final AtomicInteger shutdownState;
+  private final AtomicInteger poisonedSlots;
+
+  DirectAllocatorProcess(
+      BlockingQueue&lt;BSlot&lt;T&gt;&gt; live,
+      DisregardBPile&lt;T&gt; disregardBPile,
+      PoolBuilder&lt;T&gt; builder,
+<span class="fc" id="L34">      BSlot&lt;T&gt; poisonPill) {</span>
+<span class="fc" id="L35">    this.live = live;</span>
+<span class="fc" id="L36">    this.disregardBPile = disregardBPile;</span>
+<span class="fc" id="L37">    this.poisonPill = poisonPill;</span>
+<span class="fc" id="L38">    this.size = builder.getSize();</span>
+<span class="fc" id="L39">    poisonedSlots = new AtomicInteger(0);</span>
+<span class="fc" id="L40">    Allocator&lt;T&gt; allocator = builder.getAllocator();</span>
+<span class="fc bfc" id="L41" title="All 2 branches covered.">    for (int i = 0; i &lt; size; i++) {</span>
+<span class="fc" id="L42">      BSlot&lt;T&gt; slot = new BSlot&lt;&gt;(live, poisonedSlots);</span>
+      try {
+<span class="fc" id="L44">        slot.obj = allocator.allocate(slot);</span>
+<span class="fc" id="L45">        slot.createdNanos = System.nanoTime();</span>
+<span class="fc" id="L46">        slot.dead2live();</span>
+<span class="nc" id="L47">      } catch (Exception e) {</span>
+<span class="nc" id="L48">        throw new RuntimeException(&quot;Unexpected exception.&quot;, e);</span>
+<span class="fc" id="L49">      }</span>
+<span class="fc" id="L50">      live.offer(slot);</span>
+    }
+<span class="fc" id="L52">    shutdownState = new AtomicInteger(size);</span>
+<span class="fc" id="L53">  }</span>
+
+  @Override
+  Completion shutdown() {
+<span class="fc" id="L57">    poisonPill.dead2live();</span>
+<span class="fc" id="L58">    live.offer(poisonPill);</span>
+<span class="fc" id="L59">    return timeout -&gt; {</span>
+<span class="fc bfc" id="L60" title="All 2 branches covered.">      if (timeout == null) {</span>
+<span class="fc" id="L61">        throw new IllegalArgumentException(&quot;Timeout cannot be null.&quot;);</span>
+      }
+<span class="fc bfc" id="L63" title="All 2 branches covered.">      if (Thread.interrupted()) {</span>
+<span class="fc" id="L64">        throw new InterruptedException(&quot;Interrupted while waiting for pool shut down to complete.&quot;);</span>
+      }
+<span class="fc" id="L66">      TimeUnit unit = timeout.getBaseUnit();</span>
+<span class="fc" id="L67">      long deadline = timeout.getDeadline();</span>
+<span class="fc" id="L68">      disregardBPile.refillQueue();</span>
+      BSlot&lt;T&gt; slot;
+<span class="fc bfc" id="L70" title="All 4 branches covered.">      while (shutdownState.get() &gt; 0 &amp;&amp; (slot = live.poll(deadline, unit)) != null) {</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (slot != poisonPill) {</span>
+<span class="fc" id="L72">          shutdownState.getAndDecrement();</span>
+        }
+<span class="fc" id="L74">        disregardBPile.refillQueue();</span>
+<span class="fc" id="L75">        deadline = timeout.getTimeLeft(deadline);</span>
+      }
+<span class="fc" id="L77">      live.offer(poisonPill);</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">      return shutdownState.get() == 0;</span>
+    };
+  }
+
+  @Override
+  void offerDeadSlot(BSlot&lt;T&gt; slot) {
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">    if (slot.poison != null) {</span>
+<span class="fc" id="L85">      slot.poison = null;</span>
+<span class="fc" id="L86">      poisonedSlots.getAndDecrement();</span>
+    }
+<span class="fc" id="L88">    slot.dead2live();</span>
+<span class="fc" id="L89">    live.offer(slot);</span>
+<span class="fc" id="L90">  }</span>
+
+  @Override
+  void setTargetSize(int size) {
+<span class="fc" id="L94">    throw new UnsupportedOperationException(&quot;Target size cannot be changed. &quot; +</span>
+        &quot;This pool was created with a fixed set of objects using the Pool.of(...) method. &quot; +
+        &quot;Attempted to set target size to &quot; + size + &quot;.&quot;);
+  }
+
+  @Override
+  int getTargetSize() {
+<span class="fc" id="L101">    return size;</span>
+  }
+
+  @Override
+  long getAllocationCount() {
+<span class="fc" id="L106">    return size;</span>
+  }
+
+  @Override
+  long getFailedAllocationCount() {
+<span class="nc" id="L111">    return 0;</span>
+  }
+
+  @Override
+  long countLeakedObjects() {
+<span class="fc" id="L116">    return -1;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>
