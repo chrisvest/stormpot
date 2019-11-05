@@ -45,14 +45,6 @@
     <asciidoclet.version>2.0.0</asciidoclet.version>
   </properties>
 
-  <repositories>
-    <repository>
-      <!-- Required for the asciidoclet fork. -->
-      <id>jitpack.io</id>
-      <url>https://jitpack.io</url>
-    </repository>
-  </repositories>
-
   <distributionManagement>
     <snapshotRepository>
       <id>ossrh</id>
@@ -227,18 +219,24 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
         <version>${javadoc.version}</version>
+        <executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
         <configuration>
           <additionalJOptions>
             <additionalJOption>-J--add-exports=jdk.javadoc/jdk.javadoc.internal.tool=ALL-UNNAMED</additionalJOption>
             <additionalJOption>-Xdoclint:all,-html,-accessibility</additionalJOption>
+            <additionalJOption>--base-dir</additionalJOption>
+            <additionalJOption>${project.basedir}</additionalJOption>
           </additionalJOptions>
           <doclet>org.asciidoctor.asciidoclet.Asciidoclet</doclet>
-          <docletArtifact>
-            <groupId>com.github.chrisvest</groupId>
-            <artifactId>asciidoclet</artifactId>
-            <version>${asciidoclet.version}</version>
-          </docletArtifact>
-          <additionalOptions>--base-dir ${basedir}</additionalOptions>
+          <detectJavaApiLink>true</detectJavaApiLink>
+          <docletPath>${project.basedir}/build/asciidoclet-2.0.0-shaded.jar</docletPath>
         </configuration>
       </plugin>
       <plugin>
@@ -281,6 +279,33 @@
           <nexusUrl>https://oss.sonatype.org/</nexusUrl>
           <autoReleaseAfterClose>true</autoReleaseAfterClose>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>3.2.0</version>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-gpg-plugin</artifactId>
+        <version>1.6</version>
+        <executions>
+          <execution>
+            <id>sign-artifacts</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>sign</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
@@ -333,16 +358,12 @@
           <additionalJOptions>
             <additionalJOption>-J--add-exports=jdk.javadoc/jdk.javadoc.internal.tool=ALL-UNNAMED</additionalJOption>
             <additionalJOption>-Xdoclint:all,-html,-accessibility</additionalJOption>
+            <additionalJOption>--base-dir</additionalJOption>
+            <additionalJOption>${project.basedir}</additionalJOption>
           </additionalJOptions>
           <doclet>org.asciidoctor.asciidoclet.Asciidoclet</doclet>
-          <docletArtifact>
-            <groupId>com.github.chrisvest</groupId>
-            <artifactId>asciidoclet</artifactId>
-            <version>${asciidoclet.version}</version>
-          </docletArtifact>
-          <additionalOptions>--base-dir ${basedir}</additionalOptions>
-          <useStandardDocletOptions>false</useStandardDocletOptions>
-          <doclint>none</doclint>
+          <detectJavaApiLink>true</detectJavaApiLink>
+          <docletPath>${project.basedir}/build/asciidoclet-2.0.0-shaded.jar</docletPath>
         </configuration>
       </plugin>
       <plugin>
