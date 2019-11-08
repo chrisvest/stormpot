@@ -78,9 +78,9 @@ version of Java to build a snapshot from the source code.
 
 Stormpot needs 3 things before it can pool objects for you:
 
- . A http://chrisvest.github.io/stormpot/site/apidocs/stormpot/Poolable.html[Poolable] type of objects it can pool.
+ . A http://chrisvest.github.io/stormpot/site/apidocs/stormpot/stormpot/Poolable.html[Poolable] type of objects it can pool.
    You have to implement this yourself.
- . An http://chrisvest.github.io/stormpot/site/apidocs/stormpot/Allocator.html[Allocator] to allocate and deallocate the Poolable objects.
+ . An http://chrisvest.github.io/stormpot/site/apidocs/stormpot/stormpot/Allocator.html[Allocator] to allocate and deallocate the Poolable objects.
    You have to implement this yourself.
  . And a place where it all comes together:
 
