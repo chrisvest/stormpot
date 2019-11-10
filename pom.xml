@@ -115,6 +115,7 @@
             -Djunit.jupiter.execution.parallel.enabled=true
             -Djunit.jupiter.execution.parallel.mode.classes.default=concurrent
             -Djunit.jupiter.execution.timeout.default=30m
+            -Djdk.attach.allowAttachSelf
           </argLine>
         </configuration>
       </plugin>
@@ -132,6 +133,7 @@
             -Djunit.jupiter.execution.parallel.enabled=true
             -Djunit.jupiter.execution.parallel.mode.classes.default=concurrent
             -Djunit.jupiter.execution.timeout.default=30m
+            -Djdk.attach.allowAttachSelf
           </argLine>
         </configuration>
         <executions>
@@ -354,6 +356,12 @@
       <groupId>org.hdrhistogram</groupId>
       <artifactId>HdrHistogram</artifactId>
       <version>2.1.10</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.openjdk.jol</groupId>
+      <artifactId>jol-core</artifactId>
+      <version>0.9</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
