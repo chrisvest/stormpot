@@ -15,6 +15,8 @@
  */
 package stormpot;
 
+import java.time.Duration;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -53,6 +55,20 @@ public final class Timeout {
     this.timeout = timeout;
     this.unit = unit;
     this.timeoutBase = getBaseUnit().convert(timeout, unit);
+  }
+
+  /**
+   * Construct a new timeout with the given duration.
+   * An exception will be thrown if the duration cannot be converted to a nanosecond quantity.
+   * The duration also cannot be `null`.
+   * Apart from these two, there are no restrictions on the duration.
+   * @param duration A duration to use for the timeout.
+   */
+  public Timeout(Duration duration) {
+    Objects.requireNonNull(duration, "Duration cannot be null");
+    this.timeout = duration.toNanos();
+    this.unit = TimeUnit.NANOSECONDS;
+    this.timeoutBase = timeout;
   }
 
   /**
