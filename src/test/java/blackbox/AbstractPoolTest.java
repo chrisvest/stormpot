@@ -76,6 +76,8 @@ abstract class AbstractPoolTest<T extends Poolable> {
 
   abstract void createOneObjectPool();
 
+  abstract void noBackgroundExpirationChecking();
+
   abstract void createPoolOfSize(int size);
 
   @ParameterizedTest
@@ -1186,6 +1188,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
 
   @Test
   void threadLocalTapsCacheIndependentObjects() throws Exception {
+    noBackgroundExpirationChecking();
     createPoolOfSize(2);
     PoolTap<T> tap1 = pool.getThreadLocalTap();
     PoolTap<T> tap2 = pool.getThreadLocalTap();

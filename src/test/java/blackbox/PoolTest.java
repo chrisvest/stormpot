@@ -92,6 +92,11 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
   }
 
   @Override
+  void noBackgroundExpirationChecking() {
+    builder.setBackgroundExpirationEnabled(false);
+  }
+
+  @Override
   void createPoolOfSize(int size) {
     builder.setSize(size);
     createPool();

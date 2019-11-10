@@ -36,6 +36,10 @@ class DirectPoolTest extends AbstractPoolTest<Pooled<String>> {
   }
 
   @Override
+  void noBackgroundExpirationChecking() {
+  }
+
+  @Override
   void createPoolOfSize(int size) {
     assert size < 25;
     String[] objs = new String[size];
