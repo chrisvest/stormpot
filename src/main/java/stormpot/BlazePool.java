@@ -15,6 +15,7 @@
  */
 package stormpot;
 
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
@@ -65,7 +66,6 @@ final class BlazePool<T extends Poolable>
    * @param builder The pool configuration to use.
    */
   BlazePool(PoolBuilder<T> builder, AllocatorProcessFactory factory) {
-    builder.validate();
     live = new LinkedTransferQueue<>();
     disregardPile = new DisregardBPile<>(live);
     tlr = new ThreadLocalBSlotCache<>();
@@ -73,8 +73,7 @@ final class BlazePool<T extends Poolable>
     poisonPill.poison = SHUTDOWN_POISON;
     deallocRule = builder.getExpiration();
     metricsRecorder = builder.getMetricsRecorder();
-    allocator = factory.buildAllocator(
-        live, disregardPile, builder, poisonPill);
+    allocator = factory.buildAllocator(live, disregardPile, builder, poisonPill);
   }
 
   @Override
@@ -83,15 +82,9 @@ final class BlazePool<T extends Poolable>
     return tlrClaim(timeout, tlr.get());
   }
 
-  private void assertTimeoutNotNull(Timeout timeout) {
-    if (timeout == null) {
-      throw new IllegalArgumentException("Timeout cannot be null");
-    }
-  }
-
   T tlrClaim(Timeout timeout, BSlotCache<T> cache)
       throws PoolException, InterruptedException {
-    assertTimeoutNotNull(timeout);
+    Objects.requireNonNull(timeout, "Timeout cannot be null.");
     BSlot<T> slot = cache.slot;
     // Note that the TLR slot at this point might have been tried by another
     // thread, found to be expired, put on the dead-queue and deallocated.

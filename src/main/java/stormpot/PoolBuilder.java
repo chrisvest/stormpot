@@ -83,6 +83,9 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * @return This `PoolBuilder` instance.
    */
   public synchronized PoolBuilder<T> setSize(int size) {
+    if (size < 1) {
+      throw new IllegalArgumentException("Size must be at least 1, but was " + size + ".");
+    }
     this.size = size;
     return this;
   }
@@ -153,6 +156,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * @return This `PoolBuilder` instance.
    */
   public synchronized PoolBuilder<T> setExpiration(Expiration<? super T> expiration) {
+    Objects.requireNonNull(expiration, "Expiration cannot be null.");
     this.expiration = expiration;
     return this;
   }
@@ -208,6 +212,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * @return This `PoolBuilder` instance.
    */
   public synchronized PoolBuilder<T> setThreadFactory(ThreadFactory factory) {
+    Objects.requireNonNull(factory, "ThreadFactory cannot be null.");
     threadFactory = factory;
     return this;
   }
@@ -306,6 +311,9 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * @return This `PoolBuilder` instance.
    */
   public synchronized PoolBuilder<T> setBackgroundExpirationCheckDelay(int delay) {
+    if (delay < 0) {
+      throw new IllegalArgumentException("Background expiration check delay cannot be negative.");
+    }
     backgroundExpirationCheckDelay = delay;
     return this;
   }
@@ -331,30 +339,6 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    */
   public synchronized Pool<T> build() {
     return new BlazePool<>(this, AllocatorProcessFactory.THREADED);
-  }
-
-  /**
-   * Check that the configuration is valid in terms of the *standard
-   * configuration*. This method is useful in the
-   * Pool implementation constructors.
-   * @throws IllegalArgumentException If the size is less than one, if the
-   * {@link Expiration} is `null`, if the {@link Allocator} is `null`, or if
-   * the ThreadFactory is `null`.
-   */
-  synchronized void validate() throws IllegalArgumentException {
-    if (size < 1) {
-      throw new IllegalArgumentException(
-          "Size must be at least 1, but was " + size + ".");
-    }
-    if (expiration == null) {
-      throw new IllegalArgumentException("Expiration cannot be null.");
-    }
-    if (threadFactory == null) {
-      throw new IllegalArgumentException("ThreadFactory cannot be null.");
-    }
-    if (backgroundExpirationCheckDelay < 0) {
-      throw new IllegalArgumentException("Background expiration check delay cannot be negative.");
-    }
   }
 
   /**

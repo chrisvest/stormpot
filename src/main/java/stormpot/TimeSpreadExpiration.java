@@ -15,6 +15,7 @@
  */
 package stormpot;
 
+import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -51,6 +52,7 @@ final class TimeSpreadExpiration<T extends Poolable> implements Expiration<T> {
       long lowerBound,
       long upperBound,
       TimeUnit unit) {
+    Objects.requireNonNull(unit, "TimeUnit cannot be null.");
     if (lowerBound < 1) {
       throw new IllegalArgumentException(
           "The lower bound cannot be less than 1.");
@@ -58,9 +60,6 @@ final class TimeSpreadExpiration<T extends Poolable> implements Expiration<T> {
     if (upperBound < lowerBound) {
       throw new IllegalArgumentException(
           "The upper bound must be greater than or equal to the lower bound.");
-    }
-    if (unit == null) {
-      throw new IllegalArgumentException("The TimeUnit cannot be null.");
     }
     this.fromMillis = unit.toMillis(lowerBound);
     this.toMillis = unit.toMillis(upperBound);

@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class TimeoutTest {
   @Test
   void timeUnitCannotBeNull() {
-    assertThrows(IllegalArgumentException.class, () -> new Timeout(1, null));
+    assertThrows(NullPointerException.class, () -> new Timeout(1, null));
   }
   
   @Test

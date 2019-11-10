@@ -156,7 +156,7 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
    */
   @Test
   void constructorMustThrowOnNullExpiration() {
-    assertThrows(IllegalArgumentException.class, () -> builder.setExpiration(null).build());
+    assertThrows(NullPointerException.class, () -> builder.setExpiration(null));
   }
   
   /**
@@ -174,7 +174,7 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
    */
   @Test
   void constructorMustThrowOnNullThreadFactory() {
-    assertThrows(IllegalArgumentException.class, () -> builder.setThreadFactory(null).build());
+    assertThrows(NullPointerException.class, () -> builder.setThreadFactory(null));
   }
 
   @Test
@@ -186,8 +186,7 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
 
   @Test
   void constructorMustThrowIfBackgroundExpirationCheckDelayIsNegative() {
-    builder.setBackgroundExpirationCheckDelay(-1);
-    assertThrows(IllegalArgumentException.class, builder::build);
+    assertThrows(IllegalArgumentException.class, () -> builder.setBackgroundExpirationCheckDelay(-1));
   }
   
   /**

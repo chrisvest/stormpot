@@ -143,9 +143,11 @@ class PoolBuilderTest {
     for (Method setter : setterMethods) {
       Class<?> parameterType = setter.getParameterTypes()[0];
       Object arg =
-          parameterType == Boolean.TYPE? true :
-          parameterType == Integer.TYPE? 1 :
-          parameterType == Allocator.class ? allocator() : null;
+          parameterType == Boolean.TYPE ? true :
+          parameterType == Integer.TYPE ? 1 :
+          parameterType == Allocator.class ? allocator() :
+          parameterType == Expiration.class ? Expiration.never() :
+          parameterType == ThreadFactory.class ? (ThreadFactory) (r -> null) : null;
       Object result = setter.invoke(builder, arg);
       assertThat(result).as("return value of setter " + setter).isSameAs(builder);
     }

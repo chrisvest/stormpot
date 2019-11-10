@@ -49,9 +49,7 @@ public final class Timeout {
    * @param unit The unit of the timeout value. Never `null`.
    */
   public Timeout(long timeout, TimeUnit unit) {
-    if (unit == null) {
-      throw new IllegalArgumentException("The TimeUnit cannot be null");
-    }
+    Objects.requireNonNull(unit, "The TimeUnit cannot be null.");
     this.timeout = timeout;
     this.unit = unit;
     this.timeoutBase = getBaseUnit().convert(timeout, unit);
@@ -65,7 +63,7 @@ public final class Timeout {
    * @param duration A duration to use for the timeout.
    */
   public Timeout(Duration duration) {
-    Objects.requireNonNull(duration, "Duration cannot be null");
+    Objects.requireNonNull(duration, "Duration cannot be null.");
     this.timeout = duration.toNanos();
     this.unit = TimeUnit.NANOSECONDS;
     this.timeoutBase = timeout;

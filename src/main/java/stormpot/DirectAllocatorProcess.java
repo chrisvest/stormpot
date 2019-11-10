@@ -15,6 +15,7 @@
  */
 package stormpot;
 
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -57,9 +58,7 @@ class DirectAllocatorProcess<T extends Poolable> extends AllocatorProcess<T> {
     poisonPill.dead2live();
     live.offer(poisonPill);
     return timeout -> {
-      if (timeout == null) {
-        throw new IllegalArgumentException("Timeout cannot be null.");
-      }
+      Objects.requireNonNull(timeout, "Timeout cannot be null.");
       if (Thread.interrupted()) {
         throw new InterruptedException("Interrupted while waiting for pool shut down to complete.");
       }

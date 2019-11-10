@@ -33,8 +33,8 @@ import static stormpot.ExpireKit.*;
 class ExpirationTest {
   @Test
   void timeUnitCannotBeNull() {
-    assertThrows(IllegalArgumentException.class, () -> Expiration.after(10, null));
-    assertThrows(IllegalArgumentException.class, () -> Expiration.after(1, 2, null));
+    assertThrows(NullPointerException.class, () -> Expiration.after(10, null));
+    assertThrows(NullPointerException.class, () -> Expiration.after(1, 2, null));
   }
 
   @Test

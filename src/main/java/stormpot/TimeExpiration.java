@@ -15,6 +15,7 @@
  */
 package stormpot;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -41,12 +42,10 @@ final class TimeExpiration<T extends Poolable> implements Expiration<T> {
    * `null`.
    */
   TimeExpiration(long maxPermittedAge, TimeUnit unit) {
+    Objects.requireNonNull(unit, "TimeUnit cannot be null.");
     if (maxPermittedAge < 1) {
       throw new IllegalArgumentException(
           "Max permitted age cannot be less than 1");
-    }
-    if (unit == null) {
-      throw new IllegalArgumentException("The TimeUnit cannot be null");
     }
     maxPermittedAgeMillis = unit.toMillis(maxPermittedAge);
     this.unit = unit;

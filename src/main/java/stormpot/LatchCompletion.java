@@ -15,6 +15,7 @@
  */
 package stormpot;
 
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 
 final class LatchCompletion implements Completion {
@@ -24,11 +25,8 @@ final class LatchCompletion implements Completion {
     this.completionLatch = completionLatch;
   }
   
-  public boolean await(Timeout timeout)
-      throws InterruptedException {
-    if (timeout == null) {
-      throw new IllegalArgumentException("Timeout cannot be null");
-    }
+  public boolean await(Timeout timeout) throws InterruptedException {
+    Objects.requireNonNull(timeout, "Timeout cannot be null.");
     return completionLatch.await(timeout.getTimeout(), timeout.getUnit());
   }
 }

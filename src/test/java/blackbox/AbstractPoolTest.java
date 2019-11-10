@@ -84,7 +84,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
   @EnumSource(Taps.class)
   void timeoutCannotBeNull(Taps taps) {
     createOneObjectPool();
-    assertThrows(IllegalArgumentException.class, () -> taps.get(this).claim(null));
+    assertThrows(NullPointerException.class, () -> taps.get(this).claim(null));
   }
 
   /**
@@ -618,7 +618,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
   void awaitCompletionWithNullTimeUnitMustThrow() {
     createOneObjectPool();
     Completion completion = pool.shutdown();
-    assertThrows(IllegalArgumentException.class, () -> completion.await(null));
+    assertThrows(NullPointerException.class, () -> completion.await(null));
   }
 
   /**
@@ -855,7 +855,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
   void applyMustThrowOnNullTimeout(Taps taps) {
     createOneObjectPool();
     PoolTap<T> tap = taps.get(this);
-    assertThrows(IllegalArgumentException.class, () -> tap.apply(null, identity()));
+    assertThrows(NullPointerException.class, () -> tap.apply(null, identity()));
   }
 
   @ParameterizedTest
@@ -863,7 +863,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
   void supplyMustThrowOnNullTimeout(Taps taps) {
     createOneObjectPool();
     PoolTap<T> tap = taps.get(this);
-    assertThrows(IllegalArgumentException.class, () -> tap.supply(null, nullConsumer));
+    assertThrows(NullPointerException.class, () -> tap.supply(null, nullConsumer));
   }
 
   @ParameterizedTest
