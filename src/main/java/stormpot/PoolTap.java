@@ -15,6 +15,7 @@
  */
 package stormpot;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -125,6 +126,7 @@ public abstract class PoolTap<T extends Poolable> {
    */
   public final <R> Optional<R> apply(Timeout timeout, Function<T, R> function)
       throws InterruptedException {
+    Objects.requireNonNull(function, "Function cannot be null.");
     T obj = claim(timeout);
     if (obj == null) {
       return Optional.empty();
@@ -158,6 +160,7 @@ public abstract class PoolTap<T extends Poolable> {
    */
   public final boolean supply(Timeout timeout, Consumer<T> consumer)
       throws InterruptedException {
+    Objects.requireNonNull(consumer, "Consumer cannot be null.");
     T obj = claim(timeout);
     if (obj == null) {
       return false;

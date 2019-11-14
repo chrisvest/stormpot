@@ -56,6 +56,13 @@ operation. Some of the things that sets Stormpot apart include:
    (since 3.0)
  * And other features that makes for a smooth runtime behaviour.
 
+[NOTE]
+--
+Stormpot is an _object pool_; a homogeneous collection of objects, where it does not matter which particular instance is returned from `claim` since the objects are all similar.
+If your objects instead are heterogeneous, with different attributes and identified by a _key_, then what you need is a _object cache_.
+We recommend https://github.com/ben-manes/caffeine[Caffeine] for object caching.
+--
+
 === Installing
 
 Stormpot 3.0 only depends on Java 11 or newer.
