@@ -34,6 +34,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static stormpot.AlloKit.$countDown;
@@ -2133,6 +2134,48 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
     } finally {
       d.release();
     }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void claimMustUnblockByConcurrentAllocation(Taps taps) throws Exception {
+    createOneObjectPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = pool.claim(longTimeout);
+    Thread thread = fork(() -> {
+      tap.claim(longTimeout).release();
+      return null;
+    });
+    waitForThreadState(thread, Thread.State.TIMED_WAITING);
+    obj.expire();
+    obj.release();
+    join(thread);
+  }
+
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void applyMustUnblockByConcurrentAllocation(Taps taps) throws Exception {
+    createOneObjectPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = pool.claim(longTimeout);
+    Thread thread = fork(() -> tap.apply(longTimeout, identity()));
+    waitForThreadState(thread, Thread.State.TIMED_WAITING);
+    obj.expire();
+    obj.release();
+    join(thread);
+  }
+
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void supplyMustUnblockByConcurrentAllocation(Taps taps) throws Exception {
+    createOneObjectPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = pool.claim(longTimeout);
+    Thread thread = fork(() -> tap.supply(longTimeout, nullConsumer));
+    waitForThreadState(thread, Thread.State.TIMED_WAITING);
+    obj.expire();
+    obj.release();
+    join(thread);
   }
 
   // NOTE: When adding, removing or modifying tests, also remember to update
