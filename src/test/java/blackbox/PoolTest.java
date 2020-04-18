@@ -2107,6 +2107,34 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
     assertThat(allocator.countDeallocations()).isOne();
   }
 
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void newlyAllocatedObjectsMustBeClaimedAheadOfExistingLiveObjects(Taps taps) throws Exception {
+    builder.setBackgroundExpirationCheckDelay(10);
+    createPoolOfSize(3);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+
+    GenericPoolable a = tap.claim(longTimeout);
+    GenericPoolable b = tap.claim(longTimeout);
+    GenericPoolable c = tap.claim(longTimeout);
+    c.expire(); // 'c' is the current TLR claim, so expire that to avoid the TLR cache.
+    b.release();
+    a.release();
+    c.release();
+
+    while (pool.getManagedPool().getAllocationCount() < 4) {
+      Thread.yield();
+    }
+
+    GenericPoolable d = tap.claim(longTimeout);
+    try {
+      assertThat(d).as("%s should be different from %s, %s, and %s.", d, a, b, c)
+              .isNotSameAs(a).isNotSameAs(b).isNotSameAs(c);
+    } finally {
+      d.release();
+    }
+  }
+
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the javadocs and docs pages.
 }

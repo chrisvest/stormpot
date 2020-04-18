@@ -31,6 +31,7 @@ class DirectAllocatorProcess<T extends Poolable> extends AllocatorProcess<T> {
   DirectAllocatorProcess(
       BlockingQueue<BSlot<T>> live,
       RefillPile<T> disregardPile,
+      RefillPile<T> newAllocations,
       PoolBuilder<T> builder,
       BSlot<T> poisonPill) {
     this.live = live;

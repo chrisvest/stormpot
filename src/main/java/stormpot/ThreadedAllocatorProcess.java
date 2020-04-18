@@ -24,9 +24,10 @@ class ThreadedAllocatorProcess<T extends Poolable> extends AllocatorProcess<T> {
   ThreadedAllocatorProcess(
       BlockingQueue<BSlot<T>> live,
       RefillPile<T> disregardPile,
+      RefillPile<T> newAllocations,
       PoolBuilder<T> builder,
       BSlot<T> poisonPill) {
-    allocator = new BAllocThread<>(live, disregardPile, builder, poisonPill);
+    allocator = new BAllocThread<>(live, disregardPile, newAllocations, builder, poisonPill);
     ThreadFactory factory = builder.getThreadFactory();
     allocatorThread = factory.newThread(allocator);
     allocatorThread.start();

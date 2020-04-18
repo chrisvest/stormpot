@@ -838,6 +838,11 @@ abstract class AbstractPoolTest<T extends Poolable> {
       obj.release();
     }
 
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+    while (managedPool.getAllocationCount() < 3 && System.nanoTime() < deadline) {
+      Thread.yield();
+    }
+
     assertThat(managedPool.getAllocationCount()).isEqualTo(3);
   }
 

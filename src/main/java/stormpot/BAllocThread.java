@@ -35,6 +35,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
 
   private final BlockingQueue<BSlot<T>> live;
   private final RefillPile<T> disregardPile;
+  private final RefillPile<T> newAllocations;
   private final Reallocator<T> allocator;
   private final BSlot<T> poisonPill;
   private final MetricsRecorder metricsRecorder;
@@ -61,10 +62,12 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   BAllocThread(
       BlockingQueue<BSlot<T>> live,
       RefillPile<T> disregardPile,
+      RefillPile<T> newAllocations,
       PoolBuilder<T> builder,
       BSlot<T> poisonPill) {
     this.live = live;
     this.disregardPile = disregardPile;
+    this.newAllocations = newAllocations;
     this.allocator = builder.getAdaptedReallocator();
     this.targetSize = builder.getSize();
     this.metricsRecorder = builder.getMetricsRecorder();
@@ -192,6 +195,10 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   private void backgroundExpirationCheck() {
     disregardPile.refill();
     BSlot<T> slot = live.poll();
+    if (slot == null) {
+      newAllocations.refill();
+      slot = live.poll();
+    }
     if (slot != null) {
       if (slot.isLive() && slot.live2claim()) {
         boolean expired;
@@ -225,7 +232,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
         slot = null;
       }
       if (slot == null) {
-        if (!disregardPile.refill()) {
+        if (!disregardPile.refill() && !newAllocations.refill()) {
           LockSupport.parkNanos(shutdownPauseNanos);
         }
       } else {
@@ -255,8 +262,14 @@ final class BAllocThread<T extends Poolable> implements Runnable {
     }
     size++;
     resetSlot(slot, System.nanoTime());
+    if (success) {
+      // Successful, fresh allocations go to the front of the queue.
+      newAllocations.push(slot);
+    } else {
+      // Failed allocations go to the back of the queue.
+      live.offer(slot);
+    }
     incrementAllocationCounts(success);
-    live.offer(slot);
     didAnythingLastIteration = true;
   }
 

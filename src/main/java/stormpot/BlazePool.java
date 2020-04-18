@@ -49,6 +49,7 @@ final class BlazePool<T extends Poolable>
 
   private final BlockingQueue<BSlot<T>> live;
   private final RefillPile<T> disregardPile;
+  private final RefillPile<T> newAllocations;
   private final AllocatorProcess<T> allocator;
   private final ThreadLocal<BSlotCache<T>> tlr;
   private final Expiration<? super T> deallocRule;
@@ -68,12 +69,13 @@ final class BlazePool<T extends Poolable>
   BlazePool(PoolBuilder<T> builder, AllocatorProcessFactory factory) {
     live = new LinkedTransferQueue<>();
     disregardPile = new RefillPile<>(live);
+    newAllocations = new RefillPile<>(live);
     tlr = new ThreadLocalBSlotCache<>();
     poisonPill = new BSlot<>(live, null);
     poisonPill.poison = SHUTDOWN_POISON;
     deallocRule = builder.getExpiration();
     metricsRecorder = builder.getMetricsRecorder();
-    allocator = factory.buildAllocator(live, disregardPile, builder, poisonPill);
+    allocator = factory.buildAllocator(live, disregardPile, newAllocations, builder, poisonPill);
   }
 
   @Override
@@ -131,7 +133,10 @@ final class BlazePool<T extends Poolable>
     TimeUnit baseUnit = timeout.getBaseUnit();
     long maxWaitQuantum = baseUnit.convert(10, TimeUnit.MILLISECONDS);
     for (;;) {
-      slot = live.poll(Math.min(timeoutLeft, maxWaitQuantum), baseUnit);
+      slot = newAllocations.pop();
+      if (slot == null) {
+        slot = live.poll(Math.min(timeoutLeft, maxWaitQuantum), baseUnit);
+      }
       if (slot == null) {
         if (timeoutLeft <= 0) {
           // We timed out while taking from the queue - just return null
