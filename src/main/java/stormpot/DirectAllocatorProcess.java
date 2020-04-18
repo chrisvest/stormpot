@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 class DirectAllocatorProcess<T extends Poolable> extends AllocatorProcess<T> {
   private final BlockingQueue<BSlot<T>> live;
-  private final DisregardBPile<T> disregardBPile;
+  private final RefillPile<T> disregardPile;
   private final BSlot<T> poisonPill;
   private final int size;
   private final AtomicInteger shutdownState;
@@ -30,11 +30,11 @@ class DirectAllocatorProcess<T extends Poolable> extends AllocatorProcess<T> {
 
   DirectAllocatorProcess(
       BlockingQueue<BSlot<T>> live,
-      DisregardBPile<T> disregardBPile,
+      RefillPile<T> disregardPile,
       PoolBuilder<T> builder,
       BSlot<T> poisonPill) {
     this.live = live;
-    this.disregardBPile = disregardBPile;
+    this.disregardPile = disregardPile;
     this.poisonPill = poisonPill;
     this.size = builder.getSize();
     poisonedSlots = new AtomicInteger(0);
@@ -64,13 +64,13 @@ class DirectAllocatorProcess<T extends Poolable> extends AllocatorProcess<T> {
       }
       TimeUnit unit = timeout.getBaseUnit();
       long deadline = timeout.getDeadline();
-      disregardBPile.refillQueue();
+      disregardPile.refill();
       BSlot<T> slot;
       while (shutdownState.get() > 0 && (slot = live.poll(deadline, unit)) != null) {
         if (slot != poisonPill) {
           shutdownState.getAndDecrement();
         }
-        disregardBPile.refillQueue();
+        disregardPile.refill();
         deadline = timeout.getTimeLeft(deadline);
       }
       live.offer(poisonPill);

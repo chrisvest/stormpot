@@ -23,7 +23,7 @@ class ThreadedAllocatorProcess<T extends Poolable> extends AllocatorProcess<T> {
   private final Thread allocatorThread;
   ThreadedAllocatorProcess(
       BlockingQueue<BSlot<T>> live,
-      DisregardBPile<T> disregardPile,
+      RefillPile<T> disregardPile,
       PoolBuilder<T> builder,
       BSlot<T> poisonPill) {
     allocator = new BAllocThread<>(live, disregardPile, builder, poisonPill);

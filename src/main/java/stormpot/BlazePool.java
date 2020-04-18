@@ -48,7 +48,7 @@ final class BlazePool<T extends Poolable>
       new Exception("Stormpot Poison: Expired");
 
   private final BlockingQueue<BSlot<T>> live;
-  private final DisregardBPile<T> disregardPile;
+  private final RefillPile<T> disregardPile;
   private final AllocatorProcess<T> allocator;
   private final ThreadLocal<BSlotCache<T>> tlr;
   private final Expiration<? super T> deallocRule;
@@ -67,7 +67,7 @@ final class BlazePool<T extends Poolable>
    */
   BlazePool(PoolBuilder<T> builder, AllocatorProcessFactory factory) {
     live = new LinkedTransferQueue<>();
-    disregardPile = new DisregardBPile<>(live);
+    disregardPile = new RefillPile<>(live);
     tlr = new ThreadLocalBSlotCache<>();
     poisonPill = new BSlot<>(live, null);
     poisonPill.poison = SHUTDOWN_POISON;
@@ -138,7 +138,7 @@ final class BlazePool<T extends Poolable>
           return null;
         } else {
           timeoutLeft = timeout.getTimeLeft(deadline);
-          disregardPile.refillQueue();
+          disregardPile.refill();
           continue;
         }
       }
@@ -154,7 +154,7 @@ final class BlazePool<T extends Poolable>
           break;
         }
       } else {
-        disregardPile.addSlot(slot);
+        disregardPile.push(slot);
       }
     }
     slot.incrementClaims();

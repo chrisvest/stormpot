@@ -18,32 +18,46 @@ package stormpot;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * A `RefillPile` can collect objects, in a concurrent and wait-free manner, before releasing them all to a queue.
+ *
+ * @param <T>
+ */
 @SuppressWarnings("unchecked")
-final class DisregardBPile<T extends Poolable>
-    extends AtomicReference<DisregardedBSlot<T>> {
+final class RefillPile<T extends Poolable>
+    extends AtomicReference<RefillSlot<T>> {
   private static final long serialVersionUID = 2374582348576873465L;
-  private static final DisregardedBSlot<Poolable> STACK_END =
-      new DisregardedBSlot<>(null);
+  private static final RefillSlot<Poolable> STACK_END =
+      new RefillSlot<>(null);
 
   private final BlockingQueue<BSlot<T>> refillQueue;
 
-  DisregardBPile(BlockingQueue<BSlot<T>> refillQueue) {
+  RefillPile(BlockingQueue<BSlot<T>> refillQueue) {
     this.refillQueue = refillQueue;
-    set((DisregardedBSlot<T>) STACK_END);
+    set((RefillSlot<T>) STACK_END);
   }
 
-  void addSlot(BSlot<T> slot) {
-    DisregardedBSlot<T> element = new DisregardedBSlot<>(slot);
+  /**
+   * Push the given slot onto the stack. This method is wait-free.
+   * @param slot The slot instance to be pushed onto the stack.
+   */
+  void push(BSlot<T> slot) {
+    RefillSlot<T> element = new RefillSlot<>(slot);
     element.next = getAndSet(element);
   }
 
-  boolean refillQueue() {
-    DisregardedBSlot<T> stack = getAndSet((DisregardedBSlot<T>) STACK_END);
+  /**
+   * Refill the target queue with all the slots that have been pushed onto this stack.
+   * This method atomically pops all elements from the stack at once, and then pushed onto the queue one by one.
+   * @return `true` if any slots has been offered to the queue, or `false` if there were no slots in the pile.
+   */
+  boolean refill() {
+    RefillSlot<T> stack = getAndSet((RefillSlot<T>) STACK_END);
     int count = 0;
     while (stack != STACK_END) {
       count++;
       refillQueue.offer(stack.slot);
-      DisregardedBSlot<T> next;
+      RefillSlot<T> next;
       do {
         next = stack.next;
       } while (next == null);

@@ -34,7 +34,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   private static final long shutdownPauseNanos = MILLISECONDS.toNanos(10);
 
   private final BlockingQueue<BSlot<T>> live;
-  private final DisregardBPile<T> disregardPile;
+  private final RefillPile<T> disregardPile;
   private final Reallocator<T> allocator;
   private final BSlot<T> poisonPill;
   private final MetricsRecorder metricsRecorder;
@@ -60,7 +60,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
 
   BAllocThread(
       BlockingQueue<BSlot<T>> live,
-      DisregardBPile<T> disregardPile,
+      RefillPile<T> disregardPile,
       PoolBuilder<T> builder,
       BSlot<T> poisonPill) {
     this.live = live;
@@ -190,7 +190,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   }
 
   private void backgroundExpirationCheck() {
-    disregardPile.refillQueue();
+    disregardPile.refill();
     BSlot<T> slot = live.poll();
     if (slot != null) {
       if (slot.isLive() && slot.live2claim()) {
@@ -225,7 +225,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
         slot = null;
       }
       if (slot == null) {
-        if (!disregardPile.refillQueue()) {
+        if (!disregardPile.refill()) {
           LockSupport.parkNanos(shutdownPauseNanos);
         }
       } else {

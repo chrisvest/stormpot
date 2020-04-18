@@ -23,7 +23,7 @@ interface AllocatorProcessFactory {
 
   <T extends Poolable> AllocatorProcess<T> buildAllocator(
       BlockingQueue<BSlot<T>> live,
-      DisregardBPile<T> disregardPile,
+      RefillPile<T> disregardPile,
       PoolBuilder<T> builder,
       BSlot<T> poisonPill);
 }
