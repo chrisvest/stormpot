@@ -19,7 +19,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * A `RefillPile` can collect objects, in a concurrent and wait-free manner, before releasing them all to a queue.
+ * A `RefillPile` can collect objects, in a concurrent and wait-free manner,
+ * before releasing them all to a queue.
  *
  * @param <T>
  */
@@ -46,10 +47,30 @@ final class RefillPile<T extends Poolable>
     element.next = getAndSet(element);
   }
 
+  BSlot<T> pop() {
+    RefillSlot<T> element;
+    RefillSlot<T> next;
+    do {
+      element = get();
+      if (element == STACK_END) {
+        return null;
+      }
+      next = element.next;
+    } while ((next == null && pause()) || !compareAndSet(element, next));
+    return element.slot;
+  }
+
+  private boolean pause() {
+    Thread.onSpinWait();
+    return true;
+  }
+
   /**
    * Refill the target queue with all the slots that have been pushed onto this stack.
-   * This method atomically pops all elements from the stack at once, and then pushed onto the queue one by one.
-   * @return `true` if any slots has been offered to the queue, or `false` if there were no slots in the pile.
+   * This method atomically pops all elements from the stack at once, and then pushed onto the
+   * queue one by one.
+   * @return `true` if any slots has been offered to the queue, or `false` if there were no
+   * slots in the pile.
    */
   boolean refill() {
     RefillSlot<T> stack = getAndSet((RefillSlot<T>) STACK_END);
