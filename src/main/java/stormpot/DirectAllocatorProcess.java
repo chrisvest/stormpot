@@ -16,12 +16,12 @@
 package stormpot;
 
 import java.util.Objects;
-import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 class DirectAllocatorProcess<T extends Poolable> extends AllocatorProcess<T> {
-  private final BlockingQueue<BSlot<T>> live;
+  private final LinkedTransferQueue<BSlot<T>> live;
   private final RefillPile<T> disregardPile;
   private final BSlot<T> poisonPill;
   private final int size;
@@ -29,7 +29,7 @@ class DirectAllocatorProcess<T extends Poolable> extends AllocatorProcess<T> {
   private final AtomicInteger poisonedSlots;
 
   DirectAllocatorProcess(
-      BlockingQueue<BSlot<T>> live,
+      LinkedTransferQueue<BSlot<T>> live,
       RefillPile<T> disregardPile,
       RefillPile<T> newAllocations,
       PoolBuilder<T> builder,

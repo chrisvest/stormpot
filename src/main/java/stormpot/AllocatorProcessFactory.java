@@ -15,14 +15,14 @@
  */
 package stormpot;
 
-import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedTransferQueue;
 
 interface AllocatorProcessFactory {
   AllocatorProcessFactory THREADED = ThreadedAllocatorProcess::new;
   AllocatorProcessFactory DIRECT = DirectAllocatorProcess::new;
 
   <T extends Poolable> AllocatorProcess<T> buildAllocator(
-      BlockingQueue<BSlot<T>> live,
+      LinkedTransferQueue<BSlot<T>> live,
       RefillPile<T> disregardPile,
       RefillPile<T> newAllocations,
       PoolBuilder<T> builder,

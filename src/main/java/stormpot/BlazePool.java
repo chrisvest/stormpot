@@ -47,7 +47,7 @@ final class BlazePool<T extends Poolable>
   static final Exception EXPLICIT_EXPIRE_POISON =
       new Exception("Stormpot Poison: Expired");
 
-  private final BlockingQueue<BSlot<T>> live;
+  private final LinkedTransferQueue<BSlot<T>> live;
   private final RefillPile<T> disregardPile;
   private final RefillPile<T> newAllocations;
   private final AllocatorProcess<T> allocator;
@@ -131,7 +131,7 @@ final class BlazePool<T extends Poolable>
     long deadline = timeout.getDeadline();
     long timeoutLeft = timeout.getTimeoutInBaseUnit();
     TimeUnit baseUnit = timeout.getBaseUnit();
-    long maxWaitQuantum = baseUnit.convert(10, TimeUnit.MILLISECONDS);
+    long maxWaitQuantum = baseUnit.convert(100, TimeUnit.MILLISECONDS);
     for (;;) {
       slot = newAllocations.pop();
       if (slot == null) {

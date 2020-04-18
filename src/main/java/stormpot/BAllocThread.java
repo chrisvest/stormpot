@@ -33,7 +33,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
    */
   private static final long shutdownPauseNanos = MILLISECONDS.toNanos(10);
 
-  private final BlockingQueue<BSlot<T>> live;
+  private final LinkedTransferQueue<BSlot<T>> live;
   private final RefillPile<T> disregardPile;
   private final RefillPile<T> newAllocations;
   private final Reallocator<T> allocator;
@@ -60,7 +60,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   private long consecutiveAllocationFailures;
 
   BAllocThread(
-      BlockingQueue<BSlot<T>> live,
+      LinkedTransferQueue<BSlot<T>> live,
       RefillPile<T> disregardPile,
       RefillPile<T> newAllocations,
       PoolBuilder<T> builder,
@@ -262,7 +262,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
     }
     size++;
     resetSlot(slot, System.nanoTime());
-    if (success) {
+    if (success && !live.hasWaitingConsumer()) {
       // Successful, fresh allocations go to the front of the queue.
       newAllocations.push(slot);
     } else {
