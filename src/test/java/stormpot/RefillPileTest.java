@@ -15,10 +15,17 @@
  */
 package stormpot;
 
+import extensions.ExecutorExtension;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,7 +33,15 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RefillPileTest {
-    private AtomicInteger poisonedSlots = new AtomicInteger();
+    @RegisterExtension
+    static final ExecutorExtension EXECUTOR_EXTENSION = new ExecutorExtension();
+    private final AtomicInteger poisonedSlots = new AtomicInteger();
+    private ExecutorService executor;
+
+    @BeforeEach
+    void setUp() {
+        executor = EXECUTOR_EXTENSION.getExecutorService();
+    }
 
     @Test
     void pushAndRefill() {
@@ -59,5 +74,55 @@ class RefillPileTest {
         assertThat(pile.pop()).isSameAs(a);
         assertThat(pile.pop()).isNull();
         assertFalse(pile.refill());
+    }
+
+    @Test
+    void pushAndPopConsistency() throws Exception {
+        int iterations = 100_000;
+        CountDownLatch start = new CountDownLatch(2);
+        Set<Integer> observedInts = new HashSet<>();
+        BlockingQueue<BSlot<Pooled<Integer>>> queue = new ArrayBlockingQueue<>(10);
+        RefillPile<Pooled<Integer>> pile = new RefillPile<>(queue);
+        var pusher = executor.submit(() -> {
+            start.countDown();
+            start.await();
+            for (int i = 0; i < iterations; i++) {
+                BSlot<Pooled<Integer>> slot = new BSlot<>(queue, poisonedSlots);
+                slot.obj = new Pooled<>(slot, i);
+                pile.push(slot);
+            }
+            return null;
+        });
+        var popper = executor.submit(() -> {
+            start.countDown();
+            start.await();
+            for (int i = 0; i < iterations; i++) {
+                BSlot<Pooled<Integer>> slot;
+                do {
+                    slot = pile.pop();
+                } while (slot == null);
+                assertTrue(observedInts.add(slot.obj.object));
+            }
+            return null;
+        });
+        pusher.get();
+        popper.get();
+        assertThat(observedInts.size()).isEqualTo(iterations);
+    }
+
+    @Test
+    void toStringOfEmptyRefillPile() {
+        BlockingQueue<BSlot<GenericPoolable>> queue = new ArrayBlockingQueue<>(10);
+        RefillPile<GenericPoolable> pile = new RefillPile<>(queue);
+        assertThat(pile.toString()).contains("EMPTY");
+    }
+
+    @Test
+    void toStringOfNonEmptyRefillPile() {
+        BlockingQueue<BSlot<GenericPoolable>> queue = new ArrayBlockingQueue<>(10);
+        RefillPile<GenericPoolable> pile = new RefillPile<>(queue);
+        BSlot<GenericPoolable> a = new BSlot<>(queue, poisonedSlots);
+        pile.push(a);
+        assertThat(pile.toString()).contains(a.toString());
     }
 }
