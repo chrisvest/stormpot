@@ -1950,6 +1950,47 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
     }
   }
 
+  @SuppressWarnings("SuspiciousMethodCalls")
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void backgroundExpirationMustExpireNewlyAllocatedObjectsThatAreNeverClaimed(Taps taps) throws Exception {
+    List<GenericPoolable> toExpire = Collections.synchronizedList(new ArrayList<>());
+    CountingExpiration expiration = expire(info -> toExpire.contains(info.getPoolable()));
+    builder.setExpiration(expiration).setBackgroundExpirationCheckDelay(10);
+    builder.setSize(2);
+    createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+
+    // Make sure one object makes it into the live queue
+    tap.claim(longTimeout).release();
+    GenericPoolable obj = tap.claim(longTimeout);
+    obj.release(); // Turn it into a TLR claim
+
+    while (allocator.countAllocations() < 2) {
+      Thread.yield();
+    }
+    synchronized (allocator.getAllocations()) {
+      // Only mark the object we *didn't* claim for expiration
+      for (GenericPoolable allocation : allocator.getAllocations()) {
+        if (allocation != obj) {
+          toExpire.add(allocation);
+        }
+      }
+    }
+
+    // Never claim the other object
+    while (allocator.countDeallocations() < 1) {
+      Thread.yield();
+      if (Thread.interrupted()) {
+        throw new InterruptedException();
+      }
+    }
+
+    synchronized (allocator.getDeallocations()) {
+      assertThat(allocator.getDeallocations()).containsAll(toExpire);
+    }
+  }
+
   @ParameterizedTest
   @EnumSource(Taps.class)
   void disregardPileMustNotPreventBackgroundExpirationFromCheckingObjects(Taps taps) throws Exception {
