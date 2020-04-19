@@ -108,7 +108,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
 
   private void replenishPool() throws InterruptedException {
     long deadPollTimeout = computeDeadPollTimeout();
-    BSlot<T> slot = dead.poll(deadPollTimeout, MILLISECONDS);
+    BSlot<T> slot = deadPollTimeout == 0 ? dead.poll() : dead.poll(deadPollTimeout, MILLISECONDS);
     if (size < targetSize) {
       increaseSizeByAllocating();
     }
@@ -261,7 +261,12 @@ final class BAllocThread<T extends Poolable> implements Runnable {
       slot.poison = e;
     }
     size++;
-    resetSlot(slot, System.nanoTime());
+    publishSlot(slot, success, System.nanoTime());
+    didAnythingLastIteration = true;
+  }
+
+  private void publishSlot(BSlot<T> slot, boolean success, long now) {
+    resetSlot(slot, now);
     if (success && !live.hasWaitingConsumer()) {
       // Successful, fresh allocations go to the front of the queue.
       newAllocations.push(slot);
@@ -270,7 +275,6 @@ final class BAllocThread<T extends Poolable> implements Runnable {
       live.offer(slot);
     }
     incrementAllocationCounts(success);
-    didAnythingLastIteration = true;
   }
 
   private void incrementAllocationCounts(boolean success) {
@@ -329,9 +333,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
       }
       long now = System.nanoTime();
       recordObjectLifetimeSample(now - slot.createdNanos);
-      resetSlot(slot, now);
-      incrementAllocationCounts(success);
-      live.offer(slot);
+      publishSlot(slot, success, now);
     } else {
       dealloc(slot);
       alloc(slot);

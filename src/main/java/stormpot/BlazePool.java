@@ -16,7 +16,6 @@
 package stormpot;
 
 import java.util.Objects;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -56,7 +55,7 @@ final class BlazePool<T extends Poolable>
   private final MetricsRecorder metricsRecorder;
 
   /**
-   * Special slot used to signal that the pool has been shut down.
+   * A special slot used to signal that the pool has been shut down.
    */
   private final BSlot<T> poisonPill;
 

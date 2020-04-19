@@ -86,4 +86,10 @@ final class RefillPile<T extends Poolable>
     }
     return count > 0;
   }
+
+  @Override
+  public String toString() {
+    RefillSlot<T> currentValue = get();
+    return "RefillPile[" + (currentValue == STACK_END ? "EMPTY" : currentValue) + "]";
+  }
 }

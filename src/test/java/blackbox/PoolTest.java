@@ -2180,6 +2180,51 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
     join(thread);
   }
 
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void claimMustUnblockByConcurrentReAllocation(Taps taps) throws Exception {
+    builder.setAllocator(reallocator());
+    createOneObjectPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = pool.claim(longTimeout);
+    Thread thread = fork(() -> {
+      tap.claim(longTimeout).release();
+      return null;
+    });
+    waitForThreadState(thread, Thread.State.TIMED_WAITING);
+    obj.expire();
+    obj.release();
+    join(thread);
+  }
+
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void applyMustUnblockByConcurrentReAllocation(Taps taps) throws Exception {
+    builder.setAllocator(reallocator());
+    createOneObjectPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = pool.claim(longTimeout);
+    Thread thread = fork(() -> tap.apply(longTimeout, identity()));
+    waitForThreadState(thread, Thread.State.TIMED_WAITING);
+    obj.expire();
+    obj.release();
+    join(thread);
+  }
+
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void supplyMustUnblockByConcurrentReAllocation(Taps taps) throws Exception {
+    builder.setAllocator(reallocator());
+    createOneObjectPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = pool.claim(longTimeout);
+    Thread thread = fork(() -> tap.supply(longTimeout, nullConsumer));
+    waitForThreadState(thread, Thread.State.TIMED_WAITING);
+    obj.expire();
+    obj.release();
+    join(thread);
+  }
+
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the javadocs and docs pages.
 }

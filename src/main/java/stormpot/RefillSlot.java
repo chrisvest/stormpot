@@ -22,4 +22,9 @@ class RefillSlot<T extends Poolable> {
   RefillSlot(BSlot<T> slot) {
     this.slot = slot;
   }
+
+  @Override
+  public String toString() {
+    return "RefillSlot[slot=" + slot + ", next=" + next + "]";
+  }
 }
