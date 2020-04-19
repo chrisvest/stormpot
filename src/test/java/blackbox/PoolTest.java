@@ -1935,17 +1935,19 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
     GenericPoolable obj = pool.claim(longTimeout);
     hasExpired.set(true);
 
-    latch.await();
-    hasExpired.set(false);
+    try {
+      latch.await();
+      hasExpired.set(false);
 
-
-    List<GenericPoolable> deallocations = allocator.getDeallocations();
-    // Synchronized to guard against concurrent modification from the allocator
-    //noinspection SynchronizationOnLocalVariableOrMethodParameter
-    synchronized (deallocations) {
-      assertThat(deallocations).doesNotContain(obj);
+      List<GenericPoolable> deallocations = allocator.getDeallocations();
+      // Synchronized to guard against concurrent modification from the allocator
+      //noinspection SynchronizationOnLocalVariableOrMethodParameter
+      synchronized (deallocations) {
+        assertThat(deallocations).doesNotContain(obj);
+      }
+    } finally {
+      obj.release();
     }
-    obj.release();
   }
 
   @ParameterizedTest
