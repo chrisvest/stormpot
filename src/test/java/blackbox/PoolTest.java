@@ -34,6 +34,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static stormpot.AlloKit.$countDown;
@@ -1934,17 +1935,60 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
     GenericPoolable obj = pool.claim(longTimeout);
     hasExpired.set(true);
 
-    latch.await();
-    hasExpired.set(false);
+    try {
+      latch.await();
+      hasExpired.set(false);
 
-
-    List<GenericPoolable> deallocations = allocator.getDeallocations();
-    // Synchronized to guard against concurrent modification from the allocator
-    //noinspection SynchronizationOnLocalVariableOrMethodParameter
-    synchronized (deallocations) {
-      assertThat(deallocations).doesNotContain(obj);
+      List<GenericPoolable> deallocations = allocator.getDeallocations();
+      // Synchronized to guard against concurrent modification from the allocator
+      //noinspection SynchronizationOnLocalVariableOrMethodParameter
+      synchronized (deallocations) {
+        assertThat(deallocations).doesNotContain(obj);
+      }
+    } finally {
+      obj.release();
     }
-    obj.release();
+  }
+
+  @SuppressWarnings("SuspiciousMethodCalls")
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void backgroundExpirationMustExpireNewlyAllocatedObjectsThatAreNeverClaimed(Taps taps) throws Exception {
+    List<GenericPoolable> toExpire = Collections.synchronizedList(new ArrayList<>());
+    CountingExpiration expiration = expire(info -> toExpire.contains(info.getPoolable()));
+    builder.setExpiration(expiration).setBackgroundExpirationCheckDelay(10);
+    builder.setSize(2);
+    createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+
+    // Make sure one object makes it into the live queue
+    tap.claim(longTimeout).release();
+    GenericPoolable obj = tap.claim(longTimeout);
+    obj.release(); // Turn it into a TLR claim
+
+    while (allocator.countAllocations() < 2) {
+      Thread.yield();
+    }
+    synchronized (allocator.getAllocations()) {
+      // Only mark the object we *didn't* claim for expiration
+      for (GenericPoolable allocation : allocator.getAllocations()) {
+        if (allocation != obj) {
+          toExpire.add(allocation);
+        }
+      }
+    }
+
+    // Never claim the other object
+    while (allocator.countDeallocations() < 1) {
+      Thread.yield();
+      if (Thread.interrupted()) {
+        throw new InterruptedException();
+      }
+    }
+
+    synchronized (allocator.getDeallocations()) {
+      assertThat(allocator.getDeallocations()).containsAll(toExpire);
+    }
   }
 
   @ParameterizedTest
@@ -2105,6 +2149,121 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
     assertThat(a).isNotSameAs(b);
     assertThat(allocator.countAllocations()).isEqualTo(2);
     assertThat(allocator.countDeallocations()).isOne();
+  }
+
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void newlyAllocatedObjectsMustBeClaimedAheadOfExistingLiveObjects(Taps taps) throws Exception {
+    builder.setBackgroundExpirationCheckDelay(10);
+    createPoolOfSize(3);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+
+    GenericPoolable a = tap.claim(longTimeout);
+    GenericPoolable b = tap.claim(longTimeout);
+    GenericPoolable c = tap.claim(longTimeout);
+    c.expire(); // 'c' is the current TLR claim, so expire that to avoid the TLR cache.
+    b.release();
+    a.release();
+    c.release();
+
+    while (pool.getManagedPool().getAllocationCount() < 4) {
+      Thread.yield();
+    }
+
+    GenericPoolable d = tap.claim(longTimeout);
+    try {
+      assertThat(d).as("%s should be different from %s, %s, and %s.", d, a, b, c)
+              .isNotSameAs(a).isNotSameAs(b).isNotSameAs(c);
+    } finally {
+      d.release();
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void claimMustUnblockByConcurrentAllocation(Taps taps) throws Exception {
+    createOneObjectPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = pool.claim(longTimeout);
+    Thread thread = fork(() -> {
+      tap.claim(longTimeout).release();
+      return null;
+    });
+    waitForThreadState(thread, Thread.State.TIMED_WAITING);
+    obj.expire();
+    obj.release();
+    join(thread);
+  }
+
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void applyMustUnblockByConcurrentAllocation(Taps taps) throws Exception {
+    createOneObjectPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = pool.claim(longTimeout);
+    Thread thread = fork(() -> tap.apply(longTimeout, identity()));
+    waitForThreadState(thread, Thread.State.TIMED_WAITING);
+    obj.expire();
+    obj.release();
+    join(thread);
+  }
+
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void supplyMustUnblockByConcurrentAllocation(Taps taps) throws Exception {
+    createOneObjectPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = pool.claim(longTimeout);
+    Thread thread = fork(() -> tap.supply(longTimeout, nullConsumer));
+    waitForThreadState(thread, Thread.State.TIMED_WAITING);
+    obj.expire();
+    obj.release();
+    join(thread);
+  }
+
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void claimMustUnblockByConcurrentReAllocation(Taps taps) throws Exception {
+    builder.setAllocator(reallocator());
+    createOneObjectPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = pool.claim(longTimeout);
+    Thread thread = fork(() -> {
+      tap.claim(longTimeout).release();
+      return null;
+    });
+    waitForThreadState(thread, Thread.State.TIMED_WAITING);
+    obj.expire();
+    obj.release();
+    join(thread);
+  }
+
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void applyMustUnblockByConcurrentReAllocation(Taps taps) throws Exception {
+    builder.setAllocator(reallocator());
+    createOneObjectPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = pool.claim(longTimeout);
+    Thread thread = fork(() -> tap.apply(longTimeout, identity()));
+    waitForThreadState(thread, Thread.State.TIMED_WAITING);
+    obj.expire();
+    obj.release();
+    join(thread);
+  }
+
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void supplyMustUnblockByConcurrentReAllocation(Taps taps) throws Exception {
+    builder.setAllocator(reallocator());
+    createOneObjectPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = pool.claim(longTimeout);
+    Thread thread = fork(() -> tap.supply(longTimeout, nullConsumer));
+    waitForThreadState(thread, Thread.State.TIMED_WAITING);
+    obj.expire();
+    obj.release();
+    join(thread);
   }
 
   // NOTE: When adding, removing or modifying tests, also remember to update

@@ -56,7 +56,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
 
   final Expiration<T> oneMsTTL = Expiration.after(1, MILLISECONDS);
   final Expiration<T> fiveMsTTL = Expiration.after(5, MILLISECONDS);
-  private final Consumer<T> nullConsumer = (obj) -> {};
+  final Consumer<T> nullConsumer = (obj) -> {};
 
   Pool<T> pool;
   PoolTap<T> threadSafeTap;
@@ -838,6 +838,11 @@ abstract class AbstractPoolTest<T extends Poolable> {
       obj.release();
     }
 
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+    while (managedPool.getAllocationCount() < 3 && System.nanoTime() < deadline) {
+      Thread.yield();
+    }
+
     assertThat(managedPool.getAllocationCount()).isEqualTo(3);
   }
 
@@ -1160,6 +1165,21 @@ abstract class AbstractPoolTest<T extends Poolable> {
     join(thread);
     obj.release();
     assertThat(exception.get()).isInstanceOf(InterruptedException.class);
+  }
+
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void claimMustUnblockByConcurrentRelease(Taps taps) throws Exception {
+    createOneObjectPool();
+    PoolTap<T> tap = taps.get(this);
+    T obj = pool.claim(longTimeout);
+    Thread thread = fork(() -> {
+      tap.claim(longTimeout).release();
+      return null;
+    });
+    waitForThreadState(thread, Thread.State.TIMED_WAITING);
+    obj.release();
+    join(thread);
   }
 
   @ParameterizedTest

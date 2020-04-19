@@ -15,11 +15,16 @@
  */
 package stormpot;
 
-class DisregardedBSlot<T extends Poolable> {
+class RefillSlot<T extends Poolable> {
   final BSlot<T> slot;
-  volatile DisregardedBSlot<T> next;
+  volatile RefillSlot<T> next;
 
-  DisregardedBSlot(BSlot<T> slot) {
+  RefillSlot(BSlot<T> slot) {
     this.slot = slot;
+  }
+
+  @Override
+  public String toString() {
+    return "RefillSlot[slot=" + slot + ", next=" + next + "]";
   }
 }

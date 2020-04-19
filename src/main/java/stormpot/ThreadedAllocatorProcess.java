@@ -15,18 +15,19 @@
  */
 package stormpot;
 
-import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.ThreadFactory;
 
 class ThreadedAllocatorProcess<T extends Poolable> extends AllocatorProcess<T> {
   private final BAllocThread<T> allocator;
   private final Thread allocatorThread;
   ThreadedAllocatorProcess(
-      BlockingQueue<BSlot<T>> live,
-      DisregardBPile<T> disregardPile,
+      LinkedTransferQueue<BSlot<T>> live,
+      RefillPile<T> disregardPile,
+      RefillPile<T> newAllocations,
       PoolBuilder<T> builder,
       BSlot<T> poisonPill) {
-    allocator = new BAllocThread<>(live, disregardPile, builder, poisonPill);
+    allocator = new BAllocThread<>(live, disregardPile, newAllocations, builder, poisonPill);
     ThreadFactory factory = builder.getThreadFactory();
     allocatorThread = factory.newThread(allocator);
     allocatorThread.start();

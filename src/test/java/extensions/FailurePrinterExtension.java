@@ -55,8 +55,7 @@ public class FailurePrinterExtension implements Extension, BeforeEachCallback, A
     compilationMXBean = ManagementFactory.getCompilationMXBean();
     garbageCollectorMXBeans = ManagementFactory.getGarbageCollectorMXBeans();
     operatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean();
-    if (threadMXBean.isCurrentThreadCpuTimeSupported())
-    {
+    if (threadMXBean.isCurrentThreadCpuTimeSupported()) {
       threadMXBean.setThreadCpuTimeEnabled(true);
     }
 

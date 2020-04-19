@@ -16,7 +16,6 @@
 package stormpot;
 
 import java.util.Objects;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -47,15 +46,16 @@ final class BlazePool<T extends Poolable>
   static final Exception EXPLICIT_EXPIRE_POISON =
       new Exception("Stormpot Poison: Expired");
 
-  private final BlockingQueue<BSlot<T>> live;
-  private final DisregardBPile<T> disregardPile;
+  private final LinkedTransferQueue<BSlot<T>> live;
+  private final RefillPile<T> disregardPile;
+  private final RefillPile<T> newAllocations;
   private final AllocatorProcess<T> allocator;
   private final ThreadLocal<BSlotCache<T>> tlr;
   private final Expiration<? super T> deallocRule;
   private final MetricsRecorder metricsRecorder;
 
   /**
-   * Special slot used to signal that the pool has been shut down.
+   * A special slot used to signal that the pool has been shut down.
    */
   private final BSlot<T> poisonPill;
 
@@ -67,13 +67,14 @@ final class BlazePool<T extends Poolable>
    */
   BlazePool(PoolBuilder<T> builder, AllocatorProcessFactory factory) {
     live = new LinkedTransferQueue<>();
-    disregardPile = new DisregardBPile<>(live);
+    disregardPile = new RefillPile<>(live);
+    newAllocations = new RefillPile<>(live);
     tlr = new ThreadLocalBSlotCache<>();
     poisonPill = new BSlot<>(live, null);
     poisonPill.poison = SHUTDOWN_POISON;
     deallocRule = builder.getExpiration();
     metricsRecorder = builder.getMetricsRecorder();
-    allocator = factory.buildAllocator(live, disregardPile, builder, poisonPill);
+    allocator = factory.buildAllocator(live, disregardPile, newAllocations, builder, poisonPill);
   }
 
   @Override
@@ -129,16 +130,19 @@ final class BlazePool<T extends Poolable>
     long deadline = timeout.getDeadline();
     long timeoutLeft = timeout.getTimeoutInBaseUnit();
     TimeUnit baseUnit = timeout.getBaseUnit();
-    long maxWaitQuantum = baseUnit.convert(10, TimeUnit.MILLISECONDS);
+    long maxWaitQuantum = baseUnit.convert(100, TimeUnit.MILLISECONDS);
     for (;;) {
-      slot = live.poll(Math.min(timeoutLeft, maxWaitQuantum), baseUnit);
+      slot = newAllocations.pop();
+      if (slot == null) {
+        slot = live.poll(Math.min(timeoutLeft, maxWaitQuantum), baseUnit);
+      }
       if (slot == null) {
         if (timeoutLeft <= 0) {
           // We timed out while taking from the queue - just return null
           return null;
         } else {
           timeoutLeft = timeout.getTimeLeft(deadline);
-          disregardPile.refillQueue();
+          disregardPile.refill();
           continue;
         }
       }
@@ -154,7 +158,7 @@ final class BlazePool<T extends Poolable>
           break;
         }
       } else {
-        disregardPile.addSlot(slot);
+        disregardPile.push(slot);
       }
     }
     slot.incrementClaims();
