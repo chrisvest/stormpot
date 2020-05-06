@@ -158,9 +158,12 @@ final class BSlot<T extends Poolable>
   }
 }
 
+@SuppressWarnings("unused")
 abstract class Padding1 {
-  @SuppressWarnings("unused")
-  private int p0;
+  private byte p0;
+  private byte p1;
+  private byte p2;
+  private byte p3;
 }
 
 abstract class PaddedAtomicInteger extends Padding1 {
