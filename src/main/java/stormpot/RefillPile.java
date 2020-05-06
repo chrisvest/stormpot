@@ -21,8 +21,6 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * A `RefillPile` can collect objects, in a concurrent and wait-free manner,
  * before releasing them all to a queue.
- *
- * @param <T>
  */
 @SuppressWarnings("unchecked")
 final class RefillPile<T extends Poolable>
