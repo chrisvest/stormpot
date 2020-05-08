@@ -25,12 +25,12 @@ package stormpot;
  *
  * NOTE: that implementations of this class must be thread-safe!
  *
- * Here's an example implementation based on
- * http://metrics.codahale.com/[Coda Hale's Metrics library]:
+ * Here's an example implementation based on the
+ * https://metrics.dropwizard.io/[Dropwizard Metrics library]:
  *
  * [source,java]
  * ----
- * include::src/test/java/examples/CodaHaleMetricsRecorder.java[lines=16..-1]
+ * include::../src/test/java/examples/DropwizardMetricsRecorder.java[lines=16..-1]
  * ----
  *
  * @since 2.3

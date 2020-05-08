@@ -15,11 +15,11 @@
  */
 package examples;
 
-import io.dropwizard.metrics5.Histogram;
-import io.dropwizard.metrics5.MetricRegistry;
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.MetricRegistry;
 import stormpot.MetricsRecorder;
 
-public class CodaHaleMetricsRecorder implements MetricsRecorder {
+public class DropwizardMetricsRecorder implements MetricsRecorder {
   private final Histogram allocationLatency;
   private final Histogram allocationFailureLatency;
   private final Histogram deallocationLatency;
@@ -27,7 +27,7 @@ public class CodaHaleMetricsRecorder implements MetricsRecorder {
   private final Histogram reallocationFailureLatency;
   private final Histogram objectLifetime;
 
-  public CodaHaleMetricsRecorder(String baseName, MetricRegistry registry) {
+  public DropwizardMetricsRecorder(String baseName, MetricRegistry registry) {
     allocationLatency = registry.histogram(baseName + ".allocationLatency");
     allocationFailureLatency = registry.histogram(baseName + ".allocationFailureLatency");
     deallocationLatency = registry.histogram(baseName + ".deallocationLatency");
