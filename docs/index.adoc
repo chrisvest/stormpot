@@ -18,3 +18,4 @@ These texts go deeper into particular topics, for those who are already initiate
 * link:performance.html[Performance Guide] – A guide to getting the best performance out of Stormpot.
 * link:trouble-shooting.html[Trouble Shooting Guide] – A guide to the various failure modes and misuses of the pool, and what to do about them.
 * link:jmx.html[Configuring JMX] – A guide on how to configure Stormpot with JMX, such that metrics and management APIs can be exposed through JMX.
+* link:metrics.html[Integrating Metrics] – A guide on how to integrate Stormpot with metrics and telemetry libraries and frameworks.
