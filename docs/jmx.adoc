@@ -3,7 +3,7 @@
 Stormpot has support for Java Management Extensions, and can be monitored and managed both remotely and within process, using the JMX framework.
 
 This guide assumes that the reader has basic familiarity with JMX.
-If you don't know what JMX is, then you can read about it on Oracles JMX web site:
+If you don't know what JMX is, then you can read about it on Oracles JMX website:
 http://www.oracle.com/technetwork/java/javase/tech/javamanagement-140525.html
 
 The `Pool.getManagedPool` method returns the `ManagedPool` instance for the pool.

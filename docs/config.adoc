@@ -2,14 +2,14 @@
 
 == Configuration
 
-Stormpot has many configuration options, but only one is required:
+Stormpot has many configuration options, but only one mandatory setting:
 You have to specify what `Allocator` or `Reallocator` implementation to use.
 This is enforced by the `Pool.from` method taking the `Allocator` (or `Reallocator`) as an argument.
 The rest of the configuration options are optional, though there are a couple you most likely want to tweak.
 
 === Pool Size
 
-The size of the pool is configured with `setSize`.
+You configure the size of the pool with the `setSize` method.
 This configuration determines the maximum number of objects the pool should keep in circulation at any given time.
 The default size is 10 objects.
 Note that this is a maximum.
@@ -31,8 +31,8 @@ Prior to claiming an object, Stormpot always checks if the object in question ha
 What it means for an object to be "expired" depends on what objects we are talking about, what they are used for and what it means to pool them.
 For instance, you might be pooling network connections that are closed by a firewall if they have been idle for too long, in which case it makes sense to have them reconnect before that happens.
 
-It is the `Expiration` policy that decides whether or not an object has expired, and it is configured with `setExpiration`.
-The default expiration policy expires objects after they've been circulating for somewhere between 8 to 10 minutes.
+It is the `Expiration` policy that decides whether an object has expired, and it is configured with `setExpiration`.
+The default expiration policy expires objects after they've been circulating for somewhere between 8 and 10 minutes.
 This is pretty handy, because it spreads the expirations out over time.
 This means that the objects in the pool don't all expire at the same time.
 
@@ -63,8 +63,8 @@ The `SlotInfo` has a number of useful methods for implementing `Expiration` poli
   This way, the number and frequency of claims does not influence the distribution of when objects expire.
 * The `getClaimCount` simply returns the number of times an object has been claimed.
 
-NOTE: The `hasExpired` method may be called several times during every call to `claim`.
-It is therefor _very_ critical to the performance of the pool, and you should take great care to make sure that it is fast.
+NOTE: The `hasExpired` method can be called several times during every call to `claim`.
+It is therefor _very_ critical to the performance of the pool, and you should take great care to make sure it is fast.
 In fact, it is so performance sensitive, that reading the time from the system clock, e.g. with `System#nanoTime`, can be a significant drag on the performance of the pool.
 
 === Background Expiration Checking
@@ -73,8 +73,8 @@ Every Stormpot pool starts a background thread to take care of all the allocatio
 This background thread can also perform expiration checks on the objects in the pool, when it has nothing better to do.
 
 Background expiration checks are on by default, because they are very useful for applications that may experience periods of low activity.
-Checking for expired objects in the background, ensures that objects are steadily reallocated, even if they don't get checked for expiration through the natural traffic to the pool.
-The background expiration checks will then make sure that all the objects in the pool are kept fresh, for when the traffic picks up again.
+Checking for expired objects in the background, ensures objects will be steadily reallocated, even if they don't get checked for expiration through the natural traffic to the pool.
+The background expiration checks will then make sure all the objects in the pool are fresh for when the traffic picks up again.
 The application would otherwise have found itself with a pool full of expired objects, causing a reallocation storm, and high latencies to claim objects.
 
 However, it is possible to turn this off, since the time it takes to do the expiration checks might interfere with the pools ability to keep up with the demand for allocations and deallocations.
@@ -92,7 +92,7 @@ Such garbage can lead to fragmentation and, eventually, an expensive old-generat
 The `Reallocator` interface gives integrators an opportunity to counter this.
 The `Reallocator` has a `reallocate` method, in addition to what it inherits from the `Allocator` interface.
 The `reallocate` method is a combined deallocate and allocate method.
-Since it's combined, it can make decisions about whether or not to take the object that it's supposed to deallocate, and reuse it for the subsequent allocation.
+Since it's combined, it can make decisions about whether to take the object that it's supposed to deallocate, and reuse it for the subsequent allocation.
 This way, a `Reallocator` has the potential to produce old-gen garbage at a much slower rate than an `Allocator` would.
 
 Care must be taken with implementing the `Reallocator`, though, since the returned object is assumed to be as fresh as any that would have been returned from the `allocate` method.
@@ -122,7 +122,7 @@ There might be a `SecurityManager` that has to approve every thread that is crea
 There might be particular contexts, that every new thread needs to be associated with, or bound to, for security purposes.
 It might be that you can only create threads if they get associated with a particular `ThreadGroup`.
 
-Whatever the case, if the background thread needs to be created in a particular way for your particular environment, then you can provide a `ThreadFactory` implementation via the `setThreadFactory` method, and make sure that the background thread is created in a way that observes the law of the land in your particular circumstances.
+Whatever the case, if the background thread needs to be created in a particular way for your particular environment, then you can provide a `ThreadFactory` implementation via the `setThreadFactory` method, and make sure the background thread is created in a way that observes the law of the land in your particular circumstances.
 
 The default `ThreadFactory` is based on the `Executors.defaultThreadFactory`, but also assigns the thread a name, that makes it recognisable as a Stormpot background thread.
 
@@ -136,7 +136,7 @@ If you pool upwards a hundred thousand objects or more, you might want to disabl
 The precise leak detection feature lets Stormpot keep track of when objects that were meant to circulate in the pool, suddenly leak out and never come back.
 The number of leaks detected is reported via the `getLeakedObjectsCount` method of the `ManagedPool` interface.
 
-This feature uses the garbage collector to determine whether or not an object has any chance of ever returning to the pool.
+This feature uses the garbage collector to determine whether an object has any chance of ever returning to the pool.
 This is why it's called _precise_ leak detection:
 It never reports any false positives.
 That is, it never counts an object as leaked, unless there is a 100% certainty, that it will never, ever return to the pool.
