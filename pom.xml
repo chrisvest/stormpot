@@ -347,9 +347,15 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.dropwizard.metrics5</groupId>
+      <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-core</artifactId>
-      <version>5.0.0</version>
+      <version>4.1.7</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-core</artifactId>
+      <version>1.4.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>

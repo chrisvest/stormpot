@@ -56,7 +56,7 @@ package stormpot;
  * cause an {@link UnsupportedOperationException} to be thrown.
  * --
  *
- * Pools are themselves lifecycled, and should be {@link #shutdown() shut down}
+ * Pools are themselves life-cycled, and should be {@link #shutdown() shut down}
  * when they are no longer needed.
  *
  * Note that Pools are not guaranteed to have overwritten the
@@ -237,7 +237,7 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
    * threads, or to transfer them from one thread to another without safe
    * publication.
    *
-   * @return A thread-locao {@link PoolTap}.
+   * @return A thread-local {@link PoolTap}.
    */
   public abstract PoolTap<T> getThreadLocalTap();
 }

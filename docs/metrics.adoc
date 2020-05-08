@@ -1,0 +1,39 @@
+== Metrics
+
+Stormpot can be integrated with various metrics and telemetry systems in multiple ways.
+The two main ways for integrating Stormpot with metrics are the `MetricsRecorder` (see below) and the `ManagedPool` interface.
+
+The `ManagedPool` interface exposes multiple counters that can be integrated with a metrics system as gauges.
+The `ManagedPool` interface can also be used as a JMX integration because it follows the MXBean conventions.
+See the link:jmx.html[JMX chapter] for more information about how to integrate Stormpot with JMX.
+
+Below is an example of a `MeterBinder` implementation, based on the link:https://micrometer.io[Micrometer] framework.
+It exposes gauges for allocation counts, leaks, and errors to a metrics registry:
+
+[source,java]
+----
+include::../src/test/java/examples/MicrometerBinderExample.java[lines=16..-1]
+----
+
+The `MetricsRecorder` interface makes it possible to record the response times of various operations.
+A typical `MetricsRecorder` implementations would maintain internal histograms of the samples they record.
+The metrics integration can then query for percentiles in these histograms at regular intervals.
+But first, you have to implement a `MetricsRecorder`, and then configure the pool to use it.
+
+Pools do not have a `MetricsRecorder` configured by default, and Stormpot does not come with any `MetricsRecorder` implementations built-in.
+You have to implement and integrate a `MetricsRecorder` yourself, then configure a pool to use it with the `PoolBuilder.setMetricsRecorder` method.
+You would typically do this by delegeting to an existing metrics library.
+Many metrics libraries already provide histogram implementations that can be used for this purpose.
+
+NOTE: The `MetricsRecorder` instance you build and configure _must_ be thread-safe.
+The various `record*` and `get*` methods can all be called concurrently.
+
+In the example below we use the link:https://metrics.dropwizard.io/[Dropwizard Metrics] library to do implement a `MetricsRecorder`, but you can also use other libraries or frameworks.
+Obviously you need to first add this library to your projects list of dependencies, but once you've done that, integrating it is pretty easy:
+
+[source,java]
+----
+include::../src/test/java/examples/DropwizardMetricsRecorder.java[lines=16..-1]
+----
+
+Stormpot does not provide built-in metrics for `claim` counts or latencies, but these can easily be added by wrapping the pool object with something that performs these measurements.

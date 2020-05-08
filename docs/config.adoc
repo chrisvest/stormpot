@@ -101,25 +101,13 @@ Care must be taken with implementing the `Reallocator`, though, since the return
 === MetricsRecorder
 
 Stormpot has the ability to expose metrics and management handles through JMX.
-This is done by registering the pool with an `MBeanServer`.
-The `BlazePool` implement the `ManagedPool` interface for this purpose.
+This is done by registering the pool with an `MBeanServer`, or by integrating with a custom metrics system.
+The `Pool` also exposes a `getManagedPool` method that returns a `ManagedPool` instance for this purpose.
 You can read more about how to expose Stormpot through JMX in the link:jmx.html[JMX Guide].
+You can also read about how to integrate a metrics system on the link:metrics.html[Metrics] page.
 
-To expose the metrics, you first have to configure a `MetricsRecorder`.
-No such implementation is configured by default, and in fact, Stormpot doesn't even provide a default implementation to begin with.
-In other words, you have to implement and integrate a `MetricsRecorder` yourself.
-I recommend that you use Coda Hale's http://metrics.codahale.com/[Metrics] library to do this.
-Obviously you need to first add this library to your projects list of dependencies, but once you've done that, integrating it is pretty easy.
-
-NOTE: The `MetricsRecorder` instance you build and configure _must_ be thread-safe.
-
-Here's an example of what such an integration could look like:
-
-[source,java]
-----
-include::../src/test/java/examples/CodaHaleMetricsRecorder.java[lines=16..-1]
-----
-
+There is no `MetricsRecorder` configured by default, and Stormpot does not come with any integrations built in.
+Integrators need to build their own.
 Once you have your `MetricsRecorder` implementation, you just set an instance of it on your `PoolBuilder` object with the `setMetricsRecorder` method.
 
 === ThreadFactory
