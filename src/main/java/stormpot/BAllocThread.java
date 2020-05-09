@@ -264,7 +264,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
       slot.poison = e;
     }
     size++;
-    publishSlot(slot, success, System.nanoTime());
+    publishSlot(slot, success, NanoClock.nanoTime());
     didAnythingLastIteration = true;
   }
 
@@ -301,8 +301,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
     size--;
     try {
       if (slot.poison == null) {
-        long now = System.nanoTime();
-        recordObjectLifetimeSample(now - slot.createdNanos);
+        recordObjectLifetimeSample(NanoClock.elapsed(slot.createdNanos));
         allocator.deallocate(slot.obj);
       } else {
         poisonedSlots.getAndDecrement();
@@ -334,7 +333,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
         poisonedSlots.getAndIncrement();
         slot.poison = e;
       }
-      long now = System.nanoTime();
+      long now = NanoClock.nanoTime();
       recordObjectLifetimeSample(now - slot.createdNanos);
       publishSlot(slot, success, now);
     } else {

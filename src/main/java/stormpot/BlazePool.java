@@ -127,21 +127,23 @@ final class BlazePool<T extends Poolable>
     // inline separately. At this point, taking a performance hit is
     // inevitable anyway, so we're allowed a bit more leeway.
     BSlot<T> slot;
-    long deadline = timeout.getDeadline();
-    long timeoutLeft = timeout.getTimeoutInBaseUnit();
+    long startNanos = NanoClock.nanoTime();
+    long timeoutNanos = timeout.getTimeoutInBaseUnit();
+    long timeoutLeft = timeoutNanos;
     TimeUnit baseUnit = timeout.getBaseUnit();
     long maxWaitQuantum = baseUnit.convert(100, TimeUnit.MILLISECONDS);
     for (;;) {
       slot = newAllocations.pop();
       if (slot == null) {
-        slot = live.poll(Math.min(timeoutLeft, maxWaitQuantum), baseUnit);
+        long pollWait = Math.min(timeoutLeft, maxWaitQuantum);
+        slot = live.poll(pollWait, baseUnit);
       }
       if (slot == null) {
         if (timeoutLeft <= 0) {
           // We timed out while taking from the queue - just return null
           return null;
         } else {
-          timeoutLeft = timeout.getTimeLeft(deadline);
+          timeoutLeft = NanoClock.timeoutLeft(startNanos, timeoutNanos);
           disregardPile.refill();
           continue;
         }
@@ -149,7 +151,7 @@ final class BlazePool<T extends Poolable>
 
       if (slot.live2claim()) {
         if (isInvalid(slot, cache, false)) {
-          timeoutLeft = timeout.getTimeLeft(deadline);
+          timeoutLeft = NanoClock.timeoutLeft(startNanos, timeoutNanos);
           if (timeoutLeft <= 0) {
             // There is no time left to poll the queue again - just return null
             return null;

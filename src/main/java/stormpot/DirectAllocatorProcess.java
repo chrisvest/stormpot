@@ -64,15 +64,17 @@ class DirectAllocatorProcess<T extends Poolable> extends AllocatorProcess<T> {
         throw new InterruptedException("Interrupted while waiting for pool shut down to complete.");
       }
       TimeUnit unit = timeout.getBaseUnit();
-      long deadline = timeout.getDeadline();
+      long startNanos = NanoClock.nanoTime();
+      long timeoutNanos = timeout.getTimeoutInBaseUnit();
+      long timeoutLeft = timeoutNanos;
       disregardPile.refill();
       BSlot<T> slot;
-      while (shutdownState.get() > 0 && (slot = live.poll(deadline, unit)) != null) {
+      while (shutdownState.get() > 0 && (slot = live.poll(timeoutLeft, unit)) != null) {
         if (slot != poisonPill) {
           shutdownState.getAndDecrement();
         }
         disregardPile.refill();
-        deadline = timeout.getTimeLeft(deadline);
+        timeoutLeft = NanoClock.timeoutLeft(startNanos, timeoutNanos);
       }
       live.offer(poisonPill);
       return shutdownState.get() == 0;
