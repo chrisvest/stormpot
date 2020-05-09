@@ -100,7 +100,7 @@ final class BSlot<T extends Poolable>
 
   @Override
   public long getAgeMillis() {
-    return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - createdNanos);
+    return TimeUnit.NANOSECONDS.toMillis(NanoClock.elapsed(createdNanos));
   }
 
   @Override
@@ -178,12 +178,14 @@ abstract class PaddedAtomicInteger extends Padding1 {
     }
   }
 
+  @SuppressWarnings("FieldMayBeFinal")
   private volatile int state;
 
   PaddedAtomicInteger(int state) {
     this.state = state;
   }
 
+  @SuppressWarnings("SameParameterValue")
   final boolean compareAndSet(int expected, int update) {
     return STATE.compareAndSet(this, expected, update);
   }

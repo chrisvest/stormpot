@@ -95,10 +95,14 @@ public final class Timeout {
    * negative, then the deadline might be an instant in the past.
    * @return A numerical value that represents the deadline from "now" until
    * this timeout has passed.
+   *
+   * @deprecated This method is deprecated because it encourages code that is
+   * susceptible to overflow bugs.
    */
   @SuppressWarnings("WeakerAccess")
+  @Deprecated(forRemoval = true)
   public long getDeadline() {
-    return now() + timeoutBase;
+    return NanoClock.nanoTime() + timeoutBase;
   }
 
   /**
@@ -117,10 +121,14 @@ public final class Timeout {
    * @return The amount of time, in terms of the
    * {@link #getBaseUnit() base unit}, that is left until the deadline. If
    * this value is negative, then the deadline has transpired.
+   *
+   * @deprecated This method is deprecated because it encourages code that is
+   * susceptible to overflow bugs.
    */
   @SuppressWarnings("WeakerAccess")
+  @Deprecated(forRemoval = true)
   public long getTimeLeft(long deadline) {
-    return deadline - now();
+    return deadline - NanoClock.nanoTime();
   }
 
   /**
@@ -130,10 +138,6 @@ public final class Timeout {
    */
   public TimeUnit getBaseUnit() {
     return TimeUnit.NANOSECONDS;
-  }
-
-  private long now() {
-    return System.nanoTime();
   }
 
   @Override

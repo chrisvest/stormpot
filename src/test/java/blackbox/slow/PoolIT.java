@@ -513,7 +513,6 @@ class PoolIT {
       long delta = curr - prev;
       prev = curr;
       if (i > 40) {
-//        System.out.println("delta = " + delta);
         assertThat(delta).isLessThanOrEqualTo(5);
       }
     }
