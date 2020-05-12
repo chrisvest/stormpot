@@ -2266,6 +2266,34 @@ class PoolTest extends AbstractPoolTest<GenericPoolable> {
     join(thread);
   }
 
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void explicitlyExpiredObjectsMustBeDeallocated(Taps taps) throws Exception {
+    createOneObjectPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable a = tap.claim(longTimeout);
+    a.expire();
+    a.release();
+    tap.claim(longTimeout).release();
+    assertThat(allocator.getDeallocations()).contains(a);
+  }
+
+
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void shutDownMustDeallocateExplicitlyExpiredObjects(Taps taps) throws Exception {
+    createOneObjectPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable a = tap.claim(longTimeout);
+    a.expire();
+    Completion shutdown = pool.shutdown();
+    a.release();
+    shutdown.await(longTimeout);
+    assertEquals(allocator.countAllocations(), 1);
+    assertEquals(allocator.countDeallocations(), 1);
+    assertThat(allocator.getDeallocations()).contains(a);
+  }
+
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the javadocs and docs pages.
 }
