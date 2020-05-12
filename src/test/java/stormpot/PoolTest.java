@@ -2883,6 +2883,31 @@ public class PoolTest {
     assertThat(allocator.countDeallocations(), is(1));
   }
 
+  @Test(timeout = 6010)
+  @Theory public void
+  explicitlyExpiredObjectsMustBeDeallocated(PoolFixture fixture) throws Exception {
+    createPool(fixture);
+    GenericPoolable a = pool.claim(longTimeout);
+    a.expire();
+    a.release();
+    pool.claim(longTimeout).release();
+    assertThat(allocator.getDeallocations(), contains(a));
+  }
+
+  @Test(timeout = 6010)
+  @Theory public void
+  shutDownMustDeallocateExplicitlyExpiredObjects(PoolFixture fixture) throws Exception {
+    createPool(fixture);
+    GenericPoolable a = pool.claim(longTimeout);
+    a.expire();
+    Completion shutdown = pool.shutdown();
+    a.release();
+    shutdown.await(longTimeout);
+    assertEquals(allocator.countAllocations(), 1);
+    assertEquals(allocator.countDeallocations(), 1);
+    assertThat(allocator.getDeallocations(), contains(a));
+  }
+
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the javadocs and docs pages.
 }
