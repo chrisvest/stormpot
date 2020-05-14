@@ -251,6 +251,10 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   private void dealloc(BSlot<T> slot) {
     size--;
     try {
+      if (slot.poison == BlazePool.EXPLICIT_EXPIRE_POISON) {
+        slot.poison = null;
+        poisonedSlots.getAndDecrement();
+      }
       if (slot.poison == null) {
         long now = System.currentTimeMillis();
         recordObjectLifetimeSample(now - slot.created);
