@@ -534,8 +534,7 @@ table.CodeRay td.code>pre{padding:0}
 <div class="ulist checklist">
 <ul class="checklist">
 <li>
-<p>&#10063; Create an issue tracking the release.
-See for instance <a href="https://github.com/chrisvest/stormpot/issues/70" class="bare">https://github.com/chrisvest/stormpot/issues/70</a></p>
+<p>&#10063; Create a card tracking the release, based on this checklist.</p>
 </li>
 <li>
 <p>&#10063; Fix all the issues</p>
@@ -544,28 +543,25 @@ See for instance <a href="https://github.com/chrisvest/stormpot/issues/70" class
 <p>&#10063; Update &amp; review the javadoc &amp; documentation</p>
 </li>
 <li>
-<p>&#10063; Create a branch for the new version</p>
+<p>&#10063; Make sure <code>gpg</code> command is GPG version 2</p>
 </li>
 <li>
-<p>&#10063; Remove any existing tag for upcoming version (locally: <code>git tag -d stormpot-2.2</code>, remotely: <code>git push origin :refs/tags/stormpot-2.2</code>)</p>
+<p>&#10063; Make sure <code>settings.xml</code> has an <code>ossrh</code> server with correct username and password</p>
 </li>
 <li>
-<p>&#10063; <code>mvn release:clean</code></p>
+<p>&#10063; Run <code>mvn clean deploy -P release</code> on <em>SNAPSHOT</em> version to test process</p>
 </li>
 <li>
-<p>&#10063; <code>mvn release:prepare</code> (If rollback is needed: <code>git reset --hard HEAD^</code>, <code>git push -f</code> and check <code>git log</code>)</p>
+<p>&#10063; Change <code>pom.xml</code> to the desired version</p>
 </li>
 <li>
-<p>&#10063; <code>mvn release:perform</code></p>
+<p>&#10063; Run <code>mvn clean deploy -P release</code></p>
 </li>
 <li>
-<p>&#10063; "Close" staged release in the staging repo: <a href="https://oss.sonatype.org/" class="bare">https://oss.sonatype.org/</a></p>
+<p>&#10063; When successful, commit changes, tag commit, push --tags</p>
 </li>
 <li>
-<p>&#10063; "Release" staged release</p>
-</li>
-<li>
-<p>&#10063; Check out the release tag and run <code>./docupdate.sh</code></p>
+<p>&#10063; Run <code>./docupdate.sh</code> and push updated web site</p>
 </li>
 <li>
 <p>&#10063; Announce on mailing list &amp; write blog post</p>
@@ -577,7 +573,7 @@ See for instance <a href="https://github.com/chrisvest/stormpot/issues/70" class
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-12-01 16:03:43 +0100
+Last updated 2020-05-15 13:04:08 +0200
 </div>
 </div>
 </body>

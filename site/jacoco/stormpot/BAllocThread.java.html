@@ -196,7 +196,7 @@ final class BAllocThread&lt;T extends Poolable&gt; implements Runnable {
 <span class="pc bpc" id="L196" title="1 of 4 branches missed.">      if (slot.isLive() &amp;&amp; slot.live2claim()) {</span>
         boolean expired;
         try {
-<span class="fc bfc" id="L199" title="All 4 branches covered.">          expired = slot.poison != null || expiration.hasExpired(slot);</span>
+<span class="pc bpc" id="L199" title="1 of 4 branches missed.">          expired = slot.poison != null || expiration.hasExpired(slot);</span>
 <span class="fc" id="L200">        } catch (Exception ignore) {</span>
 <span class="fc" id="L201">          expired = true;</span>
 <span class="fc" id="L202">        }</span>
@@ -229,11 +229,11 @@ final class BAllocThread&lt;T extends Poolable&gt; implements Runnable {
 <span class="fc" id="L229">          LockSupport.parkNanos(shutdownPauseNanos);</span>
         }
       } else {
-<span class="pc bpc" id="L232" title="1 of 4 branches missed.">        if (slot.isDead() || slot.live2dead()) {</span>
+<span class="fc bfc" id="L232" title="All 4 branches covered.">        if (slot.isDead() || slot.live2dead()) {</span>
 <span class="fc" id="L233">          dealloc(slot);</span>
 <span class="fc" id="L234">          unregisterWithLeakDetector(slot);</span>
         } else {
-<span class="nc" id="L236">          live.offer(slot);</span>
+<span class="fc" id="L236">          live.offer(slot);</span>
         }
       }
 <span class="fc" id="L239">    }</span>
@@ -280,90 +280,94 @@ final class BAllocThread&lt;T extends Poolable&gt; implements Runnable {
   private void dealloc(BSlot&lt;T&gt; slot) {
 <span class="fc" id="L281">    size--;</span>
     try {
-<span class="fc bfc" id="L283" title="All 2 branches covered.">      if (slot.poison == null) {</span>
-<span class="fc" id="L284">        long now = System.nanoTime();</span>
-<span class="fc" id="L285">        recordObjectLifetimeSample(now - slot.createdNanos);</span>
-<span class="fc" id="L286">        allocator.deallocate(slot.obj);</span>
-<span class="fc" id="L287">      } else {</span>
-<span class="fc" id="L288">        poisonedSlots.getAndDecrement();</span>
+<span class="fc bfc" id="L283" title="All 2 branches covered.">      if (slot.poison == BlazePool.EXPLICIT_EXPIRE_POISON) {</span>
+<span class="fc" id="L284">        slot.poison = null;</span>
+<span class="fc" id="L285">        poisonedSlots.getAndDecrement();</span>
       }
-<span class="fc" id="L290">    } catch (Exception ignore) { // NOPMD</span>
+<span class="fc bfc" id="L287" title="All 2 branches covered.">      if (slot.poison == null) {</span>
+<span class="fc" id="L288">        long now = System.nanoTime();</span>
+<span class="fc" id="L289">        recordObjectLifetimeSample(now - slot.createdNanos);</span>
+<span class="fc" id="L290">        allocator.deallocate(slot.obj);</span>
+<span class="fc" id="L291">      } else {</span>
+<span class="fc" id="L292">        poisonedSlots.getAndDecrement();</span>
+      }
+<span class="fc" id="L294">    } catch (Exception ignore) { // NOPMD</span>
       // Ignored as per specification
-<span class="fc" id="L292">    }</span>
-<span class="fc" id="L293">    slot.poison = null;</span>
-<span class="fc" id="L294">    slot.obj = null;</span>
-<span class="fc" id="L295">    didAnythingLastIteration = true;</span>
-<span class="fc" id="L296">  }</span>
+<span class="fc" id="L296">    }</span>
+<span class="fc" id="L297">    slot.poison = null;</span>
+<span class="fc" id="L298">    slot.obj = null;</span>
+<span class="fc" id="L299">    didAnythingLastIteration = true;</span>
+<span class="fc" id="L300">  }</span>
 
   private void realloc(BSlot&lt;T&gt; slot) {
-<span class="fc bfc" id="L299" title="All 2 branches covered.">    if (slot.poison == BlazePool.EXPLICIT_EXPIRE_POISON) {</span>
-<span class="fc" id="L300">      slot.poison = null;</span>
-<span class="fc" id="L301">      poisonedSlots.getAndDecrement();</span>
+<span class="fc bfc" id="L303" title="All 2 branches covered.">    if (slot.poison == BlazePool.EXPLICIT_EXPIRE_POISON) {</span>
+<span class="fc" id="L304">      slot.poison = null;</span>
+<span class="fc" id="L305">      poisonedSlots.getAndDecrement();</span>
     }
-<span class="fc bfc" id="L303" title="All 2 branches covered.">    if (slot.poison == null) {</span>
-<span class="fc" id="L304">      boolean success = false;</span>
+<span class="fc bfc" id="L307" title="All 2 branches covered.">    if (slot.poison == null) {</span>
+<span class="fc" id="L308">      boolean success = false;</span>
       try {
-<span class="fc" id="L306">        slot.obj = allocator.reallocate(slot, slot.obj);</span>
-<span class="fc bfc" id="L307" title="All 2 branches covered.">        if (slot.obj == null) {</span>
-<span class="fc" id="L308">          poisonedSlots.getAndIncrement();</span>
-<span class="fc" id="L309">          slot.poison = new NullPointerException(&quot;Reallocation returned null&quot;);</span>
+<span class="fc" id="L310">        slot.obj = allocator.reallocate(slot, slot.obj);</span>
+<span class="fc bfc" id="L311" title="All 2 branches covered.">        if (slot.obj == null) {</span>
+<span class="fc" id="L312">          poisonedSlots.getAndIncrement();</span>
+<span class="fc" id="L313">          slot.poison = new NullPointerException(&quot;Reallocation returned null&quot;);</span>
         } else {
-<span class="fc" id="L311">          success = true;</span>
+<span class="fc" id="L315">          success = true;</span>
         }
-<span class="fc" id="L313">      } catch (Exception e) {</span>
-<span class="fc" id="L314">        poisonedSlots.getAndIncrement();</span>
-<span class="fc" id="L315">        slot.poison = e;</span>
-<span class="fc" id="L316">      }</span>
-<span class="fc" id="L317">      long now = System.nanoTime();</span>
-<span class="fc" id="L318">      recordObjectLifetimeSample(now - slot.createdNanos);</span>
-<span class="fc" id="L319">      resetSlot(slot, now);</span>
-<span class="fc" id="L320">      incrementAllocationCounts(success);</span>
-<span class="fc" id="L321">      live.offer(slot);</span>
-<span class="fc" id="L322">    } else {</span>
-<span class="fc" id="L323">      dealloc(slot);</span>
-<span class="fc" id="L324">      alloc(slot);</span>
+<span class="fc" id="L317">      } catch (Exception e) {</span>
+<span class="fc" id="L318">        poisonedSlots.getAndIncrement();</span>
+<span class="fc" id="L319">        slot.poison = e;</span>
+<span class="fc" id="L320">      }</span>
+<span class="fc" id="L321">      long now = System.nanoTime();</span>
+<span class="fc" id="L322">      recordObjectLifetimeSample(now - slot.createdNanos);</span>
+<span class="fc" id="L323">      resetSlot(slot, now);</span>
+<span class="fc" id="L324">      incrementAllocationCounts(success);</span>
+<span class="fc" id="L325">      live.offer(slot);</span>
+<span class="fc" id="L326">    } else {</span>
+<span class="fc" id="L327">      dealloc(slot);</span>
+<span class="fc" id="L328">      alloc(slot);</span>
     }
-<span class="fc" id="L326">    didAnythingLastIteration = true;</span>
-<span class="fc" id="L327">  }</span>
+<span class="fc" id="L330">    didAnythingLastIteration = true;</span>
+<span class="fc" id="L331">  }</span>
 
   private void recordObjectLifetimeSample(long nanoseconds) {
-<span class="fc bfc" id="L330" title="All 2 branches covered.">    if (metricsRecorder != null) {</span>
-<span class="fc" id="L331">      long milliseconds = TimeUnit.NANOSECONDS.toMillis(nanoseconds);</span>
-<span class="fc" id="L332">      metricsRecorder.recordObjectLifetimeSampleMillis(milliseconds);</span>
+<span class="fc bfc" id="L334" title="All 2 branches covered.">    if (metricsRecorder != null) {</span>
+<span class="fc" id="L335">      long milliseconds = TimeUnit.NANOSECONDS.toMillis(nanoseconds);</span>
+<span class="fc" id="L336">      metricsRecorder.recordObjectLifetimeSampleMillis(milliseconds);</span>
     }
-<span class="fc" id="L334">  }</span>
-
-  void setTargetSize(int size) {
-<span class="fc" id="L337">    this.targetSize = size;</span>
 <span class="fc" id="L338">  }</span>
 
+  void setTargetSize(int size) {
+<span class="fc" id="L341">    this.targetSize = size;</span>
+<span class="fc" id="L342">  }</span>
+
   int getTargetSize() {
-<span class="fc" id="L341">    return targetSize;</span>
+<span class="fc" id="L345">    return targetSize;</span>
   }
 
   Completion shutdown(Thread allocatorThread) {
-<span class="fc" id="L345">    shutdown = true;</span>
-<span class="fc" id="L346">    allocatorThread.interrupt();</span>
-<span class="fc" id="L347">    return new LatchCompletion(completionLatch);</span>
+<span class="fc" id="L349">    shutdown = true;</span>
+<span class="fc" id="L350">    allocatorThread.interrupt();</span>
+<span class="fc" id="L351">    return new LatchCompletion(completionLatch);</span>
   }
 
   long getAllocationCount() {
-<span class="fc" id="L351">    return allocationCount;</span>
+<span class="fc" id="L355">    return allocationCount;</span>
   }
 
   long getFailedAllocationCount() {
-<span class="fc" id="L355">    return failedAllocationCount;</span>
+<span class="fc" id="L359">    return failedAllocationCount;</span>
   }
 
   long countLeakedObjects() {
-<span class="fc bfc" id="L359" title="All 2 branches covered.">    if (leakDetector != null) {</span>
-<span class="fc" id="L360">      return leakDetector.countLeakedObjects();</span>
+<span class="fc bfc" id="L363" title="All 2 branches covered.">    if (leakDetector != null) {</span>
+<span class="fc" id="L364">      return leakDetector.countLeakedObjects();</span>
     }
-<span class="fc" id="L362">    return -1;</span>
+<span class="fc" id="L366">    return -1;</span>
   }
 
   void offerDeadSlot(BSlot&lt;T&gt; slot) {
-<span class="fc" id="L366">    dead.offer(slot);</span>
-<span class="fc" id="L367">  }</span>
+<span class="fc" id="L370">    dead.offer(slot);</span>
+<span class="fc" id="L371">  }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>

@@ -1,20 +1,20 @@
 GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
-stormpot,stormpot,PoolTap,0,37,0,4,0,13,0,5,0,3
 stormpot,stormpot,Padding1,0,3,0,0,0,1,0,1,0,1
-stormpot,stormpot,BAllocThread,10,647,5,81,2,188,5,65,0,27
+stormpot,stormpot,PoolTap,0,45,0,4,0,15,0,5,0,3
+stormpot,stormpot,BAllocThread,5,663,5,83,1,192,5,66,0,27
 stormpot,stormpot,TimingReallocatingAdaptor,0,60,0,0,0,20,0,3,0,3
-stormpot,stormpot,AllocatorProcess,0,3,0,0,0,1,0,1,0,1
 stormpot,stormpot,BlazePool,6,411,1,53,1,107,1,53,0,27
-stormpot,stormpot,Padding2,0,4,0,0,0,2,0,1,0,1
+stormpot,stormpot,AllocatorProcess,0,3,0,0,0,1,0,1,0,1
 stormpot,stormpot,TimingReallocatorAdaptor,0,43,0,0,0,13,0,2,0,2
+stormpot,stormpot,Padding2,0,4,0,0,0,2,0,1,0,1
 stormpot,stormpot,BlazePoolThreadLocalTap,0,18,0,0,0,5,0,2,0,2
 stormpot,stormpot,AllocatorProcessFactory,0,5,0,0,0,2,0,1,0,1
 stormpot,stormpot,ThreadedAllocatorProcess,0,56,0,0,0,15,0,8,0,8
 stormpot,stormpot,PreciseLeakDetector,0,312,0,34,0,89,0,26,0,9
 stormpot,stormpot,BasePoolable,0,20,0,0,0,8,0,3,0,3
 stormpot,stormpot,DisregardedBSlot,0,6,0,0,0,3,0,1,0,1
-stormpot,stormpot,TimeSpreadExpiration,0,113,0,12,0,24,0,10,0,4
 stormpot,stormpot,PaddedAtomicInteger,7,30,0,0,2,11,0,5,0,5
+stormpot,stormpot,TimeSpreadExpiration,0,113,0,12,0,24,0,10,0,4
 stormpot,stormpot,DisregardBPile,0,58,0,6,0,18,0,7,0,4
 stormpot,stormpot,Expiration,0,37,0,0,0,6,0,7,0,7
 stormpot,stormpot,PreciseLeakDetector.WeakRef,0,4,0,0,0,2,0,1,0,1
@@ -24,8 +24,8 @@ stormpot,stormpot,BSlot,43,134,10,13,13,38,7,26,1,20
 stormpot,stormpot,EveryExpiration,0,34,0,2,0,8,0,3,0,2
 stormpot,stormpot,BSlotColdFields,0,18,0,2,0,7,0,3,0,2
 stormpot,stormpot,Pool.new Allocator() {...},1,21,0,0,1,2,1,2,1,2
-stormpot,stormpot,BSlotCache,0,3,0,0,0,1,0,1,0,1
 stormpot,stormpot,Pool.new PoolTap() {...},0,11,0,0,0,2,0,2,0,2
+stormpot,stormpot,BSlotCache,0,3,0,0,0,1,0,1,0,1
 stormpot,stormpot,TimeExpiration,0,49,0,6,0,11,0,6,0,3
 stormpot,stormpot,LatchCompletion,0,21,0,2,0,6,0,3,0,2
 stormpot,stormpot,PoolException,0,9,0,0,0,4,0,2,0,2

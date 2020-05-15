@@ -15,6 +15,7 @@
  */
 package stormpot;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -32,8 +33,8 @@ import java.util.function.Function;
  * @see stormpot.Pool
  */
 public abstract class PoolTap&lt;T extends Poolable&gt; {
-<span class="fc" id="L35">  PoolTap() {</span>
-<span class="fc" id="L36">  }</span>
+<span class="fc" id="L36">  PoolTap() {</span>
+<span class="fc" id="L37">  }</span>
 
   /**
    * Claim the exclusive rights until released, to an object in the pool.
@@ -125,14 +126,15 @@ public abstract class PoolTap&lt;T extends Poolable&gt; {
    */
   public final &lt;R&gt; Optional&lt;R&gt; apply(Timeout timeout, Function&lt;T, R&gt; function)
       throws InterruptedException {
-<span class="fc" id="L128">    T obj = claim(timeout);</span>
-<span class="fc bfc" id="L129" title="All 2 branches covered.">    if (obj == null) {</span>
-<span class="fc" id="L130">      return Optional.empty();</span>
+<span class="fc" id="L129">    Objects.requireNonNull(function, &quot;Function cannot be null.&quot;);</span>
+<span class="fc" id="L130">    T obj = claim(timeout);</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">    if (obj == null) {</span>
+<span class="fc" id="L132">      return Optional.empty();</span>
     }
     try {
-<span class="fc" id="L133">      return Optional.ofNullable(function.apply(obj));</span>
+<span class="fc" id="L135">      return Optional.ofNullable(function.apply(obj));</span>
     } finally {
-<span class="fc" id="L135">      obj.release();</span>
+<span class="fc" id="L137">      obj.release();</span>
     }
   }
 
@@ -158,15 +160,16 @@ public abstract class PoolTap&lt;T extends Poolable&gt; {
    */
   public final boolean supply(Timeout timeout, Consumer&lt;T&gt; consumer)
       throws InterruptedException {
-<span class="fc" id="L161">    T obj = claim(timeout);</span>
-<span class="fc bfc" id="L162" title="All 2 branches covered.">    if (obj == null) {</span>
-<span class="fc" id="L163">      return false;</span>
+<span class="fc" id="L163">    Objects.requireNonNull(consumer, &quot;Consumer cannot be null.&quot;);</span>
+<span class="fc" id="L164">    T obj = claim(timeout);</span>
+<span class="fc bfc" id="L165" title="All 2 branches covered.">    if (obj == null) {</span>
+<span class="fc" id="L166">      return false;</span>
     }
     try {
-<span class="fc" id="L166">      consumer.accept(obj);</span>
-<span class="fc" id="L167">      return true;</span>
+<span class="fc" id="L169">      consumer.accept(obj);</span>
+<span class="fc" id="L170">      return true;</span>
     } finally {
-<span class="fc" id="L169">      obj.release();</span>
+<span class="fc" id="L172">      obj.release();</span>
     }
   }
 }

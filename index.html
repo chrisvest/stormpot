@@ -646,6 +646,22 @@ recovery</a> from sporadic backend (Allocator) failures.
 </li>
 </ul>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Stormpot is an <em>object pool</em>; a homogeneous collection of objects, where it does not matter which particular instance is returned from <code>claim</code> since the objects are all similar.
+If your objects instead are heterogeneous, with different attributes and identified by a <em>key</em>, then what you need is a <em>object cache</em>.
+We recommend <a href="https://github.com/ben-manes/caffeine">Caffeine</a> for object caching.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_installing">Installing</h3>
@@ -658,7 +674,7 @@ Add it as a Maven dependency to your projects:</p>
 <pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;dependency&gt;</span>
   <span class="tag">&lt;groupId&gt;</span>com.github.chrisvest<span class="tag">&lt;/groupId&gt;</span>
   <span class="tag">&lt;artifactId&gt;</span>stormpot<span class="tag">&lt;/artifactId&gt;</span>
-  <span class="tag">&lt;version&gt;</span>3.0<span class="tag">&lt;/version&gt;</span>
+  <span class="tag">&lt;version&gt;</span>3.0.1<span class="tag">&lt;/version&gt;</span>
 <span class="tag">&lt;/dependency&gt;</span></code></pre>
 </div>
 </div>
@@ -676,11 +692,11 @@ version of Java to build a snapshot from the source code.</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>A <a href="http://chrisvest.github.io/stormpot/site/apidocs/stormpot/Poolable.html">Poolable</a> type of objects it can pool.
+<p>A <a href="http://chrisvest.github.io/stormpot/site/apidocs/stormpot/stormpot/Poolable.html">Poolable</a> type of objects it can pool.
 You have to implement this yourself.</p>
 </li>
 <li>
-<p>An <a href="http://chrisvest.github.io/stormpot/site/apidocs/stormpot/Allocator.html">Allocator</a> to allocate and deallocate the Poolable objects.
+<p>An <a href="http://chrisvest.github.io/stormpot/site/apidocs/stormpot/stormpot/Allocator.html">Allocator</a> to allocate and deallocate the Poolable objects.
 You have to implement this yourself.</p>
 </li>
 <li>
@@ -837,7 +853,7 @@ There are two introductory texts, aimed at different levels of patience, and fam
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-12-01 16:03:43 +0100
+Last updated 2020-05-15 13:04:08 +0200
 </div>
 </div>
 </body>
