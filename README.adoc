@@ -73,7 +73,7 @@ Add it as a Maven dependency to your projects:
 <dependency>
   <groupId>com.github.chrisvest</groupId>
   <artifactId>stormpot</artifactId>
-  <version>3.0</version>
+  <version>3.0.1</version>
 </dependency>
 ----
 
