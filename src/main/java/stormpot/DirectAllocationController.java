@@ -20,7 +20,7 @@ import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-class DirectAllocatorProcess<T extends Poolable> extends AllocatorProcess<T> {
+class DirectAllocationController<T extends Poolable> extends AllocationController<T> {
   private final LinkedTransferQueue<BSlot<T>> live;
   private final RefillPile<T> disregardPile;
   private final BSlot<T> poisonPill;
@@ -28,7 +28,7 @@ class DirectAllocatorProcess<T extends Poolable> extends AllocatorProcess<T> {
   private final AtomicInteger shutdownState;
   private final AtomicInteger poisonedSlots;
 
-  DirectAllocatorProcess(
+  DirectAllocationController(
       LinkedTransferQueue<BSlot<T>> live,
       RefillPile<T> disregardPile,
       RefillPile<T> newAllocations,

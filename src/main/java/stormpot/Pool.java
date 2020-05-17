@@ -135,7 +135,7 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
     builder.setPreciseLeakDetectionEnabled(false);
     builder.setBackgroundExpirationEnabled(false);
     builder.setExpiration(Expiration.never());
-    return new BlazePool<>(builder, AllocatorProcessFactory.DIRECT);
+    return new BlazePool<>(builder, AllocationProcess.directAllocationProcess());
   }
 
   /**

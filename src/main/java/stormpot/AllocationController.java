@@ -15,7 +15,7 @@
  */
 package stormpot;
 
-abstract class AllocatorProcess<T extends Poolable> {
+abstract class AllocationController<T extends Poolable> {
   abstract Completion shutdown();
 
   abstract void offerDeadSlot(BSlot<T> slot);

@@ -13,18 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot;
+package blackbox;
 
-import java.util.concurrent.LinkedTransferQueue;
-
-interface AllocatorProcessFactory {
-  AllocatorProcessFactory THREADED = ThreadedAllocatorProcess::new;
-  AllocatorProcessFactory DIRECT = DirectAllocatorProcess::new;
-
-  <T extends Poolable> AllocatorProcess<T> buildAllocator(
-      LinkedTransferQueue<BSlot<T>> live,
-      RefillPile<T> disregardPile,
-      RefillPile<T> newAllocations,
-      PoolBuilder<T> builder,
-      BSlot<T> poisonPill);
+class ThreadedPoolTest extends AllocatorBasedPoolTest {
 }

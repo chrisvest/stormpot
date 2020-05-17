@@ -70,9 +70,9 @@ import static stormpot.UnitKit.*;
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  * @see Pool
  */
-class PoolTest extends AbstractPoolTest<GenericPoolable> {
-  private CountingAllocator allocator;
-  private PoolBuilder<GenericPoolable> builder;
+abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> {
+  protected CountingAllocator allocator;
+  protected PoolBuilder<GenericPoolable> builder;
 
   @BeforeEach
   void setUp() {

@@ -244,7 +244,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
 
   /**
    * We know from the
-   * {@link PoolTest#shutdownMustNotDeallocateClaimedPoolables} test, that
+   * {@link AllocatorBasedPoolTest#shutdownMustNotDeallocateClaimedPoolables} test, that
    * awaiting the shut down completion will wait for any claimed objects to be
    * released.
    * However, once those objects are released, we must also make sure that the

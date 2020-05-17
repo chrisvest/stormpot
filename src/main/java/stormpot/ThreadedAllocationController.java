@@ -18,10 +18,10 @@ package stormpot;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.ThreadFactory;
 
-class ThreadedAllocatorProcess<T extends Poolable> extends AllocatorProcess<T> {
+class ThreadedAllocationController<T extends Poolable> extends AllocationController<T> {
   private final BAllocThread<T> allocator;
   private final Thread allocatorThread;
-  ThreadedAllocatorProcess(
+  ThreadedAllocationController(
       LinkedTransferQueue<BSlot<T>> live,
       RefillPile<T> disregardPile,
       RefillPile<T> newAllocations,
