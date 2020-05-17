@@ -43,6 +43,8 @@
     <jacoco.version>0.8.5</jacoco.version>
     <javadoc.version>3.0.1</javadoc.version>
     <asciidoclet.version>2.0.0</asciidoclet.version>
+    <revapi.maven.version>0.11.4</revapi.maven.version>
+    <revapi.version>0.20.2</revapi.version>
   </properties>
 
   <distributionManagement>
@@ -295,6 +297,29 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.revapi</groupId>
+        <artifactId>revapi-maven-plugin</artifactId>
+        <version>${revapi.maven.version}</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.revapi</groupId>
+            <artifactId>revapi-java</artifactId>
+            <version>${revapi.version}</version>
+          </dependency>
+        </dependencies>
+        <configuration>
+          <oldVersion>3.0.1</oldVersion>
+        </configuration>
+        <executions>
+          <execution>
+            <id>check</id>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 
@@ -422,6 +447,18 @@
         <configuration>
           <xmlOutput>true</xmlOutput>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.revapi</groupId>
+        <artifactId>revapi-maven-plugin</artifactId>
+        <version>${revapi.maven.version}</version>
+        <reportSets>
+          <reportSet>
+            <reports>
+              <report>report</report>
+            </reports>
+          </reportSet>
+        </reportSets>
       </plugin>
     </plugins>
   </reporting>
