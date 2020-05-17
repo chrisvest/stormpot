@@ -15,6 +15,9 @@
  */
 package stormpot;
 
+import static stormpot.AllocationProcess.directAllocationProcess;
+import static stormpot.AllocationProcess.threadedAllocationProcess;
+
 /**
  * A Pool is a self-renewable set of objects from which one can claim exclusive
  * access to elements, until they are released back into the pool.
@@ -86,7 +89,7 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
    * before the pool instance is {@linkplain PoolBuilder#build() built}.
    */
   public static <T extends Poolable> PoolBuilder<T> from(Allocator<T> allocator) {
-    return new PoolBuilder<>(allocator);
+    return new PoolBuilder<>(allocator, threadedAllocationProcess());
   }
 
   /**
@@ -130,12 +133,12 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
       public void deallocate(Pooled<T> poolable) {
       }
     };
-    PoolBuilder<Pooled<T>> builder = new PoolBuilder<>(allocator);
+    PoolBuilder<Pooled<T>> builder = new PoolBuilder<>(allocator, directAllocationProcess());
     builder.setSize(objects.length);
     builder.setPreciseLeakDetectionEnabled(false);
     builder.setBackgroundExpirationEnabled(false);
     builder.setExpiration(Expiration.never());
-    return new BlazePool<>(builder, AllocationProcess.directAllocationProcess());
+    return builder.build();
   }
 
   /**

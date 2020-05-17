@@ -15,10 +15,10 @@
  */
 package stormpot;
 
-import java.util.Objects;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 /**
@@ -42,9 +42,10 @@ import static java.util.concurrent.TimeUnit.MINUTES;
  */
 public final class PoolBuilder<T extends Poolable> implements Cloneable {
 
+  private Allocator<T> allocator;
+  private AllocationProcess allocationProcess;
   private int size = 10;
   private Expiration<? super T> expiration = Expiration.after(8, 10, MINUTES);
-  private Allocator<T> allocator;
   private MetricsRecorder metricsRecorder;
   private ThreadFactory threadFactory = StormpotThreadFactory.INSTANCE;
   private boolean preciseLeakDetectionEnabled = true;
@@ -54,13 +55,11 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
   /**
    * Build a new empty `PoolBuilder` object.
    */
-  PoolBuilder(Allocator<T> allocator) {
-    requireNonNull(allocator);
+  PoolBuilder(Allocator<T> allocator, AllocationProcess allocationProcess) {
+    requireNonNull(allocator, "The Allocator cannot be null.");
+    requireNonNull(allocationProcess, "The AllocationProcess cannot be null.");
     this.allocator = allocator;
-  }
-
-  private void requireNonNull(Allocator<?> allocator) {
-    Objects.requireNonNull(allocator, "The Allocator cannot be null.");
+    this.allocationProcess = allocationProcess;
   }
 
   /**
@@ -116,7 +115,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
   @SuppressWarnings("unchecked")
   public synchronized <X extends Poolable> PoolBuilder<X> setAllocator(
       Allocator<X> allocator) {
-    requireNonNull(allocator);
+    requireNonNull(allocator, "The Allocator cannot be null.");
     this.allocator = (Allocator<T>) allocator;
     return (PoolBuilder<X>) this;
   }
@@ -156,7 +155,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * @return This `PoolBuilder` instance.
    */
   public synchronized PoolBuilder<T> setExpiration(Expiration<? super T> expiration) {
-    Objects.requireNonNull(expiration, "Expiration cannot be null.");
+    requireNonNull(expiration, "Expiration cannot be null.");
     this.expiration = expiration;
     return this;
   }
@@ -212,7 +211,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * @return This `PoolBuilder` instance.
    */
   public synchronized PoolBuilder<T> setThreadFactory(ThreadFactory factory) {
-    Objects.requireNonNull(factory, "ThreadFactory cannot be null.");
+    requireNonNull(factory, "ThreadFactory cannot be null.");
     threadFactory = factory;
     return this;
   }
@@ -338,7 +337,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * @return A {@link Pool} instance as configured by this builder.
    */
   public synchronized Pool<T> build() {
-    return new BlazePool<>(this, AllocationProcess.threadedAllocationProcess());
+    return new BlazePool<>(this, allocationProcess);
   }
 
   /**
