@@ -42,8 +42,8 @@ import static java.util.concurrent.TimeUnit.MINUTES;
  */
 public final class PoolBuilder<T extends Poolable> implements Cloneable {
 
+  private final AllocationProcess allocationProcess;
   private Allocator<T> allocator;
-  private AllocationProcess allocationProcess;
   private int size = 10;
   private Expiration<? super T> expiration = Expiration.after(8, 10, MINUTES);
   private MetricsRecorder metricsRecorder;
@@ -55,7 +55,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
   /**
    * Build a new empty `PoolBuilder` object.
    */
-  PoolBuilder(Allocator<T> allocator, AllocationProcess allocationProcess) {
+  PoolBuilder(AllocationProcess allocationProcess, Allocator<T> allocator) {
     requireNonNull(allocator, "The Allocator cannot be null.");
     requireNonNull(allocationProcess, "The AllocationProcess cannot be null.");
     this.allocator = allocator;

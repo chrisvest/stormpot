@@ -15,8 +15,8 @@
  */
 package stormpot;
 
-import static stormpot.AllocationProcess.directAllocationProcess;
-import static stormpot.AllocationProcess.threadedAllocationProcess;
+import static stormpot.AllocationProcess.direct;
+import static stormpot.AllocationProcess.threaded;
 
 /**
  * A Pool is a self-renewable set of objects from which one can claim exclusive
@@ -89,7 +89,7 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
    * before the pool instance is {@linkplain PoolBuilder#build() built}.
    */
   public static <T extends Poolable> PoolBuilder<T> from(Allocator<T> allocator) {
-    return new PoolBuilder<>(allocator, threadedAllocationProcess());
+    return new PoolBuilder<>(threaded(), allocator);
   }
 
   /**
@@ -133,7 +133,7 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
       public void deallocate(Pooled<T> poolable) {
       }
     };
-    PoolBuilder<Pooled<T>> builder = new PoolBuilder<>(allocator, directAllocationProcess());
+    PoolBuilder<Pooled<T>> builder = new PoolBuilder<>(direct(), allocator);
     builder.setSize(objects.length);
     builder.setPreciseLeakDetectionEnabled(false);
     builder.setBackgroundExpirationEnabled(false);

@@ -25,7 +25,7 @@ abstract class AllocationProcess {
       PoolBuilder<T> builder,
       BSlot<T> poisonPill);
 
-  public static AllocationProcess threadedAllocationProcess() {
+  public static AllocationProcess threaded() {
     return new AllocationProcess() {
       @Override
       <T extends Poolable> AllocationController<T> buildAllocationController(
@@ -40,7 +40,7 @@ abstract class AllocationProcess {
     };
   }
 
-  static AllocationProcess directAllocationProcess() {
+  static AllocationProcess direct() {
     return new AllocationProcess() {
       @Override
       <T extends Poolable> AllocationController<T> buildAllocationController(
