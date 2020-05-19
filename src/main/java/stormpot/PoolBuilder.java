@@ -15,11 +15,17 @@
  */
 package stormpot;
 
+import java.util.Map;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static stormpot.AllocationProcessMode.DIRECT;
+import static stormpot.AllocationProcessMode.THREADED;
+import static stormpot.Expiration.after;
+import static stormpot.Expiration.never;
+import static stormpot.StormpotThreadFactory.INSTANCE;
 
 /**
  * The `PoolBuilder` collects information about how big a pool should be,
@@ -41,16 +47,26 @@ import static java.util.concurrent.TimeUnit.MINUTES;
  * on this `PoolBuilder` will produce.
  */
 public final class PoolBuilder<T extends Poolable> implements Cloneable {
+  static final Map<AllocationProcessMode, PoolBuilderDefaults> DEFAULTS = Map.of(
+      THREADED, new PoolBuilderDefaults(after(8, 10, MINUTES), INSTANCE, true, true, 1000),
+      DIRECT, new PoolBuilderDefaults(never(), INSTANCE, false, false, 0)
+  );
+
+  static final Map<AllocationProcessMode, PoolBuilderPermissions> PERMISSIONS = Map.of(
+      THREADED, new PoolBuilderPermissions(true, true, true, true, true),
+      DIRECT, new PoolBuilderPermissions(false, true, false, false, false)
+  );
 
   private final AllocationProcess allocationProcess;
+  private final PoolBuilderPermissions permissions;
   private Allocator<T> allocator;
   private int size = 10;
-  private Expiration<? super T> expiration = Expiration.after(8, 10, MINUTES);
+  private Expiration<? super T> expiration;
   private MetricsRecorder metricsRecorder;
-  private ThreadFactory threadFactory = StormpotThreadFactory.INSTANCE;
-  private boolean preciseLeakDetectionEnabled = true;
-  private boolean backgroundExpirationEnabled = true;
-  private int backgroundExpirationCheckDelay = 1000;
+  private ThreadFactory threadFactory;
+  private boolean preciseLeakDetectionEnabled;
+  private boolean backgroundExpirationEnabled;
+  private int backgroundExpirationCheckDelay;
 
   /**
    * Build a new empty `PoolBuilder` object.
@@ -60,6 +76,13 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
     requireNonNull(allocationProcess, "The AllocationProcess cannot be null.");
     this.allocator = allocator;
     this.allocationProcess = allocationProcess;
+    this.permissions = PERMISSIONS.get(allocationProcess.getMode());
+    PoolBuilderDefaults defaults = DEFAULTS.get(allocationProcess.getMode());
+    this.expiration = defaults.expiration;
+    this.threadFactory = defaults.threadFactory;
+    this.preciseLeakDetectionEnabled = defaults.preciseLeakDetectionEnabled;
+    this.backgroundExpirationEnabled = defaults.backgroundExpirationEnabled;
+    this.backgroundExpirationCheckDelay = defaults.backgroundExpirationCheckDelay;
   }
 
   /**
@@ -82,6 +105,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * @return This `PoolBuilder` instance.
    */
   public synchronized PoolBuilder<T> setSize(int size) {
+    checkPermission(permissions.setSize, "size");
     if (size < 1) {
       throw new IllegalArgumentException("Size must be at least 1, but was " + size + ".");
     }
@@ -115,6 +139,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
   @SuppressWarnings("unchecked")
   public synchronized <X extends Poolable> PoolBuilder<X> setAllocator(
       Allocator<X> allocator) {
+    checkPermission(permissions.setAllocator, "allocator");
     requireNonNull(allocator, "The Allocator cannot be null.");
     this.allocator = (Allocator<T>) allocator;
     return (PoolBuilder<X>) this;
@@ -155,6 +180,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * @return This `PoolBuilder` instance.
    */
   public synchronized PoolBuilder<T> setExpiration(Expiration<? super T> expiration) {
+    checkPermission(permissions.setExpiration, "expiration");
     requireNonNull(expiration, "Expiration cannot be null.");
     this.expiration = expiration;
     return this;
@@ -211,6 +237,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * @return This `PoolBuilder` instance.
    */
   public synchronized PoolBuilder<T> setThreadFactory(ThreadFactory factory) {
+    checkPermission(permissions.setThreadFactory, "thread factory");
     requireNonNull(factory, "ThreadFactory cannot be null.");
     threadFactory = factory;
     return this;
@@ -278,6 +305,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * @return This `PoolBuilder` instance.
    */
   public synchronized PoolBuilder<T> setBackgroundExpirationEnabled(boolean enabled) {
+    checkPermission(permissions.setBackgroundExpiration, "background expiration enabled/disabled");
     backgroundExpirationEnabled = enabled;
     return this;
   }
@@ -310,6 +338,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * @return This `PoolBuilder` instance.
    */
   public synchronized PoolBuilder<T> setBackgroundExpirationCheckDelay(int delay) {
+    checkPermission(permissions.setBackgroundExpiration, "background expiration check delay");
     if (delay < 0) {
       throw new IllegalArgumentException("Background expiration check delay cannot be negative.");
     }
@@ -358,6 +387,14 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
             (Reallocator<T>) allocator, metricsRecorder);
       }
       return new TimingReallocatingAdaptor<>(allocator, metricsRecorder);
+    }
+  }
+
+  private void checkPermission(boolean permission, String fieldDescription) {
+    if (!permission) {
+      String message = "The " + allocationProcess.getMode() + " allocation process does " +
+          "not support configuring the " + fieldDescription + ".";
+      throw new IllegalStateException(message);
     }
   }
 }

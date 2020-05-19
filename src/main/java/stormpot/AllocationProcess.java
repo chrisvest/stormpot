@@ -17,16 +17,12 @@ package stormpot;
 
 import java.util.concurrent.LinkedTransferQueue;
 
-abstract class AllocationProcess {
-  abstract <T extends Poolable> AllocationController<T> buildAllocationController(
-      LinkedTransferQueue<BSlot<T>> live,
-      RefillPile<T> disregardPile,
-      RefillPile<T> newAllocations,
-      PoolBuilder<T> builder,
-      BSlot<T> poisonPill);
+import static stormpot.AllocationProcessMode.DIRECT;
+import static stormpot.AllocationProcessMode.THREADED;
 
+abstract class AllocationProcess {
   public static AllocationProcess threaded() {
-    return new AllocationProcess() {
+    return new AllocationProcess(THREADED) {
       @Override
       <T extends Poolable> AllocationController<T> buildAllocationController(
           LinkedTransferQueue<BSlot<T>> live,
@@ -41,7 +37,7 @@ abstract class AllocationProcess {
   }
 
   static AllocationProcess direct() {
-    return new AllocationProcess() {
+    return new AllocationProcess(DIRECT) {
       @Override
       <T extends Poolable> AllocationController<T> buildAllocationController(
           LinkedTransferQueue<BSlot<T>> live,
@@ -54,4 +50,21 @@ abstract class AllocationProcess {
       }
     };
   }
+
+  private final AllocationProcessMode mode;
+
+  protected AllocationProcess(AllocationProcessMode mode) {
+    this.mode = mode;
+  }
+
+  AllocationProcessMode getMode() {
+    return mode;
+  }
+
+  abstract <T extends Poolable> AllocationController<T> buildAllocationController(
+      LinkedTransferQueue<BSlot<T>> live,
+      RefillPile<T> disregardPile,
+      RefillPile<T> newAllocations,
+      PoolBuilder<T> builder,
+      BSlot<T> poisonPill);
 }

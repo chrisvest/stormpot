@@ -135,9 +135,6 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
     };
     PoolBuilder<Pooled<T>> builder = new PoolBuilder<>(direct(), allocator);
     builder.setSize(objects.length);
-    builder.setPreciseLeakDetectionEnabled(false);
-    builder.setBackgroundExpirationEnabled(false);
-    builder.setExpiration(Expiration.never());
     return builder.build();
   }
 
