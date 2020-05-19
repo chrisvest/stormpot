@@ -15,5 +15,14 @@
  */
 package blackbox;
 
-class ThreadedPoolTest extends AllocatorBasedPoolTest {
+import stormpot.AlloKit;
+import stormpot.GenericPoolable;
+import stormpot.Pool;
+import stormpot.PoolBuilder;
+
+public class AsyncPoolTest extends AllocatorBasedPoolTest {
+  @Override
+  protected PoolBuilder<GenericPoolable> createInitialPoolBuilder(AlloKit.CountingAllocator allocator) {
+    return Pool.fromAsync(allocator);
+  }
 }

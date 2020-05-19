@@ -80,9 +80,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     builder = createInitialPoolBuilder(allocator).setSize(1);
   }
 
-  protected PoolBuilder<GenericPoolable> createInitialPoolBuilder(CountingAllocator allocator) {
-    return Pool.from(allocator);
-  }
+  protected abstract PoolBuilder<GenericPoolable> createInitialPoolBuilder(CountingAllocator allocator);
 
   private Pool<GenericPoolable> createPool() {
     pool = builder.build();
