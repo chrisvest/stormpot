@@ -21,8 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static stormpot.AllocationProcessMode.DIRECT;
-import static stormpot.AllocationProcessMode.THREADED;
+import static stormpot.AllocationProcessMode.*;
 import static stormpot.Expiration.after;
 import static stormpot.Expiration.never;
 import static stormpot.StormpotThreadFactory.INSTANCE;
@@ -50,11 +49,13 @@ import static stormpot.StormpotThreadFactory.INSTANCE;
 public final class PoolBuilder<T extends Poolable> implements Cloneable {
   static final Map<AllocationProcessMode, PoolBuilderDefaults> DEFAULTS = Map.of(
       THREADED, new PoolBuilderDefaults(after(8, 10, MINUTES), INSTANCE, true, true, 1000),
+      INLINE, new PoolBuilderDefaults(after(8, 10, MINUTES), INSTANCE, true, false, 0),
       DIRECT, new PoolBuilderDefaults(never(), INSTANCE, false, false, 0)
   );
 
   static final Map<AllocationProcessMode, PoolBuilderPermissions> PERMISSIONS = Map.of(
       THREADED, new PoolBuilderPermissions(true, true, true, true, true),
+      INLINE, new PoolBuilderPermissions(true, true, true, false, false),
       DIRECT, new PoolBuilderPermissions(false, true, false, false, false)
   );
 

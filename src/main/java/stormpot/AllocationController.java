@@ -15,18 +15,43 @@
  */
 package stormpot;
 
+/**
+ * An AllocationController implements the actual allocation and deallocation of objects
+ * in a pool.
+ *
+ * @param <T> The type of {@link Poolable poolables} to allocate or deallocate.
+ */
 abstract class AllocationController<T extends Poolable> {
-  abstract Completion shutdown();
 
   abstract void offerDeadSlot(BSlot<T> slot);
 
+  /**
+   * @see Pool#shutdown()
+   */
+  abstract Completion shutdown();
+
+  /**
+   * @see Pool#setTargetSize(int)
+   */
   abstract void setTargetSize(int size);
 
+  /**
+   * @see Pool#getTargetSize()
+   */
   abstract int getTargetSize();
 
+  /**
+   * @see ManagedPool#getAllocationCount()
+   */
   abstract long getAllocationCount();
 
+  /**
+   * @see ManagedPool#getFailedAllocationCount()
+   */
   abstract long getFailedAllocationCount();
 
+  /**
+   * @see ManagedPool#getLeakedObjectsCount()
+   */
   abstract long countLeakedObjects();
 }

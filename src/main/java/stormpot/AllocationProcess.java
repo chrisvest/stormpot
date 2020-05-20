@@ -17,8 +17,7 @@ package stormpot;
 
 import java.util.concurrent.LinkedTransferQueue;
 
-import static stormpot.AllocationProcessMode.DIRECT;
-import static stormpot.AllocationProcessMode.THREADED;
+import static stormpot.AllocationProcessMode.*;
 
 abstract class AllocationProcess {
   public static AllocationProcess threaded() {
@@ -36,6 +35,21 @@ abstract class AllocationProcess {
     };
   }
 
+  static AllocationProcess inline() {
+    return new AllocationProcess(INLINE) {
+      @Override
+      <T extends Poolable> AllocationController<T> buildAllocationController(
+          LinkedTransferQueue<BSlot<T>> live,
+          RefillPile<T> disregardPile,
+          RefillPile<T> newAllocations,
+          PoolBuilder<T> builder,
+          BSlot<T> poisonPill) {
+        return new InlineAllocationController<>(
+            live, disregardPile, newAllocations, builder, poisonPill);
+      }
+    };
+  }
+
   static AllocationProcess direct() {
     return new AllocationProcess(DIRECT) {
       @Override
@@ -46,7 +60,7 @@ abstract class AllocationProcess {
           PoolBuilder<T> builder,
           BSlot<T> poisonPill) {
         return new DirectAllocationController<>(
-            live, disregardPile, newAllocations, builder, poisonPill);
+            live, disregardPile, builder, poisonPill);
       }
     };
   }

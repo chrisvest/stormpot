@@ -20,7 +20,7 @@ import stormpot.GenericPoolable;
 import stormpot.Pool;
 import stormpot.PoolBuilder;
 
-class DefaultPoolTest extends AllocatorBasedPoolTest {
+class DefaultPoolTest extends ThreadBasedPoolTest {
   @Override
   protected PoolBuilder<GenericPoolable> createInitialPoolBuilder(AlloKit.CountingAllocator allocator) {
     return Pool.from(allocator);

@@ -25,7 +25,10 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -40,7 +43,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static stormpot.AlloKit.$countDown;
 import static stormpot.AlloKit.$if;
 import static stormpot.AlloKit.*;
-import static stormpot.ExpireKit.$countDown;
 import static stormpot.ExpireKit.$if;
 import static stormpot.ExpireKit.*;
 import static stormpot.UnitKit.*;
@@ -82,7 +84,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
 
   protected abstract PoolBuilder<GenericPoolable> createInitialPoolBuilder(CountingAllocator allocator);
 
-  private Pool<GenericPoolable> createPool() {
+  Pool<GenericPoolable> createPool() {
     pool = builder.build();
     threadSafeTap = pool.getThreadSafeTap();
     threadLocalTap = pool.getThreadLocalTap();
@@ -96,7 +98,15 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
 
   @Override
   void noBackgroundExpirationChecking() {
-    builder.setBackgroundExpirationEnabled(false);
+    if (builder.isBackgroundExpirationEnabled()) {
+      builder.setBackgroundExpirationEnabled(false);
+    }
+  }
+
+  void reducedBackgroundExpirationCheckDelay() {
+    if (builder.isBackgroundExpirationEnabled()) {
+      builder.setBackgroundExpirationCheckDelay(10);
+    }
   }
 
   @Override
@@ -169,27 +179,6 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   @Test
   void constructorMustThrowOnNullAllocator() {
     assertThrows(NullPointerException.class, () -> builder.setAllocator(null).build());
-  }
-
-  /**
-   * Prevent the creation of pools with a null ThreadFactory.
-   * @see PoolBuilder#setThreadFactory(java.util.concurrent.ThreadFactory)
-   */
-  @Test
-  void constructorMustThrowOnNullThreadFactory() {
-    assertThrows(NullPointerException.class, () -> builder.setThreadFactory(null));
-  }
-
-  @Test
-  void constructorMustThrowIfConfiguredThreadFactoryReturnsNull() {
-    ThreadFactory factory = r -> null;
-    builder.setThreadFactory(factory);
-    assertThrows(NullPointerException.class, this::createPool);
-  }
-
-  @Test
-  void constructorMustThrowIfBackgroundExpirationCheckDelayIsNegative() {
-    assertThrows(IllegalArgumentException.class, () -> builder.setBackgroundExpirationCheckDelay(-1));
   }
   
   /**
@@ -385,7 +374,8 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
       }
       return true;
     };
-    builder.setExpiration(expiration).setBackgroundExpirationEnabled(false);
+    builder.setExpiration(expiration);
+    noBackgroundExpirationChecking();
     createPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
 
@@ -418,7 +408,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     final AtomicLong age = new AtomicLong();
     builder.setExpiration(expire(
         $capture($age(age), $expiredIf(hasExpired))));
-    builder.setBackgroundExpirationEnabled(false);
+    noBackgroundExpirationChecking();
     // Reallocations will fail, causing the slot to be poisoned.
     // Then, the poisoned slot will not be reallocated again, but rather
     // go through the deallocate-allocate cycle.
@@ -918,11 +908,14 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   @ParameterizedTest
   @EnumSource(Taps.class)
   void claimMustStayWithinDeadlineEvenIfAllocatorBlocks(Taps taps) throws Exception {
-    Semaphore semaphore = new Semaphore(0);
+    Semaphore semaphore = new Semaphore(1);
     allocator = allocator(alloc($acquire(semaphore, $new)));
     builder.setAllocator(allocator);
     createPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
+    GenericPoolable obj = tap.claim(longTimeout);
+    obj.expire();
+    obj.release();
     try {
       tap.claim(shortTimeout);
     } finally {
@@ -1080,7 +1073,8 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     // Once we have observed a reallocation attempt at our primed slot, we
     // try to reclaim it. The reclaim must not throw an exception because of
     // the cached poisoned slot.
-    builder.setSize(1).setBackgroundExpirationEnabled(false);
+    builder.setSize(1);
+    noBackgroundExpirationChecking();
 
     // Enough permits for each initial allocation:
     final Semaphore semaphore = new Semaphore(1);
@@ -1163,7 +1157,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   @ParameterizedTest
   @EnumSource(Taps.class)
   void increasingSizeMustAllowMoreAllocations(Taps taps) throws Exception {
-    builder.setBackgroundExpirationCheckDelay(10);
+    reducedBackgroundExpirationCheckDelay();
     createPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
     GenericPoolable a = tap.claim(longTimeout); // depleted
@@ -1196,8 +1190,8 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     int startingSize = 5;
     int newSize = 1;
     allocator = allocator();
-    builder.setSize(startingSize).setBackgroundExpirationCheckDelay(10);
-    builder.setAllocator(allocator);
+    builder.setSize(startingSize).setAllocator(allocator);
+    reducedBackgroundExpirationCheckDelay();
     createPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
     List<GenericPoolable> objs = new ArrayList<>();
@@ -1256,7 +1250,8 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
         $expired
     );
     builder.setExpiration(expiration).setAllocator(allocator);
-    builder.setSize(startingSize).setBackgroundExpirationEnabled(false);
+    builder.setSize(startingSize);
+    noBackgroundExpirationChecking();
     createPool();
     List<GenericPoolable> objs = new ArrayList<>();
     for (int i = 0; i < startingSize; i++) {
@@ -1340,7 +1335,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
         $if(shouldThrow,
             $throwExpire(new SomeRandomThrowable("Boom!")),
             $fresh)));
-    builder.setBackgroundExpirationEnabled(false);
+    noBackgroundExpirationChecking();
 
     createPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
@@ -1355,119 +1350,6 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     shouldThrow.set(false);
     tap.claim(longTimeout).release();
     pool.shutdown();
-  }
-
-  @Test
-  void mustProactivelyReallocatePoisonedSlotsWhenAllocatorStopsThrowingExceptions()
-      throws Exception {
-    final CountDownLatch allocationLatch = new CountDownLatch(1);
-    allocator = allocator(alloc(
-        $throw(new Exception("boom")),
-        $countDown(allocationLatch, $new)));
-    builder.setAllocator(allocator);
-    createPool();
-    allocationLatch.await();
-    GenericPoolable obj = pool.claim(longTimeout);
-    try {
-      assertThat(obj).isNotNull();
-    } finally {
-      obj.release();
-    }
-  }
-
-  @Test
-  void mustProactivelyReallocatePoisonedSlotsWhenReallocatorStopsThrowingExceptions()
-      throws Exception {
-    final AtomicBoolean expired = new AtomicBoolean();
-    final CountDownLatch allocationLatch = new CountDownLatch(2);
-    allocator = reallocator(
-        alloc($countDown(allocationLatch, $new)),
-        realloc($throw(new Exception("boom")), $new));
-    builder.setAllocator(allocator);
-    builder.setExpiration(expire($expiredIf(expired)));
-    createPool();
-    expired.set(false); // first claimed object is not expired
-    pool.claim(longTimeout).release(); // first object is fully allocated
-    expired.set(true); // the next object we claim is expired
-    GenericPoolable obj = pool.claim(zeroTimeout); // send back to reallocation
-    assertThat(obj).isNull();
-    allocationLatch.await();
-    expired.set(false);
-    obj = pool.claim(longTimeout);
-    try {
-      assertThat(obj).isNotNull();
-    } finally {
-      obj.release();
-    }
-  }
-
-  @Test
-  void mustProactivelyReallocatePoisonedSlotsWhenAllocatorStopsReturningNull()
-      throws Exception {
-    final CountDownLatch allocationLatch = new CountDownLatch(1);
-    allocator = allocator(
-        alloc($null, $countDown(allocationLatch, $new)));
-    builder.setAllocator(allocator);
-    createPool();
-    allocationLatch.await();
-    GenericPoolable obj = pool.claim(longTimeout);
-    try {
-      assertThat(obj).isNotNull();
-    } finally {
-      obj.release();
-    }
-  }
-
-  @Test
-  void mustProactivelyReallocatePoisonedSlotsWhenReallocatorStopsReturningNull()
-      throws Exception {
-    AtomicBoolean expired = new AtomicBoolean();
-    CountDownLatch allocationLatch = new CountDownLatch(1);
-    Semaphore fixReallocLatch = new Semaphore(0);
-    allocator = reallocator(
-        alloc($new,
-            $countDown(allocationLatch, $acquire(fixReallocLatch, $new))),
-        realloc($null, $new));
-    builder.setAllocator(allocator);
-    builder.setExpiration(expire($expiredIf(expired)));
-    createPool();
-    expired.set(false); // first claimed object is not expired
-    pool.claim(longTimeout).release(); // first object is fully allocated
-    expired.set(true); // the next object we claim is expired
-    GenericPoolable obj = pool.claim(zeroTimeout); // send back to reallocation
-    assertThat(obj).isNull();
-    fixReallocLatch.release();
-    allocationLatch.await();
-    expired.set(false);
-    obj = pool.claim(longTimeout);
-    try {
-      assertThat(obj).isNotNull();
-    } finally {
-      obj.release();
-    }
-  }
-
-  @Test
-  void mustNotFrivolouslyReallocateNonPoisonedSlotsDuringEagerRecovery()
-      throws Exception {
-    final CountDownLatch allocationLatch = new CountDownLatch(3);
-    allocator = allocator(alloc(
-        $countDown(allocationLatch, $null),
-        $countDown(allocationLatch, $new)));
-    builder.setAllocator(allocator).setSize(2);
-    createPool();
-    allocationLatch.await();
-    // The pool should now be fully allocated and healed
-    GenericPoolable a = pool.claim(longTimeout);
-    GenericPoolable b = pool.claim(longTimeout);
-    try {
-      assertThat(allocator.countAllocations()).isEqualTo(3);
-      assertThat(allocator.countDeallocations()).isEqualTo(0); // allocation failed
-      assertThat(allocator.getDeallocations()).doesNotContain(a, b);
-    } finally {
-      a.release();
-      b.release();
-    }
   }
 
   /**
@@ -1523,28 +1405,6 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     tap.claim(longTimeout).release();
     tap.claim(longTimeout).release();
     shutPoolDown();
-  }
-
-  @Test
-  void poolMustUseConfiguredThreadFactoryWhenCreatingBackgroundThreads()
-      throws InterruptedException {
-    final ThreadFactory delegateThreadFactory = builder.getThreadFactory();
-    final List<Thread> createdThreads = new ArrayList<>();
-    ThreadFactory factory = r -> {
-      Thread thread = delegateThreadFactory.newThread(r);
-      createdThreads.add(thread);
-      return thread;
-    };
-    builder.setThreadFactory(factory);
-    createPool();
-    pool.claim(longTimeout).release();
-    assertThat(createdThreads.size()).isEqualTo(1);
-    assertTrue(createdThreads.get(0).isAlive());
-    pool.shutdown().await(longTimeout);
-    assertThat(createdThreads.size()).isEqualTo(1);
-    Thread thread = createdThreads.get(0);
-    thread.join();
-    assertFalse(thread.isAlive());
   }
 
   @Test
@@ -1681,8 +1541,9 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
       throws InterruptedException {
     CountDownLatch deallocLatch = new CountDownLatch(1);
     builder.setMetricsRecorder(new LastSampleMetricsRecorder());
-    builder.setSize(2).setBackgroundExpirationCheckDelay(10);
+    builder.setSize(2);
     builder.setAllocator(reallocator(dealloc($countDown(deallocLatch, $null))));
+    reducedBackgroundExpirationCheckDelay();
     ManagedPool managedPool = createPool().getManagedPool();
     GenericPoolable a = pool.claim(longTimeout);
     GenericPoolable b = pool.claim(longTimeout);
@@ -1709,21 +1570,16 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   }
 
   @Test
-  void managedPoolMustRecordObjectLifetimeOnReallocateInConfiguredMetricsRecorder()
+  void managedPoolMustRecordExplicitlyExpiredObjectLifetimeOnReallocateInMetricsRecorder()
       throws InterruptedException {
     builder.setMetricsRecorder(new LastSampleMetricsRecorder());
-    Semaphore semaphore = new Semaphore(0);
-    builder.setAllocator(reallocator(realloc($acquire(semaphore, $new), $new)));
-    AtomicBoolean hasExpired = new AtomicBoolean();
-    builder.setExpiration(expire($expiredIf(hasExpired)));
+    builder.setAllocator(reallocator());
+    builder.setExpiration(Expiration.never());
     ManagedPool managedPool = createPool().getManagedPool();
     GenericPoolable obj = pool.claim(longTimeout);
     spinwait(5);
+    obj.expire();
     obj.release();
-    hasExpired.set(true);
-    assertNull(pool.claim(zeroTimeout));
-    hasExpired.set(false);
-    semaphore.release(1);
     obj = pool.claim(longTimeout); // wait for reallocation
     try {
       assertThat(managedPool.getObjectLifetimePercentile(0.0))
@@ -1820,7 +1676,8 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
 
   @Test
   void managedPoolMustNotCountResizeAsLeak() throws Exception {
-    builder.setSize(2).setBackgroundExpirationCheckDelay(10);
+    builder.setSize(2);
+    reducedBackgroundExpirationCheckDelay();
     ManagedPool managedPool = createPool().getManagedPool();
     claimRelease(2, pool, longTimeout);
     managedPool.setTargetSize(4);
@@ -1846,7 +1703,8 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   @Test
   void disabledLeakDetectionMustNotBreakResize() throws Exception {
     builder.setPreciseLeakDetectionEnabled(false);
-    builder.setSize(2).setBackgroundExpirationCheckDelay(10);
+    builder.setSize(2);
+    reducedBackgroundExpirationCheckDelay();
     ManagedPool managedPool = createPool().getManagedPool();
     claimRelease(2, pool, longTimeout);
     pool.setTargetSize(6);
@@ -1856,185 +1714,6 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
       spinwait(1);
     }
     assertThat(managedPool.getLeakedObjectsCount()).isEqualTo(-1L);
-  }
-
-  @Test
-  void mustCheckObjectExpirationInBackgroundWhenEnabled() throws Exception {
-    CountDownLatch latch = new CountDownLatch(1);
-    CountingReallocator reallocator = reallocator();
-    CountingExpiration expiration = expire($expired, $countDown(latch, $fresh));
-    builder.setExpiration(expiration);
-    builder.setAllocator(reallocator);
-    createPool();
-
-    latch.await();
-
-    assertThat(reallocator.countAllocations()).isOne();
-    assertThat(reallocator.countDeallocations()).isZero();
-    assertThat(reallocator.countReallocations()).isOne();
-  }
-
-  @ParameterizedTest
-  @EnumSource(Taps.class)
-  void objectMustBeClaimableAfterBackgroundReallocation(Taps taps) throws Exception {
-    CountDownLatch latch = new CountDownLatch(1);
-    CountingExpiration expiration =
-        expire($countDown(latch, $expired), $fresh);
-    builder.setExpiration(expiration);
-    createPool();
-    PoolTap<GenericPoolable> tap = taps.get(this);
-
-    latch.await();
-
-    tap.claim(longTimeout).release();
-  }
-
-  @Test
-  void mustNotReallocateObjectsThatAreNotExpiredByTheBackgroundCheck()
-      throws Exception {
-    CountDownLatch latch = new CountDownLatch(2);
-    CountingExpiration expiration = expire($countDown(latch, $fresh));
-    CountingReallocator reallocator = reallocator();
-    builder.setExpiration(expiration);
-    builder.setBackgroundExpirationCheckDelay(10);
-    createPool();
-
-    latch.await();
-
-    assertThat(reallocator.countReallocations()).isZero();
-    assertThat(reallocator.countDeallocations()).isZero();
-  }
-
-  @Test
-  void backgroundExpirationMustExpireObjectsWhenExpirationThrows() throws Exception {
-    CountDownLatch latch = new CountDownLatch(1);
-    CountingExpiration expiration = expire(
-        $throwExpire(new Exception("boom")),
-        $countDown(latch, $fresh));
-    builder.setExpiration(expiration);
-    createPool();
-
-    latch.await();
-
-    assertThat(allocator.countAllocations()).isEqualTo(2);
-    assertThat(allocator.countDeallocations()).isOne();
-  }
-
-  @ParameterizedTest
-  @EnumSource(Taps.class)
-  void backgroundExpirationMustNotExpireObjectsThatAreClaimed(Taps taps) throws Exception {
-    AtomicBoolean hasExpired = new AtomicBoolean();
-    CountDownLatch latch = new CountDownLatch(4);
-    CountingExpiration expiration = expire(
-        $countDown(latch, $expiredIf(hasExpired)));
-    builder.setExpiration(expiration).setBackgroundExpirationCheckDelay(10);
-    builder.setSize(2);
-    createPool();
-    PoolTap<GenericPoolable> tap = taps.get(this);
-
-    // If applicable, do a thread-local reclaim
-    tap.claim(longTimeout).release();
-    GenericPoolable obj = pool.claim(longTimeout);
-    hasExpired.set(true);
-
-    try {
-      latch.await();
-      hasExpired.set(false);
-
-      List<GenericPoolable> deallocations = allocator.getDeallocations();
-      // Synchronized to guard against concurrent modification from the allocator
-      //noinspection SynchronizationOnLocalVariableOrMethodParameter
-      synchronized (deallocations) {
-        assertThat(deallocations).doesNotContain(obj);
-      }
-    } finally {
-      obj.release();
-    }
-  }
-
-  @SuppressWarnings("SuspiciousMethodCalls")
-  @ParameterizedTest
-  @EnumSource(Taps.class)
-  void backgroundExpirationMustExpireNewlyAllocatedObjectsThatAreNeverClaimed(Taps taps) throws Exception {
-    List<GenericPoolable> toExpire = Collections.synchronizedList(new ArrayList<>());
-    CountingExpiration expiration = expire(info -> toExpire.contains(info.getPoolable()));
-    builder.setExpiration(expiration).setBackgroundExpirationCheckDelay(10);
-    builder.setSize(2);
-    createPool();
-    PoolTap<GenericPoolable> tap = taps.get(this);
-
-    // Make sure one object makes it into the live queue
-    tap.claim(longTimeout).release();
-    GenericPoolable obj = tap.claim(longTimeout);
-    obj.release(); // Turn it into a TLR claim
-
-    while (allocator.countAllocations() < 2) {
-      Thread.yield();
-    }
-    synchronized (allocator.getAllocations()) {
-      // Only mark the object we *didn't* claim for expiration
-      for (GenericPoolable allocation : allocator.getAllocations()) {
-        if (allocation != obj) {
-          toExpire.add(allocation);
-        }
-      }
-    }
-
-    // Never claim the other object
-    while (allocator.countDeallocations() < 1) {
-      Thread.yield();
-      if (Thread.interrupted()) {
-        throw new InterruptedException();
-      }
-    }
-
-    synchronized (allocator.getDeallocations()) {
-      assertThat(allocator.getDeallocations()).containsAll(toExpire);
-    }
-  }
-
-  @ParameterizedTest
-  @EnumSource(Taps.class)
-  void disregardPileMustNotPreventBackgroundExpirationFromCheckingObjects(Taps taps) throws Exception {
-    if (taps == Taps.THREAD_LOCAL) {
-      return; // It is not safe to use the thread local tap in this test.
-    }
-    CountDownLatch firstThreadReady = new CountDownLatch(1);
-    CountDownLatch firstThreadPause = new CountDownLatch(1);
-    builder.setSize(2).setBackgroundExpirationCheckDelay(10);
-    createPool();
-    PoolTap<GenericPoolable> tap = taps.get(this);
-
-    // Make the first object TLR claimed in another thread.
-    Future<?> firstThread = forkFuture(() -> {
-      tap.claim(longTimeout).release();
-      GenericPoolable obj = tap.claim(longTimeout);
-      firstThreadReady.countDown();
-      firstThreadPause.await();
-      obj.release();
-      return null;
-    });
-
-    firstThreadReady.await();
-
-    // Move the now TLR claimed object to the front of the queue.
-    forkFuture($claimRelease(tap, longTimeout)).get();
-
-    // Now this claim should move the first object into the disregard pile.
-    GenericPoolable obj = tap.claim(longTimeout);
-    obj.expire(); // Expire the slot, so expiration should pick it up.
-    firstThreadPause.countDown();
-    firstThread.get();
-    allocator.clearLists();
-    obj.release(); // And now we allow the allocator thread to get to it.
-
-    // By expiring the objects at this point, we should observe that
-    // the 'obj' gets deallocated.
-    boolean found;
-    do {
-      Thread.sleep(10);
-      found = allocator.getDeallocations().contains(obj);
-    } while (!found);
   }
 
   @ParameterizedTest
@@ -2065,37 +1744,6 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     // Now we should see a pool size worth of reallocations
     assertThat(allocator.countAllocations()).as("allocations").isEqualTo(2 * poolSize);
     assertThat(allocator.countDeallocations()).as("deallocations").isEqualTo(poolSize);
-  }
-
-  @Test
-  void mustReallocateExplicitlyExpiredObjectsInBackgroundWithBackgroundExpiration()
-      throws Exception {
-    CountDownLatch latch = new CountDownLatch(2);
-    allocator = allocator(alloc($countDown(latch, $new)));
-    builder.setAllocator(allocator).setSize(1).setBackgroundExpirationCheckDelay(10);
-    createPool();
-
-    GenericPoolable obj = pool.claim(longTimeout);
-    obj.expire();
-    obj.release();
-
-    latch.await();
-  }
-
-  @Test
-  void mustReallocateExplicitlyExpiredObjectsInBackgroundWithoutBgExpiration()
-      throws Exception {
-    CountDownLatch latch = new CountDownLatch(2);
-    allocator = allocator(alloc($countDown(latch, $new)));
-    builder.setAllocator(allocator).setSize(1);
-    builder.setBackgroundExpirationCheckDelay(10).setBackgroundExpirationEnabled(false);
-    createPool();
-
-    GenericPoolable obj = pool.claim(longTimeout);
-    obj.expire();
-    obj.release();
-
-    latch.await();
   }
 
   @ParameterizedTest
@@ -2156,7 +1804,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   @ParameterizedTest
   @EnumSource(Taps.class)
   void newlyAllocatedObjectsMustBeClaimedAheadOfExistingLiveObjects(Taps taps) throws Exception {
-    builder.setBackgroundExpirationCheckDelay(10);
+    reducedBackgroundExpirationCheckDelay();
     createPoolOfSize(3);
     PoolTap<GenericPoolable> tap = taps.get(this);
 

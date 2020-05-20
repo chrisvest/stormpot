@@ -31,14 +31,13 @@ class DirectAllocationController<T extends Poolable> extends AllocationControlle
   DirectAllocationController(
       LinkedTransferQueue<BSlot<T>> live,
       RefillPile<T> disregardPile,
-      RefillPile<T> newAllocations,
       PoolBuilder<T> builder,
       BSlot<T> poisonPill) {
     this.live = live;
     this.disregardPile = disregardPile;
     this.poisonPill = poisonPill;
     this.size = builder.getSize();
-    poisonedSlots = new AtomicInteger(0);
+    poisonedSlots = new AtomicInteger();
     Allocator<T> allocator = builder.getAllocator();
     for (int i = 0; i < size; i++) {
       BSlot<T> slot = new BSlot<>(live, poisonedSlots);

@@ -19,6 +19,8 @@ import extensions.FailurePrinterExtension;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import stormpot.*;
@@ -46,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static stormpot.UnitKit.*;
 import static stormpot.UnitKit.waitForThreadState;
 
+@Execution(ExecutionMode.CONCURRENT)
 @org.junit.jupiter.api.Timeout(42)
 @ExtendWith(FailurePrinterExtension.class)
 abstract class AbstractPoolTest<T extends Poolable> {

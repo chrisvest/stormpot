@@ -17,5 +17,6 @@ package stormpot;
 
 enum AllocationProcessMode {
   THREADED,
+  INLINE,
   DIRECT
 }
