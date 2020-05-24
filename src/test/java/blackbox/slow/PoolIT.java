@@ -40,7 +40,7 @@ import static stormpot.AlloKit.*;
 @ExtendWith(FailurePrinterExtension.class)
 abstract class PoolIT {
   @RegisterExtension
-  static final ExecutorExtension EXECUTOR_EXTENSION = new ExecutorExtension();
+  final ExecutorExtension executorExtension = new ExecutorExtension();
 
   protected static final Timeout longTimeout = new Timeout(1, TimeUnit.MINUTES);
   protected static final Timeout shortTimeout = new Timeout(1, TimeUnit.SECONDS);
@@ -57,7 +57,7 @@ abstract class PoolIT {
   void setUp() {
     allocator = allocator();
     builder = createPoolBuilder(allocator).setSize(1);
-    executor = EXECUTOR_EXTENSION.getExecutorService();
+    executor = executorExtension.getExecutorService();
   }
 
   protected abstract PoolBuilder<GenericPoolable> createPoolBuilder(CountingAllocator allocator);
@@ -101,7 +101,7 @@ abstract class PoolIT {
     Runnable runner = createTaskClaimReleaseUntilShutdown(pool);
 
     Future<?> future = executor.submit(runner);
-    EXECUTOR_EXTENSION.printOnFailure(future);
+    executorExtension.printOnFailure(future);
 
     long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
     do {
@@ -142,7 +142,7 @@ abstract class PoolIT {
       Runnable runner = createTaskClaimReleaseUntilShutdown(pool);
       futures.add(executor.submit(runner));
     }
-    EXECUTOR_EXTENSION.printOnFailure(futures);
+    executorExtension.printOnFailure(futures);
 
     // Wait for all the objects to be created
     while (allocator.countAllocations() < size) {
@@ -198,7 +198,7 @@ abstract class PoolIT {
           SomeRandomException.class);
       futures.add(executor.submit(runner));
     }
-    EXECUTOR_EXTENSION.printOnFailure(futures);
+    executorExtension.printOnFailure(futures);
 
     Thread.sleep(5000);
 
