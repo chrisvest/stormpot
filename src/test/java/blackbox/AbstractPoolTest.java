@@ -44,8 +44,21 @@ import java.util.function.Function;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
-import static stormpot.UnitKit.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static stormpot.UnitKit.$await;
+import static stormpot.UnitKit.$catchFrom;
+import static stormpot.UnitKit.$claim;
+import static stormpot.UnitKit.$claimRelease;
+import static stormpot.UnitKit.$interruptUponState;
+import static stormpot.UnitKit.capture;
+import static stormpot.UnitKit.fork;
+import static stormpot.UnitKit.forkFuture;
+import static stormpot.UnitKit.join;
+import static stormpot.UnitKit.spinwait;
 import static stormpot.UnitKit.waitForThreadState;
 
 @Execution(ExecutionMode.CONCURRENT)

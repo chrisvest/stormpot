@@ -81,6 +81,13 @@ class InlineAllocationController<T extends Poolable> extends AllocationControlle
     if (shutdown) {
       dealloc(slot);
     } else {
+      int s = size;
+      while (s > targetSize) {
+        if (SIZE.compareAndSet(this, s, s - 1)) {
+          deallocSlot(slot);
+          return;
+        }
+      }
       realloc(slot);
     }
   }
@@ -197,19 +204,17 @@ class InlineAllocationController<T extends Poolable> extends AllocationControlle
   }
 
   private void changePoolSize(int targetSize) {
-    try {
-      while (size != targetSize) {
-        if (size < targetSize) {
-          // Grow the pool.
-          allocate();
-        } else {
-          // Otherwise shrink the pool.
-          deallocate();
+    while (size != targetSize) {
+      if (size < targetSize) {
+        // Grow the pool.
+        allocate();
+      } else {
+        // Otherwise shrink the pool.
+        if (!tryDeallocate()) {
+          // Give up if we can't change the pool size without blocking.
+          return;
         }
       }
-    } catch (InterruptedException ignore) {
-      // We are not allowed to throw exceptions from this method.
-      Thread.currentThread().interrupt();
     }
   }
 
@@ -264,20 +269,28 @@ class InlineAllocationController<T extends Poolable> extends AllocationControlle
     slot.dead2live();
   }
 
-  private void deallocate() throws InterruptedException {
+  private boolean tryDeallocate() {
     BSlot<T> slot = live.poll();
-    while (slot == null) {
+    if (slot == null) {
       if (!disregardPile.refill()) {
         newAllocations.refill();
       }
-      slot = live.poll(50, TimeUnit.MILLISECONDS);
+      slot = live.poll();
+    }
+    if (slot == null) {
+      return false;
     }
     dealloc(slot);
     unregisterWithLeakDetector(slot);
+    return true;
   }
 
   private void dealloc(BSlot<T> slot) {
     SIZE.getAndAdd(this, -1);
+    deallocSlot(slot);
+  }
+
+  private void deallocSlot(BSlot<T> slot) {
     try {
       if (slot.poison == BlazePool.EXPLICIT_EXPIRE_POISON) {
         slot.poison = null;

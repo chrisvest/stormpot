@@ -26,11 +26,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
@@ -39,13 +36,46 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static stormpot.AlloKit.$countDown;
-import static stormpot.AlloKit.$if;
-import static stormpot.AlloKit.*;
+import static stormpot.AlloKit.$incrementAnd;
+import static stormpot.AlloKit.$new;
+import static stormpot.AlloKit.$null;
+import static stormpot.AlloKit.$observeNull;
+import static stormpot.AlloKit.$sleep;
+import static stormpot.AlloKit.$sync;
+import static stormpot.AlloKit.$throw;
+import static stormpot.AlloKit.CountingAllocator;
+import static stormpot.AlloKit.alloc;
+import static stormpot.AlloKit.allocator;
+import static stormpot.AlloKit.dealloc;
+import static stormpot.AlloKit.realloc;
+import static stormpot.AlloKit.reallocator;
+import static stormpot.ExpireKit.$age;
+import static stormpot.ExpireKit.$capture;
+import static stormpot.ExpireKit.$claimCount;
+import static stormpot.ExpireKit.$expired;
+import static stormpot.ExpireKit.$expiredIf;
+import static stormpot.ExpireKit.$explicitExpire;
+import static stormpot.ExpireKit.$fresh;
 import static stormpot.ExpireKit.$if;
-import static stormpot.ExpireKit.*;
-import static stormpot.UnitKit.*;
+import static stormpot.ExpireKit.$poolable;
+import static stormpot.ExpireKit.$throwExpire;
+import static stormpot.ExpireKit.CountingExpiration;
+import static stormpot.ExpireKit.expire;
+import static stormpot.UnitKit.$delayedReleases;
+import static stormpot.UnitKit.claimRelease;
+import static stormpot.UnitKit.fork;
+import static stormpot.UnitKit.forkFuture;
+import static stormpot.UnitKit.join;
+import static stormpot.UnitKit.spinwait;
+import static stormpot.UnitKit.waitForThreadState;
 
 /**
  * This is the generic test for Pool implementations. The test ensures that
@@ -731,13 +761,13 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   }
 
   /**
-   * Likewise as above, a pool must not break its internal invariants if a
-   * Reallocator throws an exception in reallocate, and it must still be
-   * usable after the exception has bubbled out.
+   * Likewise as in {@link #mustStillBeUsableAfterExceptionInAllocate}, a pool
+   * must not break its internal invariants if a Reallocator throws an exception
+   * in reallocate, and it must still be usable after the exception has bubbled out.
    * We test for this by configuring a Reallocator that always throws on
-   * reallocate, and we also configure an Expiration that will mark the first
-   * slot it checks as expired. Then, when we call claim, that first live slot
-   * will be sent back for reallocation, which will throw and poison the slot.
+   * reallocate, and we use explicit expiration to mark the first slot as expired.
+   * Then, when we call claim, that first live slot will be sent back for
+   * reallocation, which will throw and poison the slot.
    * Then the slot comes back to our still on-going claim, which throws
    * because of the poison. The slot then gets sent back again, and now,
    * because of the poison, it will not be reallocated, but instead have a
@@ -747,27 +777,20 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   @ParameterizedTest
   @EnumSource(Taps.class)
   void mustStillBeUsableAfterExceptionInReallocate(Taps taps) throws Exception {
-    final AtomicBoolean throwInAllocate = new AtomicBoolean();
-    final AtomicBoolean hasExpired = new AtomicBoolean();
-    final CountDownLatch allocationLatch = new CountDownLatch(2);
     builder.setAllocator(reallocator(
-        alloc($if(throwInAllocate,
-            $throw(new RuntimeException("boo")),
-            $countDown(allocationLatch, $new))),
-        realloc($throw(new RuntimeException("boo")))));
-    builder.setExpiration(expire($expiredIf(hasExpired)));
+        alloc($new),
+        realloc($throw(new RuntimeException("boo from realloc")))));
+    builder.setExpiration(Expiration.never());
+    noBackgroundExpirationChecking();
     createPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
-    tap.claim(longTimeout).release(); // object now allocated
-    throwInAllocate.set(true);
-    hasExpired.set(true);
+    GenericPoolable obj = tap.claim(longTimeout); // object now allocated
+    obj.expire();
+    obj.release();
     try {
       tap.claim(longTimeout);
       fail("claim should have thrown");
     } catch (PoolException ignore) {}
-    throwInAllocate.set(false);
-    hasExpired.set(false);
-    allocationLatch.await();
     GenericPoolable claim = tap.claim(longTimeout);
     assertThat(claim).isNotNull();
     claim.release();
@@ -897,33 +920,6 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   }
   
   /**
-   * A call to claim with time-out must complete within the time-out period
-   * even if the Allocator never returns.
-   * We test for this by configuring an Allocator that will never return from
-   * any calls to allocate, and then calling claim with a time-out on the pool.
-   * This claim-call must then complete before the time-out on the test case
-   * itself elapses.
-   * @see Pool
-   */
-  @ParameterizedTest
-  @EnumSource(Taps.class)
-  void claimMustStayWithinDeadlineEvenIfAllocatorBlocks(Taps taps) throws Exception {
-    Semaphore semaphore = new Semaphore(1);
-    allocator = allocator(alloc($acquire(semaphore, $new)));
-    builder.setAllocator(allocator);
-    createPool();
-    PoolTap<GenericPoolable> tap = taps.get(this);
-    GenericPoolable obj = tap.claim(longTimeout);
-    obj.expire();
-    obj.release();
-    try {
-      tap.claim(shortTimeout);
-    } finally {
-      semaphore.release(10);
-    }
-  }
-  
-  /**
    * Claim with timeout must adhere to its timeout value. Some pool
    * implementations do the waiting in a loop, and if they don't do it right,
    * they might end up resetting the timeout every time they loop. This test
@@ -1043,94 +1039,47 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
    *   in the ThreadLocal cache.
    * - You then return the object after use, so now it's back in the
    *   live-queue for others to grab.
-   * - Someone else tries to claim the object, but decides that it has expired,
-   *   and sends it off through the dead-queue to be reallocated.
-   * - The reallocation fails for some reason, and the slot is now poisoned.
+   * - Someone else claims the object, and explicitly expires the object.
    * - You want to claim an object again, and start by looking in the
    *   ThreadLocal cache.
-   * - You find the slot for the object you had last, but the slot is poisoned.
+   * - You find the slot for the object you had last, but the slot is poisoned
+   *   with the explicit expiration.
    * - Now, because you found it in the ThreadLocal cache – and notably did
    *   *not* pull it off of the live-queue – you cannot just put it on the
    *   dead-queue, because that could lead to unbounded memory use.
    * - Instead, it has to be marked as live, and we instead have to wait for
    *   someone to pull it off of the live-queue, check the poison again, and
    *   *then* put it on the dead-queue.
-   * - Your ThreadLocal reclaim attempt then end in throwing the poison,
-   *   wrapped in a PoolException.
-   * - Sadly, this process does not involve clearing out the ThreadLocal cache,
-   *   so if you quickly catch the exception and try to claim again, you will
-   *   find the same exact poisoned slot and go through the same routine, that
-   *   ends in a thrown exception and a poisoned slot still left in the
-   *   ThreadLocal cache.
+   * - The slot will then be sent to the allocator for reallocation.
+   * - The returned object should then be different from the initial one.
    */
   @ParameterizedTest
   @EnumSource(Taps.class)
-  void mustNotCachePoisonedSlots(Taps taps) throws Exception {
-    // First we prime the possible thread-local cache to a particular object.
-    // Then we instruct the allocator to always throw an exception when it is
-    // told to allocate on that particular slot.
-    // Then, in another thread, we mark all objects in the pool as expired.
-    // Once we have observed a reallocation attempt at our primed slot, we
-    // try to reclaim it. The reclaim must not throw an exception because of
-    // the cached poisoned slot.
+  void mustNotCacheExplicitlyExpiredSlots(Taps taps) throws Exception {
     builder.setSize(1);
+    builder.setExpiration(Expiration.never());
     noBackgroundExpirationChecking();
 
-    // Enough permits for each initial allocation:
-    final Semaphore semaphore = new Semaphore(1);
-
-    final AtomicBoolean hasExpired = new AtomicBoolean(false);
-    builder.setExpiration(expire($expiredIf(hasExpired)));
-
-    final String allocationCause = "allocation blew up!";
-    final AtomicReference<Slot> failOnAllocatingSlot =
-        new AtomicReference<>();
-    final AtomicInteger observedFailedAllocation = new AtomicInteger();
-    Action observeFailure = (slot, obj) -> {
-      if (slot == failOnAllocatingSlot.get()) {
-        observedFailedAllocation.incrementAndGet();
-        failOnAllocatingSlot.set(null);
-        throw new RuntimeException(allocationCause);
-      }
-      return new GenericPoolable(slot);
-    };
-    allocator = allocator(alloc($acquire(semaphore, observeFailure)));
-    builder.setAllocator(allocator);
-
-    ManagedPool managedPool = createPool().getManagedPool();
+    createPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
 
     // Prime any thread-local cache
-    GenericPoolable obj = tap.claim(longTimeout);
-    failOnAllocatingSlot.set(obj.getSlot());
-    obj.release(); // Places slot at end of queue
+    GenericPoolable initial = tap.claim(longTimeout);
+    initial.release(); // Places slot at end of queue
 
-    // Expire all poolables
-    hasExpired.set(true);
-    AtomicReference<GenericPoolable> ref = new AtomicReference<>();
+    forkFuture(() -> {
+      GenericPoolable obj = tap.claim(longTimeout);
+      obj.expire();
+      obj.release();
+      return null;
+    }).get();
+
+    GenericPoolable second = tap.claim(longTimeout);
     try {
-      forkFuture(capture($claim(tap, shortTimeout), ref)).get();
-    } catch (ExecutionException ignore) {
-      // This is okay. We just got a failed reallocation
+      assertThat(second).isNotSameAs(initial);
+    } finally {
+      second.release();
     }
-    assertNull(ref.get());
-
-    // Give the allocator enough permits to reallocate the whole pool, again
-    semaphore.release(Integer.MAX_VALUE);
-
-    // Wait for our primed slot to get reallocated
-    while(managedPool.getAllocationCount() < 2) {
-      Thread.yield();
-    }
-    while(managedPool.getFailedAllocationCount() < 1) {
-      Thread.yield();
-    }
-
-    // Things no longer expire...
-    hasExpired.set(false);
-
-    // ... so we should be able to claim without trouble
-    tap.claim(longTimeout).release();
   }
 
   @Test
@@ -1426,15 +1375,23 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   void managedPoolMustCountAllocationsFailingWithExceptions() throws Exception {
     CountDownLatch latch = new CountDownLatch(1);
     Exception exception = new Exception("boo");
-    builder.setSize(2).setAllocator(allocator(alloc(
+    int size = 2;
+    builder.setSize(size).setAllocator(allocator(alloc(
         $new,
         $throw(exception),
         $throw(exception),
         $countDown(latch, $new))));
     ManagedPool managedPool = createPool().getManagedPool();
 
-    // simply wait for the proactive healing to replace the failed allocations
-    latch.await();
+    // Claim and release all objects to force the allocations.
+    var objs = new ArrayList<GenericPoolable>();
+    while (objs.size() < size) {
+      try {
+        objs.add(pool.claim(longTimeout));
+      } catch (PoolException ignore) {
+      }
+    }
+    objs.forEach(GenericPoolable::release);
 
     assertThat(managedPool.getFailedAllocationCount()).isEqualTo(2L);
   }
@@ -1804,28 +1761,21 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   @ParameterizedTest
   @EnumSource(Taps.class)
   void newlyAllocatedObjectsMustBeClaimedAheadOfExistingLiveObjects(Taps taps) throws Exception {
-    reducedBackgroundExpirationCheckDelay();
+    noBackgroundExpirationChecking();
     createPoolOfSize(3);
     PoolTap<GenericPoolable> tap = taps.get(this);
 
-    GenericPoolable a = tap.claim(longTimeout);
-    GenericPoolable b = tap.claim(longTimeout);
-    GenericPoolable c = tap.claim(longTimeout);
-    c.expire(); // 'c' is the current TLR claim, so expire that to avoid the TLR cache.
-    b.release();
-    a.release();
-    c.release();
-
-    while (pool.getManagedPool().getAllocationCount() < 4) {
+    while (pool.getManagedPool().getAllocationCount() < 3) {
       Thread.yield();
     }
 
-    GenericPoolable d = tap.claim(longTimeout);
+    // Last object to be allocated is the first to be claimed.
+    GenericPoolable a = tap.claim(longTimeout);
     try {
-      assertThat(d).as("%s should be different from %s, %s, and %s.", d, a, b, c)
-              .isNotSameAs(a).isNotSameAs(b).isNotSameAs(c);
+      List<GenericPoolable> allocations = allocator.getAllocations();
+      assertThat(a).isSameAs(allocations.get(allocations.size() - 1));
     } finally {
-      d.release();
+      a.release();
     }
   }
 
