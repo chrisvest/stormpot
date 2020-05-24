@@ -278,19 +278,28 @@ abstract class PoolIT {
     assertThat(millisecondsSpentBurningCPU).isLessThan(millisecondsAllowedToBurnCPU / 2);
   }
 
-  private Action measureLastCPUTime(final ThreadMXBean threads, final AtomicLong lastUserTimeIncrement) {
+  private Action measureLastCPUTime(final ThreadMXBean threads, final AtomicLong cpuTimeSum) {
     return new Action() {
       boolean first = true;
 
       @Override
       public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
+        GenericPoolable poolable;
         if (first) {
-          threads.setThreadCpuTimeEnabled(true);
           first = false;
+
+          // Don't count all the class loading in the first allocation.
+          poolable = $new.apply(slot, obj);
+
+          threads.setThreadCpuTimeEnabled(true);
+          long currentThreadUserTime = threads.getCurrentThreadUserTime();
+          cpuTimeSum.set(currentThreadUserTime);
+        } else {
+          long userTime = threads.getCurrentThreadUserTime();
+          cpuTimeSum.set(userTime - cpuTimeSum.get());
+          poolable = $new.apply(slot, obj);
         }
-        long userTime = threads.getCurrentThreadUserTime();
-        lastUserTimeIncrement.set(userTime - lastUserTimeIncrement.get());
-        return $new.apply(slot, obj);
+        return poolable;
       }
     };
   }
@@ -308,8 +317,11 @@ abstract class PoolIT {
       @Override
       public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
         if (first) {
-          threads.setThreadCpuTimeEnabled(true);
           first = false;
+          GenericPoolable poolable = $new.apply(slot, obj);
+          threads.setThreadCpuTimeEnabled(true);
+          lastUserTimeIncrement.set(threads.getCurrentThreadUserTime());
+          return poolable;
         }
         long userTime = threads.getCurrentThreadUserTime();
         long delta = userTime - lastUserTimeIncrement.get();
@@ -317,7 +329,7 @@ abstract class PoolIT {
         long existingDelta;
         do {
           existingDelta = maxUserTimeIncrement.get();
-        } while ( !maxUserTimeIncrement.compareAndSet(
+        } while (!maxUserTimeIncrement.compareAndSet(
             existingDelta, Math.max(delta, existingDelta)));
         return $new.apply(slot, obj);
       }
@@ -349,6 +361,7 @@ abstract class PoolIT {
     long millisecondsSpentBurningCPU =
         TimeUnit.NANOSECONDS.toMillis(maxUserTimeIncrement.get());
 
+    System.out.println("millisecondsSpentBurningCPU = " + millisecondsSpentBurningCPU);
     assertThat(millisecondsSpentBurningCPU).isLessThan(millisecondsAllowedToBurnCPU / 2);
   }
 
