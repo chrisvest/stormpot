@@ -34,4 +34,9 @@ public class Pooled<T> extends BasePoolable implements Poolable, AutoCloseable {
   public void close() {
     release();
   }
+
+  @Override
+  public String toString() {
+    return "Pooled[" + object + "]";
+  }
 }
