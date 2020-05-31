@@ -87,7 +87,9 @@ final class BlazePool<T extends Poolable>
   T tlrClaim(Timeout timeout, BSlotCache<T> cache)
       throws PoolException, InterruptedException {
     Objects.requireNonNull(timeout, "Timeout cannot be null.");
+    Trace t = Trace.create();
     BSlot<T> slot = cache.slot;
+    t.tlrSlot(slot);
     // Note that the TLR slot at this point might have been tried by another
     // thread, found to be expired, put on the dead-queue and deallocated.
     // We handle this because slots always transition to the dead state before
@@ -95,7 +97,7 @@ final class BlazePool<T extends Poolable>
     // slot.live2claimTlr() call will fail.
     // Then we will eventually find another slot from the live-queue that we
     // can claim and make our new TLR slot.
-    if (slot != null && slot.live2claimTlr()) {
+    if (slot != null && t.live2claimTlr(slot.live2claimTlr())) {
       // Attempt the claim before checking the validity, because we might
       // already have claimed it.
       // If we checked validity before claiming, then we might find that it
@@ -103,7 +105,7 @@ final class BlazePool<T extends Poolable>
       // Poolable to be deallocated before it is released.
       if (!isInvalid(slot, cache, true)) {
         slot.incrementClaims();
-        return slot.obj;
+        return t.ret_tlr(slot.obj);
       }
       // We managed to tlr-claim the slot, but it turned out to be no good.
       // That means we now have to transition it from tlr-claimed to dead.
@@ -119,7 +121,7 @@ final class BlazePool<T extends Poolable>
       // leak on our hands.
     }
     // The thread-local claim failed, so we have to go through the slow-path.
-    return slowClaim(timeout, cache);
+    return t.ret_slow(slowClaim(timeout, cache));
   }
 
   private T slowClaim(Timeout timeout, BSlotCache<T> cache)
@@ -127,32 +129,41 @@ final class BlazePool<T extends Poolable>
     // The slow-path for claim is in its own method to allow the fast-path to
     // inline separately. At this point, taking a performance hit is
     // inevitable anyway, so we're allowed a bit more leeway.
+    var t = Trace.get();
     BSlot<T> slot;
     long startNanos = NanoClock.nanoTime();
     long timeoutNanos = timeout.getTimeoutInBaseUnit();
     long timeoutLeft = timeoutNanos;
     TimeUnit baseUnit = timeout.getBaseUnit();
+    t.start(startNanos);
+    t.timeLeft(timeoutLeft);
     long maxWaitQuantum = baseUnit.convert(100, TimeUnit.MILLISECONDS);
     for (;;) {
       slot = newAllocations.pop();
+      t.newAllocPop(slot);
       if (slot == null) {
         long pollWait = Math.min(timeoutLeft, maxWaitQuantum);
+        t.pollWait(pollWait);
         slot = live.poll(pollWait, baseUnit);
+        t.livePoll(slot);
       }
       if (slot == null) {
         if (timeoutLeft <= 0) {
           // We timed out while taking from the queue - just return null
+          t.timeLeft(timeoutLeft);
           return null;
         } else {
           timeoutLeft = NanoClock.timeoutLeft(startNanos, timeoutNanos);
           disregardPile.refill();
+          t.timeLeft(timeoutLeft);
           continue;
         }
       }
 
-      if (slot.live2claim()) {
-        if (isInvalid(slot, cache, false)) {
+      if (t.live2claim(slot.live2claim())) {
+        if (t.isInvalid(isInvalid(slot, cache, false))) {
           timeoutLeft = NanoClock.timeoutLeft(startNanos, timeoutNanos);
+          t.timeLeft(timeoutLeft);
           if (timeoutLeft <= 0) {
             // There is no time left to poll the queue again - just return null
             return null;
@@ -161,6 +172,7 @@ final class BlazePool<T extends Poolable>
           break;
         }
       } else {
+        t.disregard(slot);
         disregardPile.push(slot);
       }
     }
@@ -170,12 +182,13 @@ final class BlazePool<T extends Poolable>
   }
 
   private boolean isInvalid(BSlot<T> slot, BSlotCache<T> cache, boolean isTlr) {
-    if (isUncommonlyInvalid(slot)) {
+    var t = Trace.get();
+    if (t.isUncommonlyInvalid(isUncommonlyInvalid(slot))) {
       return handleUncommonInvalidation(slot, cache, isTlr);
     }
 
     try {
-      return deallocRule.hasExpired(slot)
+      return t.hasExpired(deallocRule.hasExpired(slot))
           && handleCommonInvalidation(slot, cache, null);
     } catch (Throwable ex) {
       return handleCommonInvalidation(slot, cache, ex);
@@ -183,12 +196,15 @@ final class BlazePool<T extends Poolable>
   }
 
   private boolean isUncommonlyInvalid(BSlot<T> slot) {
-    return shutdown | slot.poison != null;
+    var t = Trace.get();
+    return t.isShutDown(shutdown) | t.slotHasPoison(slot.poison != null);
   }
 
   private boolean handleUncommonInvalidation(
       BSlot<T> slot, BSlotCache<T> cache, boolean isTlr) {
     Exception poison = slot.poison;
+    var t = Trace.get();
+    t.slot_poison(poison);
     if (poison != null) {
       return dealWithSlotPoison(slot, cache, isTlr, poison);
     } else {
@@ -199,6 +215,9 @@ final class BlazePool<T extends Poolable>
 
   private boolean handleCommonInvalidation(
       BSlot<T> slot, BSlotCache<T> cache, Throwable exception) {
+    var t = Trace.get();
+    t.commonInvlidation(slot);
+    t.commonInvlidationExc(exception);
     kill(slot, cache);
     if (exception != null) {
       String msg = "Got exception when checking whether an object had expired";
@@ -209,7 +228,8 @@ final class BlazePool<T extends Poolable>
 
   private boolean dealWithSlotPoison(
       BSlot<T> slot, BSlotCache<T> cache, boolean isTlr, Exception poison) {
-    if (poison == SHUTDOWN_POISON) {
+    var t = Trace.get();
+    if (t.poisonIsShutDown(poison == SHUTDOWN_POISON)) {
       // The poison pill means the pool has been shut down. The pill was
       // transitioned from live to claimed just prior to this check, so we
       // must transition it back to live and put it back into the live-queue
@@ -218,11 +238,12 @@ final class BlazePool<T extends Poolable>
       // tlr-slot, and so we don't need to worry about transitioning from
       // tlr-claimed to live.
       slot.claim2live();
+      t.claim2live(slot);
       live.offer(poisonPill);
       throw new IllegalStateException("Pool has been shut down");
     } else {
       kill(slot, cache);
-      if (isTlr || poison == EXPLICIT_EXPIRE_POISON) {
+      if (t.isTlr(isTlr) || t.explicitExpirePoison(poison == EXPLICIT_EXPIRE_POISON)) {
         return true;
       } else {
         throw new PoolException("Allocation failed", poison);
@@ -237,12 +258,14 @@ final class BlazePool<T extends Poolable>
     // claimed, that is, pulled off the live-queue, can it be put into the
     // dead-queue. This helps ensure that a slot will only ever be in at most
     // one queue.
-
-    if (slot.isClaimed()) {
+    var t = Trace.get();
+    if (t.isClaimed(slot.isClaimed())) {
       slot.claim2dead();
+      t.claim2dead(slot);
       allocator.offerDeadSlot(slot);
     } else {
       slot.claimTlr2live();
+      t.claimTlr2live(slot);
       cache.slot = null;
     }
   }
