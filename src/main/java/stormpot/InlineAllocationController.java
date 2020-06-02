@@ -17,6 +17,8 @@ package stormpot;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -101,11 +103,19 @@ class InlineAllocationController<T extends Poolable> extends AllocationControlle
       // First remove all live objects from circulation.
       disregardPile.refill();
       newAllocations.refill();
+      List<BSlot<T>> deferredSlots = new ArrayList<>();
       BSlot<T> slot;
       while ((slot = live.poll()) != null) {
-        dealloc(slot);
-        unregisterWithLeakDetector(slot);
-        disregardPile.refill();
+        if (slot.isDead() || slot.live2dead()) {
+          dealloc(slot);
+          unregisterWithLeakDetector(slot);
+          disregardPile.refill();
+        } else {
+          deferredSlots.add(slot);
+        }
+      }
+      for (BSlot<T> deferredSlot : deferredSlots) {
+        live.offer(deferredSlot);
       }
 
       // Then enter the poison-pill into circulation to unblock claim calls.
@@ -133,21 +143,20 @@ class InlineAllocationController<T extends Poolable> extends AllocationControlle
     long maxWaitQuantum = baseUnit.convert(100, TimeUnit.MILLISECONDS);
     disregardPile.refill();
     while (size > 0) {
+      if (timeoutLeft <= 0) {
+        // We timed out.
+        return false;
+      }
       long pollWait = Math.min(timeoutLeft, maxWaitQuantum);
       slot = live.poll(pollWait, baseUnit);
       if (slot == poisonPill) {
         slot = live.poll(pollWait, baseUnit);
         live.offer(poisonPill);
       }
+      timeoutLeft = NanoClock.timeoutLeft(startNanos, timeoutNanos);
       if (slot == null) {
-        if (timeoutLeft <= 0) {
-          // We timed out.
-          return false;
-        } else {
-          timeoutLeft = NanoClock.timeoutLeft(startNanos, timeoutNanos);
-          disregardPile.refill();
-          continue;
-        }
+        disregardPile.refill();
+        continue;
       }
       if (slot.isDead() || slot.live2dead()) {
         dealloc(slot);
@@ -270,6 +279,7 @@ class InlineAllocationController<T extends Poolable> extends AllocationControlle
   }
 
   private boolean tryDeallocate() {
+    // todo slots pulled off the live queue must move live2dead before deallocation!
     BSlot<T> slot = live.poll();
     if (slot == null) {
       if (!disregardPile.refill()) {

@@ -591,6 +591,22 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
       obj.release();
     }
   }
+
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void shutdownMustNotDeallocateTlrClaimedPoolables(Taps taps) throws Exception {
+    createPool();
+    PoolTap<GenericPoolable> tap = taps.get(this);
+    tap.claim(longTimeout).release(); // Make next claim a TLR claim.
+    GenericPoolable obj = tap.claim(longTimeout);
+    assertNotNull(obj, "Did not deplete pool in time");
+    pool.shutdown().await(mediumTimeout);
+    try {
+      assertThat(allocator.countDeallocations()).isEqualTo(0);
+    } finally {
+      obj.release();
+    }
+  }
   
   /**
    * Clients might hold on to objects after they have been released. This is
@@ -775,7 +791,6 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
    * fresh Poolable allocated anew. This new good Poolable is what we get out
    * of the last call to claim.
    */
-  @Disabled // TODO
   @ParameterizedTest
   @EnumSource(Taps.class)
   void mustStillBeUsableAfterExceptionInReallocate(Taps taps) throws Exception {
@@ -1555,7 +1570,6 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     assertThat(managedPool.getLeakedObjectsCount()).isZero();
   }
 
-  @Disabled // TODO
   @Test
   void managedPoolMustCountLeakedObjects() throws Exception {
     builder.setSize(2);

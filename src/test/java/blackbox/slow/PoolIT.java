@@ -117,7 +117,6 @@ abstract class PoolIT {
       for (;;) {
         try {
           GenericPoolable obj = pool.claim(longTimeout);
-          if (obj == null) Trace.print();
           obj.release();
         } catch (InterruptedException ignore) {
           // This is okay
@@ -305,7 +304,6 @@ abstract class PoolIT {
     };
   }
 
-  @Disabled // TODO
   @Test
   void explicitlyExpiredSlotsThatAreDeallocatedThroughPoolShrinkingMustNotCauseBackgroundCPUBurn()
       throws InterruptedException {
@@ -391,7 +389,6 @@ abstract class PoolIT {
     assertThat(millisecondsSpentBurningCPU).isLessThan(millisecondsAllowedToBurnCPU / 2);
   }
 
-  @Disabled // TODO
   @Test
   void mustNotBurnTooMuchCPUWhileThePoolIsWorkingOnShrinking()
       throws InterruptedException {
