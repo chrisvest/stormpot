@@ -1287,6 +1287,28 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     }
   }
 
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void decreasingSizeMustNotDeallocateTlrClaimedObjects(Taps taps) throws Exception {
+    createPoolOfSize(2);
+    PoolTap<GenericPoolable> tap = taps.get(this);
+
+    while (allocator.countAllocations() < 2) {
+      Thread.onSpinWait();
+    }
+
+    tap.claim(longTimeout).release(); // Primed for TLR claim.
+    GenericPoolable obj = tap.claim(longTimeout); // The TLR claim.
+    pool.setTargetSize(1);
+
+    while (allocator.countDeallocations() < 1) {
+      Thread.onSpinWait();
+    }
+
+    obj.release();
+    assertThat(allocator.getDeallocations()).doesNotContain(obj);
+  }
+
   /**
    * The specification only promises to correctly handle Expirations that throw
    * Exceptions, but we also test with Throwable, just in case we might be able

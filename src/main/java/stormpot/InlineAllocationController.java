@@ -279,7 +279,6 @@ class InlineAllocationController<T extends Poolable> extends AllocationControlle
   }
 
   private boolean tryDeallocate() {
-    // todo slots pulled off the live queue must move live2dead before deallocation!
     BSlot<T> slot = live.poll();
     if (slot == null) {
       if (!disregardPile.refill()) {
@@ -287,12 +286,22 @@ class InlineAllocationController<T extends Poolable> extends AllocationControlle
       }
       slot = live.poll();
     }
-    if (slot == null) {
-      return false;
+    boolean firstIteration = true;
+    while (slot != null) {
+      if (slot.isDead() || slot.live2dead()) {
+        dealloc(slot);
+        unregisterWithLeakDetector(slot);
+        return true;
+      }
+      if (firstIteration) {
+        disregardPile.refill();
+        newAllocations.refill();
+        firstIteration = false;
+      }
+      disregardPile.push(slot);
+      slot = live.poll();
     }
-    dealloc(slot);
-    unregisterWithLeakDetector(slot);
-    return true;
+    return false;
   }
 
   private void dealloc(BSlot<T> slot) {
