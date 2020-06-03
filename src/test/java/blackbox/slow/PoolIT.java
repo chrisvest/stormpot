@@ -17,51 +17,49 @@ package blackbox.slow;
 
 import extensions.ExecutorExtension;
 import extensions.FailurePrinterExtension;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import stormpot.*;
+import stormpot.Timeout;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.util.Arrays.asList;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
-import static stormpot.AlloKit.$countDown;
 import static stormpot.AlloKit.*;
-import static stormpot.ExpireKit.*;
 
 @SuppressWarnings("unchecked")
 @ExtendWith(FailurePrinterExtension.class)
-class PoolIT {
+abstract class PoolIT {
   @RegisterExtension
-  static final ExecutorExtension EXECUTOR_EXTENSION = new ExecutorExtension();
+  final ExecutorExtension executorExtension = new ExecutorExtension();
 
-  private static final Timeout longTimeout = new Timeout(1, TimeUnit.MINUTES);
-  private static final Timeout shortTimeout = new Timeout(1, TimeUnit.SECONDS);
+  protected static final Timeout longTimeout = new Timeout(5, TimeUnit.MINUTES);
+  protected static final Timeout shortTimeout = new Timeout(1, TimeUnit.SECONDS);
 
   // Initialised by setUp()
-  private CountingAllocator allocator;
-  private PoolBuilder<GenericPoolable> builder;
-  private ExecutorService executor;
+  protected CountingAllocator allocator;
+  protected PoolBuilder<GenericPoolable> builder;
+  protected ExecutorService executor;
 
   // Initialised in the tests
-  private Pool<GenericPoolable> pool;
+  protected Pool<GenericPoolable> pool;
 
   @BeforeEach
   void setUp() {
     allocator = allocator();
-    builder = Pool.from(allocator).setSize(1);
-    executor = EXECUTOR_EXTENSION.getExecutorService();
+    builder = createPoolBuilder(allocator).setSize(1);
+    executor = executorExtension.getExecutorService();
   }
+
+  protected abstract PoolBuilder<GenericPoolable> createPoolBuilder(CountingAllocator allocator);
 
   @AfterEach
   void verifyObjectsAreNeverDeallocatedMoreThanOnce() throws InterruptedException {
@@ -90,7 +88,7 @@ class PoolIT {
     allocator = null;
   }
 
-  private void createPool() {
+  protected void createPool() {
     pool = builder.build();
   }
 
@@ -102,7 +100,7 @@ class PoolIT {
     Runnable runner = createTaskClaimReleaseUntilShutdown(pool);
 
     Future<?> future = executor.submit(runner);
-    EXECUTOR_EXTENSION.printOnFailure(future);
+    executorExtension.printOnFailure(future);
 
     long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
     do {
@@ -118,7 +116,8 @@ class PoolIT {
     return () -> {
       for (;;) {
         try {
-          pool.claim(longTimeout).release();
+          GenericPoolable obj = pool.claim(longTimeout);
+          obj.release();
         } catch (InterruptedException ignore) {
           // This is okay
         } catch (IllegalStateException e) {
@@ -143,7 +142,7 @@ class PoolIT {
       Runnable runner = createTaskClaimReleaseUntilShutdown(pool);
       futures.add(executor.submit(runner));
     }
-    EXECUTOR_EXTENSION.printOnFailure(futures);
+    executorExtension.printOnFailure(futures);
 
     // Wait for all the objects to be created
     while (allocator.countAllocations() < size) {
@@ -199,7 +198,7 @@ class PoolIT {
           SomeRandomException.class);
       futures.add(executor.submit(runner));
     }
-    EXECUTOR_EXTENSION.printOnFailure(futures);
+    executorExtension.printOnFailure(futures);
 
     Thread.sleep(5000);
 
@@ -210,89 +209,6 @@ class PoolIT {
       // Also verify that no unexpected exceptions were thrown
       future.get();
     }
-  }
-
-  @org.junit.jupiter.api.Timeout(160)
-  @Test
-  void backgroundExpirationMustDoNothingWhenPoolIsDepleted() throws Exception {
-    AtomicBoolean hasExpired = new AtomicBoolean();
-    CountingExpiration expiration = expire($expiredIf(hasExpired));
-    builder.setExpiration(expiration);
-    builder.setBackgroundExpirationEnabled(true);
-
-    createPool();
-
-    // Do a thread-local reclaim, if applicable, to keep the object in
-    // circulation
-    pool.claim(longTimeout).release();
-    GenericPoolable obj = pool.claim(longTimeout);
-    int expirationsCount = expiration.countExpirations();
-
-    hasExpired.set(true);
-
-    Thread.sleep(1000);
-
-    assertThat(allocator.countDeallocations()).isZero();
-    assertThat(expiration.countExpirations()).isEqualTo(expirationsCount);
-    obj.release();
-  }
-
-  @Test
-  void backgroundExpirationMustNotFailWhenThereAreNoObjectsInCirculation()
-      throws Exception {
-    AtomicBoolean hasExpired = new AtomicBoolean();
-    CountingExpiration expiration = expire($expiredIf(hasExpired));
-    builder.setExpiration(expiration);
-    builder.setBackgroundExpirationEnabled(true);
-
-    createPool();
-
-    GenericPoolable obj = pool.claim(longTimeout);
-    int expirationsCount = expiration.countExpirations();
-
-    hasExpired.set(true);
-
-    Thread.sleep(1000);
-
-    assertThat(allocator.countDeallocations()).isZero();
-    assertThat(expiration.countExpirations()).isEqualTo(expirationsCount);
-    obj.release();
-  }
-
-  @org.junit.jupiter.api.Timeout(160)
-  @Test
-  void decreasingSizeOfDepletedPoolMustOnlyDeallocateAllocatedObjects()
-      throws Exception {
-    int startingSize = 256;
-    CountDownLatch startLatch = new CountDownLatch(startingSize);
-    Semaphore semaphore = new Semaphore(0);
-    allocator = allocator(
-        alloc($countDown(startLatch, $new)),
-        dealloc($release(semaphore, $null)));
-    builder.setSize(startingSize).setBackgroundExpirationCheckDelay(10);
-    builder.setAllocator(allocator);
-    createPool();
-    startLatch.await();
-    List<GenericPoolable> objs = new ArrayList<>();
-    for (int i = 0; i < startingSize; i++) {
-      objs.add(pool.claim(longTimeout));
-    }
-
-    int size = startingSize;
-    List<GenericPoolable> subList = objs.subList(0, startingSize - 1);
-    for (GenericPoolable obj : subList) {
-      size--;
-      pool.setTargetSize(size);
-      // It's important that the wait mask produces values greater than the
-      // allocation threads idle wait time.
-      assertFalse(semaphore.tryAcquire(size & 127, TimeUnit.MILLISECONDS));
-      obj.release();
-      semaphore.acquire();
-    }
-
-    assertThat(allocator.getDeallocations()).containsExactlyElementsOf(subList);
-
-    objs.get(startingSize - 1).release();
   }
 
   @org.junit.jupiter.api.Timeout(160)
@@ -314,6 +230,7 @@ class PoolIT {
     }
 
     Completion completion = pool.shutdown();
+    Future<Boolean> completionFuture = executor.submit(() -> completion.await(longTimeout));
     int size = startingSize;
     List<GenericPoolable> subList = objs.subList(0, startingSize - 1);
     for (GenericPoolable obj : subList) {
@@ -328,7 +245,7 @@ class PoolIT {
     assertThat(allocator.getDeallocations()).isEqualTo(subList);
 
     objs.get(startingSize - 1).release();
-    assertTrue(completion.await(longTimeout), "shutdown timeout elapsed");
+    assertTrue(completionFuture.get(1, TimeUnit.MINUTES), "shutdown timeout elapsed");
   }
 
   @Test
@@ -361,19 +278,28 @@ class PoolIT {
     assertThat(millisecondsSpentBurningCPU).isLessThan(millisecondsAllowedToBurnCPU / 2);
   }
 
-  private Action measureLastCPUTime(final ThreadMXBean threads, final AtomicLong lastUserTimeIncrement) {
+  private Action measureLastCPUTime(final ThreadMXBean threads, final AtomicLong cpuTimeSum) {
     return new Action() {
       boolean first = true;
 
       @Override
       public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
+        GenericPoolable poolable;
         if (first) {
-          threads.setThreadCpuTimeEnabled(true);
           first = false;
+
+          // Don't count all the class loading in the first allocation.
+          poolable = $new.apply(slot, obj);
+
+          threads.setThreadCpuTimeEnabled(true);
+          long currentThreadUserTime = threads.getCurrentThreadUserTime();
+          cpuTimeSum.set(currentThreadUserTime);
+        } else {
+          long userTime = threads.getCurrentThreadUserTime();
+          cpuTimeSum.set(userTime - cpuTimeSum.get());
+          poolable = $new.apply(slot, obj);
         }
-        long userTime = threads.getCurrentThreadUserTime();
-        lastUserTimeIncrement.set(userTime - lastUserTimeIncrement.get());
-        return $new.apply(slot, obj);
+        return poolable;
       }
     };
   }
@@ -391,8 +317,11 @@ class PoolIT {
       @Override
       public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
         if (first) {
-          threads.setThreadCpuTimeEnabled(true);
           first = false;
+          GenericPoolable poolable = $new.apply(slot, obj);
+          threads.setThreadCpuTimeEnabled(true);
+          lastUserTimeIncrement.set(threads.getCurrentThreadUserTime());
+          return poolable;
         }
         long userTime = threads.getCurrentThreadUserTime();
         long delta = userTime - lastUserTimeIncrement.get();
@@ -400,7 +329,7 @@ class PoolIT {
         long existingDelta;
         do {
           existingDelta = maxUserTimeIncrement.get();
-        } while ( !maxUserTimeIncrement.compareAndSet(
+        } while (!maxUserTimeIncrement.compareAndSet(
             existingDelta, Math.max(delta, existingDelta)));
         return $new.apply(slot, obj);
       }

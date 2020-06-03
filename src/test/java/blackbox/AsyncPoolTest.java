@@ -13,30 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot;
+package blackbox;
 
-/**
- * A reference to a pooled object.
- */
-public class Pooled<T> extends BasePoolable implements Poolable, AutoCloseable {
-  public final T object;
+import stormpot.AlloKit;
+import stormpot.GenericPoolable;
+import stormpot.Pool;
+import stormpot.PoolBuilder;
 
-  public Pooled(Slot slot, T object) {
-    super(slot);
-    this.object = object;
-  }
-
-  /**
-   * `Pooled` implements {@link AutoCloseable} as a convenient way to release
-   * claimed objects back to the pool, using the try-with-resources syntax.
-   */
+public class AsyncPoolTest extends ThreadBasedPoolTest {
   @Override
-  public void close() {
-    release();
-  }
-
-  @Override
-  public String toString() {
-    return "Pooled[" + object + "]";
+  protected PoolBuilder<GenericPoolable> createInitialPoolBuilder(AlloKit.CountingAllocator allocator) {
+    return Pool.fromAsync(allocator);
   }
 }

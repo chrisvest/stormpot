@@ -13,20 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot;
+package blackbox.slow;
 
-abstract class AllocatorProcess<T extends Poolable> {
-  abstract Completion shutdown();
+import stormpot.AlloKit;
+import stormpot.GenericPoolable;
+import stormpot.Pool;
+import stormpot.PoolBuilder;
 
-  abstract void offerDeadSlot(BSlot<T> slot);
-
-  abstract void setTargetSize(int size);
-
-  abstract int getTargetSize();
-
-  abstract long getAllocationCount();
-
-  abstract long getFailedAllocationCount();
-
-  abstract long countLeakedObjects();
+class AsyncPoolIT extends ThreadBasedPoolIT {
+  @Override
+  protected PoolBuilder<GenericPoolable> createPoolBuilder(AlloKit.CountingAllocator allocator) {
+    return Pool.fromAsync(allocator);
+  }
 }

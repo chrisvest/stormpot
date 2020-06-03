@@ -42,4 +42,23 @@ class BSlotTest {
       assertThat(size % CACHE_LINE_SIZE).as(description).isEqualTo(0);
     }
   }
+
+  @Test
+  void toStringForBSlot() {
+    BSlot<Pooled<String>> slot = new BSlot<>(null, null);
+    assertThat(slot.toString()).isEqualTo("BSolt[DEAD, obj = null, poison = null]");
+    slot.obj = new Pooled<>(slot, "poke");
+    slot.dead2live();
+    assertThat(slot.toString()).isEqualTo("BSolt[LIVING, obj = Pooled[poke], poison = null]");
+    slot.live2claimTlr();
+    assertThat(slot.toString()).isEqualTo("BSolt[TLR_CLAIMED, obj = Pooled[poke], poison = null]");
+    slot.claimTlr2live();
+    slot.live2claim();
+    assertThat(slot.toString()).isEqualTo("BSolt[CLAIMED, obj = Pooled[poke], poison = null]");
+    slot.claim2dead();
+    slot.obj = null;
+    slot.poison = new Exception("boo");
+    assertThat(slot.toString()).isEqualTo(
+        "BSolt[DEAD, obj = null, poison = java.lang.Exception: boo]");
+  }
 }

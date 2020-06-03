@@ -49,7 +49,7 @@ final class BlazePool<T extends Poolable>
   private final LinkedTransferQueue<BSlot<T>> live;
   private final RefillPile<T> disregardPile;
   private final RefillPile<T> newAllocations;
-  private final AllocatorProcess<T> allocator;
+  private final AllocationController<T> allocator;
   private final ThreadLocal<BSlotCache<T>> tlr;
   private final Expiration<? super T> deallocRule;
   private final MetricsRecorder metricsRecorder;
@@ -65,7 +65,7 @@ final class BlazePool<T extends Poolable>
    * Construct a new BlazePool instance based on the given {@link PoolBuilder}.
    * @param builder The pool configuration to use.
    */
-  BlazePool(PoolBuilder<T> builder, AllocatorProcessFactory factory) {
+  BlazePool(PoolBuilder<T> builder, AllocationProcess factory) {
     live = new LinkedTransferQueue<>();
     disregardPile = new RefillPile<>(live);
     newAllocations = new RefillPile<>(live);
@@ -74,7 +74,8 @@ final class BlazePool<T extends Poolable>
     poisonPill.poison = SHUTDOWN_POISON;
     deallocRule = builder.getExpiration();
     metricsRecorder = builder.getMetricsRecorder();
-    allocator = factory.buildAllocator(live, disregardPile, newAllocations, builder, poisonPill);
+    allocator = factory.buildAllocationController(
+        live, disregardPile, newAllocations, builder, poisonPill);
   }
 
   @Override
@@ -236,7 +237,6 @@ final class BlazePool<T extends Poolable>
     // claimed, that is, pulled off the live-queue, can it be put into the
     // dead-queue. This helps ensure that a slot will only ever be in at most
     // one queue.
-
     if (slot.isClaimed()) {
       slot.claim2dead();
       allocator.offerDeadSlot(slot);

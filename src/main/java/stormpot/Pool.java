@@ -15,6 +15,8 @@
  */
 package stormpot;
 
+import static stormpot.AllocationProcess.*;
+
 /**
  * A Pool is a self-renewable set of objects from which one can claim exclusive
  * access to elements, until they are released back into the pool.
@@ -60,12 +62,12 @@ package stormpot;
  * when they are no longer needed.
  *
  * Note that Pools are not guaranteed to have overwritten the
- * {@code Object#finalize()} method. Pools are expected to rely on explicit
+ * `Object#finalize()` method. Pools are expected to rely on explicit
  * clean-up for releasing their resources.
  *
  * @author Chris Vest <mr.chrisvest@gmail.com>
  * @param <T> the type of {@link Poolable} contained in the pool, as determined
- * by the {@linkplain Pool#from(Allocator) configured allocator}.
+ * by the configured allocator.
  * @see stormpot.PoolTap
  */
 public abstract class Pool<T extends Poolable> extends PoolTap<T> {
@@ -78,6 +80,37 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
    * {@linkplain PoolBuilder#build build} a {@link Pool} instance with the
    * desired configuration.
    *
+   * This method is synonymous for {@link #fromAsync(Allocator)}.
+   *
+   * @param allocator The allocator we want our pools to use. This cannot be
+   * `null`.
+   * @param <T> The type of {@link Poolable} that is created by the allocator,
+   * and the type of objects that the configured pools will contain.
+   * @return A {@link PoolBuilder} that admits additional configurations,
+   * before the pool instance is {@linkplain PoolBuilder#build() built}.
+   * @see #fromAsync(Allocator)
+   */
+  public static <T extends Poolable> PoolBuilder<T> from(Allocator<T> allocator) {
+    return fromAsync(allocator);
+  }
+
+  /**
+   * Get a {@link PoolBuilder} based on the given {@link Allocator} or
+   * {@link Reallocator}, which can then in turn be used to
+   * {@linkplain PoolBuilder#build build} a {@link Pool} instance with the
+   * desired configuration.
+   *
+   * The returned {@link PoolBuilder} will build pools that allocate and deallocate
+   * objects in a background thread.
+   * Hence the "async" in the name; the objects are created and destroyed
+   * asynchronously, out of band with the threads that call into the pool to claim
+   * objects.
+   *
+   * By moving the allocation of objects to a background thread, it can be guaranteed
+   * that the timeouts given to {@link #claim(Timeout) claim} will always be honoured.
+   * In other words, a slow allocation cannot block a {@link #claim(Timeout) claim}
+   * call beyond its intended timeout.
+   *
    * @param allocator The allocator we want our pools to use. This cannot be
    * `null`.
    * @param <T> The type of {@link Poolable} that is created by the allocator,
@@ -85,8 +118,12 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
    * @return A {@link PoolBuilder} that admits additional configurations,
    * before the pool instance is {@linkplain PoolBuilder#build() built}.
    */
-  public static <T extends Poolable> PoolBuilder<T> from(Allocator<T> allocator) {
-    return new PoolBuilder<>(allocator);
+  public static <T extends Poolable> PoolBuilder<T> fromAsync(Allocator<T> allocator) {
+    return new PoolBuilder<>(threaded(), allocator);
+  }
+
+  public static <T extends Poolable> PoolBuilder<T> fromInline(Allocator<T> allocator) {
+    return new PoolBuilder<>(inline(), allocator);
   }
 
   /**
@@ -130,12 +167,9 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
       public void deallocate(Pooled<T> poolable) {
       }
     };
-    PoolBuilder<Pooled<T>> builder = new PoolBuilder<>(allocator);
+    PoolBuilder<Pooled<T>> builder = new PoolBuilder<>(direct(), allocator);
     builder.setSize(objects.length);
-    builder.setPreciseLeakDetectionEnabled(false);
-    builder.setBackgroundExpirationEnabled(false);
-    builder.setExpiration(Expiration.never());
-    return new BlazePool<>(builder, AllocatorProcessFactory.DIRECT);
+    return builder.build();
   }
 
   /**

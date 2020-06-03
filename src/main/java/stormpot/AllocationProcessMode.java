@@ -15,28 +15,8 @@
  */
 package stormpot;
 
-/**
- * A reference to a pooled object.
- */
-public class Pooled<T> extends BasePoolable implements Poolable, AutoCloseable {
-  public final T object;
-
-  public Pooled(Slot slot, T object) {
-    super(slot);
-    this.object = object;
-  }
-
-  /**
-   * `Pooled` implements {@link AutoCloseable} as a convenient way to release
-   * claimed objects back to the pool, using the try-with-resources syntax.
-   */
-  @Override
-  public void close() {
-    release();
-  }
-
-  @Override
-  public String toString() {
-    return "Pooled[" + object + "]";
-  }
+enum AllocationProcessMode {
+  THREADED,
+  INLINE,
+  DIRECT
 }

@@ -255,7 +255,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
       slot.obj = allocator.allocate(slot);
       if (slot.obj == null) {
         poisonedSlots.getAndIncrement();
-        slot.poison = new NullPointerException("Allocation returned null");
+        slot.poison = new NullPointerException("Allocation returned null.");
       } else {
         success = true;
       }
@@ -329,7 +329,7 @@ final class BAllocThread<T extends Poolable> implements Runnable {
         slot.obj = allocator.reallocate(slot, slot.obj);
         if (slot.obj == null) {
           poisonedSlots.getAndIncrement();
-          slot.poison = new NullPointerException("Reallocation returned null");
+          slot.poison = new NullPointerException("Reallocation returned null.");
         } else {
           success = true;
         }
