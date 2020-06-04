@@ -103,13 +103,13 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * calling the {@link Pool#setTargetSize(int)} or
    * {@link ManagedPool#setTargetSize(int)} methods.
    *
-   * @param size The target pool size. Must be at least 1.
+   * @param size The target pool size. Must be at least 0.
    * @return This `PoolBuilder` instance.
    */
   public synchronized PoolBuilder<T> setSize(int size) {
     checkPermission(permissions.setSize, "size");
-    if (size < 1) {
-      throw new IllegalArgumentException("Size must be at least 1, but was " + size + ".");
+    if (size < 0) {
+      throw new IllegalArgumentException("Size must be at least 0, but was " + size + ".");
     }
     this.size = size;
     return this;
