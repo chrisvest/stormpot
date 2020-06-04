@@ -217,9 +217,9 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
    * size. In fact, it may never happen as the target size can be changed as
    * often as one sees fit.
    *
-   * Pools that do not support a size less than 1 (which would deviate from the
+   * Pools that do not support a size less than 0 (which would deviate from the
    * standard configuration space) will throw an
-   * {@link IllegalArgumentException} if passed 0 or less.
+   * {@link IllegalArgumentException} if passed -1 or less.
    *
    * Pools that do not support online resizing will throw an
    * {@link UnsupportedOperationException}.

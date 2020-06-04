@@ -254,9 +254,9 @@ final class BlazePool<T extends Poolable>
 
   @Override
   public void setTargetSize(int size) {
-    if (size < 1) {
+    if (size < 0) {
       throw new IllegalArgumentException(
-          "Target pool size must be at least 1");
+          "Target pool size must be positive");
     }
     if (shutdown) {
       return;

@@ -16,7 +16,6 @@
 package blackbox;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -184,14 +183,29 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   }
   
   /**
-   * Be careful and prevent the creation of pools with a size less than one.
-   * The contract of claim is to block indefinitely if one such pool were
-   * to be created.
+   * Be careful and prevent the creation of pools with a size less than zero.
    * @see PoolBuilder#setSize(int)
    */
   @Test
   void constructorMustThrowOnPoolSizeLessThanOne() {
-    assertThrows(IllegalArgumentException.class, () -> builder.setSize(0).build());
+    assertThrows(IllegalArgumentException.class, () -> builder.setSize(-1).build());
+  }
+
+  /**
+   * We now permit pools to be built empty.
+   * The contract of claim is to block indefinitely if one such pool were
+   * to be created. Just like if they were permanently depleted.
+   * It is expected that such pools will eventually have their target size
+   * set to something greater than zero.
+   */
+  @Test
+  void constructorMustAllowPoolSizeOfZero() throws Exception {
+    Pool<GenericPoolable> pool = builder.setSize(0).build();
+    try {
+      assertNull(pool.claim(zeroTimeout));
+    } finally {
+      assertTrue(pool.shutdown().await(longTimeout));
+    }
   }
 
   /**
@@ -1100,9 +1114,20 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   }
 
   @Test
-  void targetSizeMustBeGreaterThanZero() {
+  void targetSizeMustBeGreaterThanOrEqualToZero() {
     createPool();
-    assertThrows(IllegalArgumentException.class, () -> pool.setTargetSize(0));
+    assertThrows(IllegalArgumentException.class, () -> pool.setTargetSize(-1));
+  }
+
+  @SuppressWarnings("BusyWait")
+  @Test
+  void targetSizeOfZeroMustBeAllowed() throws Exception {
+    createPool();
+    pool.claim(longTimeout).release();
+    pool.setTargetSize(0);
+    while (allocator.countAllocations() > allocator.countDeallocations()) {
+      Thread.sleep(1);
+    }
   }
 
   @Test

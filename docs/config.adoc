@@ -4,7 +4,7 @@
 
 Stormpot has many configuration options, but only one mandatory setting:
 You have to specify what `Allocator` or `Reallocator` implementation to use.
-This is enforced by the `Pool.from` method taking the `Allocator` (or `Reallocator`) as an argument.
+This is enforced by the `Pool#from` method taking the `Allocator` (or `Reallocator`) as an argument.
 The rest of the configuration options are optional, though there are a couple you most likely want to tweak.
 
 === Pool Size
@@ -24,6 +24,10 @@ It also means that you can't mindlessly set this to some arbitrary high value an
 The pool will really allocate this many objects, expecting them to be in demand.
 The upside to this is that if your application develops a fault where it claims objects uncontrollably, it will be prevented from allocating more objects than the system can handle.
 For instance, if the pooled objects represent connections to a database, that database will be sheltered from such a rogue application.
+
+It is possible to configure the pool size to be zero.
+This means there will be no objects in the pool, and it will act as if it is depleted.
+The `Pool#setTargetSize` method can then be used to change the size of the pool later.
 
 === Object Expiration
 
@@ -55,7 +59,7 @@ This means that access to the associated `Poolable` instance is thread-safe.
 
 The `SlotInfo` has a number of useful methods for implementing `Expiration` policies:
 
-* For instance, the `getAgeMillis` is used by the `Expiration.after()` expirations, to determine if an object has expired.
+* For instance, the `getAgeMillis` is used by the `Expiration#after()` expirations, to determine if an object has expired.
 * The `setStamp` and `getStamp` methods can be used to store any state as a single long, that you might need in your expiration implementation.
   The stamp of a `SlotInfo` is always zero for newly allocated objects.
   Its value means whatever the expiration policy wants it to mean.
@@ -124,7 +128,7 @@ It might be that you can only create threads if they get associated with a parti
 
 Whatever the case, if the background thread needs to be created in a particular way for your particular environment, then you can provide a `ThreadFactory` implementation via the `setThreadFactory` method, and make sure the background thread is created in a way that observes the law of the land in your particular circumstances.
 
-The default `ThreadFactory` is based on the `Executors.defaultThreadFactory`, but also assigns the thread a name, that makes it recognisable as a Stormpot background thread.
+The default `ThreadFactory` is based on the `Executors#defaultThreadFactory`, but also assigns the thread a name, that makes it recognisable as a Stormpot background thread.
 
 === Precise Leak Detection
 
