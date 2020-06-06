@@ -74,7 +74,8 @@ If you call `claim` on a depleted pool, the call will block until at least one o
 More than one thread at a time can be blocked trying to claim objects from the pool.
 The claim call does not guarantee fairness, so there is no way to know before hand, which of the threads will be unblocked when an object is released.
 
-The pool has a background thread dedicated to allocating and deallocating the poolable objects, because these are presumably expensive operations.
+The pool has an allocation process to allocating and deallocating the poolable objects, because these are presumably expensive operations.
+The allocation process is by default implemented as a dedicated background thread.
 This way, the threads that come to the pool to claim objects, don't have to pay the cost of allocating those objects.
 This reduces the latency for claim in the general case.
 
@@ -82,21 +83,21 @@ In essence, the central parts of the pool fit together like this:
 
 [ditaa]
 ----
-+-------------+                 claim>              +------------------------+
-:             +------------------------------------>|                        |
-|  User code  |                                     |          Pool          |
-|             |           +-------------+   <claim  |                        |
-|             |   ‹use›   |             +<----------+  +------------------+  |
-|             +=--------->+   Poolable  |           |  | Allocator Thread |  |
-|             |           |             |           |  +--+---------------+  |
-|             |  release  |   +------+  |           |     |                  |
-|             +---------->+-->+ Slot +--+---------->+     | allocate/        |
-|             |           |   +------+  |           |     | deallocate       |
-+-------------+           |             |           |     v                  |
-                          +- - - - - - -+           |  +------------------+  |
-                                                    |  |    Allocator     |  |
-                                                    |  +------------------+  |
-                                                    +------------------------+
++-------------+                 claim>              +--------------------------+
+:             +------------------------------------>|                          |
+|  User code  |                                     |           Pool           |
+|             |           +-------------+   <claim  |                          |
+|             |   ‹use›   |             +<----------+  +--------------------+  |
+|             +=--------->+   Poolable  |           |  | Allocation Process |  |
+|             |           |             |           |  +--+-----------------+  |
+|             |  release  |   +------+  |           |     |                    |
+|             +---------->+-->+ Slot +------------->+     | allocate/          |
+|             |           |   +------+  |           |     | deallocate         |
++-------------+           |             |           |     v                    |
+                          +-------------+           |  +--------------------+  |
+                                                    |  |     Allocator      |  |
+                                                    |  +--------------------+  |
+                                                    +--------------------------+
 ----
 
 === Object Pooling in Practice
@@ -120,11 +121,15 @@ However, it is a skeleton to which we can add the functionality and the expensiv
 
 Next, the pool can't create instances of this class by itself.
 It needs the help of an `Allocator` implementation to do that.
-The allocation of these objects will be happening in a dedicated allocation thread, such that this thread pays the cost of the presumably expensive allocation.
+The allocation of these objects will by default be happening in a dedicated allocation thread, such that this thread pays the cost of the presumably expensive allocation.
 Therefor, it is generally a good idea to do as much work as possible during the allocation, such that it is as cheap as possible to claim and use the objects.
 There is one moderation to this rule, however, because the pool only has one allocation thread.
 The more expensive objects are to create, the longer it will take to fill the pool.
 Likewise, if the objects expire and churn with a high rate, the allocation thread might not be able to keep up with the demand for reallocations.
+
+The above describes the default _threaded_ allocation mode.
+The pool can also be created in other modes where the objects are either all allocated up front, or inline with the claim calls.
+See the configuration page for descriptions of the different link:config.html#pool-modes[allocation modes].
 
 Here is what an `Allocator` that allocates the above objects, can look like:
 
@@ -254,9 +259,29 @@ All the other configuration properties have somewhat reasonable default values.
 Other properties that might be interesting to configure, include the pool size, and the `Expiration` instance.
 See the link:config.html[configuration reference] page for more information on how to configure Stormpot.
 
-=== Directly Pooling Objects
+=== Alternative Pool Modes
 
-Stormpot comes with an alternative operating mode, where the objects to be pooled are directly given to the pool upon construction, rather than being allocated and maintained in the background.
+Stormpot comes with two alternative pool modes: the inline pool mode and the direct pool mode.
+
+==== The Inline Pool Mode
+
+In the inline pool mode the objects are initially allocated when the pool is created, and then deallocated and reallocated as part of the `claim` calls.
+
+This mode is enabled by creating the pool with the `Pool.fromInline()` method:
+
+[source,java]
+----
+include::../src/test/java/examples/Examples.java[tag=inlinePoolExample]
+----
+
+The inline mode is similar to the threaded mode in many aspects, but with the services provided by the background thread disabled.
+For instance, there is no background expiration checking, and no background reallocation of failed allocations.
+
+Since the pool in the inline mode will deallocate and allocate objects as part of the `claim` calls, it is possible that it will take longer for the call to return than what is specified by the given timeout.
+
+==== The Direct Pool Mode
+
+In the direct pool mode the objects to be pooled are directly given to the pool upon construction, rather than being allocated and maintained in the background.
 
 This mode is enabled by creating the pool with the `Pool.of(...)` method:
 
@@ -275,3 +300,4 @@ This makes mode good for temporary and short-lived pools, or for when the object
 
 One drawback of this mode, is that the pool cannot be resized.
 The size of these pools are fixed, and given by the number of objects passed to the `Pool.of(...)` method.
+If you need to be able to resize the pool, then you should take a look at the _inline_ pool mode instead.

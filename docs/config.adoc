@@ -4,8 +4,32 @@
 
 Stormpot has many configuration options, but only one mandatory setting:
 You have to specify what `Allocator` or `Reallocator` implementation to use.
-This is enforced by the `Pool#from` method taking the `Allocator` (or `Reallocator`) as an argument.
+This is enforced by the `Pool#from`, `Pool#fromThreaded`, and `Pool#fromInline` methods, which all take the `Allocator` (or `Reallocator`) as an argument.
 The rest of the configuration options are optional, though there are a couple you most likely want to tweak.
+
+[[pool-modes]]
+=== Pool Modes
+
+The pool can operate in three different modes, which determine how objects are allocated:
+
+1. In the _default_ or _threaded_ mode, the objects in the pool are allocated by a background allocation thread.
+   The benefit of this is that the pool has a more predictable response time.
+   This also allows the pool to check object expiration in the background.
+   The pool can also automatically heal allocation failures, so fewer of these exceptions bubble out through the `claim` methods.
+   The drawback is that every pool in this mode will have a dedicated thread allocated for it.
+   If you plan on having many pool instances in your application, this might be costly.
+   This mode is obtained by creating a pool with the `Pool#from` or `Pool#fromThreaded` methods.
+2. The _inline_ mode omits the background thread, and instead allocates and deallocates objects as part of - or inline with - the `claim` method calls.
+   There is no background thread in this mode, and thus all features that depend on a background thread, like automatic allocation failure healing, are unavailable.
+   The benefit is that these pools take up fewer memory and CPU resources, due to the lack of the background thread.
+   This mode is obtained by creating a pool with the `Pool#fromInline`.
+3. In the _direct_ mode, the objects in the pool are pre-allocated before the pool is created.
+   This mode is even more restricted in its configuration than the inline mode.
+   There is no background thread, but there is also no need for one.
+   The objects in a direct pool never expire, and explicitly expiring them has no effect.
+   The objects are also never deallocated by the pool, because a direct pool has no allocator associated with it.
+   This also means that a direct pool cannot change its size; the `setTargetSize` method will throw an exception.
+   This mode is obtained by creating a pool with the `Pool#of(...)` method.
 
 === Pool Size
 
@@ -73,7 +97,7 @@ In fact, it is so performance sensitive, that reading the time from the system c
 
 === Background Expiration Checking
 
-Every Stormpot pool starts a background thread to take care of all the allocation and deallocation that needs to happen.
+Stormpot pools in the default or threaded modes will start a background thread to take care of all the allocation and deallocation that needs to happen.
 This background thread can also perform expiration checks on the objects in the pool, when it has nothing better to do.
 
 Background expiration checks are on by default, because they are very useful for applications that may experience periods of low activity.
@@ -116,7 +140,7 @@ Once you have your `MetricsRecorder` implementation, you just set an instance of
 
 === ThreadFactory
 
-Stormpot creates a background thread per pool instance.
+Stormpot pools in the default or threaded mode create a background thread per pool instance.
 This thread is in charge of allocating and deallocating objects for the pool.
 This means that the threads that access the pool to claim objects, don't have to pay the overhead of allocating any of the objects themselves.
 The latency for claiming objects is thereby reduced, and made more predictable.
@@ -130,9 +154,11 @@ Whatever the case, if the background thread needs to be created in a particular 
 
 The default `ThreadFactory` is based on the `Executors#defaultThreadFactory`, but also assigns the thread a name, that makes it recognisable as a Stormpot background thread.
 
+The thread factory setting is not used by pools that operate in the _inline_ mode.
+
 === Precise Leak Detection
 
-Stormpot has precise leak detection enabled by default, because the CPU overhead is very low.
+Stormpot has precise leak detection enabled by default (except in the direct pool mode) because the CPU overhead is very low.
 There is, however, a bit of memory overhead.
 Therefor, it may make sense to disable this in use cases where memory is very constrained, and/or the pool contains a very large number of objects.
 If you pool upwards a hundred thousand objects or more, you might want to disable it for performance reasons.
