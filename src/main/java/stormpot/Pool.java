@@ -80,7 +80,7 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
    * {@linkplain PoolBuilder#build build} a {@link Pool} instance with the
    * desired configuration.
    *
-   * This method is synonymous for {@link #fromAsync(Allocator)}.
+   * This method is synonymous for {@link #fromThreaded(Allocator)}.
    *
    * @param allocator The allocator we want our pools to use. This cannot be
    * `null`.
@@ -88,10 +88,10 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
    * and the type of objects that the configured pools will contain.
    * @return A {@link PoolBuilder} that admits additional configurations,
    * before the pool instance is {@linkplain PoolBuilder#build() built}.
-   * @see #fromAsync(Allocator)
+   * @see #fromThreaded(Allocator)
    */
   public static <T extends Poolable> PoolBuilder<T> from(Allocator<T> allocator) {
-    return fromAsync(allocator);
+    return fromThreaded(allocator);
   }
 
   /**
@@ -102,9 +102,9 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
    *
    * The returned {@link PoolBuilder} will build pools that allocate and deallocate
    * objects in a background thread.
-   * Hence the "async" in the name; the objects are created and destroyed
-   * asynchronously, out of band with the threads that call into the pool to claim
-   * objects.
+   * Hence the "threaded" in the name; the objects are created and destroyed
+   * by the background thread, out of band with the threads that call into the pool to
+   * claim objects.
    *
    * By moving the allocation of objects to a background thread, it can be guaranteed
    * that the timeouts given to {@link #claim(Timeout) claim} will always be honoured.
@@ -118,7 +118,7 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
    * @return A {@link PoolBuilder} that admits additional configurations,
    * before the pool instance is {@linkplain PoolBuilder#build() built}.
    */
-  public static <T extends Poolable> PoolBuilder<T> fromAsync(Allocator<T> allocator) {
+  public static <T extends Poolable> PoolBuilder<T> fromThreaded(Allocator<T> allocator) {
     return new PoolBuilder<>(threaded(), allocator);
   }
 

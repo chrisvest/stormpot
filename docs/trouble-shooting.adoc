@@ -23,11 +23,15 @@ How do I find out if I have leaked an object?::
   The precise leak detector will notice the last case, but cannot tell you where in the code the problem is.
 
 Why are there so many "Stormpot" threads in my program?::
-  Stormpot starts a thread for every pool instance you create.
+  Stormpot by default starts a thread for every pool instance you create.
   It does not share threads across pool instances.
+  You can use the "inline" pool mode if this is a problem.
+  See the `Pool#fromInline` method for more information about the inline pool mode.
 
 I'm not allowed to start threads in my environment, or I get an exception about not being able to start a thread when I try to create an pool instance!::
   Some environments restrict the ability to create threads.
   These environments often have a way to get around that restriction, for instance by creating threads with a particular `ThreadGroup` or creating the thread in a particular privileged part of the code.
   Stormpot can be configured to use a specific `ThreadFactory` for creating its threads.
   So giving it a `ThreadFactory` that knows how to create threads in your particular environment, is the way to get around these restrictions.
+  Alternatively you can use the "inline" pool mode, where the pool operates without a background thread.
+  See the `Pool#fromInline` method for more information about the inline pool mode.

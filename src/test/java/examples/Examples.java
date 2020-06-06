@@ -104,6 +104,19 @@ class Examples {
     // end::directPoolExample[]
   }
 
+  @Test
+  void inlinePoolExample() throws Exception {
+    MyAllocator allocator = new MyAllocator();
+    // tag::inlinePoolExample[]
+    Pool<MyPoolable> pool = Pool.fromInline(allocator).build();
+    MyPoolable obj = pool.claim(TIMEOUT);
+    if (obj != null) {
+      System.out.println(obj);
+      obj.release();
+    }
+    // end::inlinePoolExample[]
+  }
+
   @SuppressWarnings("InnerClassMayBeStatic")
   // tag::poolableGenericExample[]
   public class GenericPoolable implements Poolable {

@@ -33,7 +33,7 @@ import static stormpot.StormpotThreadFactory.INSTANCE;
  * {@link #build()} method.
  *
  * Pool builder instances are obtained by calling one of the `from*`
- * methods on {@link Pool}, such as {@link Pool#fromAsync(Allocator)}.
+ * methods on {@link Pool}, such as {@link Pool#fromThreaded(Allocator)}.
  *
  * This class is made thread-safe by having the fields be protected by the
  * intrinsic object lock on the `PoolBuilder` object itself. This way, pools
