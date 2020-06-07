@@ -97,7 +97,7 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
   /**
    * Get a {@link PoolBuilder} based on the given {@link Allocator} or
    * {@link Reallocator}, which can then in turn be used to
-   * {@linkplain PoolBuilder#build build} a {@link Pool} instance with the
+   * {@linkplain PoolBuilder#build build} a <em>threaded</em> {@link Pool} instance with the
    * desired configuration.
    *
    * The returned {@link PoolBuilder} will build pools that allocate and deallocate
@@ -122,6 +122,29 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
     return new PoolBuilder<>(threaded(), allocator);
   }
 
+  /**
+   * Get a {@link PoolBuilder} based on the given {@link Allocator} or
+   * {@link Reallocator}, which can then in turn be used to
+   * {@linkplain PoolBuilder#build() build} a {@link Pool} operating in the
+   * <em>inline</em> mode, with the desired configuration.
+   *
+   * The returned {@link PoolBuilder} will build pools that allocate and deallocate
+   * objects in-line with, and as part of, the {@linkplain #claim(Timeout) claim} calls.
+   * Hence the "inline" in the name.
+   *
+   * This way, pools operating in the inline mode do not need a background thread.
+   * This means that it is harder for {@linkplain #claim(Timeout) claim} to honour the
+   * given {@link Timeout}.
+   * It also means that the background services, such as background expiration checking,
+   * and automatically replacing failed allocations, are not available.
+   * On the other hand, inline pool consumes fewer memory and CPU resources.
+   *
+   * @param allocator The allcoator we want our pools to use. This cannot be `null`.
+   * @param <T> The type of {@link Poolable} that is created by the allocator,
+   *           and the type of objects that the configured pools will contain.
+   * @return A {@link PoolBuilder} that admits additional configurations,
+   * before the pool instance is {@linkplain PoolBuilder#build() built}.
+   */
   public static <T extends Poolable> PoolBuilder<T> fromInline(Allocator<T> allocator) {
     return new PoolBuilder<>(inline(), allocator);
   }
