@@ -820,7 +820,9 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     obj.release();
     try {
       tap.claim(longTimeout).release();
-      fail("claim should have thrown");
+      // if "claim" doesn't throw, then the background thread might have cleaned up the poisoned
+      // slot before we could get to it. In that case, the allocation count should be 2.
+      assertThat(pool.getManagedPool().getAllocationCount()).isEqualTo(2);
     } catch (PoolException ignore) {}
     GenericPoolable claim = tap.claim(longTimeout);
     assertThat(claim).isNotNull();
