@@ -5,6 +5,7 @@ This is not really documentation, but rather an "internal" document detailing th
 * [ ] Create a card tracking the release, based on this checklist.
 * [ ] Fix all the issues
 * [ ] Update & review the javadoc & documentation
+* [ ] Update Readme
 * [ ] Make sure `gpg` command is GPG version 2
 * [ ] Make sure `settings.xml` has an `ossrh` server with correct username and password
 * [ ] Run `mvn clean deploy -P release` on _SNAPSHOT_ version to test process
@@ -13,3 +14,4 @@ This is not really documentation, but rather an "internal" document detailing th
 * [ ] When successful, commit changes, tag commit, push --tags
 * [ ] Run `./docupdate.sh` and push updated web site
 * [ ] Announce on mailing list & write blog post
+* [ ] Mark old branch as protected
