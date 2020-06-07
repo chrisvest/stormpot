@@ -528,6 +528,7 @@ table.CodeRay td.code>pre{padding:0}
 <ul class="sectlevel1">
 <li><a href="#_configuration">Configuration</a>
 <ul class="sectlevel2">
+<li><a href="#pool-modes">Pool Modes</a></li>
 <li><a href="#_pool_size">Pool Size</a></li>
 <li><a href="#_object_expiration">Object Expiration</a></li>
 <li><a href="#_background_expiration_checking">Background Expiration Checking</a></li>
@@ -545,15 +546,49 @@ table.CodeRay td.code>pre{padding:0}
 <h2 id="_configuration">Configuration</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Stormpot has many configuration options, but only one is required:
+<p>Stormpot has many configuration options, but only one mandatory setting:
 You have to specify what <code>Allocator</code> or <code>Reallocator</code> implementation to use.
-This is enforced by the <code>Pool.from</code> method taking the <code>Allocator</code> (or <code>Reallocator</code>) as an argument.
+This is enforced by the <code>Pool#from</code>, <code>Pool#fromThreaded</code>, and <code>Pool#fromInline</code> methods, which all take the <code>Allocator</code> (or <code>Reallocator</code>) as an argument.
 The rest of the configuration options are optional, though there are a couple you most likely want to tweak.</p>
+</div>
+<div class="sect2">
+<h3 id="pool-modes">Pool Modes</h3>
+<div class="paragraph">
+<p>The pool can operate in three different modes, which determine how objects are allocated:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>In the <em>default</em> or <em>threaded</em> mode, the objects in the pool are allocated by a background allocation thread.
+The benefit of this is that the pool has a more predictable response time.
+This also allows the pool to check object expiration in the background.
+The pool can also automatically heal allocation failures, so fewer of these exceptions bubble out through the <code>claim</code> methods.
+The drawback is that every pool in this mode will have a dedicated thread allocated for it.
+If you plan on having many pool instances in your application, this might be costly.
+This mode is obtained by creating a pool with the <code>Pool#from</code> or <code>Pool#fromThreaded</code> methods.</p>
+</li>
+<li>
+<p>The <em>inline</em> mode omits the background thread, and instead allocates and deallocates objects as part of - or inline with - the <code>claim</code> method calls.
+There is no background thread in this mode, and thus all features that depend on a background thread, like automatic allocation failure healing, are unavailable.
+The benefit is that these pools take up fewer memory and CPU resources, due to the lack of the background thread.
+This mode is obtained by creating a pool with the <code>Pool#fromInline</code>.</p>
+</li>
+<li>
+<p>In the <em>direct</em> mode, the objects in the pool are pre-allocated before the pool is created.
+This mode is even more restricted in its configuration than the inline mode.
+There is no background thread, but there is also no need for one.
+The objects in a direct pool never expire, and explicitly expiring them has no effect.
+The objects are also never deallocated by the pool, because a direct pool has no allocator associated with it.
+This also means that a direct pool cannot change its size; the <code>setTargetSize</code> method will throw an exception.
+This mode is obtained by creating a pool with the <code>Pool#of(&#8230;&#8203;)</code> method.</p>
+</li>
+</ol>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_pool_size">Pool Size</h3>
 <div class="paragraph">
-<p>The size of the pool is configured with <code>setSize</code>.
+<p>You configure the size of the pool with the <code>setSize</code> method.
 This configuration determines the maximum number of objects the pool should keep in circulation at any given time.
 The default size is 10 objects.
 Note that this is a maximum.
@@ -571,6 +606,11 @@ The pool will really allocate this many objects, expecting them to be in demand.
 The upside to this is that if your application develops a fault where it claims objects uncontrollably, it will be prevented from allocating more objects than the system can handle.
 For instance, if the pooled objects represent connections to a database, that database will be sheltered from such a rogue application.</p>
 </div>
+<div class="paragraph">
+<p>It is possible to configure the pool size to be zero.
+This means there will be no objects in the pool, and it will act as if it is depleted.
+The <code>Pool#setTargetSize</code> method can then be used to change the size of the pool later.</p>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_object_expiration">Object Expiration</h3>
@@ -580,8 +620,8 @@ What it means for an object to be "expired" depends on what objects we are talki
 For instance, you might be pooling network connections that are closed by a firewall if they have been idle for too long, in which case it makes sense to have them reconnect before that happens.</p>
 </div>
 <div class="paragraph">
-<p>It is the <code>Expiration</code> policy that decides whether or not an object has expired, and it is configured with <code>setExpiration</code>.
-The default expiration policy expires objects after they&#8217;ve been circulating for somewhere between 8 to 10 minutes.
+<p>It is the <code>Expiration</code> policy that decides whether an object has expired, and it is configured with <code>setExpiration</code>.
+The default expiration policy expires objects after they&#8217;ve been circulating for somewhere between 8 and 10 minutes.
 This is pretty handy, because it spreads the expirations out over time.
 This means that the objects in the pool don&#8217;t all expire at the same time.</p>
 </div>
@@ -621,7 +661,7 @@ This means that access to the associated <code>Poolable</code> instance is threa
 <div class="ulist">
 <ul>
 <li>
-<p>For instance, the <code>getAgeMillis</code> is used by the <code>Expiration.after()</code> expirations, to determine if an object has expired.</p>
+<p>For instance, the <code>getAgeMillis</code> is used by the <code>Expiration#after()</code> expirations, to determine if an object has expired.</p>
 </li>
 <li>
 <p>The <code>setStamp</code> and <code>getStamp</code> methods can be used to store any state as a single long, that you might need in your expiration implementation.
@@ -642,8 +682,8 @@ This way, the number and frequency of claims does not influence the distribution
 <div class="title">Note</div>
 </td>
 <td class="content">
-The <code>hasExpired</code> method may be called several times during every call to <code>claim</code>.
-It is therefor <em>very</em> critical to the performance of the pool, and you should take great care to make sure that it is fast.
+The <code>hasExpired</code> method can be called several times during every call to <code>claim</code>.
+It is therefor <em>very</em> critical to the performance of the pool, and you should take great care to make sure it is fast.
 In fact, it is so performance sensitive, that reading the time from the system clock, e.g. with <code>System#nanoTime</code>, can be a significant drag on the performance of the pool.
 </td>
 </tr>
@@ -654,13 +694,13 @@ In fact, it is so performance sensitive, that reading the time from the system c
 <div class="sect2">
 <h3 id="_background_expiration_checking">Background Expiration Checking</h3>
 <div class="paragraph">
-<p>Every Stormpot pool starts a background thread to take care of all the allocation and deallocation that needs to happen.
+<p>Stormpot pools in the default or threaded modes will start a background thread to take care of all the allocation and deallocation that needs to happen.
 This background thread can also perform expiration checks on the objects in the pool, when it has nothing better to do.</p>
 </div>
 <div class="paragraph">
 <p>Background expiration checks are on by default, because they are very useful for applications that may experience periods of low activity.
-Checking for expired objects in the background, ensures that objects are steadily reallocated, even if they don&#8217;t get checked for expiration through the natural traffic to the pool.
-The background expiration checks will then make sure that all the objects in the pool are kept fresh, for when the traffic picks up again.
+Checking for expired objects in the background, ensures objects will be steadily reallocated, even if they don&#8217;t get checked for expiration through the natural traffic to the pool.
+The background expiration checks will then make sure all the objects in the pool are fresh for when the traffic picks up again.
 The application would otherwise have found itself with a pool full of expired objects, causing a reallocation storm, and high latencies to claim objects.</p>
 </div>
 <div class="paragraph">
@@ -683,7 +723,7 @@ Such garbage can lead to fragmentation and, eventually, an expensive old-generat
 <p>The <code>Reallocator</code> interface gives integrators an opportunity to counter this.
 The <code>Reallocator</code> has a <code>reallocate</code> method, in addition to what it inherits from the <code>Allocator</code> interface.
 The <code>reallocate</code> method is a combined deallocate and allocate method.
-Since it&#8217;s combined, it can make decisions about whether or not to take the object that it&#8217;s supposed to deallocate, and reuse it for the subsequent allocation.
+Since it&#8217;s combined, it can make decisions about whether to take the object that it&#8217;s supposed to deallocate, and reuse it for the subsequent allocation.
 This way, a <code>Reallocator</code> has the potential to produce old-gen garbage at a much slower rate than an <code>Allocator</code> would.</p>
 </div>
 <div class="paragraph">
@@ -694,127 +734,21 @@ This way, a <code>Reallocator</code> has the potential to produce old-gen garbag
 <h3 id="metrics-recorder">MetricsRecorder</h3>
 <div class="paragraph">
 <p>Stormpot has the ability to expose metrics and management handles through JMX.
-This is done by registering the pool with an <code>MBeanServer</code>.
-The <code>BlazePool</code> implement the <code>ManagedPool</code> interface for this purpose.
-You can read more about how to expose Stormpot through JMX in the <a href="jmx.html">JMX Guide</a>.</p>
+This is done by registering the pool with an <code>MBeanServer</code>, or by integrating with a custom metrics system.
+The <code>Pool</code> also exposes a <code>getManagedPool</code> method that returns a <code>ManagedPool</code> instance for this purpose.
+You can read more about how to expose Stormpot through JMX in the <a href="jmx.html">JMX Guide</a>.
+You can also read about how to integrate a metrics system on the <a href="metrics.html">Metrics</a> page.</p>
 </div>
 <div class="paragraph">
-<p>To expose the metrics, you first have to configure a <code>MetricsRecorder</code>.
-No such implementation is configured by default, and in fact, Stormpot doesn&#8217;t even provide a default implementation to begin with.
-In other words, you have to implement and integrate a <code>MetricsRecorder</code> yourself.
-I recommend that you use Coda Hale&#8217;s <a href="http://metrics.codahale.com/">Metrics</a> library to do this.
-Obviously you need to first add this library to your projects list of dependencies, but once you&#8217;ve done that, integrating it is pretty easy.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-The <code>MetricsRecorder</code> instance you build and configure <em>must</em> be thread-safe.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>Here&#8217;s an example of what such an integration could look like:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="keyword">package</span> <span class="namespace">examples</span>;
-
-<span class="keyword">import</span> <span class="include">io.dropwizard.metrics5.Histogram</span>;
-<span class="keyword">import</span> <span class="include">io.dropwizard.metrics5.MetricRegistry</span>;
-<span class="keyword">import</span> <span class="include">stormpot.MetricsRecorder</span>;
-
-<span class="directive">public</span> <span class="type">class</span> <span class="class">CodaHaleMetricsRecorder</span> <span class="directive">implements</span> MetricsRecorder {
-  <span class="directive">private</span> <span class="directive">final</span> Histogram allocationLatency;
-  <span class="directive">private</span> <span class="directive">final</span> Histogram allocationFailureLatency;
-  <span class="directive">private</span> <span class="directive">final</span> Histogram deallocationLatency;
-  <span class="directive">private</span> <span class="directive">final</span> Histogram reallocationLatency;
-  <span class="directive">private</span> <span class="directive">final</span> Histogram reallocationFailureLatency;
-  <span class="directive">private</span> <span class="directive">final</span> Histogram objectLifetime;
-
-  <span class="directive">public</span> CodaHaleMetricsRecorder(<span class="predefined-type">String</span> baseName, MetricRegistry registry) {
-    allocationLatency = registry.histogram(baseName + <span class="string"><span class="delimiter">&quot;</span><span class="content">.allocationLatency</span><span class="delimiter">&quot;</span></span>);
-    allocationFailureLatency = registry.histogram(baseName + <span class="string"><span class="delimiter">&quot;</span><span class="content">.allocationFailureLatency</span><span class="delimiter">&quot;</span></span>);
-    deallocationLatency = registry.histogram(baseName + <span class="string"><span class="delimiter">&quot;</span><span class="content">.deallocationLatency</span><span class="delimiter">&quot;</span></span>);
-    reallocationLatency = registry.histogram(baseName + <span class="string"><span class="delimiter">&quot;</span><span class="content">.reallocationLatency</span><span class="delimiter">&quot;</span></span>);
-    reallocationFailureLatency = registry.histogram(baseName + <span class="string"><span class="delimiter">&quot;</span><span class="content">.reallocationFailureLatency</span><span class="delimiter">&quot;</span></span>);
-    objectLifetime = registry.histogram(baseName + <span class="string"><span class="delimiter">&quot;</span><span class="content">.objectLifetime</span><span class="delimiter">&quot;</span></span>);
-  }
-
-  <span class="annotation">@Override</span>
-  <span class="directive">public</span> <span class="type">void</span> recordAllocationLatencySampleMillis(<span class="type">long</span> milliseconds) {
-    allocationLatency.update(milliseconds);
-  }
-
-  <span class="annotation">@Override</span>
-  <span class="directive">public</span> <span class="type">void</span> recordAllocationFailureLatencySampleMillis(<span class="type">long</span> milliseconds) {
-    allocationFailureLatency.update(milliseconds);
-  }
-
-  <span class="annotation">@Override</span>
-  <span class="directive">public</span> <span class="type">void</span> recordDeallocationLatencySampleMillis(<span class="type">long</span> milliseconds) {
-    deallocationLatency.update(milliseconds);
-  }
-
-  <span class="annotation">@Override</span>
-  <span class="directive">public</span> <span class="type">void</span> recordReallocationLatencySampleMillis(<span class="type">long</span> milliseconds) {
-    reallocationLatency.update(milliseconds);
-  }
-
-  <span class="annotation">@Override</span>
-  <span class="directive">public</span> <span class="type">void</span> recordReallocationFailureLatencySampleMillis(<span class="type">long</span> milliseconds) {
-    reallocationFailureLatency.update(milliseconds);
-  }
-
-  <span class="annotation">@Override</span>
-  <span class="directive">public</span> <span class="type">void</span> recordObjectLifetimeSampleMillis(<span class="type">long</span> milliseconds) {
-    objectLifetime.update(milliseconds);
-  }
-
-  <span class="annotation">@Override</span>
-  <span class="directive">public</span> <span class="type">double</span> getAllocationLatencyPercentile(<span class="type">double</span> percentile) {
-    <span class="keyword">return</span> allocationLatency.getSnapshot().getValue(percentile);
-  }
-
-  <span class="annotation">@Override</span>
-  <span class="directive">public</span> <span class="type">double</span> getAllocationFailureLatencyPercentile(<span class="type">double</span> percentile) {
-    <span class="keyword">return</span> allocationFailureLatency.getSnapshot().getValue(percentile);
-  }
-
-  <span class="annotation">@Override</span>
-  <span class="directive">public</span> <span class="type">double</span> getDeallocationLatencyPercentile(<span class="type">double</span> percentile) {
-    <span class="keyword">return</span> deallocationLatency.getSnapshot().getValue(percentile);
-  }
-
-  <span class="annotation">@Override</span>
-  <span class="directive">public</span> <span class="type">double</span> getReallocationLatencyPercentile(<span class="type">double</span> percentile) {
-    <span class="keyword">return</span> reallocationLatency.getSnapshot().getValue(percentile);
-  }
-
-  <span class="annotation">@Override</span>
-  <span class="directive">public</span> <span class="type">double</span> getReallocationFailurePercentile(<span class="type">double</span> percentile) {
-    <span class="keyword">return</span> reallocationFailureLatency.getSnapshot().getValue(percentile);
-  }
-
-  <span class="annotation">@Override</span>
-  <span class="directive">public</span> <span class="type">double</span> getObjectLifetimePercentile(<span class="type">double</span> percentile) {
-    <span class="keyword">return</span> objectLifetime.getSnapshot().getValue(percentile);
-  }
-}</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Once you have your <code>MetricsRecorder</code> implementation, you just set an instance of it on your <code>PoolBuilder</code> object with the <code>setMetricsRecorder</code> method.</p>
+<p>There is no <code>MetricsRecorder</code> configured by default, and Stormpot does not come with any integrations built in.
+Integrators need to build their own.
+Once you have your <code>MetricsRecorder</code> implementation, you just set an instance of it on your <code>PoolBuilder</code> object with the <code>setMetricsRecorder</code> method.</p>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_threadfactory">ThreadFactory</h3>
 <div class="paragraph">
-<p>Stormpot creates a background thread per pool instance.
+<p>Stormpot pools in the default or threaded mode create a background thread per pool instance.
 This thread is in charge of allocating and deallocating objects for the pool.
 This means that the threads that access the pool to claim objects, don&#8217;t have to pay the overhead of allocating any of the objects themselves.
 The latency for claiming objects is thereby reduced, and made more predictable.</p>
@@ -826,16 +760,19 @@ There might be particular contexts, that every new thread needs to be associated
 It might be that you can only create threads if they get associated with a particular <code>ThreadGroup</code>.</p>
 </div>
 <div class="paragraph">
-<p>Whatever the case, if the background thread needs to be created in a particular way for your particular environment, then you can provide a <code>ThreadFactory</code> implementation via the <code>setThreadFactory</code> method, and make sure that the background thread is created in a way that observes the law of the land in your particular circumstances.</p>
+<p>Whatever the case, if the background thread needs to be created in a particular way for your particular environment, then you can provide a <code>ThreadFactory</code> implementation via the <code>setThreadFactory</code> method, and make sure the background thread is created in a way that observes the law of the land in your particular circumstances.</p>
 </div>
 <div class="paragraph">
-<p>The default <code>ThreadFactory</code> is based on the <code>Executors.defaultThreadFactory</code>, but also assigns the thread a name, that makes it recognisable as a Stormpot background thread.</p>
+<p>The default <code>ThreadFactory</code> is based on the <code>Executors#defaultThreadFactory</code>, but also assigns the thread a name, that makes it recognisable as a Stormpot background thread.</p>
+</div>
+<div class="paragraph">
+<p>The thread factory setting is not used by pools that operate in the <em>inline</em> mode.</p>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_precise_leak_detection">Precise Leak Detection</h3>
 <div class="paragraph">
-<p>Stormpot has precise leak detection enabled by default, because the CPU overhead is very low.
+<p>Stormpot has precise leak detection enabled by default (except in the direct pool mode) because the CPU overhead is very low.
 There is, however, a bit of memory overhead.
 Therefor, it may make sense to disable this in use cases where memory is very constrained, and/or the pool contains a very large number of objects.
 If you pool upwards a hundred thousand objects or more, you might want to disable it for performance reasons.</p>
@@ -845,7 +782,7 @@ If you pool upwards a hundred thousand objects or more, you might want to disabl
 The number of leaks detected is reported via the <code>getLeakedObjectsCount</code> method of the <code>ManagedPool</code> interface.</p>
 </div>
 <div class="paragraph">
-<p>This feature uses the garbage collector to determine whether or not an object has any chance of ever returning to the pool.
+<p>This feature uses the garbage collector to determine whether an object has any chance of ever returning to the pool.
 This is why it&#8217;s called <em>precise</em> leak detection:
 It never reports any false positives.
 That is, it never counts an object as leaked, unless there is a 100% certainty, that it will never, ever return to the pool.
@@ -866,7 +803,7 @@ In such a case it&#8217;s nice that the API for awaiting on the completion of th
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-05-15 13:04:08 +0200
+Last updated 2020-06-07 22:58:21 +0200
 </div>
 </div>
 </body>

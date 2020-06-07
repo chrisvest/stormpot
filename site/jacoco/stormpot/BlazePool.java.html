@@ -15,7 +15,7 @@
  */
 package stormpot;
 
-import java.util.concurrent.BlockingQueue;
+import java.util.Objects;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -46,15 +46,16 @@ final class BlazePool&lt;T extends Poolable&gt;
 <span class="fc" id="L46">  static final Exception EXPLICIT_EXPIRE_POISON =</span>
       new Exception(&quot;Stormpot Poison: Expired&quot;);
 
-  private final BlockingQueue&lt;BSlot&lt;T&gt;&gt; live;
-  private final DisregardBPile&lt;T&gt; disregardPile;
-  private final AllocatorProcess&lt;T&gt; allocator;
+  private final LinkedTransferQueue&lt;BSlot&lt;T&gt;&gt; live;
+  private final RefillPile&lt;T&gt; disregardPile;
+  private final RefillPile&lt;T&gt; newAllocations;
+  private final AllocationController&lt;T&gt; allocator;
   private final ThreadLocal&lt;BSlotCache&lt;T&gt;&gt; tlr;
   private final Expiration&lt;? super T&gt; deallocRule;
   private final MetricsRecorder metricsRecorder;
 
   /**
-   * Special slot used to signal that the pool has been shut down.
+   * A special slot used to signal that the pool has been shut down.
    */
   private final BSlot&lt;T&gt; poisonPill;
 
@@ -64,35 +65,29 @@ final class BlazePool&lt;T extends Poolable&gt;
    * Construct a new BlazePool instance based on the given {@link PoolBuilder}.
    * @param builder The pool configuration to use.
    */
-<span class="fc" id="L67">  BlazePool(PoolBuilder&lt;T&gt; builder, AllocatorProcessFactory factory) {</span>
-<span class="fc" id="L68">    builder.validate();</span>
+<span class="fc" id="L68">  BlazePool(PoolBuilder&lt;T&gt; builder, AllocationProcess factory) {</span>
 <span class="fc" id="L69">    live = new LinkedTransferQueue&lt;&gt;();</span>
-<span class="fc" id="L70">    disregardPile = new DisregardBPile&lt;&gt;(live);</span>
-<span class="fc" id="L71">    tlr = new ThreadLocalBSlotCache&lt;&gt;();</span>
-<span class="fc" id="L72">    poisonPill = new BSlot&lt;&gt;(live, null);</span>
-<span class="fc" id="L73">    poisonPill.poison = SHUTDOWN_POISON;</span>
-<span class="fc" id="L74">    deallocRule = builder.getExpiration();</span>
-<span class="fc" id="L75">    metricsRecorder = builder.getMetricsRecorder();</span>
-<span class="fc" id="L76">    allocator = factory.buildAllocator(</span>
-        live, disregardPile, builder, poisonPill);
-<span class="fc" id="L78">  }</span>
+<span class="fc" id="L70">    disregardPile = new RefillPile&lt;&gt;(live);</span>
+<span class="fc" id="L71">    newAllocations = new RefillPile&lt;&gt;(live);</span>
+<span class="fc" id="L72">    tlr = new ThreadLocalBSlotCache&lt;&gt;();</span>
+<span class="fc" id="L73">    poisonPill = new BSlot&lt;&gt;(live, null);</span>
+<span class="fc" id="L74">    poisonPill.poison = SHUTDOWN_POISON;</span>
+<span class="fc" id="L75">    deallocRule = builder.getExpiration();</span>
+<span class="fc" id="L76">    metricsRecorder = builder.getMetricsRecorder();</span>
+<span class="fc" id="L77">    allocator = factory.buildAllocationController(</span>
+        live, disregardPile, newAllocations, builder, poisonPill);
+<span class="fc" id="L79">  }</span>
 
   @Override
   public T claim(Timeout timeout)
       throws PoolException, InterruptedException {
-<span class="fc" id="L83">    return tlrClaim(timeout, tlr.get());</span>
+<span class="fc" id="L84">    return tlrClaim(timeout, tlr.get());</span>
   }
-
-  private void assertTimeoutNotNull(Timeout timeout) {
-<span class="fc bfc" id="L87" title="All 2 branches covered.">    if (timeout == null) {</span>
-<span class="fc" id="L88">      throw new IllegalArgumentException(&quot;Timeout cannot be null&quot;);</span>
-    }
-<span class="fc" id="L90">  }</span>
 
   T tlrClaim(Timeout timeout, BSlotCache&lt;T&gt; cache)
       throws PoolException, InterruptedException {
-<span class="fc" id="L94">    assertTimeoutNotNull(timeout);</span>
-<span class="fc" id="L95">    BSlot&lt;T&gt; slot = cache.slot;</span>
+<span class="fc" id="L89">    Objects.requireNonNull(timeout, &quot;Timeout cannot be null.&quot;);</span>
+<span class="fc" id="L90">    BSlot&lt;T&gt; slot = cache.slot;</span>
     // Note that the TLR slot at this point might have been tried by another
     // thread, found to be expired, put on the dead-queue and deallocated.
     // We handle this because slots always transition to the dead state before
@@ -100,15 +95,15 @@ final class BlazePool&lt;T extends Poolable&gt;
     // slot.live2claimTlr() call will fail.
     // Then we will eventually find another slot from the live-queue that we
     // can claim and make our new TLR slot.
-<span class="fc bfc" id="L103" title="All 4 branches covered.">    if (slot != null &amp;&amp; slot.live2claimTlr()) {</span>
+<span class="fc bfc" id="L98" title="All 4 branches covered.">    if (slot != null &amp;&amp; slot.live2claimTlr()) {</span>
       // Attempt the claim before checking the validity, because we might
       // already have claimed it.
       // If we checked validity before claiming, then we might find that it
       // had expired, and throw it in the dead queue, causing a claimed
       // Poolable to be deallocated before it is released.
-<span class="fc bfc" id="L109" title="All 2 branches covered.">      if (!isInvalid(slot, cache, true)) {</span>
-<span class="fc" id="L110">        slot.incrementClaims();</span>
-<span class="fc" id="L111">        return slot.obj;</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">      if (!isInvalid(slot, cache, true)) {</span>
+<span class="fc" id="L105">        slot.incrementClaims();</span>
+<span class="fc" id="L106">        return slot.obj;</span>
       }
       // We managed to tlr-claim the slot, but it turned out to be no good.
       // That means we now have to transition it from tlr-claimed to dead.
@@ -124,7 +119,7 @@ final class BlazePool&lt;T extends Poolable&gt;
       // leak on our hands.
     }
     // The thread-local claim failed, so we have to go through the slow-path.
-<span class="fc" id="L127">    return slowClaim(timeout, cache);</span>
+<span class="fc" id="L122">    return slowClaim(timeout, cache);</span>
   }
 
   private T slowClaim(Timeout timeout, BSlotCache&lt;T&gt; cache)
@@ -133,26 +128,31 @@ final class BlazePool&lt;T extends Poolable&gt;
     // inline separately. At this point, taking a performance hit is
     // inevitable anyway, so we're allowed a bit more leeway.
     BSlot&lt;T&gt; slot;
-<span class="fc" id="L136">    long deadline = timeout.getDeadline();</span>
-<span class="fc" id="L137">    long timeoutLeft = timeout.getTimeoutInBaseUnit();</span>
-<span class="fc" id="L138">    TimeUnit baseUnit = timeout.getBaseUnit();</span>
-<span class="fc" id="L139">    long maxWaitQuantum = baseUnit.convert(10, TimeUnit.MILLISECONDS);</span>
+<span class="fc" id="L131">    long startNanos = NanoClock.nanoTime();</span>
+<span class="fc" id="L132">    long timeoutNanos = timeout.getTimeoutInBaseUnit();</span>
+<span class="fc" id="L133">    long timeoutLeft = timeoutNanos;</span>
+<span class="fc" id="L134">    TimeUnit baseUnit = timeout.getBaseUnit();</span>
+<span class="fc" id="L135">    long maxWaitQuantum = baseUnit.convert(100, TimeUnit.MILLISECONDS);</span>
     for (;;) {
-<span class="fc" id="L141">      slot = live.poll(Math.min(timeoutLeft, maxWaitQuantum), baseUnit);</span>
+<span class="fc" id="L137">      slot = newAllocations.pop();</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">      if (slot == null) {</span>
+<span class="fc" id="L139">        long pollWait = Math.min(timeoutLeft, maxWaitQuantum);</span>
+<span class="fc" id="L140">        slot = live.poll(pollWait, baseUnit);</span>
+      }
 <span class="fc bfc" id="L142" title="All 2 branches covered.">      if (slot == null) {</span>
 <span class="fc bfc" id="L143" title="All 2 branches covered.">        if (timeoutLeft &lt;= 0) {</span>
           // We timed out while taking from the queue - just return null
 <span class="fc" id="L145">          return null;</span>
         } else {
-<span class="fc" id="L147">          timeoutLeft = timeout.getTimeLeft(deadline);</span>
-<span class="fc" id="L148">          disregardPile.refillQueue();</span>
+<span class="fc" id="L147">          timeoutLeft = NanoClock.timeoutLeft(startNanos, timeoutNanos);</span>
+<span class="fc" id="L148">          disregardPile.refill();</span>
 <span class="fc" id="L149">          continue;</span>
         }
       }
 
 <span class="fc bfc" id="L153" title="All 2 branches covered.">      if (slot.live2claim()) {</span>
 <span class="fc bfc" id="L154" title="All 2 branches covered.">        if (isInvalid(slot, cache, false)) {</span>
-<span class="fc" id="L155">          timeoutLeft = timeout.getTimeLeft(deadline);</span>
+<span class="fc" id="L155">          timeoutLeft = NanoClock.timeoutLeft(startNanos, timeoutNanos);</span>
 <span class="fc bfc" id="L156" title="All 2 branches covered.">          if (timeoutLeft &lt;= 0) {</span>
             // There is no time left to poll the queue again - just return null
 <span class="fc" id="L158">            return null;</span>
@@ -161,7 +161,7 @@ final class BlazePool&lt;T extends Poolable&gt;
           break;
         }
       } else {
-<span class="fc" id="L164">        disregardPile.addSlot(slot);</span>
+<span class="fc" id="L164">        disregardPile.push(slot);</span>
       }
     }
 <span class="fc" id="L167">    slot.incrementClaims();</span>
@@ -237,115 +237,114 @@ final class BlazePool&lt;T extends Poolable&gt;
     // claimed, that is, pulled off the live-queue, can it be put into the
     // dead-queue. This helps ensure that a slot will only ever be in at most
     // one queue.
-
-<span class="fc bfc" id="L241" title="All 2 branches covered.">    if (slot.isClaimed()) {</span>
-<span class="fc" id="L242">      slot.claim2dead();</span>
-<span class="fc" id="L243">      allocator.offerDeadSlot(slot);</span>
+<span class="fc bfc" id="L240" title="All 2 branches covered.">    if (slot.isClaimed()) {</span>
+<span class="fc" id="L241">      slot.claim2dead();</span>
+<span class="fc" id="L242">      allocator.offerDeadSlot(slot);</span>
     } else {
-<span class="fc" id="L245">      slot.claimTlr2live();</span>
-<span class="fc" id="L246">      cache.slot = null;</span>
+<span class="fc" id="L244">      slot.claimTlr2live();</span>
+<span class="fc" id="L245">      cache.slot = null;</span>
     }
-<span class="fc" id="L248">  }</span>
+<span class="fc" id="L247">  }</span>
 
   @Override
   public Completion shutdown() {
-<span class="fc" id="L252">    shutdown = true;</span>
-<span class="fc" id="L253">    return allocator.shutdown();</span>
+<span class="fc" id="L251">    shutdown = true;</span>
+<span class="fc" id="L252">    return allocator.shutdown();</span>
   }
 
   @Override
   public void setTargetSize(int size) {
-<span class="fc bfc" id="L258" title="All 2 branches covered.">    if (size &lt; 1) {</span>
-<span class="fc" id="L259">      throw new IllegalArgumentException(</span>
-          &quot;Target pool size must be at least 1&quot;);
+<span class="fc bfc" id="L257" title="All 2 branches covered.">    if (size &lt; 0) {</span>
+<span class="fc" id="L258">      throw new IllegalArgumentException(</span>
+          &quot;Target pool size must be positive&quot;);
     }
-<span class="fc bfc" id="L262" title="All 2 branches covered.">    if (shutdown) {</span>
-<span class="fc" id="L263">      return;</span>
+<span class="fc bfc" id="L261" title="All 2 branches covered.">    if (shutdown) {</span>
+<span class="fc" id="L262">      return;</span>
     }
-<span class="fc" id="L265">    allocator.setTargetSize(size);</span>
-<span class="fc" id="L266">  }</span>
+<span class="fc" id="L264">    allocator.setTargetSize(size);</span>
+<span class="fc" id="L265">  }</span>
 
   @Override
   public int getTargetSize() {
-<span class="fc" id="L270">    return allocator.getTargetSize();</span>
+<span class="fc" id="L269">    return allocator.getTargetSize();</span>
   }
 
   @Override
   public ManagedPool getManagedPool() {
-<span class="fc" id="L275">    return this;</span>
+<span class="fc" id="L274">    return this;</span>
   }
 
   @Override
   public PoolTap&lt;T&gt; getThreadLocalTap() {
-<span class="fc" id="L280">    return new BlazePoolThreadLocalTap&lt;&gt;(this);</span>
+<span class="fc" id="L279">    return new BlazePoolThreadLocalTap&lt;&gt;(this);</span>
   }
 
   @Override
   public long getAllocationCount() {
-<span class="fc" id="L285">    return allocator.getAllocationCount();</span>
+<span class="fc" id="L284">    return allocator.getAllocationCount();</span>
   }
 
   @Override
   public long getFailedAllocationCount() {
-<span class="fc" id="L290">    return allocator.getFailedAllocationCount();</span>
+<span class="fc" id="L289">    return allocator.getFailedAllocationCount();</span>
   }
 
   @Override
   public boolean isShutDown() {
-<span class="fc" id="L295">    return shutdown;</span>
+<span class="fc" id="L294">    return shutdown;</span>
   }
 
   @Override
   public double getObjectLifetimePercentile(double percentile) {
-<span class="fc bfc" id="L300" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
-<span class="fc" id="L301">      return Double.NaN;</span>
+<span class="fc bfc" id="L299" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L300">      return Double.NaN;</span>
     }
-<span class="fc" id="L303">    return metricsRecorder.getObjectLifetimePercentile(percentile);</span>
+<span class="fc" id="L302">    return metricsRecorder.getObjectLifetimePercentile(percentile);</span>
   }
 
   @Override
   public double getAllocationLatencyPercentile(double percentile) {
-<span class="fc bfc" id="L308" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
-<span class="fc" id="L309">      return Double.NaN;</span>
+<span class="fc bfc" id="L307" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L308">      return Double.NaN;</span>
     }
-<span class="fc" id="L311">    return metricsRecorder.getAllocationLatencyPercentile(percentile);</span>
+<span class="fc" id="L310">    return metricsRecorder.getAllocationLatencyPercentile(percentile);</span>
   }
 
   @Override
   public double getAllocationFailureLatencyPercentile(double percentile) {
-<span class="fc bfc" id="L316" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
-<span class="fc" id="L317">      return Double.NaN;</span>
+<span class="fc bfc" id="L315" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L316">      return Double.NaN;</span>
     }
-<span class="fc" id="L319">    return metricsRecorder.getAllocationFailureLatencyPercentile(percentile);</span>
+<span class="fc" id="L318">    return metricsRecorder.getAllocationFailureLatencyPercentile(percentile);</span>
   }
 
   @Override
   public double getReallocationLatencyPercentile(double percentile) {
-<span class="fc bfc" id="L324" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
-<span class="fc" id="L325">      return Double.NaN;</span>
+<span class="fc bfc" id="L323" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L324">      return Double.NaN;</span>
     }
-<span class="fc" id="L327">    return metricsRecorder.getReallocationLatencyPercentile(percentile);</span>
+<span class="fc" id="L326">    return metricsRecorder.getReallocationLatencyPercentile(percentile);</span>
   }
 
   @Override
   public double getReallocationFailureLatencyPercentile(double percentile) {
-<span class="fc bfc" id="L332" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
-<span class="fc" id="L333">      return Double.NaN;</span>
+<span class="fc bfc" id="L331" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L332">      return Double.NaN;</span>
     }
-<span class="fc" id="L335">    return metricsRecorder.getReallocationFailurePercentile(percentile);</span>
+<span class="fc" id="L334">    return metricsRecorder.getReallocationFailurePercentile(percentile);</span>
   }
 
   @Override
   public double getDeallocationLatencyPercentile(double percentile) {
-<span class="fc bfc" id="L340" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
-<span class="fc" id="L341">      return Double.NaN;</span>
+<span class="fc bfc" id="L339" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc" id="L340">      return Double.NaN;</span>
     }
-<span class="fc" id="L343">    return metricsRecorder.getDeallocationLatencyPercentile(percentile);</span>
+<span class="fc" id="L342">    return metricsRecorder.getDeallocationLatencyPercentile(percentile);</span>
   }
 
   @Override
   public long getLeakedObjectsCount() {
-<span class="fc" id="L348">    return allocator.countLeakedObjects();</span>
+<span class="fc" id="L347">    return allocator.countLeakedObjects();</span>
   }
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

@@ -100,7 +100,7 @@ final class BSlot&lt;T extends Poolable&gt;
 
   @Override
   public long getAgeMillis() {
-<span class="fc" id="L103">    return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - createdNanos);</span>
+<span class="fc" id="L103">    return TimeUnit.NANOSECONDS.toMillis(NanoClock.elapsed(createdNanos));</span>
   }
 
   @Override
@@ -141,28 +141,29 @@ final class BSlot&lt;T extends Poolable&gt;
 
   @Override
   public String toString() {
-<span class="nc" id="L144">    int state = get();</span>
+<span class="fc" id="L144">    int state = get();</span>
     String s;
-<span class="nc bnc" id="L146" title="All 2 branches missed.">    if (state == CLAIMED) {</span>
-<span class="nc" id="L147">      s = &quot;CLAIMED&quot;;</span>
-<span class="nc bnc" id="L148" title="All 2 branches missed.">    } else if (state == TLR_CLAIMED) {</span>
-<span class="nc" id="L149">      s = &quot;TLR_CLAIMED&quot;;</span>
-<span class="nc bnc" id="L150" title="All 2 branches missed.">    } else if (state == LIVING) {</span>
-<span class="nc" id="L151">      s = &quot;LIVING&quot;;</span>
-<span class="nc bnc" id="L152" title="All 2 branches missed.">    } else if (state == DEAD) {</span>
-<span class="nc" id="L153">      s = &quot;DEAD&quot;;</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">    if (state == CLAIMED) {</span>
+<span class="fc" id="L147">      s = &quot;CLAIMED&quot;;</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">    } else if (state == TLR_CLAIMED) {</span>
+<span class="fc" id="L149">      s = &quot;TLR_CLAIMED&quot;;</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">    } else if (state == LIVING) {</span>
+<span class="fc" id="L151">      s = &quot;LIVING&quot;;</span>
+<span class="pc bpc" id="L152" title="1 of 2 branches missed.">    } else if (state == DEAD) {</span>
+<span class="fc" id="L153">      s = &quot;DEAD&quot;;</span>
     } else {
 <span class="nc" id="L155">      s = &quot;UnknownState(&quot; + state + &quot;)&quot;;</span>
     }
-<span class="nc" id="L157">    return &quot;BSolt[&quot; + s + &quot;, obj = &quot; + obj + &quot;, poison = &quot; + poison + &quot;]&quot;;</span>
+<span class="fc" id="L157">    return &quot;BSolt[&quot; + s + &quot;, obj = &quot; + obj + &quot;, poison = &quot; + poison + &quot;]&quot;;</span>
   }
 }
 
-<span class="fc" id="L161">abstract class Padding1 {</span>
-  @SuppressWarnings(&quot;unused&quot;)
-  private int p0;
-  @SuppressWarnings(&quot;unused&quot;)
-  private long p1, p2, p3, p4, p5, p6;
+@SuppressWarnings(&quot;unused&quot;)
+<span class="fc" id="L162">abstract class Padding1 {</span>
+  private byte p0;
+  private byte p1;
+  private byte p2;
+  private byte p3;
 }
 
 abstract class PaddedAtomicInteger extends Padding1 {
@@ -170,36 +171,35 @@ abstract class PaddedAtomicInteger extends Padding1 {
 
   static {
     try {
-<span class="fc" id="L173">      MethodHandles.Lookup lookup = MethodHandles.lookup();</span>
-<span class="fc" id="L174">      STATE = lookup.findVarHandle(PaddedAtomicInteger.class, &quot;state&quot;, int.class);</span>
-<span class="nc" id="L175">    } catch (NoSuchFieldException | IllegalAccessException e) {</span>
-<span class="nc" id="L176">      throw new AssertionError(&quot;Failed to initialise the state VarHandle.&quot;, e);</span>
-<span class="fc" id="L177">    }</span>
-<span class="fc" id="L178">  }</span>
+<span class="fc" id="L174">      MethodHandles.Lookup lookup = MethodHandles.lookup();</span>
+<span class="fc" id="L175">      STATE = lookup.findVarHandle(PaddedAtomicInteger.class, &quot;state&quot;, int.class);</span>
+<span class="nc" id="L176">    } catch (NoSuchFieldException | IllegalAccessException e) {</span>
+<span class="nc" id="L177">      throw new AssertionError(&quot;Failed to initialise the state VarHandle.&quot;, e);</span>
+<span class="fc" id="L178">    }</span>
+<span class="fc" id="L179">  }</span>
 
+  @SuppressWarnings(&quot;FieldMayBeFinal&quot;)
   private volatile int state;
 
-<span class="fc" id="L182">  PaddedAtomicInteger(int state) {</span>
-<span class="fc" id="L183">    this.state = state;</span>
-<span class="fc" id="L184">  }</span>
+<span class="fc" id="L184">  PaddedAtomicInteger(int state) {</span>
+<span class="fc" id="L185">    this.state = state;</span>
+<span class="fc" id="L186">  }</span>
 
+  @SuppressWarnings(&quot;SameParameterValue&quot;)
   final boolean compareAndSet(int expected, int update) {
-<span class="fc" id="L187">    return STATE.compareAndSet(this, expected, update);</span>
+<span class="fc" id="L190">    return STATE.compareAndSet(this, expected, update);</span>
   }
 
   final void lazySet(int update) {
-<span class="fc" id="L191">    STATE.setOpaque(this, update);</span>
-<span class="fc" id="L192">  }</span>
+<span class="fc" id="L194">    STATE.setOpaque(this, update);</span>
+<span class="fc" id="L195">  }</span>
 
   int get() {
-<span class="fc" id="L195">    return state;</span>
+<span class="fc" id="L198">    return state;</span>
   }
 }
 
 abstract class Padding2 extends PaddedAtomicInteger {
-  @SuppressWarnings(&quot;unused&quot;)
-  private long p1, p2, p3, p4, p5, p6;
-
   Padding2(int state) {
 <span class="fc" id="L204">    super(state);</span>
 <span class="fc" id="L205">  }</span>
@@ -230,4 +230,4 @@ abstract class BSlotColdFields&lt;T extends Poolable&gt; extends Padding2 implem
     }
 <span class="fc" id="L231">  }</span>
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

@@ -534,7 +534,7 @@ table.CodeRay td.code>pre{padding:0}
 <li><a href="#_object_pooling_in_practice">Object Pooling in Practice</a></li>
 <li><a href="#_more_elements_of_stormpot">More Elements of Stormpot</a></li>
 <li><a href="#_configuring_stormpot">Configuring Stormpot</a></li>
-<li><a href="#_directly_pooling_objects">Directly Pooling Objects</a></li>
+<li><a href="#_alternative_pool_modes">Alternative Pool Modes</a></li>
 </ul>
 </li>
 </ul>
@@ -647,7 +647,8 @@ More than one thread at a time can be blocked trying to claim objects from the p
 The claim call does not guarantee fairness, so there is no way to know before hand, which of the threads will be unblocked when an object is released.</p>
 </div>
 <div class="paragraph">
-<p>The pool has a background thread dedicated to allocating and deallocating the poolable objects, because these are presumably expensive operations.
+<p>The pool has an allocation process to allocating and deallocating the poolable objects, because these are presumably expensive operations.
+The allocation process is by default implemented as a dedicated background thread.
 This way, the threads that come to the pool to claim objects, don&#8217;t have to pay the cost of allocating those objects.
 This reduces the latency for claim in the general case.</p>
 </div>
@@ -656,7 +657,7 @@ This reduces the latency for claim in the general case.</p>
 </div>
 <div class="imageblock">
 <div class="content">
-<img src="images/diag-13dba6b1bad7bf1e24f4a61548f73fe1.png" alt="diag 13dba6b1bad7bf1e24f4a61548f73fe1" width="820" height="266">
+<img src="images/diag-1274f981d8d0777556741c355eceb65d.png" alt="diag 1274f981d8d0777556741c355eceb65d" width="840" height="266">
 </div>
 </div>
 </div>
@@ -700,11 +701,16 @@ However, it is a skeleton to which we can add the functionality and the expensiv
 <div class="paragraph">
 <p>Next, the pool can&#8217;t create instances of this class by itself.
 It needs the help of an <code>Allocator</code> implementation to do that.
-The allocation of these objects will be happening in a dedicated allocation thread, such that this thread pays the cost of the presumably expensive allocation.
+The allocation of these objects will by default be happening in a dedicated allocation thread, such that this thread pays the cost of the presumably expensive allocation.
 Therefor, it is generally a good idea to do as much work as possible during the allocation, such that it is as cheap as possible to claim and use the objects.
 There is one moderation to this rule, however, because the pool only has one allocation thread.
 The more expensive objects are to create, the longer it will take to fill the pool.
 Likewise, if the objects expire and churn with a high rate, the allocation thread might not be able to keep up with the demand for reallocations.</p>
+</div>
+<div class="paragraph">
+<p>The above describes the default <em>threaded</em> allocation mode.
+The pool can also be created in other modes where the objects are either all allocated up front, or inline with the claim calls.
+See the configuration page for descriptions of the different <a href="config.html#pool-modes">allocation modes</a>.</p>
 </div>
 <div class="paragraph">
 <p>Here is what an <code>Allocator</code> that allocates the above objects, can look like:</p>
@@ -891,9 +897,40 @@ See the <a href="config.html">configuration reference</a> page for more informat
 </div>
 </div>
 <div class="sect2">
-<h3 id="_directly_pooling_objects">Directly Pooling Objects</h3>
+<h3 id="_alternative_pool_modes">Alternative Pool Modes</h3>
 <div class="paragraph">
-<p>Stormpot comes with an alternative operating mode, where the objects to be pooled are directly given to the pool upon construction, rather than being allocated and maintained in the background.</p>
+<p>Stormpot comes with two alternative pool modes: the inline pool mode and the direct pool mode.</p>
+</div>
+<div class="sect3">
+<h4 id="_the_inline_pool_mode">The Inline Pool Mode</h4>
+<div class="paragraph">
+<p>In the inline pool mode the objects are initially allocated when the pool is created, and then deallocated and reallocated as part of the <code>claim</code> calls.</p>
+</div>
+<div class="paragraph">
+<p>This mode is enabled by creating the pool with the <code>Pool.fromInline()</code> method:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java">    Pool&lt;MyPoolable&gt; pool = Pool.fromInline(allocator).build();
+    MyPoolable obj = pool.claim(TIMEOUT);
+    <span class="keyword">if</span> (obj != <span class="predefined-constant">null</span>) {
+      <span class="predefined-type">System</span>.out.println(obj);
+      obj.release();
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The inline mode is similar to the threaded mode in many aspects, but with the services provided by the background thread disabled.
+For instance, there is no background expiration checking, and no background reallocation of failed allocations.</p>
+</div>
+<div class="paragraph">
+<p>Since the pool in the inline mode will deallocate and allocate objects as part of the <code>claim</code> calls, it is possible that it will take longer for the call to return than what is specified by the given timeout.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_the_direct_pool_mode">The Direct Pool Mode</h4>
+<div class="paragraph">
+<p>In the direct pool mode the objects to be pooled are directly given to the pool upon construction, rather than being allocated and maintained in the background.</p>
 </div>
 <div class="paragraph">
 <p>This mode is enabled by creating the pool with the <code>Pool.of(&#8230;&#8203;)</code> method:</p>
@@ -923,7 +960,9 @@ This makes mode good for temporary and short-lived pools, or for when the object
 </div>
 <div class="paragraph">
 <p>One drawback of this mode, is that the pool cannot be resized.
-The size of these pools are fixed, and given by the number of objects passed to the <code>Pool.of(&#8230;&#8203;)</code> method.</p>
+The size of these pools are fixed, and given by the number of objects passed to the <code>Pool.of(&#8230;&#8203;)</code> method.
+If you need to be able to resize the pool, then you should take a look at the <em>inline</em> pool mode instead.</p>
+</div>
 </div>
 </div>
 </div>
@@ -931,7 +970,7 @@ The size of these pools are fixed, and given by the number of objects passed to 
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-05-15 13:04:08 +0200
+Last updated 2020-06-07 22:58:21 +0200
 </div>
 </div>
 </body>

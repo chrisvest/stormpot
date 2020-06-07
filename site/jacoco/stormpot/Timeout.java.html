@@ -15,6 +15,8 @@
  */
 package stormpot;
 
+import java.time.Duration;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -46,21 +48,33 @@ public final class Timeout {
    * though the meaning is implementation specific.
    * @param unit The unit of the timeout value. Never `null`.
    */
-<span class="fc" id="L49">  public Timeout(long timeout, TimeUnit unit) {</span>
-<span class="fc bfc" id="L50" title="All 2 branches covered.">    if (unit == null) {</span>
-<span class="fc" id="L51">      throw new IllegalArgumentException(&quot;The TimeUnit cannot be null&quot;);</span>
-    }
+<span class="fc" id="L51">  public Timeout(long timeout, TimeUnit unit) {</span>
+<span class="fc" id="L52">    Objects.requireNonNull(unit, &quot;The TimeUnit cannot be null.&quot;);</span>
 <span class="fc" id="L53">    this.timeout = timeout;</span>
 <span class="fc" id="L54">    this.unit = unit;</span>
 <span class="fc" id="L55">    this.timeoutBase = getBaseUnit().convert(timeout, unit);</span>
 <span class="fc" id="L56">  }</span>
 
   /**
+   * Construct a new timeout with the given duration.
+   * An exception will be thrown if the duration cannot be converted to a nanosecond quantity.
+   * The duration also cannot be `null`.
+   * Apart from these two, there are no restrictions on the duration.
+   * @param duration A duration to use for the timeout.
+   */
+<span class="nc" id="L65">  public Timeout(Duration duration) {</span>
+<span class="nc" id="L66">    Objects.requireNonNull(duration, &quot;Duration cannot be null.&quot;);</span>
+<span class="nc" id="L67">    this.timeout = duration.toNanos();</span>
+<span class="nc" id="L68">    this.unit = TimeUnit.NANOSECONDS;</span>
+<span class="nc" id="L69">    this.timeoutBase = timeout;</span>
+<span class="nc" id="L70">  }</span>
+
+  /**
    * Get the timeout value in terms of the {@link #getUnit() unit}.
    * @return A numerical value of the timeout. Possibly zero or negative.
    */
   public long getTimeout() {
-<span class="fc" id="L63">    return timeout;</span>
+<span class="fc" id="L77">    return timeout;</span>
   }
 
   /**
@@ -68,7 +82,7 @@ public final class Timeout {
    * @return The {@link TimeUnit} of the timeout value. Never `null`.
    */
   public TimeUnit getUnit() {
-<span class="fc" id="L71">    return unit;</span>
+<span class="fc" id="L85">    return unit;</span>
   }
 
   /**
@@ -81,10 +95,14 @@ public final class Timeout {
    * negative, then the deadline might be an instant in the past.
    * @return A numerical value that represents the deadline from &quot;now&quot; until
    * this timeout has passed.
+   *
+   * @deprecated This method is deprecated because it encourages code that is
+   * susceptible to overflow bugs.
    */
   @SuppressWarnings(&quot;WeakerAccess&quot;)
+  @Deprecated(forRemoval = true)
   public long getDeadline() {
-<span class="fc" id="L87">    return now() + timeoutBase;</span>
+<span class="nc" id="L105">    return NanoClock.nanoTime() + timeoutBase;</span>
   }
 
   /**
@@ -92,7 +110,7 @@ public final class Timeout {
    * @return A numerical value of the timeout. Possibly zero or negative.
    */
   public long getTimeoutInBaseUnit() {
-<span class="fc" id="L95">    return timeoutBase;</span>
+<span class="fc" id="L113">    return timeoutBase;</span>
   }
 
   /**
@@ -103,10 +121,14 @@ public final class Timeout {
    * @return The amount of time, in terms of the
    * {@link #getBaseUnit() base unit}, that is left until the deadline. If
    * this value is negative, then the deadline has transpired.
+   *
+   * @deprecated This method is deprecated because it encourages code that is
+   * susceptible to overflow bugs.
    */
   @SuppressWarnings(&quot;WeakerAccess&quot;)
+  @Deprecated(forRemoval = true)
   public long getTimeLeft(long deadline) {
-<span class="fc" id="L109">    return deadline - now();</span>
+<span class="nc" id="L131">    return deadline - NanoClock.nanoTime();</span>
   }
 
   /**
@@ -115,16 +137,12 @@ public final class Timeout {
    * @return TimeUnit The unit of precision used by the clock in this Timeout.
    */
   public TimeUnit getBaseUnit() {
-<span class="fc" id="L118">    return TimeUnit.NANOSECONDS;</span>
-  }
-
-  private long now() {
-<span class="fc" id="L122">    return System.nanoTime();</span>
+<span class="fc" id="L140">    return TimeUnit.NANOSECONDS;</span>
   }
 
   @Override
   public int hashCode() {
-<span class="fc" id="L127">    return 31 * (1 + (int) (timeoutBase ^ (timeoutBase &gt;&gt;&gt; 32)));</span>
+<span class="fc" id="L145">    return 31 * (1 + (int) (timeoutBase ^ (timeoutBase &gt;&gt;&gt; 32)));</span>
   }
 
   /**
@@ -135,11 +153,11 @@ public final class Timeout {
    */
   @Override
   public boolean equals(Object obj) {
-<span class="fc bfc" id="L138" title="All 2 branches covered.">    if (!(obj instanceof Timeout)) {</span>
-<span class="fc" id="L139">      return false;</span>
+<span class="fc bfc" id="L156" title="All 2 branches covered.">    if (!(obj instanceof Timeout)) {</span>
+<span class="fc" id="L157">      return false;</span>
     }
-<span class="fc" id="L141">    Timeout that = (Timeout) obj;</span>
-<span class="fc bfc" id="L142" title="All 2 branches covered.">    return this.timeoutBase == that.timeoutBase;</span>
+<span class="fc" id="L159">    Timeout that = (Timeout) obj;</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">    return this.timeoutBase == that.timeoutBase;</span>
   }
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
  * Provides a way to compose {@link Expiration}s.
  *
  * Given two {@link Expiration}s, this class considers that a slot is expired if any of the
- * {@link Expiration} returns {@code true}. This makes it easy to have an {@link Expiration} that
+ * {@link Expiration} returns `true`. This makes it easy to have an {@link Expiration} that
  * expires both on time ({@link Expiration#after(long, TimeUnit)}) and some other criteria.
  *
  * @author Guillaume Lederrey &lt;guillaume.lederrey@gmail.com&gt;
@@ -37,7 +37,7 @@ class OrExpiration&lt;T extends Poolable&gt; implements Expiration&lt;T&gt; {
 <span class="fc" id="L37">  }</span>
 
   /**
-   * Returns {@code true} if any of the given {@link Expiration} has expired.
+   * Returns `true` if any of the given {@link Expiration} has expired.
    */
   @Override
   public boolean hasExpired(SlotInfo&lt;? extends T&gt; info) throws Exception {
@@ -45,4 +45,4 @@ class OrExpiration&lt;T extends Poolable&gt; implements Expiration&lt;T&gt; {
 <span class="fc bfc" id="L45" title="All 2 branches covered.">            || secondExpiration.hasExpired(info);</span>
   }
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

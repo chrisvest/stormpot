@@ -89,12 +89,12 @@ final class PreciseLeakDetector {
 <span class="fc" id="L89">      next = chain.next;</span>
 <span class="fc" id="L90">      obj = chain.get();</span>
 
-<span class="fc bfc" id="L92" title="All 2 branches covered.">      if (obj != null) {</span>
+<span class="pc bpc" id="L92" title="1 of 2 branches missed.">      if (obj != null) {</span>
 <span class="fc" id="L93">        int hash2 = (System.identityHashCode(obj) &gt;&gt; branchPower) &amp; branchMask;</span>
 <span class="fc" id="L94">        chain.next = level2[hash2];</span>
 <span class="fc" id="L95">        level2[hash2] = chain;</span>
 <span class="fc" id="L96">      } else {</span>
-<span class="fc" id="L97">        leakedObjectCount++;</span>
+<span class="nc" id="L97">        leakedObjectCount++;</span>
       }
 
 <span class="fc" id="L100">      chain = next;</span>
@@ -180,4 +180,4 @@ final class PreciseLeakDetector {
 <span class="fc" id="L180">    return newChain;</span>
   }
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

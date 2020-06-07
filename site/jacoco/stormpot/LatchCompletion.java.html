@@ -15,21 +15,19 @@
  */
 package stormpot;
 
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 
 final class LatchCompletion implements Completion {
   private final CountDownLatch completionLatch;
   
-<span class="fc" id="L23">  LatchCompletion(CountDownLatch completionLatch) {</span>
-<span class="fc" id="L24">    this.completionLatch = completionLatch;</span>
-<span class="fc" id="L25">  }</span>
+<span class="fc" id="L24">  LatchCompletion(CountDownLatch completionLatch) {</span>
+<span class="fc" id="L25">    this.completionLatch = completionLatch;</span>
+<span class="fc" id="L26">  }</span>
   
-  public boolean await(Timeout timeout)
-      throws InterruptedException {
-<span class="fc bfc" id="L29" title="All 2 branches covered.">    if (timeout == null) {</span>
-<span class="fc" id="L30">      throw new IllegalArgumentException(&quot;Timeout cannot be null&quot;);</span>
-    }
-<span class="fc" id="L32">    return completionLatch.await(timeout.getTimeout(), timeout.getUnit());</span>
+  public boolean await(Timeout timeout) throws InterruptedException {
+<span class="fc" id="L29">    Objects.requireNonNull(timeout, &quot;Timeout cannot be null.&quot;);</span>
+<span class="fc" id="L30">    return completionLatch.await(timeout.getTimeout(), timeout.getUnit());</span>
   }
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

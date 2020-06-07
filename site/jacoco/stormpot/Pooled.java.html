@@ -19,12 +19,21 @@ package stormpot;
  * A reference to a pooled object.
  */
 public class Pooled&lt;T&gt; extends BasePoolable implements Poolable, AutoCloseable {
+  /**
+   * The object managed by this pooled instance.
+   */
   public final T object;
 
+  /**
+   * Create a pooled object for the given slot and object to be pooled.
+   *
+   * @param slot The slot an object is being allocated for.
+   * @param object The object this pooled instance represents.
+   */
   public Pooled(Slot slot, T object) {
-<span class="fc" id="L25">    super(slot);</span>
-<span class="fc" id="L26">    this.object = object;</span>
-<span class="fc" id="L27">  }</span>
+<span class="fc" id="L34">    super(slot);</span>
+<span class="fc" id="L35">    this.object = object;</span>
+<span class="fc" id="L36">  }</span>
 
   /**
    * `Pooled` implements {@link AutoCloseable} as a convenient way to release
@@ -32,7 +41,12 @@ public class Pooled&lt;T&gt; extends BasePoolable implements Poolable, AutoClose
    */
   @Override
   public void close() {
-<span class="fc" id="L35">    release();</span>
-<span class="fc" id="L36">  }</span>
+<span class="fc" id="L44">    release();</span>
+<span class="fc" id="L45">  }</span>
+
+  @Override
+  public String toString() {
+<span class="fc" id="L49">    return &quot;Pooled[&quot; + object + &quot;]&quot;;</span>
+  }
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

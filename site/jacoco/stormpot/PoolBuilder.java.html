@@ -15,11 +15,16 @@
  */
 package stormpot;
 
-import java.util.Objects;
+import java.util.Map;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static stormpot.AllocationProcessMode.*;
+import static stormpot.Expiration.after;
+import static stormpot.Expiration.never;
+import static stormpot.StormpotThreadFactory.INSTANCE;
 
 /**
  * The `PoolBuilder` collects information about how big a pool should be,
@@ -27,7 +32,8 @@ import static java.util.concurrent.TimeUnit.MINUTES;
  * factory for building the pool instances themselves, with the
  * {@link #build()} method.
  *
- * Pool builder instances are obtained by calling {@link Pool#from(Allocator)}.
+ * Pool builder instances are obtained by calling one of the `from*`
+ * methods on {@link Pool}, such as {@link Pool#fromThreaded(Allocator)}.
  *
  * This class is made thread-safe by having the fields be protected by the
  * intrinsic object lock on the `PoolBuilder` object itself. This way, pools
@@ -41,27 +47,45 @@ import static java.util.concurrent.TimeUnit.MINUTES;
  * on this `PoolBuilder` will produce.
  */
 public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
+<span class="fc" id="L50">  static final Map&lt;AllocationProcessMode, PoolBuilderDefaults&gt; DEFAULTS = Map.of(</span>
+<span class="fc" id="L51">      THREADED, new PoolBuilderDefaults(after(8, 10, MINUTES), INSTANCE, true, true, 1000),</span>
+<span class="fc" id="L52">      INLINE, new PoolBuilderDefaults(after(8, 10, MINUTES), INSTANCE, true, false, 0),</span>
+<span class="fc" id="L53">      DIRECT, new PoolBuilderDefaults(never(), INSTANCE, false, false, 0)</span>
+  );
 
-<span class="fc" id="L45">  private int size = 10;</span>
-<span class="fc" id="L46">  private Expiration&lt;? super T&gt; expiration = Expiration.after(8, 10, MINUTES);</span>
+<span class="fc" id="L56">  static final Map&lt;AllocationProcessMode, PoolBuilderPermissions&gt; PERMISSIONS = Map.of(</span>
+      THREADED, new PoolBuilderPermissions(true, true, true, true, true),
+      INLINE, new PoolBuilderPermissions(true, true, true, false, false),
+      DIRECT, new PoolBuilderPermissions(false, true, false, false, false)
+  );
+
+  private final AllocationProcess allocationProcess;
+  private final PoolBuilderPermissions permissions;
   private Allocator&lt;T&gt; allocator;
+<span class="fc" id="L65">  private int size = 10;</span>
+  private Expiration&lt;? super T&gt; expiration;
   private MetricsRecorder metricsRecorder;
-<span class="fc" id="L49">  private ThreadFactory threadFactory = StormpotThreadFactory.INSTANCE;</span>
-<span class="fc" id="L50">  private boolean preciseLeakDetectionEnabled = true;</span>
-<span class="fc" id="L51">  private boolean backgroundExpirationEnabled = true;</span>
-<span class="fc" id="L52">  private int backgroundExpirationCheckDelay = 1000;</span>
+  private ThreadFactory threadFactory;
+  private boolean preciseLeakDetectionEnabled;
+  private boolean backgroundExpirationEnabled;
+  private int backgroundExpirationCheckDelay;
 
   /**
    * Build a new empty `PoolBuilder` object.
    */
-<span class="fc" id="L57">  PoolBuilder(Allocator&lt;T&gt; allocator) {</span>
-<span class="fc" id="L58">    requireNonNull(allocator);</span>
-<span class="fc" id="L59">    this.allocator = allocator;</span>
-<span class="fc" id="L60">  }</span>
-
-  private void requireNonNull(Allocator&lt;?&gt; allocator) {
-<span class="fc" id="L63">    Objects.requireNonNull(allocator, &quot;The Allocator cannot be null.&quot;);</span>
-<span class="fc" id="L64">  }</span>
+<span class="fc" id="L76">  PoolBuilder(AllocationProcess allocationProcess, Allocator&lt;T&gt; allocator) {</span>
+<span class="fc" id="L77">    requireNonNull(allocator, &quot;The Allocator cannot be null.&quot;);</span>
+<span class="fc" id="L78">    requireNonNull(allocationProcess, &quot;The AllocationProcess cannot be null.&quot;);</span>
+<span class="fc" id="L79">    this.allocator = allocator;</span>
+<span class="fc" id="L80">    this.allocationProcess = allocationProcess;</span>
+<span class="fc" id="L81">    this.permissions = PERMISSIONS.get(allocationProcess.getMode());</span>
+<span class="fc" id="L82">    PoolBuilderDefaults defaults = DEFAULTS.get(allocationProcess.getMode());</span>
+<span class="fc" id="L83">    this.expiration = defaults.expiration;</span>
+<span class="fc" id="L84">    this.threadFactory = defaults.threadFactory;</span>
+<span class="fc" id="L85">    this.preciseLeakDetectionEnabled = defaults.preciseLeakDetectionEnabled;</span>
+<span class="fc" id="L86">    this.backgroundExpirationEnabled = defaults.backgroundExpirationEnabled;</span>
+<span class="fc" id="L87">    this.backgroundExpirationCheckDelay = defaults.backgroundExpirationCheckDelay;</span>
+<span class="fc" id="L88">  }</span>
 
   /**
    * Set the size of the pool we are building.
@@ -79,12 +103,16 @@ public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
    * calling the {@link Pool#setTargetSize(int)} or
    * {@link ManagedPool#setTargetSize(int)} methods.
    *
-   * @param size The target pool size. Must be at least 1.
+   * @param size The target pool size. Must be at least 0.
    * @return This `PoolBuilder` instance.
    */
   public synchronized PoolBuilder&lt;T&gt; setSize(int size) {
-<span class="fc" id="L86">    this.size = size;</span>
-<span class="fc" id="L87">    return this;</span>
+<span class="fc" id="L110">    checkPermission(permissions.setSize, &quot;size&quot;);</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">    if (size &lt; 0) {</span>
+<span class="fc" id="L112">      throw new IllegalArgumentException(&quot;Size must be at least 0, but was &quot; + size + &quot;.&quot;);</span>
+    }
+<span class="fc" id="L114">    this.size = size;</span>
+<span class="fc" id="L115">    return this;</span>
   }
 
   /**
@@ -92,7 +120,7 @@ public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
    * @return The configured pool size.
    */
   public synchronized int getSize() {
-<span class="fc" id="L95">    return size;</span>
+<span class="fc" id="L123">    return size;</span>
   }
 
   /**
@@ -113,9 +141,10 @@ public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
   @SuppressWarnings(&quot;unchecked&quot;)
   public synchronized &lt;X extends Poolable&gt; PoolBuilder&lt;X&gt; setAllocator(
       Allocator&lt;X&gt; allocator) {
-<span class="fc" id="L116">    requireNonNull(allocator);</span>
-<span class="fc" id="L117">    this.allocator = (Allocator&lt;T&gt;) allocator;</span>
-<span class="fc" id="L118">    return (PoolBuilder&lt;X&gt;) this;</span>
+<span class="fc" id="L144">    checkPermission(permissions.setAllocator, &quot;allocator&quot;);</span>
+<span class="fc" id="L145">    requireNonNull(allocator, &quot;The Allocator cannot be null.&quot;);</span>
+<span class="fc" id="L146">    this.allocator = (Allocator&lt;T&gt;) allocator;</span>
+<span class="fc" id="L147">    return (PoolBuilder&lt;X&gt;) this;</span>
   }
 
   /**
@@ -123,7 +152,7 @@ public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
    * @return The configured Allocator instance.
    */
   public synchronized Allocator&lt;T&gt; getAllocator() {
-<span class="fc" id="L126">    return allocator;</span>
+<span class="fc" id="L155">    return allocator;</span>
   }
 
   /**
@@ -134,10 +163,10 @@ public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
    * @return A configured or adapted Reallocator.
    */
   public synchronized Reallocator&lt;T&gt; getReallocator() {
-<span class="fc bfc" id="L137" title="All 2 branches covered.">    if (allocator instanceof Reallocator) {</span>
-<span class="fc" id="L138">      return (Reallocator&lt;T&gt;) allocator;</span>
+<span class="fc bfc" id="L166" title="All 2 branches covered.">    if (allocator instanceof Reallocator) {</span>
+<span class="fc" id="L167">      return (Reallocator&lt;T&gt;) allocator;</span>
     }
-<span class="fc" id="L140">    return new ReallocatingAdaptor&lt;&gt;(allocator);</span>
+<span class="fc" id="L169">    return new ReallocatingAdaptor&lt;&gt;(allocator);</span>
   }
 
   /**
@@ -153,8 +182,10 @@ public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
    * @return This `PoolBuilder` instance.
    */
   public synchronized PoolBuilder&lt;T&gt; setExpiration(Expiration&lt;? super T&gt; expiration) {
-<span class="fc" id="L156">    this.expiration = expiration;</span>
-<span class="fc" id="L157">    return this;</span>
+<span class="fc" id="L185">    checkPermission(permissions.setExpiration, &quot;expiration&quot;);</span>
+<span class="fc" id="L186">    requireNonNull(expiration, &quot;Expiration cannot be null.&quot;);</span>
+<span class="fc" id="L187">    this.expiration = expiration;</span>
+<span class="fc" id="L188">    return this;</span>
   }
 
   /**
@@ -165,7 +196,7 @@ public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
    * @return The configured Expiration.
    */
   public synchronized Expiration&lt;? super T&gt; getExpiration() {
-<span class="fc" id="L168">    return expiration;</span>
+<span class="fc" id="L199">    return expiration;</span>
   }
 
   /**
@@ -175,8 +206,8 @@ public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
    * @return This `PoolBuilder` instance.
    */
   public synchronized PoolBuilder&lt;T&gt; setMetricsRecorder(MetricsRecorder metricsRecorder) {
-<span class="fc" id="L178">    this.metricsRecorder = metricsRecorder;</span>
-<span class="fc" id="L179">    return this;</span>
+<span class="fc" id="L209">    this.metricsRecorder = metricsRecorder;</span>
+<span class="fc" id="L210">    return this;</span>
   }
 
   /**
@@ -185,7 +216,7 @@ public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
    * @return The configured MetricsRecorder.
    */
   public synchronized MetricsRecorder getMetricsRecorder() {
-<span class="fc" id="L188">    return metricsRecorder;</span>
+<span class="fc" id="L219">    return metricsRecorder;</span>
   }
 
   /**
@@ -196,7 +227,7 @@ public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
    * @return The configured thread factory.
    */
   public synchronized ThreadFactory getThreadFactory() {
-<span class="fc" id="L199">    return threadFactory;</span>
+<span class="fc" id="L230">    return threadFactory;</span>
   }
 
   /**
@@ -208,8 +239,10 @@ public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
    * @return This `PoolBuilder` instance.
    */
   public synchronized PoolBuilder&lt;T&gt; setThreadFactory(ThreadFactory factory) {
-<span class="fc" id="L211">    threadFactory = factory;</span>
-<span class="fc" id="L212">    return this;</span>
+<span class="fc" id="L242">    checkPermission(permissions.setThreadFactory, &quot;thread factory&quot;);</span>
+<span class="fc" id="L243">    requireNonNull(factory, &quot;ThreadFactory cannot be null.&quot;);</span>
+<span class="fc" id="L244">    threadFactory = factory;</span>
+<span class="fc" id="L245">    return this;</span>
   }
 
   /**
@@ -219,7 +252,7 @@ public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
    * @see #setPreciseLeakDetectionEnabled(boolean)
    */
   public synchronized boolean isPreciseLeakDetectionEnabled() {
-<span class="fc" id="L222">    return preciseLeakDetectionEnabled;</span>
+<span class="fc" id="L255">    return preciseLeakDetectionEnabled;</span>
   }
 
   /**
@@ -246,8 +279,8 @@ public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
    * @return This `PoolBuilder` instance.
    */
   public synchronized PoolBuilder&lt;T&gt; setPreciseLeakDetectionEnabled(boolean enabled) {
-<span class="fc" id="L249">    this.preciseLeakDetectionEnabled = enabled;</span>
-<span class="fc" id="L250">    return this;</span>
+<span class="fc" id="L282">    this.preciseLeakDetectionEnabled = enabled;</span>
+<span class="fc" id="L283">    return this;</span>
   }
 
   /**
@@ -258,7 +291,7 @@ public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
    * @see #setBackgroundExpirationEnabled(boolean)
    */
   public synchronized boolean isBackgroundExpirationEnabled() {
-<span class="fc" id="L261">    return backgroundExpirationEnabled;</span>
+<span class="fc" id="L294">    return backgroundExpirationEnabled;</span>
   }
 
   /**
@@ -274,8 +307,9 @@ public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
    * @return This `PoolBuilder` instance.
    */
   public synchronized PoolBuilder&lt;T&gt; setBackgroundExpirationEnabled(boolean enabled) {
-<span class="fc" id="L277">    backgroundExpirationEnabled = enabled;</span>
-<span class="fc" id="L278">    return this;</span>
+<span class="fc" id="L310">    checkPermission(permissions.setBackgroundExpiration, &quot;background expiration enabled/disabled&quot;);</span>
+<span class="fc" id="L311">    backgroundExpirationEnabled = enabled;</span>
+<span class="fc" id="L312">    return this;</span>
   }
 
   /**
@@ -286,7 +320,7 @@ public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
    * @return the delay, in milliseconds, between background maintenance tasks.
    */
   public synchronized int getBackgroundExpirationCheckDelay() {
-<span class="fc" id="L289">    return backgroundExpirationCheckDelay;</span>
+<span class="fc" id="L323">    return backgroundExpirationCheckDelay;</span>
   }
 
   /**
@@ -306,8 +340,12 @@ public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
    * @return This `PoolBuilder` instance.
    */
   public synchronized PoolBuilder&lt;T&gt; setBackgroundExpirationCheckDelay(int delay) {
-<span class="fc" id="L309">    backgroundExpirationCheckDelay = delay;</span>
-<span class="fc" id="L310">    return this;</span>
+<span class="fc" id="L343">    checkPermission(permissions.setBackgroundExpiration, &quot;background expiration check delay&quot;);</span>
+<span class="fc bfc" id="L344" title="All 2 branches covered.">    if (delay &lt; 0) {</span>
+<span class="fc" id="L345">      throw new IllegalArgumentException(&quot;Background expiration check delay cannot be negative.&quot;);</span>
+    }
+<span class="fc" id="L347">    backgroundExpirationCheckDelay = delay;</span>
+<span class="fc" id="L348">    return this;</span>
   }
 
   /**
@@ -319,9 +357,9 @@ public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
   @Override
   public final synchronized PoolBuilder&lt;T&gt; clone() {
     try {
-<span class="fc" id="L322">      return (PoolBuilder&lt;T&gt;) super.clone();</span>
-<span class="nc" id="L323">    } catch (CloneNotSupportedException e) {</span>
-<span class="nc" id="L324">      throw new AssertionError(e);</span>
+<span class="fc" id="L360">      return (PoolBuilder&lt;T&gt;) super.clone();</span>
+<span class="nc" id="L361">    } catch (CloneNotSupportedException e) {</span>
+<span class="nc" id="L362">      throw new AssertionError(e);</span>
     }
   }
 
@@ -330,32 +368,8 @@ public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
    * @return A {@link Pool} instance as configured by this builder.
    */
   public synchronized Pool&lt;T&gt; build() {
-<span class="fc" id="L333">    return new BlazePool&lt;&gt;(this, AllocatorProcessFactory.THREADED);</span>
+<span class="fc" id="L371">    return new BlazePool&lt;&gt;(this, allocationProcess);</span>
   }
-
-  /**
-   * Check that the configuration is valid in terms of the *standard
-   * configuration*. This method is useful in the
-   * Pool implementation constructors.
-   * @throws IllegalArgumentException If the size is less than one, if the
-   * {@link Expiration} is `null`, if the {@link Allocator} is `null`, or if
-   * the ThreadFactory is `null`.
-   */
-  synchronized void validate() throws IllegalArgumentException {
-<span class="fc bfc" id="L345" title="All 2 branches covered.">    if (size &lt; 1) {</span>
-<span class="fc" id="L346">      throw new IllegalArgumentException(</span>
-          &quot;Size must be at least 1, but was &quot; + size + &quot;.&quot;);
-    }
-<span class="fc bfc" id="L349" title="All 2 branches covered.">    if (expiration == null) {</span>
-<span class="fc" id="L350">      throw new IllegalArgumentException(&quot;Expiration cannot be null.&quot;);</span>
-    }
-<span class="fc bfc" id="L352" title="All 2 branches covered.">    if (threadFactory == null) {</span>
-<span class="fc" id="L353">      throw new IllegalArgumentException(&quot;ThreadFactory cannot be null.&quot;);</span>
-    }
-<span class="fc bfc" id="L355" title="All 2 branches covered.">    if (backgroundExpirationCheckDelay &lt; 0) {</span>
-<span class="fc" id="L356">      throw new IllegalArgumentException(&quot;Background expiration check delay cannot be negative.&quot;);</span>
-    }
-<span class="fc" id="L358">  }</span>
 
   /**
    * Returns a `Reallocator`, possibly by adapting the configured
@@ -364,18 +378,26 @@ public final class PoolBuilder&lt;T extends Poolable&gt; implements Cloneable {
    * automatically record allocation, reallocation and deallocation latencies.
    */
   synchronized Reallocator&lt;T&gt; getAdaptedReallocator() {
-<span class="fc bfc" id="L367" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
-<span class="fc bfc" id="L368" title="All 2 branches covered.">      if (allocator instanceof Reallocator) {</span>
-<span class="fc" id="L369">        return (Reallocator&lt;T&gt;) allocator;</span>
+<span class="fc bfc" id="L381" title="All 2 branches covered.">    if (metricsRecorder == null) {</span>
+<span class="fc bfc" id="L382" title="All 2 branches covered.">      if (allocator instanceof Reallocator) {</span>
+<span class="fc" id="L383">        return (Reallocator&lt;T&gt;) allocator;</span>
       }
-<span class="fc" id="L371">      return new ReallocatingAdaptor&lt;&gt;(allocator);</span>
+<span class="fc" id="L385">      return new ReallocatingAdaptor&lt;&gt;(allocator);</span>
     } else {
-<span class="fc bfc" id="L373" title="All 2 branches covered.">      if (allocator instanceof Reallocator) {</span>
-<span class="fc" id="L374">        return new TimingReallocatorAdaptor&lt;&gt;(</span>
+<span class="fc bfc" id="L387" title="All 2 branches covered.">      if (allocator instanceof Reallocator) {</span>
+<span class="fc" id="L388">        return new TimingReallocatorAdaptor&lt;&gt;(</span>
             (Reallocator&lt;T&gt;) allocator, metricsRecorder);
       }
-<span class="fc" id="L377">      return new TimingReallocatingAdaptor&lt;&gt;(allocator, metricsRecorder);</span>
+<span class="fc" id="L391">      return new TimingReallocatingAdaptor&lt;&gt;(allocator, metricsRecorder);</span>
     }
   }
+
+  private void checkPermission(boolean permission, String fieldDescription) {
+<span class="fc bfc" id="L396" title="All 2 branches covered.">    if (!permission) {</span>
+<span class="fc" id="L397">      String message = &quot;The &quot; + allocationProcess.getMode() + &quot; allocation process does &quot; +</span>
+          &quot;not support configuring the &quot; + fieldDescription + &quot;.&quot;;
+<span class="fc" id="L399">      throw new IllegalStateException(message);</span>
+    }
+<span class="fc" id="L401">  }</span>
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

@@ -557,15 +557,19 @@ The precise leak detector will notice the last case, but cannot tell you where i
 </li>
 <li>
 <p><em>Why are there so many "Stormpot" threads in my program?</em></p>
-<p>Stormpot starts a thread for every pool instance you create.
-It does not share threads across pool instances.</p>
+<p>Stormpot by default starts a thread for every pool instance you create.
+It does not share threads across pool instances.
+You can use the "inline" pool mode if this is a problem.
+See the <code>Pool#fromInline</code> method for more information about the inline pool mode.</p>
 </li>
 <li>
 <p><em>I&#8217;m not allowed to start threads in my environment, or I get an exception about not being able to start a thread when I try to create an pool instance!</em></p>
 <p>Some environments restrict the ability to create threads.
 These environments often have a way to get around that restriction, for instance by creating threads with a particular <code>ThreadGroup</code> or creating the thread in a particular privileged part of the code.
 Stormpot can be configured to use a specific <code>ThreadFactory</code> for creating its threads.
-So giving it a <code>ThreadFactory</code> that knows how to create threads in your particular environment, is the way to get around these restrictions.</p>
+So giving it a <code>ThreadFactory</code> that knows how to create threads in your particular environment, is the way to get around these restrictions.
+Alternatively you can use the "inline" pool mode, where the pool operates without a background thread.
+See the <code>Pool#fromInline</code> method for more information about the inline pool mode.</p>
 </li>
 </ol>
 </div>
@@ -574,7 +578,7 @@ So giving it a <code>ThreadFactory</code> that knows how to create threads in yo
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-05-15 13:04:08 +0200
+Last updated 2020-06-07 22:58:21 +0200
 </div>
 </div>
 </body>

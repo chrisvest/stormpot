@@ -33,8 +33,9 @@ final class BAllocThread&lt;T extends Poolable&gt; implements Runnable {
    */
 <span class="fc" id="L34">  private static final long shutdownPauseNanos = MILLISECONDS.toNanos(10);</span>
 
-  private final BlockingQueue&lt;BSlot&lt;T&gt;&gt; live;
-  private final DisregardBPile&lt;T&gt; disregardPile;
+  private final LinkedTransferQueue&lt;BSlot&lt;T&gt;&gt; live;
+  private final RefillPile&lt;T&gt; disregardPile;
+  private final RefillPile&lt;T&gt; newAllocations;
   private final Reallocator&lt;T&gt; allocator;
   private final BSlot&lt;T&gt; poisonPill;
   private final MetricsRecorder metricsRecorder;
@@ -59,315 +60,331 @@ final class BAllocThread&lt;T extends Poolable&gt; implements Runnable {
   private long consecutiveAllocationFailures;
 
   BAllocThread(
-      BlockingQueue&lt;BSlot&lt;T&gt;&gt; live,
-      DisregardBPile&lt;T&gt; disregardPile,
+      LinkedTransferQueue&lt;BSlot&lt;T&gt;&gt; live,
+      RefillPile&lt;T&gt; disregardPile,
+      RefillPile&lt;T&gt; newAllocations,
       PoolBuilder&lt;T&gt; builder,
-<span class="fc" id="L65">      BSlot&lt;T&gt; poisonPill) {</span>
-<span class="fc" id="L66">    this.live = live;</span>
-<span class="fc" id="L67">    this.disregardPile = disregardPile;</span>
-<span class="fc" id="L68">    this.allocator = builder.getAdaptedReallocator();</span>
-<span class="fc" id="L69">    this.targetSize = builder.getSize();</span>
-<span class="fc" id="L70">    this.metricsRecorder = builder.getMetricsRecorder();</span>
-<span class="fc" id="L71">    this.poisonPill = poisonPill;</span>
-<span class="fc" id="L72">    this.expiration = builder.getExpiration();</span>
-<span class="fc" id="L73">    this.backgroundExpirationEnabled = builder.isBackgroundExpirationEnabled();</span>
-<span class="fc bfc" id="L74" title="All 2 branches covered.">    this.leakDetector = builder.isPreciseLeakDetectionEnabled() ?</span>
-<span class="fc" id="L75">        new PreciseLeakDetector() : null;</span>
-<span class="fc" id="L76">    this.completionLatch = new CountDownLatch(1);</span>
-<span class="fc" id="L77">    this.dead = new LinkedTransferQueue&lt;&gt;();</span>
-<span class="fc" id="L78">    this.poisonedSlots = new AtomicInteger();</span>
-<span class="fc" id="L79">    this.defaultDeadPollTimeout = builder.getBackgroundExpirationCheckDelay();</span>
-<span class="fc" id="L80">    this.size = 0;</span>
-<span class="fc" id="L81">    this.didAnythingLastIteration = true; // start out busy</span>
-<span class="fc" id="L82">  }</span>
+<span class="fc" id="L67">      BSlot&lt;T&gt; poisonPill) {</span>
+<span class="fc" id="L68">    this.live = live;</span>
+<span class="fc" id="L69">    this.disregardPile = disregardPile;</span>
+<span class="fc" id="L70">    this.newAllocations = newAllocations;</span>
+<span class="fc" id="L71">    this.allocator = builder.getAdaptedReallocator();</span>
+<span class="fc" id="L72">    this.targetSize = builder.getSize();</span>
+<span class="fc" id="L73">    this.metricsRecorder = builder.getMetricsRecorder();</span>
+<span class="fc" id="L74">    this.poisonPill = poisonPill;</span>
+<span class="fc" id="L75">    this.expiration = builder.getExpiration();</span>
+<span class="fc" id="L76">    this.backgroundExpirationEnabled = builder.isBackgroundExpirationEnabled();</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">    this.leakDetector = builder.isPreciseLeakDetectionEnabled() ?</span>
+<span class="fc" id="L78">        new PreciseLeakDetector() : null;</span>
+<span class="fc" id="L79">    this.completionLatch = new CountDownLatch(1);</span>
+<span class="fc" id="L80">    this.dead = new LinkedTransferQueue&lt;&gt;();</span>
+<span class="fc" id="L81">    this.poisonedSlots = new AtomicInteger();</span>
+<span class="fc" id="L82">    this.defaultDeadPollTimeout = builder.getBackgroundExpirationCheckDelay();</span>
+<span class="fc" id="L83">    this.size = 0;</span>
+<span class="fc" id="L84">    this.didAnythingLastIteration = true; // start out busy</span>
+<span class="fc" id="L85">  }</span>
 
   @Override
   public void run() {
-<span class="fc" id="L86">    continuouslyReplenishPool();</span>
-<span class="fc" id="L87">    shutPoolDown();</span>
-<span class="fc" id="L88">    completionLatch.countDown();</span>
-<span class="fc" id="L89">  }</span>
+<span class="fc" id="L89">    continuouslyReplenishPool();</span>
+<span class="fc" id="L90">    shutPoolDown();</span>
+<span class="fc" id="L91">    completionLatch.countDown();</span>
+<span class="fc" id="L92">  }</span>
 
   private void continuouslyReplenishPool() {
     try {
-<span class="fc bfc" id="L93" title="All 2 branches covered.">      while (!shutdown) {</span>
-<span class="fc" id="L94">        replenishPool();</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">      while (!shutdown) {</span>
+<span class="fc" id="L97">        replenishPool();</span>
       }
-<span class="fc" id="L96">    } catch (InterruptedException ignore) {</span>
+<span class="fc" id="L99">    } catch (InterruptedException ignore) {</span>
       // This can only be thrown by the dead.poll() method call, because alloc
       // catches exceptions and use them for poison.
-<span class="fc" id="L99">    }</span>
+<span class="fc" id="L102">    }</span>
     // This means we've been shut down.
     // let the poison-pill enter the system
-<span class="fc" id="L102">    poisonPill.dead2live();</span>
-<span class="fc" id="L103">    live.offer(poisonPill);</span>
-<span class="fc" id="L104">  }</span>
+<span class="fc" id="L105">    poisonPill.dead2live();</span>
+<span class="fc" id="L106">    live.offer(poisonPill);</span>
+<span class="fc" id="L107">  }</span>
 
   private void replenishPool() throws InterruptedException {
-<span class="fc" id="L107">    long deadPollTimeout = computeDeadPollTimeout();</span>
-<span class="fc" id="L108">    BSlot&lt;T&gt; slot = dead.poll(deadPollTimeout, MILLISECONDS);</span>
-<span class="fc bfc" id="L109" title="All 2 branches covered.">    if (size &lt; targetSize) {</span>
-<span class="fc" id="L110">      increaseSizeByAllocating();</span>
+<span class="fc" id="L110">    long deadPollTimeout = computeDeadPollTimeout();</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">    BSlot&lt;T&gt; slot = deadPollTimeout == 0 ? dead.poll() : dead.poll(deadPollTimeout, MILLISECONDS);</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">    if (size &lt; targetSize) {</span>
+<span class="fc" id="L113">      increaseSizeByAllocating();</span>
     }
-<span class="fc bfc" id="L112" title="All 2 branches covered.">    if (size &gt; targetSize) {</span>
-<span class="fc" id="L113">      reduceSizeByDeallocating(slot);</span>
-<span class="fc bfc" id="L114" title="All 2 branches covered.">    } else if (slot != null) {</span>
-<span class="fc" id="L115">      reallocateDeadSlot(slot);</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">    if (size &gt; targetSize) {</span>
+<span class="fc" id="L116">      reduceSizeByDeallocating(slot);</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">    } else if (slot != null) {</span>
+<span class="fc" id="L118">      reallocateDeadSlot(slot);</span>
     }
 
-<span class="fc bfc" id="L118" title="All 2 branches covered.">    if (shutdown) {</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">    if (shutdown) {</span>
       // Prior allocations might notice that we've been shut down. In that
       // case, we need to skip the eager reallocation of poisoned slots.
-<span class="fc" id="L121">      return;</span>
+<span class="fc" id="L124">      return;</span>
     }
 
-<span class="fc bfc" id="L124" title="All 2 branches covered.">    if (poisonedSlots.get() &gt; 0) {</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">    if (poisonedSlots.get() &gt; 0) {</span>
       // Proactively seek out and try to heal poisoned slots
-<span class="fc" id="L126">      proactivelyHealPoison();</span>
-<span class="fc bfc" id="L127" title="All 4 branches covered.">    } else if (backgroundExpirationEnabled &amp;&amp; size == targetSize) {</span>
-<span class="fc" id="L128">      backgroundExpirationCheck();</span>
+<span class="fc" id="L129">      proactivelyHealPoison();</span>
+<span class="fc bfc" id="L130" title="All 4 branches covered.">    } else if (backgroundExpirationEnabled &amp;&amp; size == targetSize) {</span>
+<span class="fc" id="L131">      backgroundExpirationCheck();</span>
     }
-<span class="fc" id="L130">  }</span>
+<span class="fc" id="L133">  }</span>
 
   private long computeDeadPollTimeout() {
     // Default timeout.
-<span class="fc" id="L134">    long deadPollTimeout = defaultDeadPollTimeout;</span>
-<span class="fc bfc" id="L135" title="All 4 branches covered.">    if (size != targetSize || poisonedSlots.get() &gt; 0) {</span>
+<span class="fc" id="L137">    long deadPollTimeout = defaultDeadPollTimeout;</span>
+<span class="fc bfc" id="L138" title="All 4 branches covered.">    if (size != targetSize || poisonedSlots.get() &gt; 0) {</span>
       // Make timeout shorter if we have work piled up.
-<span class="fc bfc" id="L137" title="All 2 branches covered.">      deadPollTimeout = (didAnythingLastIteration ? 0 : 10);</span>
+<span class="fc bfc" id="L140" title="All 2 branches covered.">      deadPollTimeout = (didAnythingLastIteration ? 0 : 10);</span>
       // Unless we have a lot of allocation failures.
       // In that case, make the timeout longer to avoid wasting CPU.
-<span class="fc" id="L140">      deadPollTimeout += Math.min(consecutiveAllocationFailures,</span>
+<span class="fc" id="L143">      deadPollTimeout += Math.min(consecutiveAllocationFailures,</span>
           defaultDeadPollTimeout - deadPollTimeout);
     }
-<span class="fc" id="L143">    didAnythingLastIteration = false;</span>
-<span class="fc" id="L144">    return deadPollTimeout;</span>
+<span class="fc" id="L146">    didAnythingLastIteration = false;</span>
+<span class="fc" id="L147">    return deadPollTimeout;</span>
   }
 
   private void increaseSizeByAllocating() {
-<span class="fc" id="L148">    BSlot&lt;T&gt; slot = new BSlot&lt;&gt;(live, poisonedSlots);</span>
-<span class="fc" id="L149">    alloc(slot);</span>
-<span class="fc" id="L150">    registerWithLeakDetector(slot);</span>
-<span class="fc" id="L151">  }</span>
+<span class="fc" id="L151">    BSlot&lt;T&gt; slot = new BSlot&lt;&gt;(live, poisonedSlots);</span>
+<span class="fc" id="L152">    alloc(slot);</span>
+<span class="fc" id="L153">    registerWithLeakDetector(slot);</span>
+<span class="fc" id="L154">  }</span>
 
   private void reduceSizeByDeallocating(BSlot&lt;T&gt; slot) {
-<span class="fc bfc" id="L154" title="All 2 branches covered.">    slot = slot == null ? live.poll() : slot;</span>
-<span class="fc bfc" id="L155" title="All 2 branches covered.">    if (slot != null) {</span>
-<span class="pc bpc" id="L156" title="1 of 4 branches missed.">      if (slot.isDead() || slot.live2dead()) {</span>
-<span class="fc" id="L157">        dealloc(slot);</span>
-<span class="fc" id="L158">        unregisterWithLeakDetector(slot);</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">    slot = slot == null ? live.poll() : slot;</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">    if (slot != null) {</span>
+<span class="fc bfc" id="L159" title="All 4 branches covered.">      if (slot.isDead() || slot.live2dead()) {</span>
+<span class="fc" id="L160">        dealloc(slot);</span>
+<span class="fc" id="L161">        unregisterWithLeakDetector(slot);</span>
       } else {
-<span class="nc" id="L160">        live.offer(slot);</span>
+<span class="fc" id="L163">        live.offer(slot);</span>
       }
     }
-<span class="fc" id="L163">  }</span>
+<span class="fc" id="L166">  }</span>
 
   private void registerWithLeakDetector(BSlot&lt;T&gt; slot) {
-<span class="fc bfc" id="L166" title="All 2 branches covered.">    if (leakDetector != null) {</span>
-<span class="fc" id="L167">      leakDetector.register(slot);</span>
+<span class="fc bfc" id="L169" title="All 2 branches covered.">    if (leakDetector != null) {</span>
+<span class="fc" id="L170">      leakDetector.register(slot);</span>
     }
-<span class="fc" id="L169">  }</span>
+<span class="fc" id="L172">  }</span>
 
   private void unregisterWithLeakDetector(BSlot&lt;T&gt; slot) {
-<span class="fc bfc" id="L172" title="All 2 branches covered.">    if (leakDetector != null) {</span>
-<span class="fc" id="L173">      leakDetector.unregister(slot);</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">    if (leakDetector != null) {</span>
+<span class="fc" id="L176">      leakDetector.unregister(slot);</span>
     }
-<span class="fc" id="L175">  }</span>
+<span class="fc" id="L178">  }</span>
 
   private void reallocateDeadSlot(BSlot&lt;T&gt; slot) {
-<span class="fc" id="L178">    realloc(slot);</span>
-<span class="fc" id="L179">  }</span>
+<span class="fc" id="L181">    realloc(slot);</span>
+<span class="fc" id="L182">  }</span>
 
   private void proactivelyHealPoison() {
-<span class="fc" id="L182">    BSlot&lt;T&gt; slot = live.poll();</span>
-<span class="fc bfc" id="L183" title="All 2 branches covered.">    if (slot != null) {</span>
-<span class="pc bpc" id="L184" title="2 of 6 branches missed.">      if (slot.poison != null &amp;&amp; (slot.isDead() || slot.live2dead())) {</span>
-<span class="fc" id="L185">        realloc(slot);</span>
+<span class="fc" id="L185">    BSlot&lt;T&gt; slot = live.poll();</span>
+<span class="fc bfc" id="L186" title="All 2 branches covered.">    if (slot != null) {</span>
+<span class="pc bpc" id="L187" title="2 of 6 branches missed.">      if (slot.poison != null &amp;&amp; (slot.isDead() || slot.live2dead())) {</span>
+<span class="fc" id="L188">        realloc(slot);</span>
       } else {
-<span class="fc" id="L187">        live.offer(slot);</span>
+<span class="fc" id="L190">        live.offer(slot);</span>
       }
     }
-<span class="fc" id="L190">  }</span>
+<span class="fc" id="L193">  }</span>
 
   private void backgroundExpirationCheck() {
-<span class="fc" id="L193">    disregardPile.refillQueue();</span>
-<span class="fc" id="L194">    BSlot&lt;T&gt; slot = live.poll();</span>
-<span class="fc bfc" id="L195" title="All 2 branches covered.">    if (slot != null) {</span>
-<span class="pc bpc" id="L196" title="1 of 4 branches missed.">      if (slot.isLive() &amp;&amp; slot.live2claim()) {</span>
+<span class="fc" id="L196">    disregardPile.refill();</span>
+<span class="fc bfc" id="L197" title="All 2 branches covered.">    if (!didAnythingLastIteration) {</span>
+<span class="fc" id="L198">      newAllocations.refill();</span>
+    }
+<span class="fc" id="L200">    BSlot&lt;T&gt; slot = live.poll();</span>
+<span class="fc bfc" id="L201" title="All 2 branches covered.">    if (slot == null) {</span>
+<span class="fc" id="L202">      newAllocations.refill();</span>
+<span class="fc" id="L203">      slot = live.poll();</span>
+    }
+<span class="fc bfc" id="L205" title="All 2 branches covered.">    if (slot != null) {</span>
+<span class="fc bfc" id="L206" title="All 4 branches covered.">      if (slot.isLive() &amp;&amp; slot.live2claim()) {</span>
         boolean expired;
         try {
-<span class="pc bpc" id="L199" title="1 of 4 branches missed.">          expired = slot.poison != null || expiration.hasExpired(slot);</span>
-<span class="fc" id="L200">        } catch (Exception ignore) {</span>
-<span class="fc" id="L201">          expired = true;</span>
-<span class="fc" id="L202">        }</span>
-<span class="fc bfc" id="L203" title="All 2 branches covered.">        if (expired) {</span>
-<span class="fc" id="L204">          slot.claim2dead(); // Not strictly necessary</span>
-<span class="fc" id="L205">          dead.offer(slot);</span>
-<span class="fc" id="L206">          didAnythingLastIteration = true;</span>
+<span class="fc bfc" id="L209" title="All 4 branches covered.">          expired = slot.poison != null || expiration.hasExpired(slot);</span>
+<span class="fc" id="L210">        } catch (Exception ignore) {</span>
+<span class="fc" id="L211">          expired = true;</span>
+<span class="fc" id="L212">        }</span>
+<span class="fc bfc" id="L213" title="All 2 branches covered.">        if (expired) {</span>
+<span class="fc" id="L214">          slot.claim2dead(); // Not strictly necessary</span>
+<span class="fc" id="L215">          dead.offer(slot);</span>
+<span class="fc" id="L216">          didAnythingLastIteration = true;</span>
         } else {
-<span class="fc" id="L208">          slot.claim2live();</span>
-<span class="fc" id="L209">          live.offer(slot);</span>
+<span class="fc" id="L218">          slot.claim2live();</span>
+<span class="fc" id="L219">          live.offer(slot);</span>
         }
-<span class="fc" id="L211">      } else {</span>
-<span class="fc" id="L212">        live.offer(slot);</span>
+<span class="fc" id="L221">      } else {</span>
+<span class="fc" id="L222">        live.offer(slot);</span>
       }
     }
-<span class="fc" id="L215">  }</span>
+<span class="fc" id="L225">  }</span>
 
   private void shutPoolDown() {
-<span class="fc bfc" id="L218" title="All 2 branches covered.">    while (size &gt; 0) {</span>
-<span class="fc" id="L219">      BSlot&lt;T&gt; slot = dead.poll();</span>
-<span class="fc bfc" id="L220" title="All 2 branches covered.">      if (slot == null) {</span>
-<span class="fc" id="L221">        slot = live.poll();</span>
+<span class="fc bfc" id="L228" title="All 2 branches covered.">    while (size &gt; 0) {</span>
+<span class="fc" id="L229">      BSlot&lt;T&gt; slot = dead.poll();</span>
+<span class="fc bfc" id="L230" title="All 2 branches covered.">      if (slot == null) {</span>
+<span class="fc" id="L231">        slot = live.poll();</span>
       }
-<span class="fc bfc" id="L223" title="All 2 branches covered.">      if (slot == poisonPill) {</span>
-<span class="fc" id="L224">        live.offer(poisonPill);</span>
-<span class="fc" id="L225">        slot = null;</span>
+<span class="fc bfc" id="L233" title="All 2 branches covered.">      if (slot == poisonPill) {</span>
+<span class="fc" id="L234">        live.offer(poisonPill);</span>
+<span class="fc" id="L235">        slot = null;</span>
       }
-<span class="fc bfc" id="L227" title="All 2 branches covered.">      if (slot == null) {</span>
-<span class="fc bfc" id="L228" title="All 2 branches covered.">        if (!disregardPile.refillQueue()) {</span>
-<span class="fc" id="L229">          LockSupport.parkNanos(shutdownPauseNanos);</span>
+<span class="fc bfc" id="L237" title="All 2 branches covered.">      if (slot == null) {</span>
+<span class="fc bfc" id="L238" title="All 4 branches covered.">        if (!disregardPile.refill() &amp;&amp; !newAllocations.refill()) {</span>
+<span class="fc" id="L239">          LockSupport.parkNanos(shutdownPauseNanos);</span>
         }
       } else {
-<span class="fc bfc" id="L232" title="All 4 branches covered.">        if (slot.isDead() || slot.live2dead()) {</span>
-<span class="fc" id="L233">          dealloc(slot);</span>
-<span class="fc" id="L234">          unregisterWithLeakDetector(slot);</span>
+<span class="fc bfc" id="L242" title="All 4 branches covered.">        if (slot.isDead() || slot.live2dead()) {</span>
+<span class="fc" id="L243">          dealloc(slot);</span>
+<span class="fc" id="L244">          unregisterWithLeakDetector(slot);</span>
         } else {
-<span class="fc" id="L236">          live.offer(slot);</span>
+<span class="fc" id="L246">          live.offer(slot);</span>
         }
       }
-<span class="fc" id="L239">    }</span>
-<span class="fc" id="L240">  }</span>
+<span class="fc" id="L249">    }</span>
+<span class="fc" id="L250">  }</span>
 
   private void alloc(BSlot&lt;T&gt; slot) {
-<span class="fc" id="L243">    boolean success = false;</span>
+<span class="fc" id="L253">    boolean success = false;</span>
     try {
-<span class="fc" id="L245">      slot.obj = allocator.allocate(slot);</span>
-<span class="fc bfc" id="L246" title="All 2 branches covered.">      if (slot.obj == null) {</span>
-<span class="fc" id="L247">        poisonedSlots.getAndIncrement();</span>
-<span class="fc" id="L248">        slot.poison = new NullPointerException(&quot;Allocation returned null&quot;);</span>
+<span class="fc" id="L255">      slot.obj = allocator.allocate(slot);</span>
+<span class="fc bfc" id="L256" title="All 2 branches covered.">      if (slot.obj == null) {</span>
+<span class="fc" id="L257">        poisonedSlots.getAndIncrement();</span>
+<span class="fc" id="L258">        slot.poison = new NullPointerException(&quot;Allocation returned null.&quot;);</span>
       } else {
-<span class="fc" id="L250">        success = true;</span>
+<span class="fc" id="L260">        success = true;</span>
       }
-<span class="fc" id="L252">    } catch (Exception e) {</span>
-<span class="fc" id="L253">      poisonedSlots.getAndIncrement();</span>
-<span class="fc" id="L254">      slot.poison = e;</span>
-<span class="fc" id="L255">    }</span>
-<span class="fc" id="L256">    size++;</span>
-<span class="fc" id="L257">    resetSlot(slot, System.nanoTime());</span>
-<span class="fc" id="L258">    incrementAllocationCounts(success);</span>
-<span class="fc" id="L259">    live.offer(slot);</span>
-<span class="fc" id="L260">    didAnythingLastIteration = true;</span>
-<span class="fc" id="L261">  }</span>
+<span class="fc" id="L262">    } catch (Exception e) {</span>
+<span class="fc" id="L263">      poisonedSlots.getAndIncrement();</span>
+<span class="fc" id="L264">      slot.poison = e;</span>
+<span class="fc" id="L265">    }</span>
+<span class="fc" id="L266">    size++;</span>
+<span class="fc" id="L267">    publishSlot(slot, success, NanoClock.nanoTime());</span>
+<span class="fc" id="L268">    didAnythingLastIteration = true;</span>
+<span class="fc" id="L269">  }</span>
+
+  private void publishSlot(BSlot&lt;T&gt; slot, boolean success, long now) {
+<span class="fc" id="L272">    resetSlot(slot, now);</span>
+<span class="fc bfc" id="L273" title="All 4 branches covered.">    if (success &amp;&amp; !live.hasWaitingConsumer()) {</span>
+      // Successful, fresh allocations go to the front of the queue.
+<span class="fc" id="L275">      newAllocations.push(slot);</span>
+    } else {
+      // Failed allocations go to the back of the queue.
+<span class="fc" id="L278">      live.offer(slot);</span>
+    }
+<span class="fc" id="L280">    incrementAllocationCounts(success);</span>
+<span class="fc" id="L281">  }</span>
 
   private void incrementAllocationCounts(boolean success) {
-<span class="fc bfc" id="L264" title="All 2 branches covered.">    if (success) {</span>
-<span class="fc" id="L265">      allocationCount++;</span>
-<span class="fc" id="L266">      consecutiveAllocationFailures = 0;</span>
+<span class="fc bfc" id="L284" title="All 2 branches covered.">    if (success) {</span>
+<span class="fc" id="L285">      allocationCount++;</span>
+<span class="fc" id="L286">      consecutiveAllocationFailures = 0;</span>
     } else {
-<span class="fc" id="L268">      failedAllocationCount++;</span>
-<span class="fc" id="L269">      consecutiveAllocationFailures++;</span>
+<span class="fc" id="L288">      failedAllocationCount++;</span>
+<span class="fc" id="L289">      consecutiveAllocationFailures++;</span>
     }
-<span class="fc" id="L271">  }</span>
+<span class="fc" id="L291">  }</span>
 
   private void resetSlot(BSlot&lt;T&gt; slot, long now) {
-<span class="fc" id="L274">    slot.createdNanos = now;</span>
-<span class="fc" id="L275">    slot.claims = 0;</span>
-<span class="fc" id="L276">    slot.stamp = 0;</span>
-<span class="fc" id="L277">    slot.dead2live();</span>
-<span class="fc" id="L278">  }</span>
+<span class="fc" id="L294">    slot.createdNanos = now;</span>
+<span class="fc" id="L295">    slot.claims = 0;</span>
+<span class="fc" id="L296">    slot.stamp = 0;</span>
+<span class="fc" id="L297">    slot.dead2live();</span>
+<span class="fc" id="L298">  }</span>
 
   private void dealloc(BSlot&lt;T&gt; slot) {
-<span class="fc" id="L281">    size--;</span>
+<span class="fc" id="L301">    size--;</span>
     try {
-<span class="fc bfc" id="L283" title="All 2 branches covered.">      if (slot.poison == BlazePool.EXPLICIT_EXPIRE_POISON) {</span>
-<span class="fc" id="L284">        slot.poison = null;</span>
-<span class="fc" id="L285">        poisonedSlots.getAndDecrement();</span>
+<span class="fc bfc" id="L303" title="All 2 branches covered.">      if (slot.poison == BlazePool.EXPLICIT_EXPIRE_POISON) {</span>
+<span class="fc" id="L304">        slot.poison = null;</span>
+<span class="fc" id="L305">        poisonedSlots.getAndDecrement();</span>
       }
-<span class="fc bfc" id="L287" title="All 2 branches covered.">      if (slot.poison == null) {</span>
-<span class="fc" id="L288">        long now = System.nanoTime();</span>
-<span class="fc" id="L289">        recordObjectLifetimeSample(now - slot.createdNanos);</span>
-<span class="fc" id="L290">        allocator.deallocate(slot.obj);</span>
-<span class="fc" id="L291">      } else {</span>
-<span class="fc" id="L292">        poisonedSlots.getAndDecrement();</span>
+<span class="fc bfc" id="L307" title="All 2 branches covered.">      if (slot.poison == null) {</span>
+<span class="fc" id="L308">        recordObjectLifetimeSample(NanoClock.elapsed(slot.createdNanos));</span>
+<span class="fc" id="L309">        allocator.deallocate(slot.obj);</span>
+      } else {
+<span class="fc" id="L311">        poisonedSlots.getAndDecrement();</span>
       }
-<span class="fc" id="L294">    } catch (Exception ignore) { // NOPMD</span>
+<span class="fc" id="L313">    } catch (Exception ignore) { // NOPMD</span>
       // Ignored as per specification
-<span class="fc" id="L296">    }</span>
-<span class="fc" id="L297">    slot.poison = null;</span>
-<span class="fc" id="L298">    slot.obj = null;</span>
-<span class="fc" id="L299">    didAnythingLastIteration = true;</span>
-<span class="fc" id="L300">  }</span>
+<span class="fc" id="L315">    }</span>
+<span class="fc" id="L316">    slot.poison = null;</span>
+<span class="fc" id="L317">    slot.obj = null;</span>
+<span class="fc" id="L318">    didAnythingLastIteration = true;</span>
+<span class="fc" id="L319">  }</span>
 
   private void realloc(BSlot&lt;T&gt; slot) {
-<span class="fc bfc" id="L303" title="All 2 branches covered.">    if (slot.poison == BlazePool.EXPLICIT_EXPIRE_POISON) {</span>
-<span class="fc" id="L304">      slot.poison = null;</span>
-<span class="fc" id="L305">      poisonedSlots.getAndDecrement();</span>
+<span class="fc bfc" id="L322" title="All 2 branches covered.">    if (slot.poison == BlazePool.EXPLICIT_EXPIRE_POISON) {</span>
+<span class="fc" id="L323">      slot.poison = null;</span>
+<span class="fc" id="L324">      poisonedSlots.getAndDecrement();</span>
     }
-<span class="fc bfc" id="L307" title="All 2 branches covered.">    if (slot.poison == null) {</span>
-<span class="fc" id="L308">      boolean success = false;</span>
+<span class="fc bfc" id="L326" title="All 2 branches covered.">    if (slot.poison == null) {</span>
+<span class="fc" id="L327">      boolean success = false;</span>
       try {
-<span class="fc" id="L310">        slot.obj = allocator.reallocate(slot, slot.obj);</span>
-<span class="fc bfc" id="L311" title="All 2 branches covered.">        if (slot.obj == null) {</span>
-<span class="fc" id="L312">          poisonedSlots.getAndIncrement();</span>
-<span class="fc" id="L313">          slot.poison = new NullPointerException(&quot;Reallocation returned null&quot;);</span>
+<span class="fc" id="L329">        slot.obj = allocator.reallocate(slot, slot.obj);</span>
+<span class="fc bfc" id="L330" title="All 2 branches covered.">        if (slot.obj == null) {</span>
+<span class="fc" id="L331">          poisonedSlots.getAndIncrement();</span>
+<span class="fc" id="L332">          slot.poison = new NullPointerException(&quot;Reallocation returned null.&quot;);</span>
         } else {
-<span class="fc" id="L315">          success = true;</span>
+<span class="fc" id="L334">          success = true;</span>
         }
-<span class="fc" id="L317">      } catch (Exception e) {</span>
-<span class="fc" id="L318">        poisonedSlots.getAndIncrement();</span>
-<span class="fc" id="L319">        slot.poison = e;</span>
-<span class="fc" id="L320">      }</span>
-<span class="fc" id="L321">      long now = System.nanoTime();</span>
-<span class="fc" id="L322">      recordObjectLifetimeSample(now - slot.createdNanos);</span>
-<span class="fc" id="L323">      resetSlot(slot, now);</span>
-<span class="fc" id="L324">      incrementAllocationCounts(success);</span>
-<span class="fc" id="L325">      live.offer(slot);</span>
-<span class="fc" id="L326">    } else {</span>
-<span class="fc" id="L327">      dealloc(slot);</span>
-<span class="fc" id="L328">      alloc(slot);</span>
+<span class="fc" id="L336">      } catch (Exception e) {</span>
+<span class="fc" id="L337">        poisonedSlots.getAndIncrement();</span>
+<span class="fc" id="L338">        slot.poison = e;</span>
+<span class="fc" id="L339">      }</span>
+<span class="fc" id="L340">      long now = NanoClock.nanoTime();</span>
+<span class="fc" id="L341">      recordObjectLifetimeSample(now - slot.createdNanos);</span>
+<span class="fc" id="L342">      publishSlot(slot, success, now);</span>
+<span class="fc" id="L343">    } else {</span>
+<span class="fc" id="L344">      dealloc(slot);</span>
+<span class="fc" id="L345">      alloc(slot);</span>
     }
-<span class="fc" id="L330">    didAnythingLastIteration = true;</span>
-<span class="fc" id="L331">  }</span>
+<span class="fc" id="L347">    didAnythingLastIteration = true;</span>
+<span class="fc" id="L348">  }</span>
 
   private void recordObjectLifetimeSample(long nanoseconds) {
-<span class="fc bfc" id="L334" title="All 2 branches covered.">    if (metricsRecorder != null) {</span>
-<span class="fc" id="L335">      long milliseconds = TimeUnit.NANOSECONDS.toMillis(nanoseconds);</span>
-<span class="fc" id="L336">      metricsRecorder.recordObjectLifetimeSampleMillis(milliseconds);</span>
+<span class="fc bfc" id="L351" title="All 2 branches covered.">    if (metricsRecorder != null) {</span>
+<span class="fc" id="L352">      long milliseconds = TimeUnit.NANOSECONDS.toMillis(nanoseconds);</span>
+<span class="fc" id="L353">      metricsRecorder.recordObjectLifetimeSampleMillis(milliseconds);</span>
     }
-<span class="fc" id="L338">  }</span>
+<span class="fc" id="L355">  }</span>
 
   void setTargetSize(int size) {
-<span class="fc" id="L341">    this.targetSize = size;</span>
-<span class="fc" id="L342">  }</span>
+<span class="fc" id="L358">    this.targetSize = size;</span>
+<span class="fc" id="L359">  }</span>
 
   int getTargetSize() {
-<span class="fc" id="L345">    return targetSize;</span>
+<span class="fc" id="L362">    return targetSize;</span>
   }
 
   Completion shutdown(Thread allocatorThread) {
-<span class="fc" id="L349">    shutdown = true;</span>
-<span class="fc" id="L350">    allocatorThread.interrupt();</span>
-<span class="fc" id="L351">    return new LatchCompletion(completionLatch);</span>
+<span class="fc" id="L366">    shutdown = true;</span>
+<span class="fc" id="L367">    allocatorThread.interrupt();</span>
+<span class="fc" id="L368">    return new LatchCompletion(completionLatch);</span>
   }
 
   long getAllocationCount() {
-<span class="fc" id="L355">    return allocationCount;</span>
+<span class="fc" id="L372">    return allocationCount;</span>
   }
 
   long getFailedAllocationCount() {
-<span class="fc" id="L359">    return failedAllocationCount;</span>
+<span class="fc" id="L376">    return failedAllocationCount;</span>
   }
 
   long countLeakedObjects() {
-<span class="fc bfc" id="L363" title="All 2 branches covered.">    if (leakDetector != null) {</span>
-<span class="fc" id="L364">      return leakDetector.countLeakedObjects();</span>
+<span class="fc bfc" id="L380" title="All 2 branches covered.">    if (leakDetector != null) {</span>
+<span class="fc" id="L381">      return leakDetector.countLeakedObjects();</span>
     }
-<span class="fc" id="L366">    return -1;</span>
+<span class="fc" id="L383">    return -1;</span>
   }
 
   void offerDeadSlot(BSlot&lt;T&gt; slot) {
-<span class="fc" id="L370">    dead.offer(slot);</span>
-<span class="fc" id="L371">  }</span>
+<span class="fc" id="L387">    dead.offer(slot);</span>
+<span class="fc" id="L388">  }</span>
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

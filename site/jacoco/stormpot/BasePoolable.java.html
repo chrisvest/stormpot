@@ -24,21 +24,26 @@ import java.util.Objects;
  * interface, but doing so may make your code simpler.
  */
 public class BasePoolable implements Poolable {
+  /**
+   * The {@link Slot} representing this objects place in the pool.
+   * The slot is also the facade for client code to {@link Slot#expire(Poolable) explicitly expire}
+   * this object, and to {@link Slot#release(Poolable) release} this object back to the pool.
+   */
   protected final Slot slot;
 
   /**
    * Build a `BasePoolable` for the given slot.
    * @param slot The {@link Slot} that represents this objects place in the pool.
    */
-<span class="fc" id="L33">  public BasePoolable(Slot slot) {</span>
-<span class="fc" id="L34">    Objects.requireNonNull(slot, &quot;The slot argument cannot be null.&quot;);</span>
-<span class="fc" id="L35">    this.slot = slot;</span>
-<span class="fc" id="L36">  }</span>
+<span class="fc" id="L38">  public BasePoolable(Slot slot) {</span>
+<span class="fc" id="L39">    Objects.requireNonNull(slot, &quot;The slot argument cannot be null.&quot;);</span>
+<span class="fc" id="L40">    this.slot = slot;</span>
+<span class="fc" id="L41">  }</span>
 
   @Override
   public void release() {
-<span class="fc" id="L40">    slot.release(this);</span>
-<span class="fc" id="L41">  }</span>
+<span class="fc" id="L45">    slot.release(this);</span>
+<span class="fc" id="L46">  }</span>
 
   /**
    * Explicitly expire this object, such that it will not be claimed again once it is released.
@@ -46,7 +51,7 @@ public class BasePoolable implements Poolable {
    * @see Slot#expire(Poolable)
    */
   public void expire() {
-<span class="fc" id="L49">    slot.expire(this);</span>
-<span class="fc" id="L50">  }</span>
+<span class="fc" id="L54">    slot.expire(this);</span>
+<span class="fc" id="L55">  }</span>
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

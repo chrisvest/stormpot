@@ -15,6 +15,7 @@
  */
 package stormpot;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -40,17 +41,15 @@ final class TimeExpiration&lt;T extends Poolable&gt; implements Expiration&lt;T&
    * @param unit The {@link TimeUnit} of the maximum permitted age. Never
    * `null`.
    */
-<span class="fc" id="L43">  TimeExpiration(long maxPermittedAge, TimeUnit unit) {</span>
-<span class="fc bfc" id="L44" title="All 2 branches covered.">    if (maxPermittedAge &lt; 1) {</span>
-<span class="fc" id="L45">      throw new IllegalArgumentException(</span>
+<span class="fc" id="L44">  TimeExpiration(long maxPermittedAge, TimeUnit unit) {</span>
+<span class="fc" id="L45">    Objects.requireNonNull(unit, &quot;TimeUnit cannot be null.&quot;);</span>
+<span class="fc bfc" id="L46" title="All 2 branches covered.">    if (maxPermittedAge &lt; 1) {</span>
+<span class="fc" id="L47">      throw new IllegalArgumentException(</span>
           &quot;Max permitted age cannot be less than 1&quot;);
     }
-<span class="fc bfc" id="L48" title="All 2 branches covered.">    if (unit == null) {</span>
-<span class="fc" id="L49">      throw new IllegalArgumentException(&quot;The TimeUnit cannot be null&quot;);</span>
-    }
-<span class="fc" id="L51">    maxPermittedAgeMillis = unit.toMillis(maxPermittedAge);</span>
-<span class="fc" id="L52">    this.unit = unit;</span>
-<span class="fc" id="L53">  }</span>
+<span class="fc" id="L50">    maxPermittedAgeMillis = unit.toMillis(maxPermittedAge);</span>
+<span class="fc" id="L51">    this.unit = unit;</span>
+<span class="fc" id="L52">  }</span>
 
   /**
    * Returns `true` if the {@link Poolable} represented by the given
@@ -59,13 +58,13 @@ final class TimeExpiration&lt;T extends Poolable&gt; implements Expiration&lt;T&
    */
   @Override
   public boolean hasExpired(SlotInfo&lt;? extends T&gt; info) {
-<span class="fc bfc" id="L62" title="All 2 branches covered.">    return info.getAgeMillis() &gt; maxPermittedAgeMillis;</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">    return info.getAgeMillis() &gt; maxPermittedAgeMillis;</span>
   }
 
   @Override
   public String toString() {
-<span class="fc" id="L67">    long time = unit.convert(maxPermittedAgeMillis, TimeUnit.MILLISECONDS);</span>
-<span class="fc" id="L68">    return &quot;TimeExpiration(&quot; + time + &quot; &quot; + unit + &quot;)&quot;;</span>
+<span class="fc" id="L66">    long time = unit.convert(maxPermittedAgeMillis, TimeUnit.MILLISECONDS);</span>
+<span class="fc" id="L67">    return &quot;TimeExpiration(&quot; + time + &quot; &quot; + unit + &quot;)&quot;;</span>
   }
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

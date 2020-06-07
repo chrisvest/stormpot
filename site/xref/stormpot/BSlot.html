@@ -108,7 +108,7 @@
 <a class="jxr_linenumber" name="L100" href="#L100">100</a> 
 <a class="jxr_linenumber" name="L101" href="#L101">101</a>   @Override
 <a class="jxr_linenumber" name="L102" href="#L102">102</a>   <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">long</strong> getAgeMillis() {
-<a class="jxr_linenumber" name="L103" href="#L103">103</a>     <strong class="jxr_keyword">return</strong> TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - createdNanos);
+<a class="jxr_linenumber" name="L103" href="#L103">103</a>     <strong class="jxr_keyword">return</strong> TimeUnit.NANOSECONDS.toMillis(NanoClock.elapsed(createdNanos));
 <a class="jxr_linenumber" name="L104" href="#L104">104</a>   }
 <a class="jxr_linenumber" name="L105" href="#L105">105</a> 
 <a class="jxr_linenumber" name="L106" href="#L106">106</a>   @Override
@@ -166,48 +166,48 @@
 <a class="jxr_linenumber" name="L158" href="#L158">158</a>   }
 <a class="jxr_linenumber" name="L159" href="#L159">159</a> }
 <a class="jxr_linenumber" name="L160" href="#L160">160</a> 
-<a class="jxr_linenumber" name="L161" href="#L161">161</a> <strong class="jxr_keyword">abstract</strong> <strong class="jxr_keyword">class</strong> <a name="Padding1" href="../stormpot/BSlot.html#Padding1">Padding1</a> {
-<a class="jxr_linenumber" name="L162" href="#L162">162</a>   @SuppressWarnings(<span class="jxr_string">"unused"</span>)
-<a class="jxr_linenumber" name="L163" href="#L163">163</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">int</strong> p0;
-<a class="jxr_linenumber" name="L164" href="#L164">164</a>   @SuppressWarnings(<span class="jxr_string">"unused"</span>)
-<a class="jxr_linenumber" name="L165" href="#L165">165</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">long</strong> p1, p2, p3, p4, p5, p6;
-<a class="jxr_linenumber" name="L166" href="#L166">166</a> }
-<a class="jxr_linenumber" name="L167" href="#L167">167</a> 
-<a class="jxr_linenumber" name="L168" href="#L168">168</a> <strong class="jxr_keyword">abstract</strong> <strong class="jxr_keyword">class</strong> <a name="PaddedAtomicInteger" href="../stormpot/BSlot.html#PaddedAtomicInteger">PaddedAtomicInteger</a> <strong class="jxr_keyword">extends</strong> <a name="Padding1" href="../stormpot/BSlot.html#Padding1">Padding1</a> {
-<a class="jxr_linenumber" name="L169" href="#L169">169</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">final</strong> VarHandle STATE;
-<a class="jxr_linenumber" name="L170" href="#L170">170</a> 
-<a class="jxr_linenumber" name="L171" href="#L171">171</a>   <strong class="jxr_keyword">static</strong> {
-<a class="jxr_linenumber" name="L172" href="#L172">172</a>     <strong class="jxr_keyword">try</strong> {
-<a class="jxr_linenumber" name="L173" href="#L173">173</a>       MethodHandles.Lookup lookup = MethodHandles.lookup();
-<a class="jxr_linenumber" name="L174" href="#L174">174</a>       STATE = lookup.findVarHandle(PaddedAtomicInteger.<strong class="jxr_keyword">class</strong>, <span class="jxr_string">"state"</span>, <strong class="jxr_keyword">int</strong>.<strong class="jxr_keyword">class</strong>);
-<a class="jxr_linenumber" name="L175" href="#L175">175</a>     } <strong class="jxr_keyword">catch</strong> (NoSuchFieldException | IllegalAccessException e) {
-<a class="jxr_linenumber" name="L176" href="#L176">176</a>       <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> AssertionError(<span class="jxr_string">"Failed to initialise the state VarHandle."</span>, e);
-<a class="jxr_linenumber" name="L177" href="#L177">177</a>     }
-<a class="jxr_linenumber" name="L178" href="#L178">178</a>   }
-<a class="jxr_linenumber" name="L179" href="#L179">179</a> 
-<a class="jxr_linenumber" name="L180" href="#L180">180</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">volatile</strong> <strong class="jxr_keyword">int</strong> state;
-<a class="jxr_linenumber" name="L181" href="#L181">181</a> 
-<a class="jxr_linenumber" name="L182" href="#L182">182</a>   <a name="PaddedAtomicInteger" href="../stormpot/BSlot.html#PaddedAtomicInteger">PaddedAtomicInteger</a>(<strong class="jxr_keyword">int</strong> state) {
-<a class="jxr_linenumber" name="L183" href="#L183">183</a>     <strong class="jxr_keyword">this</strong>.state = state;
-<a class="jxr_linenumber" name="L184" href="#L184">184</a>   }
-<a class="jxr_linenumber" name="L185" href="#L185">185</a> 
-<a class="jxr_linenumber" name="L186" href="#L186">186</a>   <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">boolean</strong> compareAndSet(<strong class="jxr_keyword">int</strong> expected, <strong class="jxr_keyword">int</strong> update) {
-<a class="jxr_linenumber" name="L187" href="#L187">187</a>     <strong class="jxr_keyword">return</strong> STATE.compareAndSet(<strong class="jxr_keyword">this</strong>, expected, update);
-<a class="jxr_linenumber" name="L188" href="#L188">188</a>   }
-<a class="jxr_linenumber" name="L189" href="#L189">189</a> 
-<a class="jxr_linenumber" name="L190" href="#L190">190</a>   <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">void</strong> lazySet(<strong class="jxr_keyword">int</strong> update) {
-<a class="jxr_linenumber" name="L191" href="#L191">191</a>     STATE.setOpaque(<strong class="jxr_keyword">this</strong>, update);
-<a class="jxr_linenumber" name="L192" href="#L192">192</a>   }
-<a class="jxr_linenumber" name="L193" href="#L193">193</a> 
-<a class="jxr_linenumber" name="L194" href="#L194">194</a>   <strong class="jxr_keyword">int</strong> get() {
-<a class="jxr_linenumber" name="L195" href="#L195">195</a>     <strong class="jxr_keyword">return</strong> state;
-<a class="jxr_linenumber" name="L196" href="#L196">196</a>   }
-<a class="jxr_linenumber" name="L197" href="#L197">197</a> }
-<a class="jxr_linenumber" name="L198" href="#L198">198</a> 
-<a class="jxr_linenumber" name="L199" href="#L199">199</a> <strong class="jxr_keyword">abstract</strong> <strong class="jxr_keyword">class</strong> <a name="Padding2" href="../stormpot/BSlot.html#Padding2">Padding2</a> <strong class="jxr_keyword">extends</strong> <a name="PaddedAtomicInteger" href="../stormpot/BSlot.html#PaddedAtomicInteger">PaddedAtomicInteger</a> {
-<a class="jxr_linenumber" name="L200" href="#L200">200</a>   @SuppressWarnings(<span class="jxr_string">"unused"</span>)
-<a class="jxr_linenumber" name="L201" href="#L201">201</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">long</strong> p1, p2, p3, p4, p5, p6;
-<a class="jxr_linenumber" name="L202" href="#L202">202</a> 
+<a class="jxr_linenumber" name="L161" href="#L161">161</a> @SuppressWarnings(<span class="jxr_string">"unused"</span>)
+<a class="jxr_linenumber" name="L162" href="#L162">162</a> <strong class="jxr_keyword">abstract</strong> <strong class="jxr_keyword">class</strong> <a name="Padding1" href="../stormpot/BSlot.html#Padding1">Padding1</a> {
+<a class="jxr_linenumber" name="L163" href="#L163">163</a>   <strong class="jxr_keyword">private</strong> byte p0;
+<a class="jxr_linenumber" name="L164" href="#L164">164</a>   <strong class="jxr_keyword">private</strong> byte p1;
+<a class="jxr_linenumber" name="L165" href="#L165">165</a>   <strong class="jxr_keyword">private</strong> byte p2;
+<a class="jxr_linenumber" name="L166" href="#L166">166</a>   <strong class="jxr_keyword">private</strong> byte p3;
+<a class="jxr_linenumber" name="L167" href="#L167">167</a> }
+<a class="jxr_linenumber" name="L168" href="#L168">168</a> 
+<a class="jxr_linenumber" name="L169" href="#L169">169</a> <strong class="jxr_keyword">abstract</strong> <strong class="jxr_keyword">class</strong> <a name="PaddedAtomicInteger" href="../stormpot/BSlot.html#PaddedAtomicInteger">PaddedAtomicInteger</a> <strong class="jxr_keyword">extends</strong> <a name="Padding1" href="../stormpot/BSlot.html#Padding1">Padding1</a> {
+<a class="jxr_linenumber" name="L170" href="#L170">170</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">final</strong> VarHandle STATE;
+<a class="jxr_linenumber" name="L171" href="#L171">171</a> 
+<a class="jxr_linenumber" name="L172" href="#L172">172</a>   <strong class="jxr_keyword">static</strong> {
+<a class="jxr_linenumber" name="L173" href="#L173">173</a>     <strong class="jxr_keyword">try</strong> {
+<a class="jxr_linenumber" name="L174" href="#L174">174</a>       MethodHandles.Lookup lookup = MethodHandles.lookup();
+<a class="jxr_linenumber" name="L175" href="#L175">175</a>       STATE = lookup.findVarHandle(PaddedAtomicInteger.<strong class="jxr_keyword">class</strong>, <span class="jxr_string">"state"</span>, <strong class="jxr_keyword">int</strong>.<strong class="jxr_keyword">class</strong>);
+<a class="jxr_linenumber" name="L176" href="#L176">176</a>     } <strong class="jxr_keyword">catch</strong> (NoSuchFieldException | IllegalAccessException e) {
+<a class="jxr_linenumber" name="L177" href="#L177">177</a>       <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> AssertionError(<span class="jxr_string">"Failed to initialise the state VarHandle."</span>, e);
+<a class="jxr_linenumber" name="L178" href="#L178">178</a>     }
+<a class="jxr_linenumber" name="L179" href="#L179">179</a>   }
+<a class="jxr_linenumber" name="L180" href="#L180">180</a> 
+<a class="jxr_linenumber" name="L181" href="#L181">181</a>   @SuppressWarnings(<span class="jxr_string">"FieldMayBeFinal"</span>)
+<a class="jxr_linenumber" name="L182" href="#L182">182</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">volatile</strong> <strong class="jxr_keyword">int</strong> state;
+<a class="jxr_linenumber" name="L183" href="#L183">183</a> 
+<a class="jxr_linenumber" name="L184" href="#L184">184</a>   <a name="PaddedAtomicInteger" href="../stormpot/BSlot.html#PaddedAtomicInteger">PaddedAtomicInteger</a>(<strong class="jxr_keyword">int</strong> state) {
+<a class="jxr_linenumber" name="L185" href="#L185">185</a>     <strong class="jxr_keyword">this</strong>.state = state;
+<a class="jxr_linenumber" name="L186" href="#L186">186</a>   }
+<a class="jxr_linenumber" name="L187" href="#L187">187</a> 
+<a class="jxr_linenumber" name="L188" href="#L188">188</a>   @SuppressWarnings(<span class="jxr_string">"SameParameterValue"</span>)
+<a class="jxr_linenumber" name="L189" href="#L189">189</a>   <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">boolean</strong> compareAndSet(<strong class="jxr_keyword">int</strong> expected, <strong class="jxr_keyword">int</strong> update) {
+<a class="jxr_linenumber" name="L190" href="#L190">190</a>     <strong class="jxr_keyword">return</strong> STATE.compareAndSet(<strong class="jxr_keyword">this</strong>, expected, update);
+<a class="jxr_linenumber" name="L191" href="#L191">191</a>   }
+<a class="jxr_linenumber" name="L192" href="#L192">192</a> 
+<a class="jxr_linenumber" name="L193" href="#L193">193</a>   <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">void</strong> lazySet(<strong class="jxr_keyword">int</strong> update) {
+<a class="jxr_linenumber" name="L194" href="#L194">194</a>     STATE.setOpaque(<strong class="jxr_keyword">this</strong>, update);
+<a class="jxr_linenumber" name="L195" href="#L195">195</a>   }
+<a class="jxr_linenumber" name="L196" href="#L196">196</a> 
+<a class="jxr_linenumber" name="L197" href="#L197">197</a>   <strong class="jxr_keyword">int</strong> get() {
+<a class="jxr_linenumber" name="L198" href="#L198">198</a>     <strong class="jxr_keyword">return</strong> state;
+<a class="jxr_linenumber" name="L199" href="#L199">199</a>   }
+<a class="jxr_linenumber" name="L200" href="#L200">200</a> }
+<a class="jxr_linenumber" name="L201" href="#L201">201</a> 
+<a class="jxr_linenumber" name="L202" href="#L202">202</a> <strong class="jxr_keyword">abstract</strong> <strong class="jxr_keyword">class</strong> <a name="Padding2" href="../stormpot/BSlot.html#Padding2">Padding2</a> <strong class="jxr_keyword">extends</strong> <a name="PaddedAtomicInteger" href="../stormpot/BSlot.html#PaddedAtomicInteger">PaddedAtomicInteger</a> {
 <a class="jxr_linenumber" name="L203" href="#L203">203</a>   <a name="Padding2" href="../stormpot/BSlot.html#Padding2">Padding2</a>(<strong class="jxr_keyword">int</strong> state) {
 <a class="jxr_linenumber" name="L204" href="#L204">204</a>     <strong class="jxr_keyword">super</strong>(state);
 <a class="jxr_linenumber" name="L205" href="#L205">205</a>   }

@@ -15,6 +15,8 @@
  */
 package stormpot;
 
+import static stormpot.AllocationProcess.*;
+
 /**
  * A Pool is a self-renewable set of objects from which one can claim exclusive
  * access to elements, until they are released back into the pool.
@@ -56,27 +58,58 @@ package stormpot;
  * cause an {@link UnsupportedOperationException} to be thrown.
  * --
  *
- * Pools are themselves lifecycled, and should be {@link #shutdown() shut down}
+ * Pools are themselves life-cycled, and should be {@link #shutdown() shut down}
  * when they are no longer needed.
  *
  * Note that Pools are not guaranteed to have overwritten the
- * {@code Object#finalize()} method. Pools are expected to rely on explicit
+ * `Object#finalize()` method. Pools are expected to rely on explicit
  * clean-up for releasing their resources.
  *
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  * @param &lt;T&gt; the type of {@link Poolable} contained in the pool, as determined
- * by the {@linkplain Pool#from(Allocator) configured allocator}.
+ * by the configured allocator.
  * @see stormpot.PoolTap
  */
 public abstract class Pool&lt;T extends Poolable&gt; extends PoolTap&lt;T&gt; {
-<span class="fc" id="L72">  Pool() {</span>
-<span class="fc" id="L73">  }</span>
+<span class="fc" id="L74">  Pool() {</span>
+<span class="fc" id="L75">  }</span>
 
   /**
    * Get a {@link PoolBuilder} based on the given {@link Allocator} or
    * {@link Reallocator}, which can then in turn be used to
    * {@linkplain PoolBuilder#build build} a {@link Pool} instance with the
    * desired configuration.
+   *
+   * This method is synonymous for {@link #fromThreaded(Allocator)}.
+   *
+   * @param allocator The allocator we want our pools to use. This cannot be
+   * `null`.
+   * @param &lt;T&gt; The type of {@link Poolable} that is created by the allocator,
+   * and the type of objects that the configured pools will contain.
+   * @return A {@link PoolBuilder} that admits additional configurations,
+   * before the pool instance is {@linkplain PoolBuilder#build() built}.
+   * @see #fromThreaded(Allocator)
+   */
+  public static &lt;T extends Poolable&gt; PoolBuilder&lt;T&gt; from(Allocator&lt;T&gt; allocator) {
+<span class="fc" id="L94">    return fromThreaded(allocator);</span>
+  }
+
+  /**
+   * Get a {@link PoolBuilder} based on the given {@link Allocator} or
+   * {@link Reallocator}, which can then in turn be used to
+   * {@linkplain PoolBuilder#build build} a &lt;em&gt;threaded&lt;/em&gt; {@link Pool} instance with the
+   * desired configuration.
+   *
+   * The returned {@link PoolBuilder} will build pools that allocate and deallocate
+   * objects in a background thread.
+   * Hence the &quot;threaded&quot; in the name; the objects are created and destroyed
+   * by the background thread, out of band with the threads that call into the pool to
+   * claim objects.
+   *
+   * By moving the allocation of objects to a background thread, it can be guaranteed
+   * that the timeouts given to {@link #claim(Timeout) claim} will always be honoured.
+   * In other words, a slow allocation cannot block a {@link #claim(Timeout) claim}
+   * call beyond its intended timeout.
    *
    * @param allocator The allocator we want our pools to use. This cannot be
    * `null`.
@@ -85,8 +118,35 @@ public abstract class Pool&lt;T extends Poolable&gt; extends PoolTap&lt;T&gt; {
    * @return A {@link PoolBuilder} that admits additional configurations,
    * before the pool instance is {@linkplain PoolBuilder#build() built}.
    */
-  public static &lt;T extends Poolable&gt; PoolBuilder&lt;T&gt; from(Allocator&lt;T&gt; allocator) {
-<span class="fc" id="L89">    return new PoolBuilder&lt;&gt;(allocator);</span>
+  public static &lt;T extends Poolable&gt; PoolBuilder&lt;T&gt; fromThreaded(Allocator&lt;T&gt; allocator) {
+<span class="fc" id="L122">    return new PoolBuilder&lt;&gt;(threaded(), allocator);</span>
+  }
+
+  /**
+   * Get a {@link PoolBuilder} based on the given {@link Allocator} or
+   * {@link Reallocator}, which can then in turn be used to
+   * {@linkplain PoolBuilder#build() build} a {@link Pool} operating in the
+   * &lt;em&gt;inline&lt;/em&gt; mode, with the desired configuration.
+   *
+   * The returned {@link PoolBuilder} will build pools that allocate and deallocate
+   * objects in-line with, and as part of, the {@linkplain #claim(Timeout) claim} calls.
+   * Hence the &quot;inline&quot; in the name.
+   *
+   * This way, pools operating in the inline mode do not need a background thread.
+   * This means that it is harder for {@linkplain #claim(Timeout) claim} to honour the
+   * given {@link Timeout}.
+   * It also means that the background services, such as background expiration checking,
+   * and automatically replacing failed allocations, are not available.
+   * On the other hand, inline pool consumes fewer memory and CPU resources.
+   *
+   * @param allocator The allcoator we want our pools to use. This cannot be `null`.
+   * @param &lt;T&gt; The type of {@link Poolable} that is created by the allocator,
+   *           and the type of objects that the configured pools will contain.
+   * @return A {@link PoolBuilder} that admits additional configurations,
+   * before the pool instance is {@linkplain PoolBuilder#build() built}.
+   */
+  public static &lt;T extends Poolable&gt; PoolBuilder&lt;T&gt; fromInline(Allocator&lt;T&gt; allocator) {
+<span class="fc" id="L149">    return new PoolBuilder&lt;&gt;(inline(), allocator);</span>
   }
 
   /**
@@ -119,23 +179,20 @@ public abstract class Pool&lt;T extends Poolable&gt; extends PoolTap&lt;T&gt; {
    */
   @SafeVarargs
   public static &lt;T&gt; Pool&lt;Pooled&lt;T&gt;&gt; of(T... objects) {
-<span class="fc" id="L122">    Allocator&lt;Pooled&lt;T&gt;&gt; allocator = new Allocator&lt;&gt;() {</span>
+<span class="fc" id="L182">    Allocator&lt;Pooled&lt;T&gt;&gt; allocator = new Allocator&lt;&gt;() {</span>
       private int index;
       @Override
       public Pooled&lt;T&gt; allocate(Slot slot) {
-<span class="fc" id="L126">        return new Pooled&lt;&gt;(slot, objects[index++]);</span>
+<span class="fc" id="L186">        return new Pooled&lt;&gt;(slot, objects[index++]);</span>
       }
 
       @Override
       public void deallocate(Pooled&lt;T&gt; poolable) {
-<span class="nc" id="L131">      }</span>
+<span class="nc" id="L191">      }</span>
     };
-<span class="fc" id="L133">    PoolBuilder&lt;Pooled&lt;T&gt;&gt; builder = new PoolBuilder&lt;&gt;(allocator);</span>
-<span class="fc" id="L134">    builder.setSize(objects.length);</span>
-<span class="fc" id="L135">    builder.setPreciseLeakDetectionEnabled(false);</span>
-<span class="fc" id="L136">    builder.setBackgroundExpirationEnabled(false);</span>
-<span class="fc" id="L137">    builder.setExpiration(Expiration.never());</span>
-<span class="fc" id="L138">    return new BlazePool&lt;&gt;(builder, AllocatorProcessFactory.DIRECT);</span>
+<span class="fc" id="L193">    PoolBuilder&lt;Pooled&lt;T&gt;&gt; builder = new PoolBuilder&lt;&gt;(direct(), allocator);</span>
+<span class="fc" id="L194">    builder.setSize(objects.length);</span>
+<span class="fc" id="L195">    return builder.build();</span>
   }
 
   /**
@@ -183,9 +240,9 @@ public abstract class Pool&lt;T extends Poolable&gt; extends PoolTap&lt;T&gt; {
    * size. In fact, it may never happen as the target size can be changed as
    * often as one sees fit.
    *
-   * Pools that do not support a size less than 1 (which would deviate from the
+   * Pools that do not support a size less than 0 (which would deviate from the
    * standard configuration space) will throw an
-   * {@link IllegalArgumentException} if passed 0 or less.
+   * {@link IllegalArgumentException} if passed -1 or less.
    *
    * Pools that do not support online resizing will throw an
    * {@link UnsupportedOperationException}.
@@ -217,10 +274,10 @@ public abstract class Pool&lt;T extends Poolable&gt; extends PoolTap&lt;T&gt; {
   public final PoolTap&lt;T&gt; getThreadSafeTap() {
     // We use the anonymous inner class to enforce encapsulation, which is
     // probably the only reason anyone would wan to use this.
-<span class="fc" id="L220">    return new PoolTap&lt;&gt;() {</span>
+<span class="fc" id="L277">    return new PoolTap&lt;&gt;() {</span>
       @Override
       public T claim(Timeout timeout) throws PoolException, InterruptedException {
-<span class="fc" id="L223">        return Pool.this.claim(timeout);</span>
+<span class="fc" id="L280">        return Pool.this.claim(timeout);</span>
       }
     };
   }
@@ -237,8 +294,8 @@ public abstract class Pool&lt;T extends Poolable&gt; extends PoolTap&lt;T&gt; {
    * threads, or to transfer them from one thread to another without safe
    * publication.
    *
-   * @return A thread-locao {@link PoolTap}.
+   * @return A thread-local {@link PoolTap}.
    */
   public abstract PoolTap&lt;T&gt; getThreadLocalTap();
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>
