@@ -24,6 +24,11 @@ import java.util.Objects;
  * interface, but doing so may make your code simpler.
  */
 public class BasePoolable implements Poolable {
+  /**
+   * The {@link Slot} representing this objects place in the pool.
+   * The slot is also the facade for client code to {@link Slot#expire(Poolable) explicitly expire}
+   * this object, and to {@link Slot#release(Poolable) release} this object back to the pool.
+   */
   protected final Slot slot;
 
   /**

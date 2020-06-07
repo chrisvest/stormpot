@@ -19,8 +19,17 @@ package stormpot;
  * A reference to a pooled object.
  */
 public class Pooled<T> extends BasePoolable implements Poolable, AutoCloseable {
+  /**
+   * The object managed by this pooled instance.
+   */
   public final T object;
 
+  /**
+   * Create a pooled object for the given slot and object to be pooled.
+   *
+   * @param slot The slot an object is being allocated for.
+   * @param object The object this pooled instance represents.
+   */
   public Pooled(Slot slot, T object) {
     super(slot);
     this.object = object;
