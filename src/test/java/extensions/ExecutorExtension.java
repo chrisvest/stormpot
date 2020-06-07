@@ -126,7 +126,7 @@ public class ExecutorExtension implements Extension, BeforeEachCallback, AfterEa
           int tries = 100;
           while (state != Thread.State.TERMINATED && tries --> 0) {
             try {
-              thread.join(10);
+              thread.join(100);
             } catch (InterruptedException e) {
               throw new AssertionError(e);
             }
@@ -138,7 +138,14 @@ public class ExecutorExtension implements Extension, BeforeEachCallback, AfterEa
             System.gc();
             state = thread.getState();
           }
-          assertThat(state).as("Unexpected thread state: " + thread + " (id " + thread.getId() + ")")
+          StackTraceElement[] stackTrace = thread.getStackTrace();
+          StringJoiner joiner = new StringJoiner("\n\t");
+          joiner.setEmptyValue("\tno stack trace");
+          for (StackTraceElement frame : stackTrace) {
+            joiner.add(frame.toString());
+          }
+          assertThat(state).as("Unexpected thread state: " + thread +
+              " (id " + thread.getId() + ") stack trace: \n" + joiner)
               .isEqualTo(Thread.State.TERMINATED);
         }
       }
