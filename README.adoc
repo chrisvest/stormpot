@@ -54,6 +54,10 @@ operation. Some of the things that sets Stormpot apart include:
    (since 3.0)
  * Control over the thread-local caching mechanics, via ``PoolTap``s.
    (since 3.0)
+ * Support for operating without a background thread, via `Pool.fromInline()`.
+   (since 3.1)
+ * Support for configuring zero-sized (dormant) pools.
+   (since 3.1)
  * And other features that makes for a smooth runtime behaviour.
 
 [NOTE]
