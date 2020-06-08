@@ -17,23 +17,49 @@ package blackbox.slow;
 
 import extensions.ExecutorExtension;
 import extensions.FailurePrinterExtension;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
-import stormpot.*;
+import stormpot.Completion;
+import stormpot.GenericPoolable;
+import stormpot.Pool;
+import stormpot.PoolBuilder;
+import stormpot.PoolException;
+import stormpot.Slot;
+import stormpot.SomeRandomException;
 import stormpot.Timeout;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadMXBean;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.util.Arrays.asList;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
-import static stormpot.AlloKit.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static stormpot.AlloKit.$countDown;
+import static stormpot.AlloKit.$new;
+import static stormpot.AlloKit.$null;
+import static stormpot.AlloKit.$release;
+import static stormpot.AlloKit.Action;
+import static stormpot.AlloKit.CountingAllocator;
+import static stormpot.AlloKit.alloc;
+import static stormpot.AlloKit.allocator;
+import static stormpot.AlloKit.dealloc;
+import static stormpot.AlloKit.realloc;
+import static stormpot.AlloKit.reallocator;
 
 @SuppressWarnings("unchecked")
 @ExtendWith(FailurePrinterExtension.class)
@@ -146,6 +172,7 @@ abstract class PoolIT {
 
     // Wait for all the objects to be created
     while (allocator.countAllocations() < size) {
+      //noinspection BusyWait
       Thread.sleep(10);
     }
 
