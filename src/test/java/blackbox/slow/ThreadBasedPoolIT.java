@@ -18,16 +18,23 @@ package blackbox.slow;
 import org.junit.jupiter.api.Test;
 import stormpot.ExpireKit;
 import stormpot.GenericPoolable;
+import stormpot.Slot;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadMXBean;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static stormpot.AlloKit.*;
 import static stormpot.ExpireKit.$expiredIf;
 import static stormpot.ExpireKit.expire;
@@ -115,5 +122,179 @@ abstract class ThreadBasedPoolIT extends PoolIT {
     assertThat(allocator.getDeallocations()).containsExactlyElementsOf(subList);
 
     objs.get(startingSize - 1).release();
+  }
+
+  @Test
+  void explicitlyExpiredSlotsMustNotCauseBackgroundCPUBurn()
+      throws InterruptedException {
+    final ThreadMXBean threads = ManagementFactory.getThreadMXBean();
+    final AtomicLong lastUserTimeIncrement = new AtomicLong();
+    assumeTrue(threads.isCurrentThreadCpuTimeSupported());
+    allocator = allocator(alloc(
+        measureLastCPUTime(threads, lastUserTimeIncrement)));
+    builder.setAllocator(allocator);
+    builder.setSize(2);
+    createPool();
+    GenericPoolable a = pool.claim(longTimeout);
+    GenericPoolable b = pool.claim(longTimeout);
+    a.expire();
+    Thread.sleep(10);
+    a.release();
+    a = pool.claim(longTimeout);
+    long millisecondsAllowedToBurnCPU = 5000;
+    Thread.sleep(millisecondsAllowedToBurnCPU);
+    b.expire();
+    b.release();
+    b = pool.claim(longTimeout);
+    a.release();
+    b.release();
+    long millisecondsSpentBurningCPU =
+        TimeUnit.NANOSECONDS.toMillis(lastUserTimeIncrement.get());
+
+    assertThat(millisecondsSpentBurningCPU).isLessThan(millisecondsAllowedToBurnCPU / 2);
+  }
+
+  private Action measureLastCPUTime(final ThreadMXBean threads, final AtomicLong cpuTimeSum) {
+    return new Action() {
+      boolean first = true;
+
+      @Override
+      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
+        GenericPoolable poolable;
+        if (first) {
+          first = false;
+
+          // Don't count all the class loading in the first allocation.
+          poolable = $new.apply(slot, obj);
+
+          threads.setThreadCpuTimeEnabled(true);
+          long currentThreadUserTime = threads.getCurrentThreadUserTime();
+          cpuTimeSum.set(currentThreadUserTime);
+        } else {
+          long userTime = threads.getCurrentThreadUserTime();
+          cpuTimeSum.set(userTime - cpuTimeSum.get());
+          poolable = $new.apply(slot, obj);
+        }
+        return poolable;
+      }
+    };
+  }
+
+  @Test
+  void explicitlyExpiredSlotsThatAreDeallocatedThroughPoolShrinkingMustNotCauseBackgroundCPUBurn()
+      throws InterruptedException {
+    final ThreadMXBean threads = ManagementFactory.getThreadMXBean();
+    final AtomicLong lastUserTimeIncrement = new AtomicLong();
+    final AtomicLong maxUserTimeIncrement = new AtomicLong();
+    assumeTrue(threads.isCurrentThreadCpuTimeSupported());
+    allocator = allocator(alloc(new Action() {
+      boolean first = true;
+
+      @Override
+      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
+        if (first) {
+          first = false;
+          GenericPoolable poolable = $new.apply(slot, obj);
+          threads.setThreadCpuTimeEnabled(true);
+          lastUserTimeIncrement.set(threads.getCurrentThreadUserTime());
+          return poolable;
+        }
+        long userTime = threads.getCurrentThreadUserTime();
+        long delta = userTime - lastUserTimeIncrement.get();
+        lastUserTimeIncrement.set(delta);
+        long existingDelta;
+        do {
+          existingDelta = maxUserTimeIncrement.get();
+        } while (!maxUserTimeIncrement.compareAndSet(
+            existingDelta, Math.max(delta, existingDelta)));
+        return $new.apply(slot, obj);
+      }
+    }));
+    builder.setAllocator(allocator);
+    int size = 30;
+    builder.setSize(size);
+    createPool();
+    LinkedList<GenericPoolable> objs = new LinkedList<>();
+    for (int i = 0; i < size; i++) {
+      GenericPoolable obj = pool.claim(longTimeout);
+      objs.offer(obj);
+      obj.expire();
+    }
+    int newSize = size / 3;
+    pool.setTargetSize(newSize);
+    Iterator<GenericPoolable> itr = objs.iterator();
+    for (int i = size; i >= newSize; i--) {
+      itr.next().release();
+      itr.remove();
+    }
+    long millisecondsAllowedToBurnCPU = 5000;
+    Thread.sleep(millisecondsAllowedToBurnCPU);
+    while (itr.hasNext()) {
+      itr.next().release();
+    }
+    pool.claim(longTimeout).release();
+
+    long millisecondsSpentBurningCPU =
+        TimeUnit.NANOSECONDS.toMillis(maxUserTimeIncrement.get());
+
+    assertThat(millisecondsSpentBurningCPU).isLessThan(millisecondsAllowedToBurnCPU / 2);
+  }
+
+  @Test
+  void explicitlyExpiredButUnreleasedSlotsMustNotCauseBackgroundCPUBurn()
+      throws InterruptedException {
+    final ThreadMXBean threads = ManagementFactory.getThreadMXBean();
+    final AtomicLong lastUserTimeIncrement = new AtomicLong();
+    assumeTrue(threads.isCurrentThreadCpuTimeSupported());
+    allocator = allocator(alloc(
+        measureLastCPUTime(threads, lastUserTimeIncrement)));
+    builder.setAllocator(allocator);
+    createPool();
+    GenericPoolable a = pool.claim(longTimeout);
+    a.expire();
+
+    long millisecondsAllowedToBurnCPU = 5000;
+    Thread.sleep(millisecondsAllowedToBurnCPU);
+
+    a.release();
+    pool.claim(longTimeout).release();
+
+    long millisecondsSpentBurningCPU =
+        TimeUnit.NANOSECONDS.toMillis(lastUserTimeIncrement.get());
+
+    assertThat(millisecondsSpentBurningCPU).isLessThan(millisecondsAllowedToBurnCPU / 2);
+  }
+
+  @Test
+  void mustNotBurnTooMuchCPUWhileThePoolIsWorkingOnShrinking()
+      throws InterruptedException {
+    final ThreadMXBean threads = ManagementFactory.getThreadMXBean();
+    final AtomicLong lastUserTimeIncrement = new AtomicLong();
+    int size = 20;
+    assumeTrue(threads.isCurrentThreadCpuTimeSupported());
+    allocator = allocator(alloc(
+        measureLastCPUTime(threads, lastUserTimeIncrement)));
+    builder.setAllocator(allocator);
+    builder.setSize(size);
+    createPool();
+    LinkedList<GenericPoolable> objs = new LinkedList<>();
+    for (int i = 0; i < size; i++) {
+      objs.add(pool.claim(longTimeout));
+    }
+    pool.setTargetSize(1);
+
+    long millisecondsAllowedToBurnCPU = 5000;
+    Thread.sleep(millisecondsAllowedToBurnCPU);
+
+    for (GenericPoolable obj : objs) {
+      obj.expire();
+      obj.release();
+    }
+    pool.claim(longTimeout).release();
+
+    long millisecondsSpentBurningCPU =
+        TimeUnit.NANOSECONDS.toMillis(lastUserTimeIncrement.get());
+
+    assertThat(millisecondsSpentBurningCPU).isLessThan(millisecondsAllowedToBurnCPU / 2);
   }
 }
