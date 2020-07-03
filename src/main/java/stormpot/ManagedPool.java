@@ -27,9 +27,9 @@ import javax.management.MXBean;
  * Once you have created your pool, it is easy to expose it through the platform
  * MBeanServer, or any MBeanServer you like:
  *
- * [source,java]
+ * [source,java,indent=0]
  * ----
- * include::../src/test/java/examples/Examples.java[tag=managedPoolExample]
+ * include::src/test/java/examples/Examples.java[tag=managedPoolExample]
  * ----
  *
  * Using the platform MBeanServer will make the pool visible to tools like
