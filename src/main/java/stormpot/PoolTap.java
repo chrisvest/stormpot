@@ -15,6 +15,7 @@
  */
 package stormpot;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -33,6 +34,9 @@ import java.util.function.Function;
  * @see stormpot.Pool
  */
 public abstract class PoolTap<T extends Poolable> {
+
+  private static final Timeout ZERO_TIMEOUT = new Timeout(Duration.ZERO);
+
   PoolTap() {
   }
 
@@ -100,6 +104,30 @@ public abstract class PoolTap<T extends Poolable> {
    */
   public abstract T claim(Timeout timeout)
       throws PoolException, InterruptedException;
+
+  /**
+   * Returns an object from the pool if the pool contains at least one valid object,
+   * otherwise returns `null`.
+   * This method will first try to return cached object if available.
+   * If no locally cached object is found, it will go though objects in the pool and
+   * return the first ready to claim object.
+   * If all the objects in the pool is drained, then `null` will be returned.
+   * @return an object from the pool if the pool contains at least one valid object,
+   * otherwise returns `null`.
+   * @throws PoolException If an object allocation failed because the Allocator
+   * threw an exception from its allocate method, or returned
+   * `null`, or the
+   * {@link Expiration#hasExpired(SlotInfo) expiration check} threw an exception.
+   */
+  public T tryClaim() throws PoolException {
+    try {
+      // default implementation
+      return claim(ZERO_TIMEOUT);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      return null;
+    }
+  }
 
   /**
    * Claim an object from the pool and apply the given function to it, returning

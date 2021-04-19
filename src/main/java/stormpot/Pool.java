@@ -281,6 +281,11 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
       public T claim(Timeout timeout) throws PoolException, InterruptedException {
         return Pool.this.claim(timeout);
       }
+
+      @Override
+      public T tryClaim() {
+        return Pool.this.tryClaim();
+      }
     };
   }
 

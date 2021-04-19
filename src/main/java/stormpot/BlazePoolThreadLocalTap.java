@@ -36,6 +36,11 @@ final class BlazePoolThreadLocalTap<T extends Poolable> extends PoolTap<T> {
 
   @Override
   public T claim(Timeout timeout) throws PoolException, InterruptedException {
-    return pool.tlrClaim(timeout, cache);
+    return pool.claim(timeout, cache);
+  }
+
+  @Override
+  public T tryClaim() {
+    return pool.tryClaim(cache);
   }
 }

@@ -58,6 +58,11 @@ class WhiteboxPoolTest {
         delegatedToPool.set(true);
         return null;
       }
+
+      @Override
+      public Poolable tryClaim() {
+        return null;
+      }
     };
     pool.getThreadSafeTap().claim(longTimeout);
     assertTrue(delegatedToPool.get());
