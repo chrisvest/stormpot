@@ -1,9 +1,0 @@
-language: java
-jdk:
-  - openjdk11
-script: "mvn verify -B"
-sudo: false
-addons:
-  hostname: short-hostname
-after_success:
-  - bash <(curl -s https://codecov.io/bash)
