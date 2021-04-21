@@ -15,7 +15,10 @@
  */
 package blackbox.simulations;
 
-import stormpot.*;
+import stormpot.Expiration;
+import stormpot.Pool;
+import stormpot.Poolable;
+import stormpot.Timeout;
 
 import java.util.concurrent.TimeUnit;
 
@@ -55,12 +58,12 @@ public class ConstantTrafficBackgroundExpirationSim extends Sim {
 Example run (histogram units in milliseconds):
 
 Simulating ConstantTrafficBackgroundExpirationSim {
-	size = 10
-	expiration = TimeSpreadExpiration(200 to 1000 MILLISECONDS)
-	backgroundExpirationEnabled = true
-	preciseLeakDetectionEnabled = true
-	metricsRecorder = null
-	threadFactory = stormpot.StormpotThreadFactory@2f17aadf
+    size = 10
+    expiration = TimeSpreadExpiration(200 to 1000 MILLISECONDS)
+    backgroundExpirationEnabled = true
+    preciseLeakDetectionEnabled = true
+    metricsRecorder = null
+    threadFactory = stormpot.StormpotThreadFactory@2f17aadf
 } for BlazePool
 Latency results for Agent[]:
        Value     Percentile TotalCount 1/(1-Percentile)
@@ -82,12 +85,12 @@ Latency results for Agent[]:
 #[Buckets =           20, SubBuckets     =         2048]
 
 Simulating ConstantTrafficBackgroundExpirationSim {
-	size = 10
-	expiration = TimeSpreadExpiration(200 to 1000 MILLISECONDS)
-	backgroundExpirationEnabled = false
-	preciseLeakDetectionEnabled = true
-	metricsRecorder = null
-	threadFactory = stormpot.StormpotThreadFactory@2f17aadf
+    size = 10
+    expiration = TimeSpreadExpiration(200 to 1000 MILLISECONDS)
+    backgroundExpirationEnabled = false
+    preciseLeakDetectionEnabled = true
+    metricsRecorder = null
+    threadFactory = stormpot.StormpotThreadFactory@2f17aadf
 } for BlazePool
 Latency results for Agent[]:
        Value     Percentile TotalCount 1/(1-Percentile)

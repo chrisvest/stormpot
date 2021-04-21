@@ -17,7 +17,9 @@ package stormpot;
 
 import java.util.concurrent.LinkedTransferQueue;
 
-import static stormpot.AllocationProcessMode.*;
+import static stormpot.AllocationProcessMode.DIRECT;
+import static stormpot.AllocationProcessMode.INLINE;
+import static stormpot.AllocationProcessMode.THREADED;
 
 abstract class AllocationProcess {
   public static AllocationProcess threaded() {

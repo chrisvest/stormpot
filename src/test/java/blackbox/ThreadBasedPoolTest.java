@@ -661,10 +661,10 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     semaphore.release(Integer.MAX_VALUE);
 
     // Wait for our primed slot to get reallocated
-    while(managedPool.getAllocationCount() < 2) {
+    while (managedPool.getAllocationCount() < 2) {
       Thread.yield();
     }
-    while(managedPool.getFailedAllocationCount() < 1) {
+    while (managedPool.getFailedAllocationCount() < 1) {
       Thread.yield();
     }
 

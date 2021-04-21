@@ -16,7 +16,16 @@
 package examples;
 
 import org.junit.jupiter.api.Test;
-import stormpot.*;
+import stormpot.Allocator;
+import stormpot.BasePoolable;
+import stormpot.Expiration;
+import stormpot.Pool;
+import stormpot.Poolable;
+import stormpot.Pooled;
+import stormpot.Reallocator;
+import stormpot.Slot;
+import stormpot.SlotInfo;
+import stormpot.Timeout;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;

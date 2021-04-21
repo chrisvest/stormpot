@@ -21,7 +21,9 @@ import java.util.concurrent.TimeUnit;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static stormpot.AllocationProcessMode.*;
+import static stormpot.AllocationProcessMode.DIRECT;
+import static stormpot.AllocationProcessMode.INLINE;
+import static stormpot.AllocationProcessMode.THREADED;
 import static stormpot.Expiration.after;
 import static stormpot.Expiration.never;
 import static stormpot.StormpotThreadFactory.INSTANCE;

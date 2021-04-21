@@ -28,8 +28,9 @@ import java.util.concurrent.TimeUnit;
  */
 @Sim.Simulation(measurementTime = 60, output = Sim.Output.summary)
 public class TimeSpreadExpirationSim extends Sim {
-  @SuppressWarnings("rawtypes") // Not possible to have a generic array. It might be possible to make @Conf work with a
-                                // java.util.Set instead, but that's probably not worth the effort.
+  @SuppressWarnings("rawtypes")
+  // Not possible to have a generic array. It might be possible to make @Conf work with a
+  // java.util.Set instead, but that's probably not worth the effort.
   @Conf(Param.expiration)
   public Expiration[] expirations = {
       Expiration.after(2, TimeUnit.SECONDS),
@@ -57,12 +58,12 @@ public class TimeSpreadExpirationSim extends Sim {
 Example run (histogram units in milliseconds):
 
 Simulating TimeSpreadExpirationSim {
-	size = 10
-	expiration = TimeExpiration(2 SECONDS)
-	backgroundExpirationEnabled = false
-	preciseLeakDetectionEnabled = true
-	metricsRecorder = null
-	threadFactory = stormpot.StormpotThreadFactory@961e946
+    size = 10
+    expiration = TimeExpiration(2 SECONDS)
+    backgroundExpirationEnabled = false
+    preciseLeakDetectionEnabled = true
+    metricsRecorder = null
+    threadFactory = stormpot.StormpotThreadFactory@961e946
 } for BlazePool
 Latency results sum:
        Value     Percentile TotalCount 1/(1-Percentile)
@@ -86,12 +87,12 @@ Latency results sum:
 #[Buckets =           20, SubBuckets     =         2048]
 
 Simulating TimeSpreadExpirationSim {
-	size = 10
-	expiration = TimeSpreadExpiration(1 to 2 SECONDS)
-	backgroundExpirationEnabled = false
-	preciseLeakDetectionEnabled = true
-	metricsRecorder = null
-	threadFactory = stormpot.StormpotThreadFactory@961e946
+    size = 10
+    expiration = TimeSpreadExpiration(1 to 2 SECONDS)
+    backgroundExpirationEnabled = false
+    preciseLeakDetectionEnabled = true
+    metricsRecorder = null
+    threadFactory = stormpot.StormpotThreadFactory@961e946
 } for BlazePool
 Latency results sum:
        Value     Percentile TotalCount 1/(1-Percentile)

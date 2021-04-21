@@ -21,7 +21,11 @@ import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.Extension;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-import java.lang.management.*;
+import java.lang.management.CompilationMXBean;
+import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
+import java.lang.management.ThreadMXBean;
 import java.util.List;
 import java.util.Optional;
 
@@ -111,17 +115,17 @@ public class FailurePrinterExtension implements Extension, BeforeEachCallback, A
   }
 
   private long getCompilationTimeMs(CompilationMXBean compilationMXBean) {
-    return compilationMXBean.isCompilationTimeMonitoringSupported()?
+    return compilationMXBean.isCompilationTimeMonitoringSupported() ?
         compilationMXBean.getTotalCompilationTime() : 0;
   }
 
   private long getUserTimeNs(ThreadMXBean threadMXBean) {
-    return threadMXBean.isCurrentThreadCpuTimeSupported()?
+    return threadMXBean.isCurrentThreadCpuTimeSupported() ?
         threadMXBean.getCurrentThreadUserTime() : 0;
   }
 
   private long getCpuTimeNs(ThreadMXBean threadMXBean) {
-    return threadMXBean.isCurrentThreadCpuTimeSupported()?
+    return threadMXBean.isCurrentThreadCpuTimeSupported() ?
         threadMXBean.getCurrentThreadCpuTime() : 0;
   }
 }

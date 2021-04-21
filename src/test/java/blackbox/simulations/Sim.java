@@ -16,7 +16,13 @@
 package blackbox.simulations;
 
 import org.HdrHistogram.Histogram;
-import stormpot.*;
+import stormpot.Expiration;
+import stormpot.GenericPoolable;
+import stormpot.ManagedPool;
+import stormpot.MetricsRecorder;
+import stormpot.Pool;
+import stormpot.PoolBuilder;
+import stormpot.Timeout;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -25,14 +31,23 @@ import java.lang.annotation.Target;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static stormpot.AlloKit.*;
+import static stormpot.AlloKit.$new;
+import static stormpot.AlloKit.CountingAllocator;
+import static stormpot.AlloKit.alloc;
+import static stormpot.AlloKit.allocator;
 
 public abstract class Sim {
 
@@ -132,7 +147,7 @@ public abstract class Sim {
     Collection<PoolBuilder<GenericPoolable>> configurations =
         buildConfigurations(klass, sim, enableAllocationCost);
     for (PoolBuilder<GenericPoolable> builder : configurations) {
-      Output output = simulation == null? Output.detailed : simulation.output();
+      Output output = simulation == null ? Output.detailed : simulation.output();
       simulate(sim, builder, enableAllocationCost, output);
     }
     long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
@@ -180,7 +195,7 @@ public abstract class Sim {
     for (Method method : klass.getDeclaredMethods()) {
       AllocationCost allocationCost = method.getAnnotation(AllocationCost.class);
       if (allocationCost != null) {
-        assert allocationTimeUnit == null: "Found more than one @AllocationCost method";
+        assert allocationTimeUnit == null : "Found more than one @AllocationCost method";
         allocationTimeUnit = allocationCost.value();
         allocationTimeMethod = method;
       }
@@ -251,7 +266,7 @@ public abstract class Sim {
     long warmupTimeMillis = measurementTimeMillis / iterations;
     for (int i = 1; i <= iterations; i++) {
       boolean isWarmup = i < iterations;
-      long runTime = isWarmup? warmupTimeMillis : measurementTimeMillis;
+      long runTime = isWarmup ? warmupTimeMillis : measurementTimeMillis;
 
       // Reset internal state.
       enableAllocationCost.set(false);
@@ -271,7 +286,7 @@ public abstract class Sim {
 
       // Then run.
       enableAllocationCost.set(true);
-      sim.run(deps, runTime, isWarmup? Output.none : output);
+      sim.run(deps, runTime, isWarmup ? Output.none : output);
 
       // Finally clean up a bit.
       if (!pool.shutdown().await(SHUTDOWN_TIMEOUT)) {

@@ -35,7 +35,14 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
-import static stormpot.AlloKit.*;
+import static stormpot.AlloKit.$countDown;
+import static stormpot.AlloKit.$new;
+import static stormpot.AlloKit.$null;
+import static stormpot.AlloKit.$release;
+import static stormpot.AlloKit.Action;
+import static stormpot.AlloKit.alloc;
+import static stormpot.AlloKit.allocator;
+import static stormpot.AlloKit.dealloc;
 import static stormpot.ExpireKit.$expiredIf;
 import static stormpot.ExpireKit.expire;
 

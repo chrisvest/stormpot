@@ -20,8 +20,17 @@ import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.Extension;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringJoiner;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -124,7 +133,7 @@ public class ExecutorExtension implements Extension, BeforeEachCallback, AfterEa
           // observe the state change.
           Thread.State state = thread.getState();
           int tries = 100;
-          while (state != Thread.State.TERMINATED && tries --> 0) {
+          while (state != Thread.State.TERMINATED && tries-- > 0) {
             try {
               thread.join(100);
             } catch (InterruptedException e) {

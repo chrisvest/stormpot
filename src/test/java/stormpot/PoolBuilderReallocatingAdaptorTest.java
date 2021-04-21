@@ -21,7 +21,15 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.condition.Not.not;
 import static org.junit.jupiter.api.Assertions.fail;
-import static stormpot.AlloKit.*;
+import static stormpot.AlloKit.$new;
+import static stormpot.AlloKit.$throw;
+import static stormpot.AlloKit.CountingAllocator;
+import static stormpot.AlloKit.CountingReallocator;
+import static stormpot.AlloKit.alloc;
+import static stormpot.AlloKit.allocator;
+import static stormpot.AlloKit.dealloc;
+import static stormpot.AlloKit.realloc;
+import static stormpot.AlloKit.reallocator;
 
 class PoolBuilderReallocatingAdaptorTest {
   private PoolBuilder<GenericPoolable> builder;
