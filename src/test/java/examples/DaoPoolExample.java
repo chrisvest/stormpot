@@ -15,7 +15,14 @@
  */
 package examples;
 
-import stormpot.*;
+import stormpot.Allocator;
+import stormpot.Expiration;
+import stormpot.Pool;
+import stormpot.PoolBuilder;
+import stormpot.Poolable;
+import stormpot.Slot;
+import stormpot.SlotInfo;
+import stormpot.Timeout;
 
 import javax.sql.DataSource;
 import java.sql.Connection;

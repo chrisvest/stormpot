@@ -17,7 +17,17 @@ package blackbox;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import stormpot.*;
+import stormpot.AlloKit;
+import stormpot.Allocator;
+import stormpot.Expiration;
+import stormpot.ExpireKit;
+import stormpot.FixedMeanMetricsRecorder;
+import stormpot.GenericPoolable;
+import stormpot.LastSampleMetricsRecorder;
+import stormpot.MetricsRecorder;
+import stormpot.Pool;
+import stormpot.PoolBuilder;
+import stormpot.Poolable;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -26,7 +36,9 @@ import java.util.List;
 import java.util.concurrent.ThreadFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static stormpot.AlloKit.CountingAllocator;
 import static stormpot.AlloKit.allocator;
 
@@ -161,8 +173,8 @@ class PoolBuilderTest {
     Method[] methods = PoolBuilder.class.getDeclaredMethods();
     for (Method method : methods) {
       int modifiers = method.getModifiers();
-      int IS_SYNTHETIC = 0x00001000;
-      if (Modifier.isPublic(modifiers) && (modifiers & IS_SYNTHETIC) == 0) {
+      int isSynthetic = 0x00001000;
+      if (Modifier.isPublic(modifiers) && (modifiers & isSynthetic) == 0) {
         // That is, this method is both public AND NOT synthetic.
         // We have to exclude synthetic methods because javac generates one for
         // bridging the covariant override of clone().

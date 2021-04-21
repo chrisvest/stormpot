@@ -15,7 +15,9 @@
  */
 package stormpot;
 
-import static stormpot.AllocationProcess.*;
+import static stormpot.AllocationProcess.direct;
+import static stormpot.AllocationProcess.inline;
+import static stormpot.AllocationProcess.threaded;
 
 /**
  * A Pool is a self-renewable set of objects from which one can claim exclusive

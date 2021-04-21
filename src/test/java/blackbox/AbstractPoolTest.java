@@ -23,7 +23,14 @@ import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import stormpot.*;
+import stormpot.Completion;
+import stormpot.ExpectedException;
+import stormpot.Expiration;
+import stormpot.ManagedPool;
+import stormpot.Pool;
+import stormpot.PoolTap;
+import stormpot.Poolable;
+import stormpot.Timeout;
 
 import javax.management.JMX;
 import javax.management.MBeanServer;

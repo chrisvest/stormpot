@@ -15,7 +15,10 @@
  */
 package blackbox.simulations;
 
-import stormpot.*;
+import stormpot.Expiration;
+import stormpot.Pool;
+import stormpot.Poolable;
+import stormpot.Timeout;
 
 import java.util.concurrent.TimeUnit;
 
@@ -75,12 +78,12 @@ public class VariableTrafficSim extends Sim {
 Example run (histogram units in milliseconds):
 
 Simulating VariableTrafficSim {
-	size = 10
-	expiration = TimeExpiration(6 SECONDS)
-	backgroundExpirationEnabled = true
-	preciseLeakDetectionEnabled = true
-	metricsRecorder = null
-	threadFactory = stormpot.StormpotThreadFactory@961e946
+    size = 10
+    expiration = TimeExpiration(6 SECONDS)
+    backgroundExpirationEnabled = true
+    preciseLeakDetectionEnabled = true
+    metricsRecorder = null
+    threadFactory = stormpot.StormpotThreadFactory@961e946
 } for BlazePool
 Latency results sum:
        Value     Percentile TotalCount 1/(1-Percentile)
@@ -100,12 +103,12 @@ Latency results sum:
 #[Buckets =           20, SubBuckets     =         2048]
 
 Simulating VariableTrafficSim {
-	size = 10
-	expiration = TimeExpiration(6 SECONDS)
-	backgroundExpirationEnabled = false
-	preciseLeakDetectionEnabled = true
-	metricsRecorder = null
-	threadFactory = stormpot.StormpotThreadFactory@961e946
+    size = 10
+    expiration = TimeExpiration(6 SECONDS)
+    backgroundExpirationEnabled = false
+    preciseLeakDetectionEnabled = true
+    metricsRecorder = null
+    threadFactory = stormpot.StormpotThreadFactory@961e946
 } for BlazePool
 Latency results sum:
        Value     Percentile TotalCount 1/(1-Percentile)

@@ -88,7 +88,7 @@ public class ExpireKit {
   };
 
   public static Expire $if(AtomicBoolean cond, Expire then, Expire otherwise) {
-    return info -> cond.get()?
+    return info -> cond.get() ?
         then.hasExpired(info) : otherwise.hasExpired(info);
   }
 

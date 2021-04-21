@@ -19,7 +19,23 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import stormpot.*;
+import stormpot.Allocator;
+import stormpot.Completion;
+import stormpot.Expiration;
+import stormpot.FixedMeanMetricsRecorder;
+import stormpot.GenericPoolable;
+import stormpot.LastSampleMetricsRecorder;
+import stormpot.ManagedPool;
+import stormpot.Pool;
+import stormpot.PoolBuilder;
+import stormpot.PoolException;
+import stormpot.PoolTap;
+import stormpot.Poolable;
+import stormpot.Reallocator;
+import stormpot.Slot;
+import stormpot.SomeRandomException;
+import stormpot.SomeRandomThrowable;
+import stormpot.Timeout;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -885,7 +901,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     builder.setAllocator(allocator).setSize(2);
     createPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
-    Poolable obj= tap.claim(longTimeout);
+    Poolable obj = tap.claim(longTimeout);
     tap.claim(longTimeout).release();
     obj.release();
     pool.shutdown().await(longTimeout);
@@ -1058,8 +1074,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     builder.setSize(3);
     createPool();
     //noinspection StatementWithEmptyBody
-    while (counter.get() < 2)
-    {
+    while (counter.get() < 2) {
       // do nothing
     }
     pool.shutdown().await(longTimeout);
