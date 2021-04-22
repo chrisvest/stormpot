@@ -111,6 +111,41 @@ abstract class AbstractPoolTest<T extends Poolable> {
   }
 
   /**
+   * A call to tryClaim must return an object from the pool if the pool is not empty.
+   * The test ensures the pool is populated with one object and
+   * the object is only available to claim by tryClaim.
+   */
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void tryClaimMustReturnIfPoolIsNotEmpty(Taps taps) throws Exception {
+    createOneObjectPool();
+    PoolTap<T> tap = taps.get(this);
+    T a = tap.claim(longTimeout); // Wait for the pool to be populated
+    a.release();
+    T obj = tap.tryClaim();
+    try {
+      assertThat(obj).isNotNull();
+    } finally {
+      obj.release();
+    }
+  }
+
+  /**
+   * A call to tryClaim that fails to get an object from am empty pool.
+   * The tryClaim fail instantly when it finds no object left in a pool.
+   */
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void tryClaimMustReturnNullIfPoolIsEmpty(Taps taps) throws Exception {
+    createOneObjectPool();
+    PoolTap<T> tap = taps.get(this);
+    T a = tap.claim(longTimeout); // ool is now depleted
+    Poolable b = tap.tryClaim();
+    a.release(); // Has no effect for the result of b
+    assertThat(b).isNull();
+  }
+
+  /**
    * A call to claim must return before the timeout elapses if it
    * can claim an object from the pool, and it must return that object.
    * The timeout for the claim is longer than the timeout for the test, so we

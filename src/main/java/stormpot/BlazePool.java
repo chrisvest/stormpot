@@ -81,12 +81,31 @@ final class BlazePool<T extends Poolable>
   @Override
   public T claim(Timeout timeout)
       throws PoolException, InterruptedException {
-    return tlrClaim(timeout, tlr.get());
+    return claim(timeout, tlr.get());
   }
 
-  T tlrClaim(Timeout timeout, BSlotCache<T> cache)
+  @Override
+  public T tryClaim() throws PoolException {
+    return tryClaim(tlr.get());
+  }
+
+  T claim(Timeout timeout, BSlotCache<T> cache)
       throws PoolException, InterruptedException {
     Objects.requireNonNull(timeout, "Timeout cannot be null.");
+    T obj = tlrClaim(cache);
+    if (obj != null) return obj;
+    // The thread-local claim failed, so we have to go through the slow-path.
+    return slowClaim(timeout, cache);
+  }
+
+  T tryClaim(BSlotCache<T> cache) throws PoolException {
+    T obj = tlrClaim(cache);
+    if (obj != null) return obj;
+    // The thread-local claim failed, so we have to go through the slow-path.
+    return slowClaim(cache);
+  }
+
+  private T tlrClaim(BSlotCache<T> cache) {
     BSlot<T> slot = cache.slot;
     // Note that the TLR slot at this point might have been tried by another
     // thread, found to be expired, put on the dead-queue and deallocated.
@@ -101,7 +120,7 @@ final class BlazePool<T extends Poolable>
       // If we checked validity before claiming, then we might find that it
       // had expired, and throw it in the dead queue, causing a claimed
       // Poolable to be deallocated before it is released.
-      if (!isInvalid(slot, cache, true)) {
+      if (isValid(slot, cache, true)) {
         slot.incrementClaims();
         return slot.obj;
       }
@@ -118,12 +137,33 @@ final class BlazePool<T extends Poolable>
       // duplicate entries in the queues. Otherwise we'd have a nasty memory
       // leak on our hands.
     }
-    // The thread-local claim failed, so we have to go through the slow-path.
-    return slowClaim(timeout, cache);
+    return null;
   }
 
-  private T slowClaim(Timeout timeout, BSlotCache<T> cache)
-      throws PoolException, InterruptedException {
+  private T slowClaim(BSlotCache<T> cache) throws PoolException {
+    BSlot<T> slot;
+    slot = newAllocations.pop();
+    for (;;) {
+      if (slot == null) {
+        slot = live.poll();
+      }
+      if (slot == null) {
+        // No blocking when the queue is empty.
+        disregardPile.refill();
+        return null;
+      } else if (slot.live2claim()) {
+        if (isValid(slot, cache, false)) {
+          slot.incrementClaims();
+          cache.slot = slot;
+          return slot.obj;
+        }
+      } else {
+        disregardPile.push(slot);
+      }
+    }
+  }
+
+  private T slowClaim(Timeout timeout, BSlotCache<T> cache) throws PoolException, InterruptedException {
     // The slow-path for claim is in its own method to allow the fast-path to
     // inline separately. At this point, taking a performance hit is
     // inevitable anyway, so we're allowed a bit more leeway.
@@ -133,40 +173,31 @@ final class BlazePool<T extends Poolable>
     long timeoutLeft = timeoutNanos;
     TimeUnit baseUnit = timeout.getBaseUnit();
     long maxWaitQuantum = baseUnit.convert(100, TimeUnit.MILLISECONDS);
-    for (;;) {
+    do {
       slot = newAllocations.pop();
       if (slot == null) {
         long pollWait = Math.min(timeoutLeft, maxWaitQuantum);
         slot = live.poll(pollWait, baseUnit);
       }
       if (slot == null) {
-        if (timeoutLeft <= 0) {
-          // We timed out while taking from the queue - just return null
-          return null;
-        } else {
-          timeoutLeft = NanoClock.timeoutLeft(startNanos, timeoutNanos);
-          disregardPile.refill();
-          continue;
-        }
-      }
-
-      if (slot.live2claim()) {
-        if (isInvalid(slot, cache, false)) {
-          timeoutLeft = NanoClock.timeoutLeft(startNanos, timeoutNanos);
-          if (timeoutLeft <= 0) {
-            // There is no time left to poll the queue again - just return null
-            return null;
-          }
-        } else {
-          break;
+        disregardPile.refill();
+      } else if (slot.live2claim()) {
+        if (isValid(slot, cache, false)) {
+          slot.incrementClaims();
+          cache.slot = slot;
+          return slot.obj;
         }
       } else {
         disregardPile.push(slot);
       }
-    }
-    slot.incrementClaims();
-    cache.slot = slot;
-    return slot.obj;
+
+      timeoutLeft = NanoClock.timeoutLeft(startNanos, timeoutNanos);
+    } while (timeoutLeft > 0);
+    return null;
+  }
+
+  private boolean isValid(BSlot<T> slot, BSlotCache<T> cache, boolean isTlr) {
+    return !isInvalid(slot, cache, isTlr);
   }
 
   private boolean isInvalid(BSlot<T> slot, BSlotCache<T> cache, boolean isTlr) {
