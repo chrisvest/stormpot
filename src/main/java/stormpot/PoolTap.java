@@ -72,9 +72,9 @@ public abstract class PoolTap<T extends Poolable> {
    * Here's an example code snippet, where an object is claimed, printed to
    * `System.out`, and then released back to the pool:
    *
-   * [source,java]
+   * [source,java,indent=0]
    * ----
-   * include::../src/test/java/examples/Examples.java[tag=poolClaimPrintExample]
+   * include::src/test/java/examples/Examples.java[tag=poolClaimPrintExample]
    * ----
    *
    * Memory effects:

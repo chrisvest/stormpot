@@ -35,9 +35,9 @@ import static stormpot.AllocationProcess.threaded;
  * {@link Poolable#release() releasing} that object again. By far the most
  * common idiom to achieve this is with a `try-finally` clause:
  *
- * [source,java]
+ * [source,java,indent=0]
  * ----
- * include::../src/test/java/examples/Examples.java[tag=poolClaimExample]
+ * include::src/test/java/examples/Examples.java[tag=poolClaimExample]
  * ----
  *
  * The pools are resizable, and can have their capacity changed at any time

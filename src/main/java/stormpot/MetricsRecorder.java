@@ -30,7 +30,7 @@ package stormpot;
  *
  * [source,java]
  * ----
- * include::../src/test/java/examples/DropwizardMetricsRecorder.java[lines=16..-1]
+ * include::src/test/java/examples/DropwizardMetricsRecorder.java[lines=16..-1]
  * ----
  *
  * @since 2.3
