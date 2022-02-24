@@ -54,4 +54,14 @@ abstract class AllocationController<T extends Poolable> {
    * @see ManagedPool#getLeakedObjectsCount()
    */
   abstract long countLeakedObjects();
+  
+  /**
+   * @see ManagedPool#getAllocatedSize()
+   */
+  abstract int allocatedSize();
+  
+  /**
+   * @see ManagedPool#getInUse()
+   */
+  abstract int inUse();
 }

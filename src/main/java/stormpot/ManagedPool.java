@@ -181,4 +181,17 @@ public interface ManagedPool {
    * the pool.
    */
   double getDeallocationLatencyPercentile(double percentile);
+  
+  /**
+   * approximate currently allocated size, this is O(poolsize) to count the number of slots
+   * @return current allocated pool size
+   */
+  int getAllocatedSize();
+  
+  /**
+   * approximate number of objects currently in use, this is O(poolsize) to check each slot
+   * this does not lock the pool so the number of objects in use will change under it as it tries to count
+   * @return number of objects currently in use
+   */
+  int getInUse();
 }
