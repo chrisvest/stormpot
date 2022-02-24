@@ -304,4 +304,8 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
    * @return A thread-local {@link PoolTap}.
    */
   public abstract PoolTap<T> getThreadLocalTap();
+  
+  public abstract int getInUse();
+  
+  public abstract int getAllocatedSize();
 }
