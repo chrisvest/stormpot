@@ -369,12 +369,14 @@ class InlineAllocationController<T extends Poolable> extends AllocationControlle
   }
   
   int inUse() {
-    int inUse = size - live.size();
+    int inUse = 0;
+    int liveSize = 0;
     for (BSlot<T> slot: live) {
+      liveSize++;
       if (slot.isClaimedOrThreadLocal()) {
         inUse++;
       }
     }
-    return inUse;
-  }
+    return size - liveSize + inUse;
+  } 
 }
