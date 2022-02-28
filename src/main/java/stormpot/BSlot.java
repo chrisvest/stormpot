@@ -124,6 +124,11 @@ final class BSlot<T extends Poolable>
   boolean isClaimed() {
     return get() == CLAIMED;
   }
+  
+  boolean isClaimedOrThreadLocal() {
+    int state = get();
+    return state == CLAIMED || state == TLR_CLAIMED;
+  }
 
   void incrementClaims() {
     claims++;

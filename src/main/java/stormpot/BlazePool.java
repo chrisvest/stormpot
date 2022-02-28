@@ -377,4 +377,14 @@ final class BlazePool<T extends Poolable>
   public long getLeakedObjectsCount() {
     return allocator.countLeakedObjects();
   }
+  
+  @Override
+  public int getAllocatedSize() {
+    return allocator.allocatedSize();
+  }
+  
+  @Override
+  public int getInUse() {
+    return allocator.inUse();
+  }
 }

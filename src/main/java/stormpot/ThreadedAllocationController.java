@@ -67,4 +67,14 @@ class ThreadedAllocationController<T extends Poolable> extends AllocationControl
   public long countLeakedObjects() {
     return allocator.countLeakedObjects();
   }
+  
+  @Override
+  public int allocatedSize() {
+    return allocator.allocatedSize();
+  }
+  
+  @Override
+  public int inUse() {
+    return allocator.inUse();
+  }
 }
