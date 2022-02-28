@@ -396,12 +396,14 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   }
   
   int inUse() {
-    int inUse = size - live.size(); // slots not in live are in thread locals?
+    int inUse = 0;
+    int liveSize = 0;
     for (BSlot<T> slot: live) {
+      liveSize++;
       if (slot.isClaimedOrThreadLocal()) {
         inUse++;
       }
     }
-    return inUse;
-  }  
+    return size - liveSize + inUse;
+  } 
 }
