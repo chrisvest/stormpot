@@ -8,14 +8,14 @@ There is more to learn about Stormpot, than what is presented on this page.
 Bellow are some additional resources that go more in depth.
 There are two introductory texts, aimed at different levels of patience, and familiarity with object pooling concepts:
 
-* link:usage.html[Simplest Possible Usage] – This is the "getting started quickly" guide to using Stormpot. If you already have a good idea about the concepts of object pooling, this might be all the introduction you need.
-* link:tutorial.html[Tutorial] – A more thorough step-by-step introduction that assumes no prior knowledge of object pool. It introduces all the concepts, and builds up knowledge bit by bit, showing and explaining good practices and tips along the way.
+* link:usage.adoc[Simplest Possible Usage] – This is the "getting started quickly" guide to using Stormpot. If you already have a good idea about the concepts of object pooling, this might be all the introduction you need.
+* link:tutorial.adoc[Tutorial] – A more thorough step-by-step introduction that assumes no prior knowledge of object pool. It introduces all the concepts, and builds up knowledge bit by bit, showing and explaining good practices and tips along the way.
 
 These texts go deeper into particular topics, for those who are already initiated with the basics:
 
-* link:config.html[Configuration] – A reference document for all the configuration options.
-* link:memory.html[Memory Effects] – A reference to the memory and concurrency effects of the Stormpot API.
-* link:performance.html[Performance Guide] – A guide to getting the best performance out of Stormpot.
-* link:trouble-shooting.html[Trouble Shooting Guide] – A guide to the various failure modes and misuses of the pool, and what to do about them.
-* link:jmx.html[Configuring JMX] – A guide on how to configure Stormpot with JMX, such that metrics and management APIs can be exposed through JMX.
-* link:metrics.html[Integrating Metrics] – A guide on how to integrate Stormpot with metrics and telemetry libraries and frameworks.
+* link:config.adoc[Configuration] – A reference document for all the configuration options.
+* link:memory.adoc[Memory Effects] – A reference to the memory and concurrency effects of the Stormpot API.
+* link:performance.adoc[Performance Guide] – A guide to getting the best performance out of Stormpot.
+* link:trouble-shooting.adoc[Trouble Shooting Guide] – A guide to the various failure modes and misuses of the pool, and what to do about them.
+* link:jmx.adoc[Configuring JMX] – A guide on how to configure Stormpot with JMX, such that metrics and management APIs can be exposed through JMX.
+* link:metrics.adoc[Integrating Metrics] – A guide on how to integrate Stormpot with metrics and telemetry libraries and frameworks.
