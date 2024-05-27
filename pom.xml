@@ -30,9 +30,10 @@
       <name>Chris Vest</name>
       <email>mr.chrisvest@gmail.com</email>
       <roles>
-        <role>Programmer</role>
+        <role>Lead maintainer</role>
+        <role>Release manager</role>
       </roles>
-      <timezone>+1</timezone>
+      <timezone>America/Los_Angeles</timezone>
     </developer>
   </developers>
 
@@ -40,11 +41,11 @@
     <outputEncoding>UTF-8</outputEncoding>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <java.version>11</java.version>
-    <jacoco.version>0.8.5</jacoco.version>
-    <javadoc.version>3.0.1</javadoc.version>
+    <jacoco.version>0.8.12</jacoco.version>
+    <javadoc.version>3.6.3</javadoc.version>
     <asciidoclet.version>2.0.0</asciidoclet.version>
-    <revapi.maven.version>0.11.4</revapi.maven.version>
-    <revapi.version>0.20.2</revapi.version>
+    <revapi.maven.version>0.15.0</revapi.maven.version>
+    <revapi.version>0.28.1</revapi.version>
   </properties>
 
   <distributionManagement>
@@ -59,7 +60,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
-        <version>3.0.0-M2</version>
+        <version>3.4.1</version>
         <executions>
           <execution>
             <id>enforce-maven</id>
@@ -69,7 +70,7 @@
             <configuration>
               <rules>
                 <requireMavenVersion>
-                  <version>3.3.9</version>
+                  <version>3.9.6</version>
                 </requireMavenVersion>
               </rules>
             </configuration>
@@ -79,10 +80,9 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>3.1.2</version>
+        <version>3.3.1</version>
         <configuration>
           <configLocation>src/etc/checkstyle.xml</configLocation>
-          <encoding>UTF-8</encoding>
           <consoleOutput>true</consoleOutput>
           <failsOnError>true</failsOnError>
           <linkXRef>false</linkXRef>
@@ -103,9 +103,8 @@
       </plugin>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.8.0</version>
+        <version>3.13.0</version>
         <configuration>
-          <compilerVersion>${java.version}</compilerVersion>
           <source>${java.version}</source>
           <target>${java.version}</target>
           <compilerArgument>-Xlint:all</compilerArgument>
@@ -115,7 +114,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.0.0-M1</version>
+        <version>3.2.5</version>
         <configuration>
           <trimStackTrace>false</trimStackTrace>
           <argLine>
@@ -133,7 +132,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
-        <version>3.0.0-M1</version>
+        <version>3.2.5</version>
         <configuration>
           <trimStackTrace>false</trimStackTrace>
           <argLine>
@@ -178,7 +177,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-site-plugin</artifactId>
-        <version>3.7.1</version>
+        <version>3.12.1</version>
       </plugin>
       <plugin>
         <!--
@@ -187,7 +186,7 @@
         -->
         <groupId>org.pitest</groupId>
         <artifactId>pitest-maven</artifactId>
-        <version>1.4.3</version>
+        <version>1.16.1</version>
         <configuration>
           <targetTests>
             <param>stormpot.*</param>
@@ -204,7 +203,7 @@
       <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
-        <version>3.0</version>
+        <version>4.5</version>
         <configuration>
           <header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
           <properties>
@@ -285,26 +284,13 @@
       <plugin>
         <groupId>org.sonatype.plugins</groupId>
         <artifactId>nexus-staging-maven-plugin</artifactId>
-        <version>1.6.8</version>
+        <version>1.7.0</version>
         <extensions>true</extensions>
         <configuration>
           <serverId>ossrh</serverId>
           <nexusUrl>https://oss.sonatype.org/</nexusUrl>
           <autoReleaseAfterClose>true</autoReleaseAfterClose>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-source-plugin</artifactId>
-        <version>3.2.0</version>
-        <executions>
-          <execution>
-            <id>attach-sources</id>
-            <goals>
-              <goal>jar-no-fork</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <groupId>org.revapi</groupId>
@@ -345,7 +331,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
-            <version>1.6</version>
+            <version>3.2.4</version>
             <executions>
               <execution>
                 <id>sign-artifacts</id>
@@ -365,43 +351,43 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
-      <version>5.7.1</version>
+      <version>5.11.0-M2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-params</artifactId>
-      <version>5.7.1</version>
+      <version>5.11.0-M2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <version>3.19.0</version>
+      <version>3.26.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-core</artifactId>
-      <version>4.1.9</version>
+      <version>4.2.25</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-core</artifactId>
-      <version>1.6.6</version>
+      <version>1.13.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.hdrhistogram</groupId>
       <artifactId>HdrHistogram</artifactId>
-      <version>2.1.12</version>
+      <version>2.2.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.openjdk.jol</groupId>
       <artifactId>jol-core</artifactId>
-      <version>0.15</version>
+      <version>0.17</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -411,7 +397,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-project-info-reports-plugin</artifactId>
-        <version>3.0.0</version>
+        <version>3.5.0</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -428,16 +414,30 @@
           <detectJavaApiLink>true</detectJavaApiLink>
           <docletPath>${project.basedir}/build/asciidoclet-2.0.0-shaded.jar</docletPath>
         </configuration>
+        <reportSets>
+          <reportSet>
+            <id>default</id>
+            <reports>
+              <report>javadoc</report>
+            </reports>
+          </reportSet>
+          <reportSet>
+            <id>aggregate</id>
+            <reports>
+              <report>aggregate</report>
+            </reports>
+          </reportSet>
+        </reportSets>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jxr-plugin</artifactId>
-        <version>3.0.0</version>
+        <version>3.3.2</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-pmd-plugin</artifactId>
-        <version>3.11.0</version>
+        <version>3.22.0</version>
         <configuration>
           <linkXRef>true</linkXRef>
           <sourceEncoding>utf-8</sourceEncoding>
@@ -452,7 +452,7 @@
       <plugin>
         <groupId>com.github.spotbugs</groupId>
         <artifactId>spotbugs-maven-plugin</artifactId>
-        <version>3.1.9</version>
+        <version>4.8.5.0</version>
         <configuration>
           <xmlOutput>true</xmlOutput>
         </configuration>
