@@ -1660,7 +1660,6 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     // It's enabled by default
     AtomicBoolean hasExpired = new AtomicBoolean();
     builder.setExpiration(expire($expiredIf(hasExpired)));
-    builder.setBackgroundExpirationEnabled(false);
     createPool();
 
     // Allocate an object
