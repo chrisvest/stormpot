@@ -5,8 +5,7 @@ Use it to recycle objects that are expensive to create.
 The library will take care of creating and destroying your objects in the
 background.
 
-image:https://api.travis-ci.org/chrisvest/stormpot.svg?branch=master[Build status, link=https://travis-ci.org/chrisvest/stormpot]
-image:https://img.shields.io/lgtm/grade/java/g/chrisvest/stormpot.svg?logo=lgtm&logoWidth=18[Code quality, link=https://lgtm.com/projects/g/chrisvest/stormpot/context:java]
+image:https://github.com/chrisvest/stormpot/actions/workflows/maven.yml/badge.svg[Build status, link=https://github.com/chrisvest/stormpot/actions/workflows/maven.yml]
 image:https://codecov.io/gh/chrisvest/stormpot/branch/master/graph/badge.svg[Code coverage, link=https://codecov.io/gh/chrisvest/stormpot]
 
 Stormpot is very mature, is used in production, and has done hundreds of
