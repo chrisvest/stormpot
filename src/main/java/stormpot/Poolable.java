@@ -31,16 +31,16 @@ package stormpot;
  *
  * A simple correct implementation of the Poolable interface looks like this:
  *
- * [source,java]
+ * [source,java,indent=0]
  * ----
- * include::../src/test/java/examples/Examples.java[tag=poolableGenericExample]
+ * include::src/test/java/examples/Examples.java[tag=poolableGenericExample]
  * ----
  *
  * This can be shortened further by extending the {@link BasePoolable} class:
  *
- * [source,java]
+ * [source,java,indent=0]
  * ----
- * include::../src/test/java/examples/Examples.java[tag=poolableBaseExample]
+ * include::src/test/java/examples/Examples.java[tag=poolableBaseExample]
  * ----
  *
  * It is also possible to directly use the {@link Pooled} implementation, which

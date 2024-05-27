@@ -43,7 +43,7 @@ public interface Reallocator<T extends Poolable> extends Allocator<T> {
    *
    * This method is effectively equivalent to the following:
    *
-   * [source,java]
+   * [source,java,indent=0]
    * --
    * include::src/test/java/examples/Examples.java[tag=reallocatorExample]
    * --
