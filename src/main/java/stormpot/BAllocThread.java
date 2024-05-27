@@ -154,6 +154,10 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   }
 
   private void reduceSizeByDeallocating(BSlot<T> slot) {
+    if (slot == null || !didAnythingLastIteration) {
+      disregardPile.refill();
+      newAllocations.refill();
+    }
     slot = slot == null ? live.poll() : slot;
     if (slot != null) {
       if (slot.isDead() || slot.live2dead()) {
