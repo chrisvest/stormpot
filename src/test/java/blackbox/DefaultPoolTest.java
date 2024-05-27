@@ -25,4 +25,10 @@ class DefaultPoolTest extends ThreadBasedPoolTest {
   protected PoolBuilder<GenericPoolable> createInitialPoolBuilder(AlloKit.CountingAllocator allocator) {
     return Pool.from(allocator);
   }
+
+  @Override
+  void claimWhenInterruptedMustNotThrowIfObjectIsAvailableViaCache(Taps taps) throws Exception {
+    noBackgroundExpirationChecking(); // Prevent background expiration checking from claiming cached object.
+    super.claimWhenInterruptedMustNotThrowIfObjectIsAvailableViaCache(taps);
+  }
 }
