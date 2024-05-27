@@ -1007,16 +1007,19 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
       assertNotNull(objs[i], "Did not claim an object in time");
     }
     lock.lock(); // prevent new allocations
-    Thread thread = fork($delayedReleases(10, TimeUnit.MILLISECONDS, objs));
     try {
-      // must return before test times out:
-      GenericPoolable obj = tap.claim(new Timeout(50, TimeUnit.MILLISECONDS));
-      if (obj != null) {
-        obj.release();
+      Thread thread = fork($delayedReleases(10, TimeUnit.MILLISECONDS, objs));
+      try {
+        // must return before test times out:
+        GenericPoolable obj = tap.claim(new Timeout(50, TimeUnit.MILLISECONDS));
+        if (obj != null) {
+          obj.release();
+        }
+      } finally {
+        thread.interrupt();
+        thread.join();
       }
     } finally {
-      thread.interrupt();
-      thread.join();
       lock.unlock();
     }
   }
