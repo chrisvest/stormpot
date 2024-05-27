@@ -1681,13 +1681,14 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     // Clear the allocator lists to remove the last references
     allocator.clearLists();
 
-    // GC to force the object through finalization life cycle
-    System.gc();
-    System.gc();
-    System.gc();
+    int iterationCount = 0;
+    do {
+      // GC to force the object through finalization life cycle
+      System.gc();
+      assertThat(iterationCount++).isLessThan(1000);
 
-    // Now our weakReference must have been cleared
-    assertNull(weakReference.get());
+      // Now our weakReference must eventually have been cleared
+    } while (weakReference.get() != null);
   }
 
   @Test

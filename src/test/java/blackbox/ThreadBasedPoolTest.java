@@ -702,4 +702,22 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
       d.release();
     }
   }
+
+  @Override
+  void claimWhenInterruptedMustNotThrowIfObjectIsAvailableViaCache(Taps taps) throws Exception {
+    noBackgroundExpirationChecking(); // Prevent background expiration checking from claiming cached object.
+    super.claimWhenInterruptedMustNotThrowIfObjectIsAvailableViaCache(taps);
+  }
+
+  @Override
+  void mustNotHoldOnToDeallocatedObjectsWhenLeakDetectionIsEnabled() throws Exception {
+    noBackgroundExpirationChecking();
+    super.mustNotHoldOnToDeallocatedObjectsWhenLeakDetectionIsEnabled();
+  }
+
+  @Override
+  void tryClaimMustReturnIfPoolIsNotEmpty(Taps taps) throws Exception {
+    noBackgroundExpirationChecking();
+    super.tryClaimMustReturnIfPoolIsNotEmpty(taps);
+  }
 }
