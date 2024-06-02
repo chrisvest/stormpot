@@ -21,10 +21,12 @@ import stormpot.Allocator;
 import stormpot.Slot;
 
 public class MyAllocator implements Allocator<MyPoolable> {
+  @Override
   public MyPoolable allocate(Slot slot) throws Exception {
     return new MyPoolable(slot);
   }
 
+  @Override
   public void deallocate(MyPoolable poolable) throws Exception {
     // Nothing to do here
     // But it's a perfect place to close sockets, files, etc.

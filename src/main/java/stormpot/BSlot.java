@@ -39,7 +39,8 @@ final class BSlot<T extends Poolable>
     // threads observe the pointer to this object.
     super(DEAD, live, poisonedSlots);
   }
-  
+
+  @Override
   public void release(Poolable obj) {
     if (poison == BlazePool.EXPLICIT_EXPIRE_POISON) {
       poisonedSlots.getAndIncrement();

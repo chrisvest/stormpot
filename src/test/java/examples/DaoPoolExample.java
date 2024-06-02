@@ -30,8 +30,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
 
-@SuppressWarnings({"WeakerAccess","unused",
-    "SynchronizationOnLocalVariableOrMethodParameter"})
+@SuppressWarnings({"WeakerAccess","unused"})
 // tag::defineClass[]
 public class DaoPoolExample {
   // end::defineClass[]
@@ -46,6 +45,7 @@ public class DaoPoolExample {
     }
     // end::mydaoStart[]
     // tag::mydaoRelease[]
+    @Override
     public void release() {
       slot.release(this);
     }
@@ -79,6 +79,7 @@ public class DaoPoolExample {
     // end::allocatorStart[]
 
     // tag::allocatorAllocate[]
+    @Override
     public MyDao allocate(Slot slot) throws Exception {
       synchronized (dataSource) {
         return new MyDao(slot, dataSource.getConnection());
@@ -87,6 +88,7 @@ public class DaoPoolExample {
     // end::allocatorAllocate[]
 
     // tag::allocatorClose[]
+    @Override
     public void deallocate(MyDao poolable) throws Exception {
       poolable.close();
     }
