@@ -390,4 +390,20 @@ final class BAllocThread<T extends Poolable> implements Runnable {
   void offerDeadSlot(BSlot<T> slot) {
     dead.offer(slot);
   }
+  
+  int allocatedSize() {
+    return size;
+  }
+  
+  int inUse() {
+    int inUse = 0;
+    int liveSize = 0;
+    for (BSlot<T> slot: live) {
+      liveSize++;
+      if (slot.isClaimedOrThreadLocal()) {
+        inUse++;
+      }
+    }
+    return size - liveSize + inUse;
+  } 
 }

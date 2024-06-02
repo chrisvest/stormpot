@@ -913,6 +913,18 @@ abstract class AbstractPoolTest<T extends Poolable> {
     assertTrue(managedPool.isShutDown());
   }
 
+  @Test
+  void managedPoolMustGiveNumberOfAllocatedAndInUseObjects() throws Exception {
+    createOneObjectPool();
+    pool.claim(longTimeout).release(); // Ensure the single object is allocated
+    ManagedPool managedPool = pool.getManagedPool();
+    assertThat(managedPool.getCurrentAllocatedCount()).isOne();
+    assertThat(managedPool.getCurrentInUseCount()).isZero();
+    T obj = pool.claim(longTimeout);
+    assertThat(managedPool.getCurrentInUseCount()).isOne();
+    obj.release();
+  }
+
   @ParameterizedTest
   @EnumSource(Taps.class)
   void applyMustThrowOnNullTimeout(Taps taps) {

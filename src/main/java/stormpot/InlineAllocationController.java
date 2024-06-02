@@ -362,4 +362,22 @@ class InlineAllocationController<T extends Poolable> extends AllocationControlle
       metricsRecorder.recordObjectLifetimeSampleMillis(milliseconds);
     }
   }
+  
+  @Override
+  public int allocatedSize() {
+    return live.size() - poisonedSlots.get();
+  }
+
+  @Override
+  int inUse() {
+    int inUse = 0;
+    int liveSize = 0;
+    for (BSlot<T> slot: live) {
+      liveSize++;
+      if (slot.isClaimedOrThreadLocal()) {
+        inUse++;
+      }
+    }
+    return size - liveSize + inUse;
+  } 
 }

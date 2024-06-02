@@ -116,4 +116,22 @@ class DirectAllocationController<T extends Poolable> extends AllocationControlle
   long countLeakedObjects() {
     return -1;
   }
+
+  @Override
+  public int allocatedSize() {
+    return size;
+  }
+
+  @Override
+  int inUse() {
+    int inUse = 0;
+    int liveSize = 0;
+    for (BSlot<T> slot: live) {
+      liveSize++;
+      if (slot.isClaimedOrThreadLocal()) {
+        inUse++;
+      }
+    }
+    return size - liveSize + inUse;
+  }  
 }
