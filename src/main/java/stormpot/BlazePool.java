@@ -379,12 +379,12 @@ final class BlazePool<T extends Poolable>
   }
   
   @Override
-  public int getAllocatedSize() {
+  public int getCurrentAllocatedCount() {
     return allocator.allocatedSize();
   }
   
   @Override
-  public int getInUse() {
+  public int getCurrentInUseCount() {
     return allocator.inUse();
   }
 }

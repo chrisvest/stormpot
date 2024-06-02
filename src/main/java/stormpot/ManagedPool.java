@@ -190,9 +190,12 @@ public interface ManagedPool {
    *
    * The default implementation of this interface methods returns {@code -1}.
    *
+   * Unlike {@link #getAllocationCount()}, this returns only the number of objects currently in the pool,
+   * which typically would be the same as {@link #getTargetSize()}.
+   *
    * @return The current approximate number of allocated objects.
    */
-  default int getAllocatedSize() {
+  default int getCurrentAllocatedCount() {
     return -1;
   }
   
@@ -208,7 +211,7 @@ public interface ManagedPool {
    *
    * @return number of objects currently in use
    */
-  default int getInUse() {
+  default int getCurrentInUseCount() {
     return -1;
   }
 }
