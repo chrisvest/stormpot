@@ -122,6 +122,7 @@ class DirectAllocationController<T extends Poolable> extends AllocationControlle
     return size;
   }
 
+  @Override
   int inUse() {
     int inUse = 0;
     int liveSize = 0;

@@ -367,7 +367,8 @@ class InlineAllocationController<T extends Poolable> extends AllocationControlle
   public int allocatedSize() {
     return live.size() - poisonedSlots.get();
   }
-  
+
+  @Override
   int inUse() {
     int inUse = 0;
     int liveSize = 0;
