@@ -63,16 +63,6 @@ class WhiteboxPoolTest {
       public Poolable tryClaim() {
         return null;
       }
-
-      @Override
-      public int getInUse() {
-        return 0;
-      }
-
-      @Override
-      public int getAllocatedSize() {
-        return 0;
-      }
     };
     pool.getThreadSafeTap().claim(longTimeout);
     assertTrue(delegatedToPool.get());

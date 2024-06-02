@@ -16,6 +16,7 @@
 package stormpot;
 
 import javax.management.MXBean;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * This is the JMX management interface for Stormpot object pools.
@@ -183,15 +184,31 @@ public interface ManagedPool {
   double getDeallocationLatencyPercentile(double percentile);
   
   /**
-   * approximate currently allocated size, this is O(poolsize) to count the number of slots
-   * @return current allocated pool size
+   * Get the approximate number of currently allocated objects.
+   *
+   * This operation has time complexity O(poolSize) to count the number of slots.
+   *
+   * The default implementation of this interface methods returns {@code -1}.
+   *
+   * @return The current approximate number of allocated objects.
    */
-  int getAllocatedSize();
+  default int getAllocatedSize() {
+    return -1;
+  }
   
   /**
-   * approximate number of objects currently in use, this is O(poolsize) to check each slot
-   * this does not lock the pool so the number of objects in use will change under it as it tries to count
+   * Get the approximate number of objects currently in use.
+   *
+   * This operation has time complexity O(poolSize) to check each slot.
+   *
+   * The counting operation is "weakly consistent",
+   * in a similar sense to {@link ConcurrentLinkedQueue#iterator()}.
+   *
+   * The default implementation of this interface methods returns {@code -1}.
+   *
    * @return number of objects currently in use
    */
-  int getInUse();
+  default int getInUse() {
+    return -1;
+  }
 }
