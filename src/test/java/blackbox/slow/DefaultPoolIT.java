@@ -21,6 +21,7 @@ import stormpot.Pool;
 import stormpot.PoolBuilder;
 
 class DefaultPoolIT extends ThreadBasedPoolIT {
+  @Override
   protected PoolBuilder<GenericPoolable> createPoolBuilder(AlloKit.CountingAllocator allocator) {
     return Pool.from(allocator);
   }

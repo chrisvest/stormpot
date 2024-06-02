@@ -134,6 +134,7 @@ class Examples {
       this.slot = slot;
     }
 
+    @Override
     public void release() {
       slot.release(this);
     }

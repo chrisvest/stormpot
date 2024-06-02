@@ -24,7 +24,8 @@ final class LatchCompletion implements Completion {
   LatchCompletion(CountDownLatch completionLatch) {
     this.completionLatch = completionLatch;
   }
-  
+
+  @Override
   public boolean await(Timeout timeout) throws InterruptedException {
     Objects.requireNonNull(timeout, "Timeout cannot be null.");
     return completionLatch.await(timeout.getTimeout(), timeout.getUnit());

@@ -23,6 +23,7 @@ public class GenericPoolable extends BasePoolable {
     super(slot);
   }
 
+  @Override
   public void release() {
     lastReleaseBy = Thread.currentThread();
     super.release();
