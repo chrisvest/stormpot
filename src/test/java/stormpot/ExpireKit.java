@@ -96,12 +96,6 @@ public class ExpireKit {
     return $if(cond, $expired, $fresh);
   }
 
-  public static Expire $throwExpire(Exception exception) {
-    return info -> {
-      throw exception;
-    };
-  }
-
   public static Expire $throwExpire(Throwable throwable) {
     return info -> {
       UnitKit.sneakyThrow(throwable);
