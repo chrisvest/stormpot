@@ -186,11 +186,14 @@ public class ExecutorExtension implements Extension, BeforeEachCallback, AfterEa
     private void printStackTrace(
         Thread thread,
         StackTraceElement[] stackTrace) {
-      Exception printer = new Exception(
-          "Stack trace for " + thread + " (id " + thread.getId() +
-              "), state = " + thread.getState());
-      printer.setStackTrace(stackTrace);
-      printer.printStackTrace();
+      Thread.State state = thread.getState();
+      System.err.printf("\"%s\" #%s prio=%s daemon=%s %s%n    java.lang.Thread.State: %s%n",
+              thread.getName(), thread.getId(), thread.getPriority(), thread.isDaemon(),
+              state.toString().toLowerCase(), state);
+      for (StackTraceElement ste : stackTrace) {
+        System.err.printf("\tat %s%n", ste);
+      }
+      System.err.println();
     }
   }
 }
