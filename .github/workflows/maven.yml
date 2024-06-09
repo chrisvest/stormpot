@@ -8,15 +8,16 @@ on:
 
 jobs:
   build:
-
+    strategy:
+      matrix:
+        java-version: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
-    - name: Set up JDK 11
+    - name: Set up Java
       uses: actions/setup-java@v2
       with:
-        java-version: '11'
-        distribution: 'adopt'
+        java-version: ${{ matrix.java-version }}
+        distribution: 'zulu'
     - name: Build with Maven
       run: ./mvnw -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn verify -B
