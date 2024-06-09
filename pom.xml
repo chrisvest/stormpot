@@ -42,7 +42,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <java.version>11</java.version>
     <jacoco.version>0.8.12</jacoco.version>
-    <javadoc.version>3.6.3</javadoc.version>
+    <javadoc.version>3.7.0</javadoc.version>
     <asciidoclet.version>2.0.0</asciidoclet.version>
     <revapi.maven.version>0.15.0</revapi.maven.version>
     <revapi.version>0.28.1</revapi.version>
@@ -60,7 +60,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
-        <version>3.4.1</version>
+        <version>3.5.0</version>
         <executions>
           <execution>
             <id>enforce-maven</id>
@@ -80,7 +80,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>3.3.1</version>
+        <version>3.4.0</version>
         <configuration>
           <configLocation>src/etc/checkstyle.xml</configLocation>
           <consoleOutput>true</consoleOutput>
@@ -432,7 +432,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jxr-plugin</artifactId>
-        <version>3.3.2</version>
+        <version>3.4.0</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -440,7 +440,6 @@
         <version>3.22.0</version>
         <configuration>
           <linkXRef>true</linkXRef>
-          <sourceEncoding>utf-8</sourceEncoding>
           <targetJdk>${java.version}</targetJdk>
         </configuration>
       </plugin>
