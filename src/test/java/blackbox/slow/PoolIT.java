@@ -290,7 +290,14 @@ abstract class PoolIT {
     assertThrows(PoolException.class, () -> pool.claim(longTimeout).release());
     long prev = 0, curr;
     for (int i = 0; i < 50; i++) {
+      long start = System.nanoTime();
       Thread.sleep(100);
+      long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+      if (elapsedMillis >= 150) {
+        // Ignore outliers with very high sleep time.
+        i--;
+        continue;
+      }
       curr = counter.get();
       long delta = curr - prev;
       prev = curr;
