@@ -20,6 +20,7 @@ import extensions.FailurePrinterExtension;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import stormpot.Completion;
@@ -88,8 +89,9 @@ abstract class PoolIT {
   protected abstract PoolBuilder<GenericPoolable> createPoolBuilder(CountingAllocator allocator);
 
   @AfterEach
-  void verifyObjectsAreNeverDeallocatedMoreThanOnce() throws InterruptedException {
-    assertTrue(pool.shutdown().await(shortTimeout), "pool should have been shut down by the test");
+  void verifyObjectsAreNeverDeallocatedMoreThanOnce(TestInfo info) throws InterruptedException {
+    assertTrue(pool.shutdown().await(shortTimeout),
+            "pool should have been shut down by the test: " + info.getDisplayName());
     pool = null;
 
     List<GenericPoolable> deallocated = allocator.getDeallocations();
