@@ -720,4 +720,10 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     noBackgroundExpirationChecking();
     super.tryClaimMustReturnIfPoolIsNotEmpty(taps);
   }
+
+  @Override
+  void managedPoolMustGiveNumberOfAllocatedAndInUseObjects() throws Exception {
+    noBackgroundExpirationChecking();
+    super.managedPoolMustGiveNumberOfAllocatedAndInUseObjects();
+  }
 }
