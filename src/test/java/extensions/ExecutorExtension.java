@@ -20,12 +20,11 @@ import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.Extension;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringJoiner;
+import java.lang.management.LockInfo;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MonitorInfo;
+import java.lang.management.ThreadInfo;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -161,12 +160,19 @@ public class ExecutorExtension implements Extension, BeforeEachCallback, AfterEa
     }
 
     void dumpAllThreads() {
+      ThreadInfo[] threadInfos = ManagementFactory.getThreadMXBean().dumpAllThreads(true, true);
+      Map<Long, ThreadInfo> infos = new HashMap<>();
+      for (ThreadInfo threadInfo : threadInfos) {
+        infos.put(threadInfo.getThreadId(), threadInfo);
+      }
       synchronized (threads) {
         System.err.println(
             "\n===[ Dumping stack traces for all created threads ]===\n");
+        Set<Long> createdThreads = new HashSet<>();
         for (Thread thread : threads) {
+          createdThreads.add(thread.getId());
           StackTraceElement[] stackTrace = thread.getStackTrace();
-          printStackTrace(thread, stackTrace);
+          printStackTrace(thread, infos.get(thread.getId()), stackTrace);
         }
         System.err.println(
             "\n===[ End stack traces for all created threads ]===\n");
@@ -176,7 +182,10 @@ public class ExecutorExtension implements Extension, BeforeEachCallback, AfterEa
         Set<Map.Entry<Thread, StackTraceElement[]>> entries =
             Thread.getAllStackTraces().entrySet();
         for (Map.Entry<Thread,StackTraceElement[]> entry : entries) {
-          printStackTrace(entry.getKey(), entry.getValue());
+          Thread thread = entry.getKey();
+          if (!createdThreads.contains(thread.getId())) {
+            printStackTrace(thread, infos.get(thread.getId()), entry.getValue());
+          }
         }
         System.err.println(
             "\n===[ End stack traces for all other threads ]===\n");
@@ -184,14 +193,29 @@ public class ExecutorExtension implements Extension, BeforeEachCallback, AfterEa
     }
 
     private void printStackTrace(
-        Thread thread,
-        StackTraceElement[] stackTrace) {
+            Thread thread,
+            ThreadInfo info,
+            StackTraceElement[] stackTrace) {
       Thread.State state = thread.getState();
-      System.err.printf("\"%s\" #%s prio=%s daemon=%s %s%n    java.lang.Thread.State: %s%n",
+      LockInfo lockInfo = info.getLockInfo();
+      MonitorInfo[] monitors = info.getLockedMonitors();
+      Map<StackTraceElement, MonitorInfo> locks = new HashMap<>();
+      for (MonitorInfo monitor : monitors) {
+        locks.put(monitor.getLockedStackFrame(), monitor);
+      }
+      System.err.printf("\"%s\" #%s prio=%s daemon=%s tid=0 nid=0 %s%n   java.lang.Thread.State: %s%n",
               thread.getName(), thread.getId(), thread.getPriority(), thread.isDaemon(),
               state.toString().toLowerCase(), state);
       for (StackTraceElement ste : stackTrace) {
         System.err.printf("\tat %s%n", ste);
+        if (lockInfo != null) {
+          System.err.printf("\t- waiting on %s%n", lockInfo);
+          lockInfo = null;
+        }
+        MonitorInfo monitor = locks.get(ste);
+        if (monitor != null) {
+          System.err.printf("\t- locked %s%n", monitor);
+        }
       }
       System.err.println();
     }
