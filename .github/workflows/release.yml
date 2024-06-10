@@ -1,0 +1,33 @@
+name: Release
+on:
+  workflow_dispatch:
+
+jobs:
+  Release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v4.1.6
+
+      # Configure Java
+      - uses: actions/setup-java@v4.2.1
+        with:
+          distribution: 'zulu'
+          java-version: '11'
+          server-id: 'ossrh'
+          server-username: ${{ secrets.SONATYPE_USERNAME }}
+          server-password: ${{ secrets.SONATYPE_PASSWORD }}
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "Release action on behalf of ${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+
+      - name: Verifying build
+        run: ./mvnw clean deploy -P release
+
+      - name: Push pom updates and tags
+        run: |
+          git push --tags
