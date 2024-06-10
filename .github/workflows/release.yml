@@ -2,6 +2,9 @@ name: Release
 on:
   workflow_dispatch:
 
+env:
+  MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.http.retryhandler.count=5 -Dmaven.wagon.httpconnectionManager.ttlSeconds=240 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+
 jobs:
   Release:
     runs-on: ubuntu-latest
@@ -26,7 +29,7 @@ jobs:
           git config user.email "${{ github.actor }}@users.noreply.github.com"
 
       - name: Verifying build
-        run: ./mvnw clean deploy -P release
+        run: ./mvnw clean deploy -P release -B
 
       - name: Push pom updates and tags
         run: |
