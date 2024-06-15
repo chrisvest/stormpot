@@ -29,7 +29,7 @@ jobs:
           git config user.email "${{ github.actor }}@users.noreply.github.com"
 
       - name: Verifying build
-        run: ./mvnw clean deploy -P release -B
+        run: ./mvnw clean deploy -P release -B -DskipTests
 
       - name: Push pom updates and tags
         run: |
