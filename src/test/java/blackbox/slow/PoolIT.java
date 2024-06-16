@@ -303,6 +303,7 @@ abstract class PoolIT {
       }
       curr = counter.get();
       long delta = curr - prev;
+      System.out.printf("i = %s, delta = %s%n", i, delta);
       prev = curr;
       if (i > 40) {
         assertThat(delta).isLessThanOrEqualTo(5);
