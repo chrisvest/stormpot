@@ -298,6 +298,7 @@ abstract class PoolIT {
       if (elapsedMillis >= 150) {
         // Ignore outliers with very high sleep time.
         i--;
+        prev = counter.get();
         continue;
       }
       curr = counter.get();
