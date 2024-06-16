@@ -25,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import stormpot.Completion;
 import stormpot.GenericPoolable;
+import stormpot.ManagedPool;
 import stormpot.Pool;
 import stormpot.PoolBuilder;
 import stormpot.PoolException;
@@ -286,6 +287,7 @@ abstract class PoolIT {
     }));
     builder.setAllocator(allocator);
     createPool();
+    ManagedPool managedPool = pool.getManagedPool();
     GenericPoolable obj = pool.claim(longTimeout);
     obj.expire();
     obj.release();
@@ -304,14 +306,17 @@ abstract class PoolIT {
       }
       curr = counter.get();
       long delta = curr - prev;
-      sb.append("i = ").append(i).append(", delta = ").append(delta).append('\n');
+      sb.append("i = ").append(i).append(", delta = ").append(delta)
+              .append(", alloc ratio = ")
+              .append(managedPool.getAllocationCount()).append('/').append(managedPool.getFailedAllocationCount())
+              .append('\n');
       prev = curr;
       if (i > 40) {
         if (delta > 5) {
-          System.out.print(sb);
         }
         assertThat(delta).isLessThanOrEqualTo(5);
       }
     }
+    System.out.print(sb);
   }
 }
