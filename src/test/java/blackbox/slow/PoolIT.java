@@ -290,6 +290,7 @@ abstract class PoolIT {
     obj.expire();
     obj.release();
     assertThrows(PoolException.class, () -> pool.claim(longTimeout).release());
+    StringBuilder sb = new StringBuilder(1024);
     long prev = 0, curr;
     for (int i = 0; i < 50; i++) {
       long start = System.nanoTime();
@@ -303,9 +304,12 @@ abstract class PoolIT {
       }
       curr = counter.get();
       long delta = curr - prev;
-      System.out.printf("i = %s, delta = %s%n", i, delta);
+      sb.append("i = ").append(i).append(", delta = ").append(delta).append('\n');
       prev = curr;
       if (i > 40) {
+        if (delta > 5) {
+          System.out.print(sb);
+        }
         assertThat(delta).isLessThanOrEqualTo(5);
       }
     }
