@@ -270,7 +270,10 @@ abstract class PoolIT {
       semaphore.acquire();
     }
 
-    assertThat(allocator.getDeallocations()).isEqualTo(subList);
+    List<GenericPoolable> deallocations = allocator.getDeallocations();
+    synchronized (deallocations) {
+      assertThat(deallocations).isEqualTo(subList);
+    }
 
     objs.get(startingSize - 1).release();
     assertTrue(completionFuture.get(1, TimeUnit.MINUTES), "shutdown timeout elapsed");

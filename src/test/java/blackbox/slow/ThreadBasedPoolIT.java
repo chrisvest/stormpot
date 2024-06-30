@@ -126,7 +126,10 @@ abstract class ThreadBasedPoolIT extends PoolIT {
       semaphore.acquire();
     }
 
-    assertThat(allocator.getDeallocations()).containsExactlyElementsOf(subList);
+    List<GenericPoolable> deallocations = allocator.getDeallocations();
+    synchronized (deallocations) {
+      assertThat(deallocations).containsExactlyElementsOf(subList);
+    }
 
     objs.get(startingSize - 1).release();
   }

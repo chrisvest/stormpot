@@ -265,10 +265,10 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   /**
    * In the hopefully unlikely event that an Expiration throws an
    * exception, that exception should bubble out of the pool unspoiled.
-   * 
+   * <p>
    * We test for this by configuring an Expiration that always throws.
    * No guarantees are being made about when, exactly, it is that the pool will
-   * invoke the Expiration. Therefore we claim and release an object a
+   * invoke the Expiration. Therefore, we claim and release an object a
    * couple of times. That ought to do it.
    */
   @ParameterizedTest
@@ -290,7 +290,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   /**
    * If the Expiration throws an exception when evaluating a slot, then that
    * slot should be considered invalid.
-   * 
+   * <p>
    * We test for this by configuring an expiration that always throws,
    * and then we make a claim and a release to make sure that it got invoked.
    * Then, since the pool size is one, we make another claim to make sure that
@@ -518,7 +518,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
    * they must be replaced/renewed. Pools should generally try to renew
    * before the timeout elapses for the given object, but we don't test for
    * that here.
-   * We set the TTL to be 1 milliseconds, because that is short enough that
+   * We set the TTL to be 1 millisecond, because that is short enough that
    * we can wait for it in a spin-loop. This way, the objects will always
    * appear to have expired when checked. This means that every claim will
    * always allocate a new object, and so our two claims will translate to
@@ -670,8 +670,10 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     tap.claim(longTimeout).release();
     // check if the deallocation list contains duplicates
     List<GenericPoolable> deallocations = allocator.getDeallocations();
-    for (Poolable elm : deallocations) {
-      assertThat(Collections.frequency(deallocations, elm)).as("Deallocations of %s", elm).isEqualTo(1);
+    synchronized (deallocations) {
+      for (Poolable elm : deallocations) {
+        assertThat(Collections.frequency(deallocations, elm)).as("Deallocations of %s", elm).isEqualTo(1);
+      }
     }
   }
   
@@ -980,7 +982,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
    * start. And one that can be generally tested for across pool
    * implementations. Chances are, that if a pool handles this specific case,
    * then it handles all cases that are relevant to its implementation.
-   * 
+   * <p>
    * We test for this by depleting a big pool with a very short TTL. After the
    * pool has been depleted, the allocator will no longer create any more
    * objects, so no expired objects will be renewed. Then we try to claim one
@@ -1087,24 +1089,26 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
 
   /**
    * Here's the scenario we're trying to target:
-   *
-   * - You (or your thread) do a successful claim, and triumphantly stores it
-   *   in the ThreadLocal cache.
-   * - You then return the object after use, so now it's back in the
-   *   live-queue for others to grab.
-   * - Someone else claims the object, and explicitly expires the object.
-   * - You want to claim an object again, and start by looking in the
-   *   ThreadLocal cache.
-   * - You find the slot for the object you had last, but the slot is poisoned
-   *   with the explicit expiration.
-   * - Now, because you found it in the ThreadLocal cache – and notably did
+   * <p>
+   * <ul>
+   * <li>You (or your thread) do a successful claim, and triumphantly stores it
+   *   in the ThreadLocal cache.</li>
+   * <li>You then return the object after use, so now it's back in the
+   *   live-queue for others to grab.</li>
+   * <li>Someone else claims the object, and explicitly expires the object.</li>
+   * <li>You want to claim an object again, and start by looking in the
+   *   ThreadLocal cache.</li>
+   * <li>You find the slot for the object you had last, but the slot is poisoned
+   *   with the explicit expiration.</li>
+   * <li>Now, because you found it in the ThreadLocal cache – and notably did
    *   *not* pull it off of the live-queue – you cannot just put it on the
-   *   dead-queue, because that could lead to unbounded memory use.
-   * - Instead, it has to be marked as live, and we instead have to wait for
+   *   dead-queue, because that could lead to unbounded memory use.</li>
+   * <li>Instead, it has to be marked as live, and we instead have to wait for
    *   someone to pull it off of the live-queue, check the poison again, and
-   *   *then* put it on the dead-queue.
-   * - The slot will then be sent to the allocator for reallocation.
-   * - The returned object should then be different from the initial one.
+   *   *then* put it on the dead-queue.</li>
+   * <li>The slot will then be sent to the allocator for reallocation.</li>
+   * <li>The returned object should then be different from the initial one.</li>
+   * </ul>
    */
   @ParameterizedTest
   @EnumSource(Taps.class)
@@ -1162,10 +1166,10 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   /**
    * When we increase the size of a depleted pool, it should be possible to
    * make claim again and get out newly allocated objects.
-   *
+   * <p>
    * We test for this by depleting a pool, upping the size and then claiming
    * again with a timeout that is longer than the timeout of the test. The test
-   * pass if it does not timeout.
+   * pass if it does not time out.
    */
   @ParameterizedTest
   @EnumSource(Taps.class)
@@ -1186,7 +1190,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
    * allocates, when the pool is shrunk. This is difficult because the pool
    * cannot tell us when it reaches the target size, so we have to figure this
    * out by using a special allocator.
-   *
+   * <p>
    * We test for this by configuring a CountingAllocator that also unparks a
    * thread (namely ours, the main thread for the test) at every allocation
    * and deallocation. We also configure the pool to have a somewhat large
@@ -1236,14 +1240,14 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
    * Similar to the decreasingSizeMustEventuallyDeallocateSurplusObjects test
    * above, but this time the objects are all expired after the pool has been
    * shrunk.
-   *
+   * <p>
    * Again, we deplete the pool. Once depleted, our expiration has been
    * configured such, that all subsequent items one tries to claim, will be
    * expired.
-   *
+   * <p>
    * Then we set the new lower target size, and release just enough for the
    * pool to reach the new target.
-   *
+   * <p>
    * Then we try to claim an object from the pool with a very short timeout.
    * This will return null because the pool is still depleted. We also check
    * that the pool has not made any new allocations, even though we have been
@@ -1298,7 +1302,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   /**
    * Make sure that the pool does not get into a bad state, caused by concurrent
    * background resizing jobs interfering with each other.
-   *
+   * <p>
    * We test this by creating a small pool, then resizing it larger (so much so that
    * any resizing job is unlikely to finish before we can make our next move) and then
    * immediately resizing it smaller again. This should put multiple resizing jobs in
@@ -1353,7 +1357,10 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     }
 
     obj.release();
-    assertThat(allocator.getDeallocations()).doesNotContain(obj);
+    List<GenericPoolable> deallocations = allocator.getDeallocations();
+    synchronized (deallocations) {
+      assertThat(deallocations).doesNotContain(obj);
+    }
   }
 
   /**
@@ -1962,7 +1969,10 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     a.expire();
     a.release();
     tap.claim(longTimeout).release();
-    assertThat(allocator.getDeallocations()).contains(a);
+    List<GenericPoolable> deallocations = allocator.getDeallocations();
+    synchronized (deallocations) {
+      assertThat(deallocations).contains(a);
+    }
   }
 
 
@@ -1978,7 +1988,10 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     shutdown.await(longTimeout);
     assertEquals(allocator.countAllocations(), 1);
     assertEquals(allocator.countDeallocations(), 1);
-    assertThat(allocator.getDeallocations()).contains(a);
+    List<GenericPoolable> deallocations = allocator.getDeallocations();
+    synchronized (deallocations) {
+      assertThat(deallocations).contains(a);
+    }
   }
 
   // NOTE: When adding, removing or modifying tests, also remember to update
