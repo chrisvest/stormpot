@@ -20,19 +20,14 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * This is the JMX management interface for Stormpot object pools.
- *
+ * <p>
  * Using this interface, pools can be exposed to external management as an
- * MXBean. Since its an MXBean, and not just an MBean, it imposes no
+ * MXBean. Since it is an MXBean, and not just an MBean, it imposes no
  * special requirements on 3rd party JMX integrators.
- *
+ * <p>
  * Once you have created your pool, it is easy to expose it through the platform
  * MBeanServer, or any MBeanServer you like:
- *
- * [source,java,indent=0]
- * ----
- * include::src/test/java/examples/Examples.java[tag=managedPoolExample]
- * ----
- *
+ * {@snippet class=Examples region=managedPoolExample }
  * Using the platform MBeanServer will make the pool visible to tools like
  * JConsole and VisualVM.
  * @since 2.3
@@ -61,7 +56,7 @@ public interface ManagedPool {
    * return the number of object leaks that have been detected, and prevented,
    * since the pool was created. If the pool does not support precise object
    * leak detection, then this method returns -1.
-   *
+   * <p>
    * There are two kinds of leaks: One where the application forgets to release
    * an object back to the pool, but keeps a strong reference to the object,
    * and another where the application not only forgets to release the object,
@@ -92,10 +87,11 @@ public interface ManagedPool {
   int getTargetSize();
 
   /**
-   * Returns 'true' if the shut down process has been started on this pool,
-   * 'false' otherwise. This method does not reveal whether or not the shut
-   * down process has completed.
-   * @return 'true' if {@link Pool#shutdown()} has been called on this pool.
+   * Returns {@code true} if the shutdown process has been started on this pool,
+   * {@code false} otherwise. This method does not reveal whether the shutdown
+   * process has completed.
+   *
+   * @return {@code true} if {@link Pool#shutdown()} has been called on this pool.
    */
   boolean isShutDown();
 
@@ -185,11 +181,11 @@ public interface ManagedPool {
   
   /**
    * Get the approximate number of currently allocated objects.
-   *
+   * <p>
    * This operation has time complexity O(poolSize) to count the number of slots.
-   *
+   * <p>
    * The default implementation of this interface methods returns {@code -1}.
-   *
+   * <p>
    * Unlike {@link #getAllocationCount()}, this returns only the number of objects currently in the pool,
    * which typically would be the same as {@link #getTargetSize()}.
    *
@@ -201,12 +197,12 @@ public interface ManagedPool {
   
   /**
    * Get the approximate number of objects currently in use.
-   *
+   * <p>
    * This operation has time complexity O(poolSize) to check each slot.
-   *
+   * <p>
    * The counting operation is "weakly consistent",
    * in a similar sense to {@link ConcurrentLinkedQueue#iterator()}.
-   *
+   * <p>
    * The default implementation of this interface methods returns {@code -1}.
    *
    * @return number of objects currently in use

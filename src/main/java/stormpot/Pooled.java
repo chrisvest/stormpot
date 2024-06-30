@@ -17,6 +17,8 @@ package stormpot;
 
 /**
  * A reference to a pooled object.
+ *
+ * @param <T> The type of object referenced by the {@link Pooled}.
  */
 public class Pooled<T> extends BasePoolable implements Poolable, AutoCloseable {
   /**
@@ -36,7 +38,7 @@ public class Pooled<T> extends BasePoolable implements Poolable, AutoCloseable {
   }
 
   /**
-   * `Pooled` implements {@link AutoCloseable} as a convenient way to release
+   * {@link Pooled} implements {@link AutoCloseable} as a convenient way to release
    * claimed objects back to the pool, using the try-with-resources syntax.
    */
   @Override
