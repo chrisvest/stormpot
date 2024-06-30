@@ -123,14 +123,7 @@ public abstract class Sim {
     TimeUnit value() default TimeUnit.MILLISECONDS;
   }
 
-  private static class Link<T> {
-    final Link<T> tail;
-    final T value;
-
-    private Link(Link<T> tail, T value) {
-      this.tail = tail;
-      this.value = value;
-    }
+  private record Link<T>(Sim.Link<T> tail, T value) {
   }
 
   public static void main(String[] args) throws Exception {

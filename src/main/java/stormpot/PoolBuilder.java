@@ -29,24 +29,24 @@ import static stormpot.Expiration.never;
 import static stormpot.StormpotThreadFactory.INSTANCE;
 
 /**
- * The `PoolBuilder` collects information about how big a pool should be,
- * and how it should allocate objects, an so on, and finally acts as the
+ * The {@code PoolBuilder} collects information about how big a pool should be,
+ * and how it should allocate objects, and so on, and finally acts as the
  * factory for building the pool instances themselves, with the
  * {@link #build()} method.
- *
- * Pool builder instances are obtained by calling one of the `from*`
+ * <p>
+ * Pool builder instances are obtained by calling one of the {@code from*}
  * methods on {@link Pool}, such as {@link Pool#fromThreaded(Allocator)}.
- *
+ * <p>
  * This class is made thread-safe by having the fields be protected by the
- * intrinsic object lock on the `PoolBuilder` object itself. This way, pools
- * can `synchronize` on the builder object to read the values out atomically.
- *
- * The various set* methods are made to return the `PoolBuilder` instance
+ * intrinsic object lock on the {@code PoolBuilder} object itself. This way, pools
+ * can {@code synchronize} on the builder object to read the values out atomically.
+ * <p>
+ * The various {@code set*} methods are made to return the {@code PoolBuilder} instance
  * itself, so that the method calls may be chained if so desired.
  * 
- * @author Chris Vest <mr.chrisvest@gmail.com>
+ * @author Chris Vest
  * @param <T> The type of {@link Poolable} objects that a {@link Pool} based
- * on this `PoolBuilder` will produce.
+ * on this {@code PoolBuilder} will produce.
  */
 public final class PoolBuilder<T extends Poolable> implements Cloneable {
   static final Map<AllocationProcessMode, PoolBuilderDefaults> DEFAULTS = Map.of(
@@ -73,7 +73,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
   private int backgroundExpirationCheckDelay;
 
   /**
-   * Build a new empty `PoolBuilder` object.
+   * Build a new empty {@code PoolBuilder} object.
    */
   PoolBuilder(AllocationProcess allocationProcess, Allocator<T> allocator) {
     requireNonNull(allocator, "The Allocator cannot be null.");
@@ -91,25 +91,25 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
 
   /**
    * Set the size of the pool we are building.
-   *
+   * <p>
    * Pools are required to control the allocations and deallocations, such that
    * no more than this number of objects are allocated at any time.
-   *
+   * <p>
    * This means that a pool of size 1, whose single object have expired, will
    * deallocate that one object before allocating a replacement.
-   *
+   * <p>
    * The size must be at least one, or an {@link IllegalArgumentException} will
    * be thrown when building the pool.
-   *
+   * <p>
    * Note that the pool size can be modified after the pool has been built, by
    * calling the {@link Pool#setTargetSize(int)} or
    * {@link ManagedPool#setTargetSize(int)} methods.
    *
    * @param size The target pool size. Must be at least 0.
-   * @return This `PoolBuilder` instance.
+   * @return This {@code PoolBuilder} instance.
    */
   public synchronized PoolBuilder<T> setSize(int size) {
-    checkPermission(permissions.setSize, "size");
+    checkPermission(permissions.setSize(), "size");
     if (size < 0) {
       throw new IllegalArgumentException("Size must be at least 0, but was " + size + ".");
     }
@@ -127,23 +127,23 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
 
   /**
    * Set the {@link Allocator} or {@link Reallocator} to use for the pools we
-   * want to configure. This will change the type-parameter of the `PoolBuilder`
+   * want to configure. This will change the type-parameter of the {@code PoolBuilder}
    * object to match that of the new Allocator.
-   *
+   * <p>
    * The allocator is initially specified by the {@link Pool#from(Allocator)}
    * method, so there is usually no need to set it later.
    *
    * @param allocator The allocator we want our pools to use.
-   * This cannot be `null`.
+   * This cannot be {@code null}.
    * @param <X> The type of {@link Poolable} that is created by the allocator,
    * and the type of objects that the configured pools will contain.
-   * @return This `PoolBuilder` instance, but with a generic type parameter that
+   * @return This {@code PoolBuilder} instance, but with a generic type parameter that
    * matches that of the allocator.
    */
   @SuppressWarnings("unchecked")
   public synchronized <X extends Poolable> PoolBuilder<X> setAllocator(
       Allocator<X> allocator) {
-    checkPermission(permissions.setAllocator, "allocator");
+    checkPermission(permissions.setAllocator(), "allocator");
     requireNonNull(allocator, "The Allocator cannot be null.");
     this.allocator = (Allocator<T>) allocator;
     return (PoolBuilder<X>) this;
@@ -175,16 +175,16 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * Set the {@link Expiration} to use for the pools we want to
    * configure. The Expiration determines when a pooled object is valid
    * for claiming, or when the objects are invalid and should be deallocated.
-   *
+   * <p>
    * The default Expiration is an
    * {@link Expiration#after(long, long, TimeUnit)} that invalidates the
-   * objects after they have been active for somewhere between 8 to 10 minutes.
+   * objects after they have been active for somewhere from 8 to 10 minutes.
    *
    * @param expiration The expiration we want our pools to use. Not null.
-   * @return This `PoolBuilder` instance.
+   * @return This {@code PoolBuilder} instance.
    */
   public synchronized PoolBuilder<T> setExpiration(Expiration<? super T> expiration) {
-    checkPermission(permissions.setExpiration, "expiration");
+    checkPermission(permissions.setExpiration(), "expiration");
     requireNonNull(expiration, "Expiration cannot be null.");
     this.expiration = expiration;
     return this;
@@ -193,7 +193,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
   /**
    * Get the configured {@link Expiration} instance. The default is a
    * {@link Expiration#after(long, long, TimeUnit)} that expires objects after
-   * somewhere between 8 to 10 minutes.
+   * somewhere from 8 to 10 minutes.
    *
    * @return The configured Expiration.
    */
@@ -205,7 +205,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * Set the {@link MetricsRecorder} to use for the pools we want to configure.
    * @param metricsRecorder The MetricsRecorder to use, or null if we don't
    *                        want to use any.
-   * @return This `PoolBuilder` instance.
+   * @return This {@code PoolBuilder} instance.
    */
   public synchronized PoolBuilder<T> setMetricsRecorder(MetricsRecorder metricsRecorder) {
     this.metricsRecorder = metricsRecorder;
@@ -213,7 +213,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
   }
 
   /**
-   * Get the configured {@link MetricsRecorder} instance, or null if none has
+   * Get the configured {@link MetricsRecorder} instance, or {@code null} if none has
    * been configured.
    * @return The configured MetricsRecorder.
    */
@@ -238,19 +238,19 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * a pool with a null ThreadFactory will throw an IllegalArgumentException.
    * @param factory The ThreadFactory the pool should use to create their
    *                background threads.
-   * @return This `PoolBuilder` instance.
+   * @return This {@code PoolBuilder} instance.
    */
   public synchronized PoolBuilder<T> setThreadFactory(ThreadFactory factory) {
-    checkPermission(permissions.setThreadFactory, "thread factory");
+    checkPermission(permissions.setThreadFactory(), "thread factory");
     requireNonNull(factory, "ThreadFactory cannot be null.");
     threadFactory = factory;
     return this;
   }
 
   /**
-   * Return whether or not precise object leak detection is enabled, which is
+   * Return whether precise object leak detection is enabled, which is
    * the case by default.
-   * @return `true` if precise object leak detection is enabled.
+   * @return {@code true} if precise object leak detection is enabled.
    * @see #setPreciseLeakDetectionEnabled(boolean)
    */
   public synchronized boolean isPreciseLeakDetectionEnabled() {
@@ -265,20 +265,25 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * means that no false positives (counting objects as leaked, even though
    * they are not) are ever reported.
    *
-   * [NOTE]
-   * --
+   * <table>
+   * <caption>Note</caption>
+   * <tr>
+   * <th scope="row">NOTE</th>
+   * <td>
    * While the pool is able to detect object leaks, it cannot prevent
    * them. All leaks are a sign that there is a bug in the system; most likely
    * a bug in your code, or in the way the pool is used.
-   * --
+   * </td>
+   * </tr>
+   * </table>
    *
    * Precise object leak detection incurs virtually no overhead, and is safe to
    * leave enabled at all times – even in the most demanding production
    * environments.
    *
-   * @param enabled `true` to turn on precise object leak detection (the
-   *                default) `false` to turn it off.
-   * @return This `PoolBuilder` instance.
+   * @param enabled {@code true} to turn on precise object leak detection (the
+   *                default) {@code false} to turn it off.
+   * @return This {@code PoolBuilder} instance.
    */
   public synchronized PoolBuilder<T> setPreciseLeakDetectionEnabled(boolean enabled) {
     this.preciseLeakDetectionEnabled = enabled;
@@ -286,10 +291,10 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
   }
 
   /**
-   * Return whether or not background expiration is enabled.
+   * Return whether background expiration is enabled.
    * By default, background expiration is enabled.
    *
-   * @return `true` if background expiration is enabled.
+   * @return {@code true} if background expiration is enabled.
    * @see #setBackgroundExpirationEnabled(boolean)
    */
   public synchronized boolean isBackgroundExpirationEnabled() {
@@ -304,12 +309,12 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * demand for allocations and deallocations, even though these tasks always
    * take priority over any expiration checking.
    *
-   * @param enabled `true` (the default) to turn background expiration checking on,
-   *               `false` to turn it off.
-   * @return This `PoolBuilder` instance.
+   * @param enabled {@code true} (the default) to turn background expiration checking on,
+   *               {@code false} to turn it off.
+   * @return This {@code PoolBuilder} instance.
    */
   public synchronized PoolBuilder<T> setBackgroundExpirationEnabled(boolean enabled) {
-    checkPermission(permissions.setBackgroundExpiration, "background expiration enabled/disabled");
+    checkPermission(permissions.setBackgroundExpiration(), "background expiration enabled/disabled");
     backgroundExpirationEnabled = enabled;
     return this;
   }
@@ -328,21 +333,21 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
   /**
    * Set the approximate delay, in milliseconds, between background maintenance tasks.
    * These tasks include the background expiration checks, and retrying failed allocations.
-   *
+   * <p>
    * The default delay is 1.000 milliseconds (1 second). Lowering this value will
    * improve the pools responsiveness to repairing failed allocations, and also increase
    * the frequency of the background expiration checks. This comes at the cost of higher
    * idle CPU usage.
-   *
+   * <p>
    * It is not recommended to set this value lower than 100 milliseconds. Values lower
    * than this tend to have increased CPU and power usage, for very little gain in
    * responsiveness for the background tasks.
    *
    * @param delay the desired delay, in milliseconds, between background maintenance tasks.
-   * @return This `PoolBuilder` instance.
+   * @return This {@code PoolBuilder} instance.
    */
   public synchronized PoolBuilder<T> setBackgroundExpirationCheckDelay(int delay) {
-    checkPermission(permissions.setBackgroundExpiration, "background expiration check delay");
+    checkPermission(permissions.setBackgroundExpiration(), "background expiration check delay");
     if (delay < 0) {
       throw new IllegalArgumentException("Background expiration check delay cannot be negative.");
     }
@@ -351,13 +356,13 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
   }
 
   /**
-   * Returns a shallow copy of this `PoolBuilder` object.
-   * @return A new `PoolBuilder` object of the exact same type as this one, with
+   * Returns a shallow copy of this {@code PoolBuilder} object.
+   * @return A new {@code PoolBuilder} object of the exact same type as this one, with
    * identical values in all its fields.
    */
   @SuppressWarnings("unchecked")
   @Override
-  public final synchronized PoolBuilder<T> clone() {
+  public synchronized PoolBuilder<T> clone() {
     try {
       return (PoolBuilder<T>) super.clone();
     } catch (CloneNotSupportedException e) {
@@ -374,9 +379,9 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
   }
 
   /**
-   * Returns a `Reallocator`, possibly by adapting the configured
-   * `Allocator` if need be.
-   * If a `MetricsRecorder` has been configured, the return `Reallocator` will
+   * Returns a {@link Reallocator}, possibly by adapting the configured
+   * {@link Allocator} if need be.
+   * If a {@link MetricsRecorder} has been configured, the return {@link Reallocator} will
    * automatically record allocation, reallocation and deallocation latencies.
    */
   synchronized Reallocator<T> getAdaptedReallocator() {

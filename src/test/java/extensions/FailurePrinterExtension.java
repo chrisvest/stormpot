@@ -32,13 +32,13 @@ import java.util.Optional;
 /**
  * An Extension that ensures that any failing tests have their stack-trace
  * printed to stderr.
- * 
+ * <p>
  * This is useful for when the tests are running on a build-server, and you'd
  * like the details of any failure to be printed to the build-log. A nice thing
  * if the build system does not make the build artifacts with the test failures
  * available.
  * 
- * @author cvh
+ * @author Chris Vest
  */
 public class FailurePrinterExtension implements Extension, BeforeEachCallback, AfterEachCallback {
   private ThreadMXBean threadMXBean;
@@ -73,6 +73,7 @@ public class FailurePrinterExtension implements Extension, BeforeEachCallback, A
     cores = operatingSystemMXBean.getAvailableProcessors();
   }
 
+  @SuppressWarnings("CallToPrintStackTrace")
   @Override
   public void afterEach(ExtensionContext context) {
     Optional<Throwable> executionException = context.getExecutionException();

@@ -170,11 +170,8 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     createPool();
     allocationLatch.await();
     GenericPoolable obj = pool.claim(longTimeout);
-    try {
-      assertThat(obj).isNotNull();
-    } finally {
-      obj.release();
-    }
+    assertThat(obj).isNotNull();
+    obj.release();
   }
 
   @Test
@@ -196,11 +193,8 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     allocationLatch.await();
     expired.set(false);
     obj = pool.claim(longTimeout);
-    try {
-      assertThat(obj).isNotNull();
-    } finally {
-      obj.release();
-    }
+    assertThat(obj).isNotNull();
+    obj.release();
   }
 
   @Test
@@ -213,11 +207,8 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     createPool();
     allocationLatch.await();
     GenericPoolable obj = pool.claim(longTimeout);
-    try {
-      assertThat(obj).isNotNull();
-    } finally {
-      obj.release();
-    }
+    assertThat(obj).isNotNull();
+    obj.release();
   }
 
   @Test
@@ -242,11 +233,8 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     allocationLatch.await();
     expired.set(false);
     obj = pool.claim(longTimeout);
-    try {
-      assertThat(obj).isNotNull();
-    } finally {
-      obj.release();
-    }
+    assertThat(obj).isNotNull();
+    obj.release();
   }
 
   @Test
@@ -326,10 +314,10 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     createPool();
     pool.claim(longTimeout).release();
     assertThat(createdThreads.size()).isEqualTo(1);
-    assertTrue(createdThreads.get(0).isAlive());
+    assertTrue(createdThreads.getFirst().isAlive());
     pool.shutdown().await(longTimeout);
     assertThat(createdThreads.size()).isEqualTo(1);
-    Thread thread = createdThreads.get(0);
+    Thread thread = createdThreads.getFirst();
     thread.join();
     assertFalse(thread.isAlive());
   }
@@ -457,7 +445,6 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
 
       List<GenericPoolable> deallocations = allocator.getDeallocations();
       // Synchronized to guard against concurrent modification from the allocator
-      //noinspection SynchronizationOnLocalVariableOrMethodParameter
       synchronized (deallocations) {
         assertThat(deallocations).doesNotContain(obj);
       }

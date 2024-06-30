@@ -15,7 +15,10 @@
  */
 package stormpot;
 
+import java.io.Serial;
+
 public class SomeRandomThrowable extends Throwable {
+  @Serial
   private static final long serialVersionUID = 42L;
 
   public SomeRandomThrowable(String message) {

@@ -91,6 +91,7 @@ public class ExecutorExtension implements Extension, BeforeEachCallback, AfterEa
     futuresToPrintOnFailure.add(future);
   }
 
+  @SuppressWarnings("CallToPrintStackTrace")
   private void printFuturesForFailure() {
     System.err.println(
         "\n===[ Dumping all registered futures ]===\n");
@@ -160,7 +161,7 @@ public class ExecutorExtension implements Extension, BeforeEachCallback, AfterEa
             joiner.add(frame.toString());
           }
           assertThat(state).as("Unexpected thread state: " + thread +
-              " (id " + thread.getId() + ") stack trace: \n" + joiner)
+              " (id " + thread.threadId() + ") stack trace: \n" + joiner)
               .isEqualTo(Thread.State.TERMINATED);
         }
       }
@@ -177,9 +178,9 @@ public class ExecutorExtension implements Extension, BeforeEachCallback, AfterEa
             "\n===[ Dumping stack traces for all created threads ]===\n");
         Set<Long> createdThreads = new HashSet<>();
         for (Thread thread : threads) {
-          createdThreads.add(thread.getId());
+          createdThreads.add(thread.threadId());
           StackTraceElement[] stackTrace = thread.getStackTrace();
-          printStackTrace(thread, infos.get(thread.getId()), stackTrace);
+          printStackTrace(thread, infos.get(thread.threadId()), stackTrace);
         }
         System.err.println(
             "\n===[ End stack traces for all created threads ]===\n");
@@ -190,8 +191,8 @@ public class ExecutorExtension implements Extension, BeforeEachCallback, AfterEa
             Thread.getAllStackTraces().entrySet();
         for (Map.Entry<Thread,StackTraceElement[]> entry : entries) {
           Thread thread = entry.getKey();
-          if (!createdThreads.contains(thread.getId())) {
-            printStackTrace(thread, infos.get(thread.getId()), entry.getValue());
+          if (!createdThreads.contains(thread.threadId())) {
+            printStackTrace(thread, infos.get(thread.threadId()), entry.getValue());
           }
         }
         System.err.println(
@@ -211,7 +212,7 @@ public class ExecutorExtension implements Extension, BeforeEachCallback, AfterEa
         locks.put(monitor.getLockedStackFrame(), monitor);
       }
       System.err.printf("\"%s\" #%s prio=%s daemon=%s tid=0 nid=0 %s%n   java.lang.Thread.State: %s%n",
-              thread.getName(), thread.getId(), thread.getPriority(), thread.isDaemon(),
+              thread.getName(), thread.threadId(), thread.getPriority(), thread.isDaemon(),
               state.toString().toLowerCase(), state);
       for (StackTraceElement ste : stackTrace) {
         System.err.printf("\tat %s%n", ste);

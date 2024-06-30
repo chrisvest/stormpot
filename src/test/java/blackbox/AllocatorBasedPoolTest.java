@@ -19,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import stormpot.AlloKit;
 import stormpot.Allocator;
 import stormpot.Completion;
 import stormpot.Expiration;
@@ -736,7 +737,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
       tap.claim(longTimeout);
       fail("expected claim to throw");
     } catch (PoolException poolException) {
-      assertThat(poolException.getCause()).isSameAs((Throwable) expectedException);
+      assertThat(poolException.getCause()).isSameAs(expectedException);
     }
   }
 
@@ -773,7 +774,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
       tap.claim(longTimeout);
       fail("expected claim to throw");
     } catch (PoolException poolException) {
-      assertThat(poolException.getCause()).isSameAs((Throwable) expectedException);
+      assertThat(poolException.getCause()).isSameAs(expectedException);
     }
   }
   
@@ -824,9 +825,10 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   @ParameterizedTest
   @EnumSource(Taps.class)
   void mustStillBeUsableAfterExceptionInReallocate(Taps taps) throws Exception {
-    builder.setAllocator(reallocator(
-        alloc($new),
-        realloc($throw(new RuntimeException("boo from realloc")))));
+    AlloKit.CountingReallocator alloc = reallocator(
+            alloc($new),
+            realloc($throw(new RuntimeException("boo from realloc"))));
+    builder.setAllocator(alloc);
     builder.setExpiration(Expiration.never());
     noBackgroundExpirationChecking();
     createPool();
@@ -838,7 +840,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
       tap.claim(longTimeout).release();
       // if "claim" doesn't throw, then the background thread might have cleaned up the poisoned
       // slot before we could get to it. In that case, the allocation count should be 2.
-      assertThat(pool.getManagedPool().getAllocationCount()).isEqualTo(2);
+      assertThat(alloc.countAllocations()).isEqualTo(2);
     } catch (PoolException ignore) {}
     GenericPoolable claim = tap.claim(longTimeout);
     assertThat(claim).isNotNull();
@@ -1213,7 +1215,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     pool.setTargetSize(newSize);
     while (allocator.countDeallocations() != startingSize - newSize) {
       if (!objs.isEmpty()) {
-        objs.remove(0).release(); // give the pool objects to deallocate
+        objs.removeFirst().release(); // give the pool objects to deallocate
       } else {
         tap.claim(longTimeout).release(); // prod it & poke it
       }
@@ -1272,7 +1274,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     pool.setTargetSize(newSize);
     for (int i = 0; i < startingSize - newSize; i++) {
       // release the surplus expired objects back into the pool
-      objs.remove(0).release();
+      objs.removeFirst().release();
     }
     // now the released objects should not cause reallocations, so claim
     // returns null (it's still depleted) and allocation count stays put
@@ -1280,7 +1282,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
       assertThat(pool.claim(shortTimeout)).isNull();
       assertThat(allocator.countAllocations()).isEqualTo(startingSize);
     } finally {
-      objs.remove(0).release();
+      objs.removeFirst().release();
     }
   }
 
@@ -1858,7 +1860,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     GenericPoolable a = tap.claim(longTimeout);
     try {
       List<GenericPoolable> allocations = allocator.getAllocations();
-      assertThat(a).isSameAs(allocations.get(allocations.size() - 1));
+      assertThat(a).isSameAs(allocations.getLast());
     } finally {
       a.release();
     }

@@ -20,7 +20,7 @@ package stormpot;
  * caching and TLR-claiming in the pool itself. However, instead of relying on
  * a thread-local for the object caching, we instead directly use a field of
  * the pool tap instance.
- *
+ * <p>
  * This has two advantages: 1) a field load is faster than a thread-local
  * lookup, and 2) there is no thread-local "leaking" or contamination.
  *

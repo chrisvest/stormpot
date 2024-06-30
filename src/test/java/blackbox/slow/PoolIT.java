@@ -97,7 +97,6 @@ abstract class PoolIT {
 
     List<GenericPoolable> deallocated = allocator.getDeallocations();
     // Synchronize to avoid ConcurrentModification with background thread
-    //noinspection SynchronizationOnLocalVariableOrMethodParameter
     synchronized (deallocated) {
       deallocated.sort(Comparator.comparingInt(System::identityHashCode));
       Iterator<GenericPoolable> iter = deallocated.iterator();

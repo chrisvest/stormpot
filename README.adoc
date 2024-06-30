@@ -68,7 +68,7 @@ We recommend https://github.com/ben-manes/caffeine[Caffeine] for object caching.
 
 === Installing
 
-Stormpot 3.1 only depends on Java 11 or newer.
+Stormpot 3.2 only depends on Java 11 or newer.
 Add it as a Maven dependency to your projects:
 
 [source,xml]
@@ -81,6 +81,7 @@ Add it as a Maven dependency to your projects:
 ----
 
 You can also build the latest snapshot from source with `mvn clean install`.
+Note that Stormpot 4 require Java 21 or newer.
 
 === Getting Started
 

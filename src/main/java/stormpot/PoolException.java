@@ -15,23 +15,26 @@
  */
 package stormpot;
 
+import java.io.Serial;
+
 /**
  * The PoolException may be thrown by a pool implementation in a number of
  * circumstances:
+ * <ul>
+ * <li>If claim is called and the pool needs to {@link Allocator#allocate(Slot) allocate}
+ * a new object, but the allocation fails by returning {@code null} or throwing an exception.</li>
+ * <li>Likewise if the {@link Reallocator#reallocate(Slot, Poolable)} method
+ *   return {@code null} or throw an exception.</li>
+ * <li>If the {@link Slot#release(Poolable)} method is misused, and the pool is
+ *   able to detect this.</li>
+ * <li>If the {@link Expiration#hasExpired(SlotInfo) expiration check} throws an
+ *   exception.</li>
+ * </ul>
  *
- * * If claim is called and the pool needs to
- *   {@link Allocator#allocate(Slot) allocate} a new object, but the allocation
- *   fails by returning `null` or throwing an exception.
- * * Likewise if the {@link Reallocator#reallocate(Slot, Poolable)} method
- *   return `null` or throw an exception.
- * * If the {@link Slot#release(Poolable)} method is misused, and the pool is
- *   able to detect this.
- * * If the {@link Expiration#hasExpired(SlotInfo) expiration check} throws an
- *   exception.
- *
- * @author Chris Vest <mr.chrisvest@gmail.com>
+ * @author Chris Vest
  */
 public class PoolException extends RuntimeException {
+  @Serial
   private static final long serialVersionUID = -1908093409167496640L;
 
   /**
@@ -46,6 +49,7 @@ public class PoolException extends RuntimeException {
 
   /**
    * Construct a new PoolException with the given message and cause.
+   *
    * @param message A description for the exception to be returned form
    * {@link #getMessage()}.
    * @param cause The underlying cause of this exception, as to be shown in the

@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
  * This is the standard time based {@link Expiration}. It will invalidate
  * objects based on about how long ago they were allocated.
  *
- * @author Chris Vest <mr.chrisvest@gmail.com>
+ * @author Chris Vest
  * @since 2.2
  */
 final class TimeSpreadExpiration<T extends Poolable> implements Expiration<T> {
@@ -36,9 +36,9 @@ final class TimeSpreadExpiration<T extends Poolable> implements Expiration<T> {
    * Construct a new Expiration that will invalidate objects that are older
    * than the given lower bound, before they get older than the upper bound,
    * in the given time unit.
-   *
-   * If the `lowerBound` is less than 1, the `upperBound` is less than the
-   * `lowerBound`, or the `unit` is `null`, then an
+   * <p>
+   * If the {@code lowerBound} is less than 1, the {@code upperBound} is less than the
+   * {@code lowerBound}, or the {@code unit} is {@code null}, then an
    * {@link java.lang.IllegalArgumentException} will be thrown.
    *
    * @param lowerBound Poolables younger than this, in the given unit, are not
@@ -46,7 +46,7 @@ final class TimeSpreadExpiration<T extends Poolable> implements Expiration<T> {
    * @param upperBound Poolables older than this, in the given unit, are always
    *                   considered expired. This value must be greater than the
    *                   lowerBound.
-   * @param unit The {@link TimeUnit} of the bounds values. Never `null`.
+   * @param unit The {@link TimeUnit} of the bounds values. Never {@code null}.
    */
   TimeSpreadExpiration(
       long lowerBound,
@@ -67,12 +67,12 @@ final class TimeSpreadExpiration<T extends Poolable> implements Expiration<T> {
   }
 
   /**
-   * Returns `true`, with uniformly increasing probability, if the
+   * Returns {@code true}, with uniformly increasing probability, if the
    * {@link stormpot.Poolable} represented by the given {@link SlotInfo} is
-   * older than the lower bound, eventually returning `true` with
+   * older than the lower bound, eventually returning {@code true} with
    * 100% certainty when the age of the Poolable is equal to or greater than
    * the upper bound.
-   *
+   * <p>
    * The uniformity of the random expiration holds regardless of how often a
    * Poolable is checked. That is to say, checking a Poolable more times within
    * an interval of time, does _not_ increase its chances of being
