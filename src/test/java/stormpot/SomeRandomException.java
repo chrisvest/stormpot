@@ -15,11 +15,14 @@
  */
 package stormpot;
 
+import java.io.Serial;
+
 /**
  * Thrown by tests to assert that exceptions bubble out when they should.
  * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
  *
  */
 public class SomeRandomException extends Exception {
+  @Serial
   private static final long serialVersionUID = 1L;
 }

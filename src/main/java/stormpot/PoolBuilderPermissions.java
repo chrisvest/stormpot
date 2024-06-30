@@ -15,23 +15,10 @@
  */
 package stormpot;
 
-class PoolBuilderPermissions {
-  final boolean setAllocator;
-  final boolean setSize;
-  final boolean setExpiration;
-  final boolean setThreadFactory;
-  final boolean setBackgroundExpiration;
-
-  PoolBuilderPermissions(
-      boolean setAllocator,
-      boolean setSize,
-      boolean setExpiration,
-      boolean setThreadFactory,
-      boolean setBackgroundExpiration) {
-    this.setAllocator = setAllocator;
-    this.setSize = setSize;
-    this.setExpiration = setExpiration;
-    this.setThreadFactory = setThreadFactory;
-    this.setBackgroundExpiration = setBackgroundExpiration;
-  }
+record PoolBuilderPermissions(
+        boolean setAllocator,
+        boolean setSize,
+        boolean setExpiration,
+        boolean setThreadFactory,
+        boolean setBackgroundExpiration) {
 }

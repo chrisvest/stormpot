@@ -109,7 +109,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * @return This {@code PoolBuilder} instance.
    */
   public synchronized PoolBuilder<T> setSize(int size) {
-    checkPermission(permissions.setSize, "size");
+    checkPermission(permissions.setSize(), "size");
     if (size < 0) {
       throw new IllegalArgumentException("Size must be at least 0, but was " + size + ".");
     }
@@ -143,7 +143,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
   @SuppressWarnings("unchecked")
   public synchronized <X extends Poolable> PoolBuilder<X> setAllocator(
       Allocator<X> allocator) {
-    checkPermission(permissions.setAllocator, "allocator");
+    checkPermission(permissions.setAllocator(), "allocator");
     requireNonNull(allocator, "The Allocator cannot be null.");
     this.allocator = (Allocator<T>) allocator;
     return (PoolBuilder<X>) this;
@@ -184,7 +184,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * @return This {@code PoolBuilder} instance.
    */
   public synchronized PoolBuilder<T> setExpiration(Expiration<? super T> expiration) {
-    checkPermission(permissions.setExpiration, "expiration");
+    checkPermission(permissions.setExpiration(), "expiration");
     requireNonNull(expiration, "Expiration cannot be null.");
     this.expiration = expiration;
     return this;
@@ -241,7 +241,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * @return This {@code PoolBuilder} instance.
    */
   public synchronized PoolBuilder<T> setThreadFactory(ThreadFactory factory) {
-    checkPermission(permissions.setThreadFactory, "thread factory");
+    checkPermission(permissions.setThreadFactory(), "thread factory");
     requireNonNull(factory, "ThreadFactory cannot be null.");
     threadFactory = factory;
     return this;
@@ -314,7 +314,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * @return This {@code PoolBuilder} instance.
    */
   public synchronized PoolBuilder<T> setBackgroundExpirationEnabled(boolean enabled) {
-    checkPermission(permissions.setBackgroundExpiration, "background expiration enabled/disabled");
+    checkPermission(permissions.setBackgroundExpiration(), "background expiration enabled/disabled");
     backgroundExpirationEnabled = enabled;
     return this;
   }
@@ -347,7 +347,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    * @return This {@code PoolBuilder} instance.
    */
   public synchronized PoolBuilder<T> setBackgroundExpirationCheckDelay(int delay) {
-    checkPermission(permissions.setBackgroundExpiration, "background expiration check delay");
+    checkPermission(permissions.setBackgroundExpiration(), "background expiration check delay");
     if (delay < 0) {
       throw new IllegalArgumentException("Background expiration check delay cannot be negative.");
     }
@@ -362,7 +362,7 @@ public final class PoolBuilder<T extends Poolable> implements Cloneable {
    */
   @SuppressWarnings("unchecked")
   @Override
-  public final synchronized PoolBuilder<T> clone() {
+  public synchronized PoolBuilder<T> clone() {
     try {
       return (PoolBuilder<T>) super.clone();
     } catch (CloneNotSupportedException e) {
