@@ -19,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import stormpot.AlloKit;
 import stormpot.Allocator;
 import stormpot.Completion;
 import stormpot.Expiration;
@@ -824,9 +825,10 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   @ParameterizedTest
   @EnumSource(Taps.class)
   void mustStillBeUsableAfterExceptionInReallocate(Taps taps) throws Exception {
-    builder.setAllocator(reallocator(
-        alloc($new),
-        realloc($throw(new RuntimeException("boo from realloc")))));
+    AlloKit.CountingReallocator alloc = reallocator(
+            alloc($new),
+            realloc($throw(new RuntimeException("boo from realloc"))));
+    builder.setAllocator(alloc);
     builder.setExpiration(Expiration.never());
     noBackgroundExpirationChecking();
     createPool();
@@ -838,7 +840,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
       tap.claim(longTimeout).release();
       // if "claim" doesn't throw, then the background thread might have cleaned up the poisoned
       // slot before we could get to it. In that case, the allocation count should be 2.
-      assertThat(pool.getManagedPool().getAllocationCount()).isEqualTo(2);
+      assertThat(alloc.countAllocations()).isEqualTo(2);
     } catch (PoolException ignore) {}
     GenericPoolable claim = tap.claim(longTimeout);
     assertThat(claim).isNotNull();
