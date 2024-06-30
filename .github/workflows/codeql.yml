@@ -2,7 +2,7 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ "main", "1.0", "2.0", "2.1", "2.2", "2.3", "2.4", "2.4.1", "2.4.2", "3.0", "3.0.1", "3.1" ]
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
   schedule:
@@ -25,17 +25,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - uses: actions/checkout@v4.1.6
+      - name: Set up Java
+        uses: actions/setup-java@v4.2.1
+        with:
+          java-version: '21'
+          distribution: 'zulu'
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
+        uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
           queries: +security-and-quality
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v2
+        uses: github/codeql-action/autobuild@v3
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.language }}"

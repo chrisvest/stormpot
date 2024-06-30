@@ -19,7 +19,7 @@ import java.util.Objects;
 
 /**
  * A basic implementation of the {@link Poolable} interface, which can be extended directly.
- *
+ * <p>
  * It is not strictly necessary to extend this class in order to implement the {@link Poolable}
  * interface, but doing so may make your code simpler.
  */
@@ -32,7 +32,8 @@ public class BasePoolable implements Poolable {
   protected final Slot slot;
 
   /**
-   * Build a `BasePoolable` for the given slot.
+   * Build a {@link BasePoolable} for the given slot.
+   *
    * @param slot The {@link Slot} that represents this objects place in the pool.
    */
   public BasePoolable(Slot slot) {

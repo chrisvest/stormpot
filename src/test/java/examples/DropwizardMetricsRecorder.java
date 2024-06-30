@@ -19,6 +19,7 @@ import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
 import stormpot.MetricsRecorder;
 
+// @start region=example
 public class DropwizardMetricsRecorder implements MetricsRecorder {
   private final Histogram allocationLatency;
   private final Histogram allocationFailureLatency;
@@ -96,3 +97,4 @@ public class DropwizardMetricsRecorder implements MetricsRecorder {
     return objectLifetime.getSnapshot().getValue(percentile);
   }
 }
+// @end

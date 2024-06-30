@@ -22,17 +22,17 @@ import java.util.concurrent.TimeUnit;
 /**
  * A Timeout represents the maximum amount of time a caller is willing to wait
  * for a blocking operation to complete.
- *
+ * <p>
  * Timeouts are independent of their units, so two timeouts of equivalent
  * duration but constructed in different units, will be equal to each other and
  * work exactly the same.
- *
+ * <p>
  * Timeouts are also independent of "calendar time" in the sense that they
  * represent and work as a duration of absolute time. In other words, timeouts
  * do not grow or shrink with passing leap seconds or daylight savings time
  * adjustments.
  *
- * @author Chris Vest <mr.chrisvest@gmail.com>
+ * @author Chris Vest
  */
 public final class Timeout {
   private final long timeout;
@@ -41,12 +41,12 @@ public final class Timeout {
   
   /**
    * Construct a new timeout with the given value and unit. The unit cannot be
-   * `null`, but the timeout value is unrestricted. The meaning of a
+   * {@code null}, but the timeout value is unrestricted. The meaning of a
    * negative timeout value is specific to the implementation of the use site,
    * but typically means that no amount of blocking or waiting is tolerated.
    * @param timeout A numerical value for the timeout. Can be zero or negative,
    * though the meaning is implementation specific.
-   * @param unit The unit of the timeout value. Never `null`.
+   * @param unit The unit of the timeout value. Never {@code null}.
    */
   public Timeout(long timeout, TimeUnit unit) {
     Objects.requireNonNull(unit, "The TimeUnit cannot be null.");
@@ -58,7 +58,7 @@ public final class Timeout {
   /**
    * Construct a new timeout with the given duration.
    * An exception will be thrown if the duration cannot be converted to a nanosecond quantity.
-   * The duration also cannot be `null`.
+   * The duration also cannot be {@code null}.
    * Apart from these two, there are no restrictions on the duration.
    * @param duration A duration to use for the timeout.
    */
@@ -79,7 +79,7 @@ public final class Timeout {
 
   /**
    * Get the unit for the {@link #getTimeout() timeout value}.
-   * @return The {@link TimeUnit} of the timeout value. Never `null`.
+   * @return The {@link TimeUnit} of the timeout value. Never {@code null}.
    */
   public TimeUnit getUnit() {
     return unit;
@@ -90,8 +90,8 @@ public final class Timeout {
    * {@link #getBaseUnit() base unit}. Once you have a deadline, you can ask
    * how much time is left until it transpires, with the
    * {@link #getTimeLeft(long)} method, giving the deadline as an argument.
-   *
-   * If the {@link #getTimeout() timeout value} is really small, zero or
+   * <p>
+   * If the {@link #getTimeout() timeout value} is very small, zero or
    * negative, then the deadline might be an instant in the past.
    * @return A numerical value that represents the deadline from "now" until
    * this timeout has passed.
@@ -148,8 +148,8 @@ public final class Timeout {
   /**
    * Timeouts of equivalent duration are equal, even if they were constructed
    * with different units.
-   * @return `true` if this Timeout value is equal to the given
-   * Timeout value, `false` otherwise.
+   * @return {@code true} if this Timeout value is equal to the given
+   * Timeout value, {@code false} otherwise.
    */
   @Override
   public boolean equals(Object obj) {

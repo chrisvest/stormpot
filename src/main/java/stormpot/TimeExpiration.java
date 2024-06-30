@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
  * This is a time based {@link Expiration}. It will invalidate
  * objects based on how long ago they were allocated.
  * 
- * @author Chris Vest <mr.chrisvest@gmail.com>
+ * @author Chris Vest
  */
 final class TimeExpiration<T extends Poolable> implements Expiration<T> {
 
@@ -32,14 +32,14 @@ final class TimeExpiration<T extends Poolable> implements Expiration<T> {
   /**
    * Construct a new Expiration that will invalidate objects that are older
    * than the provided span of time in the given unit.
-   *
-   * If the `maxPermittedAge` is less than one, or the `unit` is `null`, then
+   * <p>
+   * If the {@code maxPermittedAge} is less than one, or the {@code unit} is {@code null}, then
    * an {@link IllegalArgumentException} will be thrown.
    * 
    * @param maxPermittedAge Poolables older than this, in the given unit, will
    * be considered expired. This value must be at least 1.
    * @param unit The {@link TimeUnit} of the maximum permitted age. Never
-   * `null`.
+   * {@code null}.
    */
   TimeExpiration(long maxPermittedAge, TimeUnit unit) {
     Objects.requireNonNull(unit, "TimeUnit cannot be null.");
@@ -52,7 +52,7 @@ final class TimeExpiration<T extends Poolable> implements Expiration<T> {
   }
 
   /**
-   * Returns `true` if the {@link Poolable} represented by the given
+   * Returns {@code true} if the {@link Poolable} represented by the given
    * {@link SlotInfo} is older than the maximum age permitted by this
    * TimeExpiration.
    */

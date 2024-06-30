@@ -56,19 +56,19 @@ class Examples {
 
   @Test
   void managedPoolExample() throws Exception {
-    // tag::managedPoolExample[]
+    // @start region=managedPoolExample
     Pool<MyPoolable> pool = Pool.from(new MyAllocator()).build();
     MBeanServer server = ManagementFactory.getPlatformMBeanServer();
     ObjectName name = new ObjectName("com.myapp:objectpool=stormpot");
     server.registerMBean(pool.getManagedPool(), name);
-    // end::managedPoolExample[]
+    // @end
   }
 
   @SuppressWarnings("EmptyTryBlock")
   @Test
   void poolClaimExample() throws Exception {
     Pool<MyPoolable> pool = Pool.from(new MyAllocator()).build();
-    // tag::poolClaimExample[]
+    // @start region=poolClaimExample
     Timeout timeout = new Timeout(1, SECONDS);
     MyPoolable obj = pool.claim(timeout);
     try {
@@ -79,14 +79,14 @@ class Examples {
         obj.release();
       }
     }
-    // end::poolClaimExample[]
+    // @end
   }
 
   @Test
   void poolClaimPrintExample() throws Exception {
     Pool<MyPoolable> pool = Pool.from(new MyAllocator()).build();
 
-    // tag::poolClaimPrintExample[]
+    // @start region=poolClaimPrintExample
     Poolable obj = pool.claim(TIMEOUT);
     if (obj != null) {
       try {
@@ -95,12 +95,12 @@ class Examples {
         obj.release();
       }
     }
-    // end::poolClaimPrintExample[]
+    // @end
   }
 
   @Test
   void directPoolExample() throws Exception {
-    // tag::directPoolExample[]
+    // @start region=directPoolExample
     Object a = new Object();
     Object b = new Object();
     Object c = new Object();
@@ -110,24 +110,24 @@ class Examples {
         System.out.println(claim.object);
       }
     }
-    // end::directPoolExample[]
+    // @end
   }
 
   @Test
   void inlinePoolExample() throws Exception {
     MyAllocator allocator = new MyAllocator();
-    // tag::inlinePoolExample[]
+    // @start region=inlinePoolExample
     Pool<MyPoolable> pool = Pool.fromInline(allocator).build();
     MyPoolable obj = pool.claim(TIMEOUT);
     if (obj != null) {
       System.out.println(obj);
       obj.release();
     }
-    // end::inlinePoolExample[]
+    // @end
   }
 
   @SuppressWarnings("InnerClassMayBeStatic")
-  // tag::poolableGenericExample[]
+  // @start region=poolableGenericExample
   public class GenericPoolable implements Poolable {
     private final Slot slot;
     public GenericPoolable(Slot slot) {
@@ -139,26 +139,26 @@ class Examples {
       slot.release(this);
     }
   }
-  // end::poolableGenericExample[]
+  // @end
 
   @SuppressWarnings({"InnerClassMayBeStatic", "unused"})
-  // tag::poolableBaseExample[]
+  // @start region=poolableBaseExample
   public class CustomPoolable extends BasePoolable {
     public CustomPoolable(Slot slot) {
       super(slot);
     }
   }
-  // end::poolableBaseExample[]
+  // @end
 
   @SuppressWarnings("unused")
   static class ReallocatorExample<T extends Poolable> implements Reallocator<T> {
 
     @Override
     public T reallocate(Slot slot, T poolable) {
-      // tag::reallocatorExample[]
+      // @start region=reallocatorExample
       deallocate(poolable);
       return allocate(slot);
-      // end::reallocatorExample[]
+      // @end
     }
 
     @Override
@@ -195,13 +195,13 @@ class Examples {
       }
     };
 
-    // tag::expensiveExpirationWithEveryExample[]
+    // @start region=expensiveExpirationWithEveryExample
     Expiration<PooledConnection> checkConnection = new CheckConnectionExpiration()
         .every(10, SECONDS); // <1>
     Pool<PooledConnection> connectionPool = Pool.from(connectionAllocator)
         .setExpiration(checkConnection)
         .build();
-    // end::expensiveExpirationWithEveryExample[]
+    // @end
     assertThat(connectionPool).isNotNull();
   }
 }

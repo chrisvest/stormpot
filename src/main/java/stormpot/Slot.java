@@ -19,42 +19,42 @@ package stormpot;
  * A Slot represents a location in a Pool where objects can be allocated into,
  * so that they can be claimed and released. The Slot is used by the allocated
  * Poolables as a call-back, to tell the pool when an object is released.
- *
+ * <p>
  * The individual pool implementations provide their own Slot implementations.
- *
+ * <p>
  * Slots contain mutable state within them. If objects are claimed, released
  * and otherwise worked on from different threads, then the hand-over must
  * happen through a safe publication mechanism.
- *
+ * <p>
  * See Java Concurrency in Practice by Brian Goetz for more information on safe
  * publication.
- *
+ * <p>
  * Slots also expects single-threaded access, so they cannot be used
  * concurrently by multiple threads. Only one thread at a time can use a Slot
  * instance.
  * 
- * @author Chris Vest <mr.chrisvest@gmail.com>
+ * @author Chris Vest
  * @see Poolable
  */
 public interface Slot {
   /**
    * Signal to the pool that the currently claimed object in this slot has been
    * released.
-   *
+   * <p>
    * It is a user error to release a slot that is not currently claimed. It is
    * likewise a user error to release a Slot while inside the Allocators
    * {@link Allocator#allocate(Slot) allocate} method, or the Expirations
    * {@link Expiration#hasExpired(SlotInfo) hasExpired} method.
-   *
-   * On the other hand, it is _not_ an error to release a Poolable
+   * <p>
+   * On the other hand, it is <em>not</em> an error to release a Poolable
    * from a thread other than the one that claimed it.
-   *
+   * <p>
    * Pools are free to throw a PoolException if they detect any of these
    * wrong uses, but it is not guaranteed and the exact behaviour is not
-   * specified. "Unspecified behaviour" means that dead-locks and infinite
+   * specified. "Unspecified behaviour" means that deadlocks and infinite
    * loops are fair responses as well. Therefore, heed the advice and don't
    * misuse release!
-   *
+   * <p>
    * Pools must, however, guarantee that an object is never
    * {@link Allocator#deallocate(Poolable) deallocated} more than once.
    * This guarantee must hold even if release is misused.
@@ -72,11 +72,11 @@ public interface Slot {
    * explicitly expired using this method. Objects can only be explicitly
    * expired while they are claimed, and such expired objects will not be
    * deallocated until they are released back to the pool.
-   *
+   * <p>
    * It is a user error to expire objects that are not currently claimed. It is
    * likewise a user error to expire a Slot while inside the Allocators
    * {@link Allocator#allocate(Slot) allocate} method.
-   *
+   * <p>
    * The expiration only takes effect after the object has been released, so
    * calling this method from within the Expirations
    * {@link Expiration#hasExpired(SlotInfo) hasExpired} method will not prevent
@@ -84,12 +84,12 @@ public interface Slot {
    * again after it's been released back to the pool. An Expiration policy that
    * expires all objects with this method, is effectively allowing objects to
    * only be claimed once.
-   *
+   * <p>
    * Pools are free to throw a PoolException if they detect any wrong uses,
    * but it is not guaranteed and the exact behaviour is not specified.
-   * "Unspecified behaviour" means that dead-locks and infinite loops are fair
+   * "Unspecified behaviour" means that deadlocks and infinite loops are fair
    * responses as well. Therefore, heed the advice and don't misuse expire!
-   *
+   * <p>
    * Pools must, however, guarantee that an object is never
    * {@link Allocator#deallocate(Poolable) deallocated} more than once.
    * This guarantee must hold even if expire is misused.

@@ -15,16 +15,20 @@
  */
 package stormpot;
 
+import java.io.Serial;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * A `RefillPile` can collect objects, in a concurrent and wait-free manner,
+ * A {@code RefillPile} can collect objects, in a concurrent and wait-free manner,
  * before releasing them all to a queue.
+ *
+ * @param <T> The concrete {@link Poolable} object type.
  */
 @SuppressWarnings("unchecked")
 final class RefillPile<T extends Poolable>
     extends AtomicReference<RefillSlot<T>> {
+  @Serial
   private static final long serialVersionUID = 2374582348576873465L;
   private static final RefillSlot<Poolable> STACK_END =
       new RefillSlot<>(null);
@@ -67,7 +71,7 @@ final class RefillPile<T extends Poolable>
    * Refill the target queue with all the slots that have been pushed onto this stack.
    * This method atomically pops all elements from the stack at once, and then pushed onto the
    * queue one by one.
-   * @return `true` if any slots has been offered to the queue, or `false` if there were no
+   * @return {@code true} if any slots has been offered to the queue, or {@code false} if there were no
    * slots in the pile.
    */
   boolean refill() {

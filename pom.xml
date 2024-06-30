@@ -38,9 +38,8 @@
   </developers>
 
   <properties>
-    <outputEncoding>UTF-8</outputEncoding>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <java.version>11</java.version>
+    <java.version>21</java.version>
     <jacoco.version>0.8.12</jacoco.version>
     <javadoc.version>3.7.0</javadoc.version>
     <asciidoclet.version>2.0.0</asciidoclet.version>
@@ -105,8 +104,7 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.13.0</version>
         <configuration>
-          <source>${java.version}</source>
-          <target>${java.version}</target>
+          <release>${java.version}</release>
           <compilerArgument>-Xlint:all</compilerArgument>
           <showWarnings>true</showWarnings>
         </configuration>
@@ -240,15 +238,11 @@
           </execution>
         </executions>
         <configuration>
-          <additionalJOptions>
-            <additionalJOption>-J--add-exports=jdk.javadoc/jdk.javadoc.internal.tool=ALL-UNNAMED</additionalJOption>
-            <additionalJOption>-Xdoclint:all,-html,-accessibility</additionalJOption>
-            <additionalJOption>--base-dir</additionalJOption>
-            <additionalJOption>${project.basedir}</additionalJOption>
-          </additionalJOptions>
-          <doclet>org.asciidoctor.asciidoclet.Asciidoclet</doclet>
+          <additionalOptions>
+            <additionalOption>--snippet-path</additionalOption>
+            <additionalOption>${build.testSourceDirectory}/examples/</additionalOption>
+          </additionalOptions>
           <detectJavaApiLink>true</detectJavaApiLink>
-          <docletPath>${project.basedir}/build/asciidoclet-2.0.0-shaded.jar</docletPath>
         </configuration>
       </plugin>
       <plugin>
@@ -424,15 +418,11 @@
         <artifactId>maven-javadoc-plugin</artifactId>
         <version>${javadoc.version}</version>
         <configuration>
-          <additionalJOptions>
-            <additionalJOption>-J--add-exports=jdk.javadoc/jdk.javadoc.internal.tool=ALL-UNNAMED</additionalJOption>
-            <additionalJOption>-Xdoclint:all,-html,-accessibility</additionalJOption>
-            <additionalJOption>--base-dir</additionalJOption>
-            <additionalJOption>${project.basedir}</additionalJOption>
-          </additionalJOptions>
-          <doclet>org.asciidoctor.asciidoclet.Asciidoclet</doclet>
+          <additionalOptions>
+            <additionalOption>--snippet-path</additionalOption>
+            <additionalOption>${build.testSourceDirectory}/examples/</additionalOption>
+          </additionalOptions>
           <detectJavaApiLink>true</detectJavaApiLink>
-          <docletPath>${project.basedir}/build/asciidoclet-2.0.0-shaded.jar</docletPath>
         </configuration>
         <reportSets>
           <reportSet>
