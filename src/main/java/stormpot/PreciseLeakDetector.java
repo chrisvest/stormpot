@@ -43,7 +43,7 @@ final class PreciseLeakDetector {
     // 'probe' array. When inserting, if that slot is null, then we insert the
     // WeakRef directly into that place. In fact, we allow building a WeakRef
     // chain up to 4 elements long, directly in the first-level 'probes' array.
-    // Otherwise we add the second-level 32 element array, rehash the existing
+    // Otherwise, we add the second-level 32 element array, rehash the existing
     // chain into it, by using the next 5 second-least significant bits as
     // index. From here on, we don't create any more levels, but just link the
     // WeakRefs together like a daisy-chain. This way, we create at most 33
@@ -62,8 +62,7 @@ final class PreciseLeakDetector {
       return;
     }
 
-    if (current instanceof WeakRef) {
-      WeakRef currentRef = (WeakRef) current;
+    if (current instanceof WeakRef currentRef) {
       if (chainShorterThan(4, current)) {
         WeakRef ref = new WeakRef(obj);
         ref.next = currentRef;
@@ -120,8 +119,7 @@ final class PreciseLeakDetector {
 
     Object current = probes[hash1];
 
-    if (current instanceof WeakRef) {
-      WeakRef ref = (WeakRef) current;
+    if (current instanceof WeakRef ref) {
       probes[hash1] = removeFromChain(ref, obj);
       return;
     }
@@ -154,8 +152,7 @@ final class PreciseLeakDetector {
       Object current = probes[i];
       if (current instanceof WeakRef) {
         probes[i] = pruneChain((WeakRef) current);
-      } else if (current instanceof WeakRef[]) {
-        WeakRef[] level2 = (WeakRef[]) current;
+      } else if (current instanceof WeakRef[] level2) {
         for (int j = 0; j < level2.length; j++) {
           level2[j] = pruneChain(level2[j]);
         }

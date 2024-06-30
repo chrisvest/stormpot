@@ -15,6 +15,7 @@
  */
 package stormpot;
 
+import java.io.Serial;
 import java.lang.Thread.State;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,6 +53,7 @@ public class UnitKit {
   }
 
   private static class WrappedException extends RuntimeException {
+    @Serial
     private static final long serialVersionUID = 8268471823070464895L;
 
     WrappedException(Throwable cause) {
@@ -63,6 +65,7 @@ public class UnitKit {
       extends AtomicReference<Throwable>
       implements Thread.UncaughtExceptionHandler {
 
+    @Serial
     private static final long serialVersionUID = 2170391393239672337L;
 
     @Override
@@ -163,7 +166,7 @@ public class UnitKit {
       try {
         while (!list.isEmpty()) {
           delayUnit.sleep(delay);
-          list.remove(0).release();
+          list.removeFirst().release();
         }
       } catch (InterruptedException e) {
         for (Poolable obj : list) {
@@ -198,9 +201,7 @@ public class UnitKit {
       thread.join();
       Thread.UncaughtExceptionHandler handler =
           thread.getUncaughtExceptionHandler();
-      if (handler instanceof CatchingExceptionHandler) {
-        CatchingExceptionHandler catchingHandler =
-            (CatchingExceptionHandler) handler;
+      if (handler instanceof CatchingExceptionHandler catchingHandler) {
         Throwable th = catchingHandler.get();
         if (th != null) {
           throw new ExecutionException(th);

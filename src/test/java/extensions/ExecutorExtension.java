@@ -91,6 +91,7 @@ public class ExecutorExtension implements Extension, BeforeEachCallback, AfterEa
     futuresToPrintOnFailure.add(future);
   }
 
+  @SuppressWarnings("CallToPrintStackTrace")
   private void printFuturesForFailure() {
     System.err.println(
         "\n===[ Dumping all registered futures ]===\n");

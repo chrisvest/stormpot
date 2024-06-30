@@ -81,6 +81,7 @@ class TimeoutTest {
     assertFalse(a.equals(null));
   }
   
+  @SuppressWarnings("EqualsWithItself")
   @Test
   void timeoutsAreEqualToThemselves() {
     Timeout a = new Timeout(1, TimeUnit.SECONDS);

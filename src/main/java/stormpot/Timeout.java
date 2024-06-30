@@ -142,7 +142,7 @@ public final class Timeout {
 
   @Override
   public int hashCode() {
-    return 31 * (1 + (int) (timeoutBase ^ (timeoutBase >>> 32)));
+    return 31 * (1 + Long.hashCode(timeoutBase));
   }
 
   /**
@@ -153,10 +153,9 @@ public final class Timeout {
    */
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof Timeout)) {
-      return false;
-    }
-    Timeout that = (Timeout) obj;
-    return this.timeoutBase == that.timeoutBase;
+      if (obj instanceof Timeout that) {
+        return this.timeoutBase == that.timeoutBase;
+      }
+    return false;
   }
 }

@@ -15,6 +15,8 @@
  */
 package stormpot;
 
+import java.io.Serial;
+
 /**
  * The PoolException may be thrown by a pool implementation in a number of
  * circumstances:
@@ -32,6 +34,7 @@ package stormpot;
  * @author Chris Vest
  */
 public class PoolException extends RuntimeException {
+  @Serial
   private static final long serialVersionUID = -1908093409167496640L;
 
   /**

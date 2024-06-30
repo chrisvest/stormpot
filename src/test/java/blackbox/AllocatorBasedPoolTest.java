@@ -737,7 +737,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
       tap.claim(longTimeout);
       fail("expected claim to throw");
     } catch (PoolException poolException) {
-      assertThat(poolException.getCause()).isSameAs((Throwable) expectedException);
+      assertThat(poolException.getCause()).isSameAs(expectedException);
     }
   }
 
@@ -774,7 +774,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
       tap.claim(longTimeout);
       fail("expected claim to throw");
     } catch (PoolException poolException) {
-      assertThat(poolException.getCause()).isSameAs((Throwable) expectedException);
+      assertThat(poolException.getCause()).isSameAs(expectedException);
     }
   }
   
@@ -1215,7 +1215,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     pool.setTargetSize(newSize);
     while (allocator.countDeallocations() != startingSize - newSize) {
       if (!objs.isEmpty()) {
-        objs.remove(0).release(); // give the pool objects to deallocate
+        objs.removeFirst().release(); // give the pool objects to deallocate
       } else {
         tap.claim(longTimeout).release(); // prod it & poke it
       }
@@ -1274,7 +1274,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     pool.setTargetSize(newSize);
     for (int i = 0; i < startingSize - newSize; i++) {
       // release the surplus expired objects back into the pool
-      objs.remove(0).release();
+      objs.removeFirst().release();
     }
     // now the released objects should not cause reallocations, so claim
     // returns null (it's still depleted) and allocation count stays put
@@ -1282,7 +1282,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
       assertThat(pool.claim(shortTimeout)).isNull();
       assertThat(allocator.countAllocations()).isEqualTo(startingSize);
     } finally {
-      objs.remove(0).release();
+      objs.removeFirst().release();
     }
   }
 
@@ -1860,7 +1860,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     GenericPoolable a = tap.claim(longTimeout);
     try {
       List<GenericPoolable> allocations = allocator.getAllocations();
-      assertThat(a).isSameAs(allocations.get(allocations.size() - 1));
+      assertThat(a).isSameAs(allocations.getLast());
     } finally {
       a.release();
     }

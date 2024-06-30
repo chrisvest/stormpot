@@ -39,7 +39,6 @@ import javax.management.ObjectName;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -55,7 +54,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static stormpot.UnitKit.$await;
 import static stormpot.UnitKit.$catchFrom;
 import static stormpot.UnitKit.$claim;
@@ -123,11 +121,8 @@ abstract class AbstractPoolTest<T extends Poolable> {
     T a = tap.claim(longTimeout); // Wait for the pool to be populated
     a.release();
     T obj = tap.tryClaim();
-    try {
-      assertThat(obj).isNotNull();
-    } finally {
-      obj.release();
-    }
+    assertThat(obj).isNotNull();
+    obj.release();
   }
 
   /**
@@ -158,11 +153,8 @@ abstract class AbstractPoolTest<T extends Poolable> {
   void claimMustReturnIfWithinTimeout(Taps taps) throws Exception {
     createOneObjectPool();
     T obj = taps.get(this).claim(longTimeout);
-    try {
-      assertThat(obj).isNotNull();
-    } finally {
-      obj.release();
-    }
+    assertThat(obj).isNotNull();
+    obj.release();
   }
 
   /**
@@ -1081,18 +1073,6 @@ abstract class AbstractPoolTest<T extends Poolable> {
     tap.supply(longTimeout, nullConsumer);
   }
 
-  private static Object expectException(Callable<?> callable) {
-    try {
-      callable.call();
-      fail("The ExpectedException was not thrown");
-    } catch (ExpectedException ignore) {
-      // We expect this
-    } catch (Exception e) {
-      throw new AssertionError("Failed for other reason", e);
-    }
-    return null;
-  }
-
   @ParameterizedTest
   @EnumSource(Taps.class)
   void applyMustReleaseClaimedObjectEvenIfFunctionThrows(Taps taps) throws Exception {
@@ -1102,12 +1082,12 @@ abstract class AbstractPoolTest<T extends Poolable> {
       throw new ExpectedException();
     };
 
-    expectException(() -> tap.apply(longTimeout, thrower));
-    expectException(() -> tap.apply(longTimeout, thrower));
-    fork(() -> expectException(() -> tap.apply(longTimeout, thrower))).join();
-    fork(() -> expectException(() -> tap.apply(longTimeout, thrower))).join();
-    expectException(() -> tap.apply(longTimeout, thrower));
-    expectException(() -> tap.apply(longTimeout, thrower));
+    assertThrows(ExpectedException.class, () -> tap.apply(longTimeout, thrower));
+    assertThrows(ExpectedException.class, () -> tap.apply(longTimeout, thrower));
+    fork(() -> assertThrows(ExpectedException.class, () -> tap.apply(longTimeout, thrower))).join();
+    fork(() -> assertThrows(ExpectedException.class, () -> tap.apply(longTimeout, thrower))).join();
+    assertThrows(ExpectedException.class, () -> tap.apply(longTimeout, thrower));
+    assertThrows(ExpectedException.class, () -> tap.apply(longTimeout, thrower));
   }
 
   @ParameterizedTest
@@ -1119,12 +1099,12 @@ abstract class AbstractPoolTest<T extends Poolable> {
       throw new ExpectedException();
     };
 
-    expectException(() -> tap.supply(longTimeout, thrower));
-    expectException(() -> tap.supply(longTimeout, thrower));
-    fork(() -> expectException(() -> tap.supply(longTimeout, thrower))).join();
-    fork(() -> expectException(() -> tap.supply(longTimeout, thrower))).join();
-    expectException(() -> tap.supply(longTimeout, thrower));
-    expectException(() -> tap.supply(longTimeout, thrower));
+    assertThrows(ExpectedException.class, () -> tap.supply(longTimeout, thrower));
+    assertThrows(ExpectedException.class, () -> tap.supply(longTimeout, thrower));
+    fork(() -> assertThrows(ExpectedException.class, () -> tap.supply(longTimeout, thrower))).join();
+    fork(() -> assertThrows(ExpectedException.class, () -> tap.supply(longTimeout, thrower))).join();
+    assertThrows(ExpectedException.class, () -> tap.supply(longTimeout, thrower));
+    assertThrows(ExpectedException.class, () -> tap.supply(longTimeout, thrower));
   }
 
   @ParameterizedTest
