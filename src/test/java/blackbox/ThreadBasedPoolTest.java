@@ -383,7 +383,10 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     try {
       assertThat(allocator.countAllocations()).isEqualTo(3);
       assertThat(allocator.countDeallocations()).isEqualTo(0); // allocation failed
-      assertThat(allocator.getDeallocations()).doesNotContain(a, b);
+      List<GenericPoolable> deallocations = allocator.getDeallocations();
+      synchronized (deallocations) {
+        assertThat(deallocations).doesNotContain(a, b);
+      }
     } finally {
       a.release();
       b.release();
@@ -567,30 +570,32 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
 
   /**
    * Here's the scenario we're trying to target:
-   *
-   * - You (or your thread) do a successful claim, and triumphantly stores it
-   *   in the ThreadLocal cache.
-   * - You then return the object after use, so now it's back in the
-   *   live-queue for others to grab.
-   * - Someone else tries to claim the object, but decides that it has expired,
-   *   and sends it off through the dead-queue to be reallocated.
-   * - The reallocation fails for some reason, and the slot is now poisoned.
-   * - You want to claim an object again, and start by looking in the
-   *   ThreadLocal cache.
-   * - You find the slot for the object you had last, but the slot is poisoned.
-   * - Now, because you found it in the ThreadLocal cache – and notably did
+   * <p>
+   * <ul>
+   * <li>You (or your thread) do a successful claim, and triumphantly stores it
+   *   in the ThreadLocal cache.</li>
+   * <li>You then return the object after use, so now it's back in the
+   *   live-queue for others to grab.</li>
+   * <li>Someone else tries to claim the object, but decides that it has expired,
+   *   and sends it off through the dead-queue to be reallocated.</li>
+   * <li>The reallocation fails for some reason, and the slot is now poisoned.</li>
+   * <li>You want to claim an object again, and start by looking in the
+   *   ThreadLocal cache.</li>
+   * <li>You find the slot for the object you had last, but the slot is poisoned.</li>
+   * <li>Now, because you found it in the ThreadLocal cache – and notably did
    *   *not* pull it off of the live-queue – you cannot just put it on the
-   *   dead-queue, because that could lead to unbounded memory use.
-   * - Instead, it has to be marked as live, and we instead have to wait for
+   *   dead-queue, because that could lead to unbounded memory use.</li>
+   * <li>Instead, it has to be marked as live, and we instead have to wait for
    *   someone to pull it off of the live-queue, check the poison again, and
-   *   *then* put it on the dead-queue.
-   * - Your ThreadLocal reclaim attempt then end in throwing the poison,
-   *   wrapped in a PoolException.
-   * - Sadly, this process does not involve clearing out the ThreadLocal cache,
+   *   *then* put it on the dead-queue.</li>
+   * <li>Your ThreadLocal reclaim attempt then end in throwing the poison,
+   *   wrapped in a PoolException.</li>
+   * <li>Sadly, this process does not involve clearing out the ThreadLocal cache,
    *   so if you quickly catch the exception and try to claim again, you will
    *   find the same exact poisoned slot and go through the same routine, that
    *   ends in a thrown exception and a poisoned slot still left in the
-   *   ThreadLocal cache.
+   *   ThreadLocal cache.</li>
+   * </ul>
    */
   @ParameterizedTest
   @EnumSource(Taps.class)
