@@ -13,7 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot;
+package testkits;
+
+import stormpot.Expiration;
+import stormpot.Poolable;
+import stormpot.SlotInfo;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;

@@ -18,6 +18,8 @@ package stormpot;
 import com.codahale.metrics.MetricRegistry;
 import examples.DropwizardMetricsRecorder;
 import org.junit.jupiter.api.Test;
+import testkits.AlloKit;
+import testkits.GenericPoolable;
 
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;

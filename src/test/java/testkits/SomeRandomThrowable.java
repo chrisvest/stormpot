@@ -13,11 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot;
+package testkits;
 
 import java.io.Serial;
 
-public class ExpectedException extends RuntimeException {
+public class SomeRandomThrowable extends Throwable {
   @Serial
-  private static final long serialVersionUID = -7222172301643374026L;
+  private static final long serialVersionUID = 42L;
+
+  public SomeRandomThrowable(String message) {
+    super(message);
+  }
 }

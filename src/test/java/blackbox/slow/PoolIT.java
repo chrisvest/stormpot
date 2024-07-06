@@ -24,12 +24,12 @@ import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import stormpot.Completion;
-import stormpot.GenericPoolable;
+import testkits.GenericPoolable;
 import stormpot.Pool;
 import stormpot.PoolBuilder;
 import stormpot.PoolException;
 import stormpot.Slot;
-import stormpot.SomeRandomException;
+import testkits.SomeRandomException;
 import stormpot.Timeout;
 
 import java.util.ArrayList;
@@ -50,17 +50,17 @@ import static org.assertj.core.util.Arrays.asList;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static stormpot.AlloKit.$countDown;
-import static stormpot.AlloKit.$new;
-import static stormpot.AlloKit.$null;
-import static stormpot.AlloKit.$release;
-import static stormpot.AlloKit.Action;
-import static stormpot.AlloKit.CountingAllocator;
-import static stormpot.AlloKit.alloc;
-import static stormpot.AlloKit.allocator;
-import static stormpot.AlloKit.dealloc;
-import static stormpot.AlloKit.realloc;
-import static stormpot.AlloKit.reallocator;
+import static testkits.AlloKit.$countDown;
+import static testkits.AlloKit.$new;
+import static testkits.AlloKit.$null;
+import static testkits.AlloKit.$release;
+import static testkits.AlloKit.Action;
+import static testkits.AlloKit.CountingAllocator;
+import static testkits.AlloKit.alloc;
+import static testkits.AlloKit.allocator;
+import static testkits.AlloKit.dealloc;
+import static testkits.AlloKit.realloc;
+import static testkits.AlloKit.reallocator;
 
 @SuppressWarnings("unchecked")
 @ExtendWith(FailurePrinterExtension.class)

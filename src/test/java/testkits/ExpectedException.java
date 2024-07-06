@@ -13,23 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot;
+package testkits;
 
-public class GenericPoolable extends BasePoolable {
-  @SuppressWarnings("WeakerAccess")
-  public Thread lastReleaseBy; // readable in debuggers
+import java.io.Serial;
 
-  public GenericPoolable(Slot slot) {
-    super(slot);
-  }
-
-  @Override
-  public void release() {
-    lastReleaseBy = Thread.currentThread();
-    super.release();
-  }
-
-  public Slot getSlot() {
-    return slot;
-  }
+public class ExpectedException extends RuntimeException {
+  @Serial
+  private static final long serialVersionUID = -7222172301643374026L;
 }
