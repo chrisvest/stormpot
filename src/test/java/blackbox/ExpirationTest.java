@@ -17,10 +17,10 @@ package blackbox;
 
 import org.junit.jupiter.api.Test;
 import stormpot.Expiration;
-import stormpot.GenericPoolable;
+import testkits.GenericPoolable;
 import stormpot.Poolable;
 import stormpot.SlotInfo;
-import stormpot.SlotInfoStub;
+import testkits.SlotInfoStub;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -36,9 +36,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static stormpot.ExpireKit.$expired;
-import static stormpot.ExpireKit.$fresh;
-import static stormpot.ExpireKit.expire;
+import static testkits.ExpireKit.$expired;
+import static testkits.ExpireKit.$fresh;
+import static testkits.ExpireKit.expire;
 
 class ExpirationTest {
   @Test

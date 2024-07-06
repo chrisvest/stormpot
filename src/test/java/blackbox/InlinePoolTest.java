@@ -16,8 +16,8 @@
 package blackbox;
 
 import org.junit.jupiter.api.Test;
-import stormpot.AlloKit.CountingAllocator;
-import stormpot.GenericPoolable;
+import testkits.AlloKit.CountingAllocator;
+import testkits.GenericPoolable;
 import stormpot.Pool;
 import stormpot.PoolBuilder;
 

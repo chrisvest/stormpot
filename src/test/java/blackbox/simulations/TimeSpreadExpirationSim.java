@@ -16,7 +16,7 @@
 package blackbox.simulations;
 
 import stormpot.Expiration;
-import stormpot.GenericPoolable;
+import testkits.GenericPoolable;
 import stormpot.Pool;
 import stormpot.Timeout;
 

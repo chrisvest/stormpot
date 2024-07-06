@@ -13,7 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot;
+package testkits;
+
+import stormpot.Completion;
+import stormpot.Pool;
+import stormpot.PoolException;
+import stormpot.PoolTap;
+import stormpot.Poolable;
+import stormpot.Timeout;
 
 import java.io.Serial;
 import java.lang.Thread.State;
@@ -87,7 +94,7 @@ public class UnitKit {
   }
 
   public static <T extends Poolable> Callable<T> $claim(
-      final PoolTap<T> pool, final Timeout timeout) {
+          final PoolTap<T> pool, final Timeout timeout) {
     return () -> {
       try {
         return pool.claim(timeout);
@@ -243,7 +250,7 @@ public class UnitKit {
     }
   }
 
-  static void sneakyThrow(Throwable throwable) {
+  public static void sneakyThrow(Throwable throwable) {
     UnitKit._sneakyThrow(throwable);
   }
 

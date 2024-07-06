@@ -13,45 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot;
+package testkits;
 
-public class SlotInfoStub implements SlotInfo<GenericPoolable> {
-  private long ageInMillis;
-  private long stamp = 0;
+import stormpot.Poolable;
+import stormpot.Slot;
 
-  public SlotInfoStub() {
-  }
-
-  public SlotInfoStub(long ageInMillis) {
-    this.ageInMillis = ageInMillis;
+public class NullSlot implements Slot {
+  @Override
+  public void release(Poolable obj) {
   }
 
   @Override
-  public long getAgeMillis() {
-    return ageInMillis;
-  }
-
-  public void setAgeInMillis(long ageInMillis) {
-    this.ageInMillis = ageInMillis;
-  }
-
-  @Override
-  public long getClaimCount() {
-    return 0;
-  }
-
-  @Override
-  public GenericPoolable getPoolable() {
-    return null;
-  }
-
-  @Override
-  public long getStamp() {
-    return stamp;
-  }
-
-  @Override
-  public void setStamp(long stamp) {
-    this.stamp = stamp;
+  public void expire(Poolable obj) {
   }
 }

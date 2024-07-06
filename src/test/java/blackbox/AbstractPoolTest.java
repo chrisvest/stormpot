@@ -24,7 +24,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import stormpot.Completion;
-import stormpot.ExpectedException;
+import testkits.ExpectedException;
 import stormpot.Expiration;
 import stormpot.ManagedPool;
 import stormpot.Pool;
@@ -54,17 +54,17 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static stormpot.UnitKit.$await;
-import static stormpot.UnitKit.$catchFrom;
-import static stormpot.UnitKit.$claim;
-import static stormpot.UnitKit.$claimRelease;
-import static stormpot.UnitKit.$interruptUponState;
-import static stormpot.UnitKit.capture;
-import static stormpot.UnitKit.fork;
-import static stormpot.UnitKit.forkFuture;
-import static stormpot.UnitKit.join;
-import static stormpot.UnitKit.spinwait;
-import static stormpot.UnitKit.waitForThreadState;
+import static testkits.UnitKit.$await;
+import static testkits.UnitKit.$catchFrom;
+import static testkits.UnitKit.$claim;
+import static testkits.UnitKit.$claimRelease;
+import static testkits.UnitKit.$interruptUponState;
+import static testkits.UnitKit.capture;
+import static testkits.UnitKit.fork;
+import static testkits.UnitKit.forkFuture;
+import static testkits.UnitKit.join;
+import static testkits.UnitKit.spinwait;
+import static testkits.UnitKit.waitForThreadState;
 
 @Execution(ExecutionMode.CONCURRENT)
 @org.junit.jupiter.api.Timeout(42)

@@ -17,13 +17,13 @@ package blackbox;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import stormpot.AlloKit;
+import testkits.AlloKit;
 import stormpot.Allocator;
 import stormpot.Expiration;
-import stormpot.ExpireKit;
-import stormpot.FixedMeanMetricsRecorder;
-import stormpot.GenericPoolable;
-import stormpot.LastSampleMetricsRecorder;
+import testkits.ExpireKit;
+import testkits.FixedMeanMetricsRecorder;
+import testkits.GenericPoolable;
+import testkits.LastSampleMetricsRecorder;
 import stormpot.MetricsRecorder;
 import stormpot.Pool;
 import stormpot.PoolBuilder;
@@ -39,8 +39,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static stormpot.AlloKit.CountingAllocator;
-import static stormpot.AlloKit.allocator;
+import static testkits.AlloKit.CountingAllocator;
+import static testkits.AlloKit.allocator;
 
 class PoolBuilderTest {
   private Allocator<GenericPoolable> allocator;

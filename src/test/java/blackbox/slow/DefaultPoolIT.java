@@ -15,8 +15,8 @@
  */
 package blackbox.slow;
 
-import stormpot.AlloKit;
-import stormpot.GenericPoolable;
+import testkits.AlloKit;
+import testkits.GenericPoolable;
 import stormpot.Pool;
 import stormpot.PoolBuilder;
 

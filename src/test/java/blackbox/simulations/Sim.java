@@ -17,7 +17,7 @@ package blackbox.simulations;
 
 import org.HdrHistogram.Histogram;
 import stormpot.Expiration;
-import stormpot.GenericPoolable;
+import testkits.GenericPoolable;
 import stormpot.ManagedPool;
 import stormpot.MetricsRecorder;
 import stormpot.Pool;
@@ -44,10 +44,10 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static stormpot.AlloKit.$new;
-import static stormpot.AlloKit.CountingAllocator;
-import static stormpot.AlloKit.alloc;
-import static stormpot.AlloKit.allocator;
+import static testkits.AlloKit.$new;
+import static testkits.AlloKit.CountingAllocator;
+import static testkits.AlloKit.alloc;
+import static testkits.AlloKit.allocator;
 
 public abstract class Sim {
 

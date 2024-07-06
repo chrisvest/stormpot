@@ -13,14 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot;
+package testkits;
 
-public class NullSlot implements Slot {
-  @Override
-  public void release(Poolable obj) {
+import stormpot.BasePoolable;
+import stormpot.Slot;
+
+public class GenericPoolable extends BasePoolable {
+  @SuppressWarnings("WeakerAccess")
+  public Thread lastReleaseBy; // readable in debuggers
+
+  public GenericPoolable(Slot slot) {
+    super(slot);
   }
 
   @Override
-  public void expire(Poolable obj) {
+  public void release() {
+    lastReleaseBy = Thread.currentThread();
+    super.release();
+  }
+
+  public Slot getSlot() {
+    return slot;
   }
 }

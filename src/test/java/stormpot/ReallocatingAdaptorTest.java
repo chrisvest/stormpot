@@ -19,12 +19,14 @@ import extensions.FailurePrinterExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import testkits.GenericPoolable;
+import testkits.NullSlot;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static stormpot.AlloKit.$throw;
-import static stormpot.AlloKit.CountingAllocator;
-import static stormpot.AlloKit.allocator;
-import static stormpot.AlloKit.dealloc;
+import static testkits.AlloKit.$throw;
+import static testkits.AlloKit.CountingAllocator;
+import static testkits.AlloKit.allocator;
+import static testkits.AlloKit.dealloc;
 
 @ExtendWith(FailurePrinterExtension.class)
 class ReallocatingAdaptorTest {

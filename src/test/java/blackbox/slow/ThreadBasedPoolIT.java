@@ -16,8 +16,8 @@
 package blackbox.slow;
 
 import org.junit.jupiter.api.Test;
-import stormpot.ExpireKit;
-import stormpot.GenericPoolable;
+import testkits.ExpireKit;
+import testkits.GenericPoolable;
 import stormpot.Slot;
 
 import java.lang.management.ManagementFactory;
@@ -35,16 +35,16 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
-import static stormpot.AlloKit.$countDown;
-import static stormpot.AlloKit.$new;
-import static stormpot.AlloKit.$null;
-import static stormpot.AlloKit.$release;
-import static stormpot.AlloKit.Action;
-import static stormpot.AlloKit.alloc;
-import static stormpot.AlloKit.allocator;
-import static stormpot.AlloKit.dealloc;
-import static stormpot.ExpireKit.$expiredIf;
-import static stormpot.ExpireKit.expire;
+import static testkits.AlloKit.$countDown;
+import static testkits.AlloKit.$new;
+import static testkits.AlloKit.$null;
+import static testkits.AlloKit.$release;
+import static testkits.AlloKit.Action;
+import static testkits.AlloKit.alloc;
+import static testkits.AlloKit.allocator;
+import static testkits.AlloKit.dealloc;
+import static testkits.ExpireKit.$expiredIf;
+import static testkits.ExpireKit.expire;
 
 abstract class ThreadBasedPoolIT extends PoolIT {
 

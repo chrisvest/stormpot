@@ -13,7 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot;
+package testkits;
+
+import stormpot.Allocator;
+import stormpot.Reallocator;
+import stormpot.Slot;
 
 import java.util.ArrayList;
 import java.util.List;

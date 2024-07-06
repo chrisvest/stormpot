@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot;
+package testkits;
 
 import java.io.Serial;
 
 /**
  * Thrown by tests to assert that exceptions bubble out when they should.
- * @author Chris Vest &lt;mr.chrisvest@gmail.com&gt;
+ * @author Chris Vest
  *
  */
 public class SomeRandomException extends Exception {
