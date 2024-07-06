@@ -32,6 +32,15 @@ public interface SlotInfo<T extends Poolable> {
   long getAgeMillis();
 
   /**
+   * Get the approximate {@link System#nanoTime()} timestamp for when the object
+   * was allocated.
+   * @return The object allocation {@link System#nanoTime()} timestamp.
+   */
+  default long getCreatedNanoTime() {
+    return 0;
+  }
+
+  /**
    * Get the number of times the object has been claimed since it was
    * allocated.
    * @return The objects claim count.

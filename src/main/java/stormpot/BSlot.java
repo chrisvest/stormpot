@@ -104,6 +104,11 @@ final class BSlot<T extends Poolable>
   }
 
   @Override
+  public long getCreatedNanoTime() {
+    return createdNanos;
+  }
+
+  @Override
   public long getClaimCount() {
     return claims;
   }
