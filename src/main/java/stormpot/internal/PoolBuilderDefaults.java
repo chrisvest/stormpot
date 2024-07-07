@@ -20,7 +20,7 @@ import stormpot.Poolable;
 
 import java.util.concurrent.ThreadFactory;
 
-public class PoolBuilderDefaults {
+public final class PoolBuilderDefaults {
   public final Expiration<? super Poolable> expiration;
   public final ThreadFactory threadFactory;
   public final boolean preciseLeakDetectionEnabled;

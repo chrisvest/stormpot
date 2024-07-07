@@ -17,7 +17,7 @@ package stormpot.internal;
 
 import stormpot.Poolable;
 
-public class RefillSlot<T extends Poolable> {
+public final class RefillSlot<T extends Poolable> {
   final BSlot<T> slot;
   volatile RefillSlot<T> next;
 
