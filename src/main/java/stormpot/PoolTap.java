@@ -15,7 +15,6 @@
  */
 package stormpot;
 
-import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -33,13 +32,7 @@ import java.util.function.Function;
  *          {@linkplain Pool#from(Allocator) configured allocator}.
  * @see stormpot.Pool
  */
-public abstract class PoolTap<T extends Poolable> {
-
-  private static final Timeout ZERO_TIMEOUT = new Timeout(Duration.ZERO);
-
-  PoolTap() {
-  }
-
+public interface PoolTap<T extends Poolable> {
   /**
    * Claim the exclusive rights until released, to an object in the pool.
    * Possibly waiting up to the specified amount of time, as given by the
@@ -99,8 +92,7 @@ public abstract class PoolTap<T extends Poolable> {
    * while waiting.
    * @throws IllegalArgumentException if the {@code timeout} argument is {@code null}.
    */
-  public abstract T claim(Timeout timeout)
-      throws PoolException, InterruptedException;
+  T claim(Timeout timeout) throws PoolException, InterruptedException;
 
   /**
    * Returns an object from the pool if the pool contains at least one valid object,
@@ -117,10 +109,9 @@ public abstract class PoolTap<T extends Poolable> {
    * {@code null}, or the
    * {@link Expiration#hasExpired(SlotInfo) expiration check} threw an exception.
    */
-  public T tryClaim() throws PoolException {
+  default T tryClaim() throws PoolException {
     try {
-      // default implementation
-      return claim(ZERO_TIMEOUT);
+      return claim(Timeout.ZERO_TIMEOUT);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       return null;
@@ -150,8 +141,7 @@ public abstract class PoolTap<T extends Poolable> {
    * @see #claim(Timeout) The {@code claim} method for more details on failure modes
    * and memory effects.
    */
-  public final <R> Optional<R> apply(Timeout timeout, Function<T, R> function)
-      throws InterruptedException {
+  default <R> Optional<R> apply(Timeout timeout, Function<T, R> function) throws InterruptedException {
     Objects.requireNonNull(function, "Function cannot be null.");
     T obj = claim(timeout);
     if (obj == null) {
@@ -185,7 +175,7 @@ public abstract class PoolTap<T extends Poolable> {
    * @see #claim(Timeout) The {@code claim} method for more details on failure modes
    * and memory effects.
    */
-  public final boolean supply(Timeout timeout, Consumer<T> consumer)
+  default boolean supply(Timeout timeout, Consumer<T> consumer)
       throws InterruptedException {
     Objects.requireNonNull(consumer, "Consumer cannot be null.");
     T obj = claim(timeout);

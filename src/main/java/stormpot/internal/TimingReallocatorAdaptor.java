@@ -1,0 +1,49 @@
+/*
+ * Copyright © 2011-2024 Chris Vest (mr.chrisvest@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package stormpot.internal;
+
+import stormpot.MetricsRecorder;
+import stormpot.Poolable;
+import stormpot.Reallocator;
+import stormpot.Slot;
+
+import java.util.concurrent.TimeUnit;
+
+public final class TimingReallocatorAdaptor<T extends Poolable>
+    extends TimingReallocatingAdaptor<T>
+    implements Reallocator<T> {
+  public TimingReallocatorAdaptor(
+      Reallocator<T> allocator, MetricsRecorder metricsRecorder) {
+    super(allocator, metricsRecorder);
+  }
+
+  @Override
+  public T reallocate(Slot slot, T poolable) throws Exception {
+    long start = System.nanoTime();
+    try {
+      T obj = ((Reallocator<T>) allocator).reallocate(slot, poolable);
+      long elapsedNanos = System.nanoTime() - start;
+      long milliseconds = TimeUnit.NANOSECONDS.toMillis(elapsedNanos);
+      metricsRecorder.recordReallocationLatencySampleMillis(milliseconds);
+      return obj;
+    } catch (Exception e) {
+      long elapsedNanos = System.nanoTime() - start;
+      long milliseconds = TimeUnit.NANOSECONDS.toMillis(elapsedNanos);
+      metricsRecorder.recordReallocationFailureLatencySampleMillis(milliseconds);
+      throw e;
+    }
+  }
+}

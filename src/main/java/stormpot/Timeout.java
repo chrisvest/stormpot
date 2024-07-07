@@ -15,6 +15,8 @@
  */
 package stormpot;
 
+import stormpot.internal.NanoClock;
+
 import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -35,6 +37,8 @@ import java.util.concurrent.TimeUnit;
  * @author Chris Vest
  */
 public final class Timeout {
+  static final Timeout ZERO_TIMEOUT = new Timeout(Duration.ZERO);
+
   private final long timeout;
   private final TimeUnit unit;
   private final long timeoutBase;
