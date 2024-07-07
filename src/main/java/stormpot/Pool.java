@@ -15,9 +15,11 @@
  */
 package stormpot;
 
-import static stormpot.AllocationProcess.direct;
-import static stormpot.AllocationProcess.inline;
-import static stormpot.AllocationProcess.threaded;
+import stormpot.internal.PoolBuilderImpl;
+
+import static stormpot.internal.AllocationProcess.direct;
+import static stormpot.internal.AllocationProcess.inline;
+import static stormpot.internal.AllocationProcess.threaded;
 
 /**
  * A Pool is a self-renewable set of objects from which one can claim exclusive
@@ -72,10 +74,7 @@ import static stormpot.AllocationProcess.threaded;
  * by the configured allocator.
  * @see stormpot.PoolTap
  */
-public abstract class Pool<T extends Poolable> extends PoolTap<T> {
-  Pool() {
-  }
-
+public interface Pool<T extends Poolable> extends PoolTap<T> {
   /**
    * Get a {@link PoolBuilder} based on the given {@link Allocator} or
    * {@link Reallocator}, which can then in turn be used to
@@ -92,7 +91,7 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
    * before the pool instance is {@linkplain PoolBuilder#build() built}.
    * @see #fromThreaded(Allocator)
    */
-  public static <T extends Poolable> PoolBuilder<T> from(Allocator<T> allocator) {
+  static <T extends Poolable> PoolBuilder<T> from(Allocator<T> allocator) {
     return fromThreaded(allocator);
   }
 
@@ -120,8 +119,8 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
    * @return A {@link PoolBuilder} that admits additional configurations,
    * before the pool instance is {@linkplain PoolBuilder#build() built}.
    */
-  public static <T extends Poolable> PoolBuilder<T> fromThreaded(Allocator<T> allocator) {
-    return new PoolBuilder<>(threaded(), allocator);
+  static <T extends Poolable> PoolBuilder<T> fromThreaded(Allocator<T> allocator) {
+    return new PoolBuilderImpl<>(threaded(), allocator);
   }
 
   /**
@@ -147,8 +146,8 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
    * @return A {@link PoolBuilder} that admits additional configurations,
    * before the pool instance is {@linkplain PoolBuilder#build() built}.
    */
-  public static <T extends Poolable> PoolBuilder<T> fromInline(Allocator<T> allocator) {
-    return new PoolBuilder<>(inline(), allocator);
+  static <T extends Poolable> PoolBuilder<T> fromInline(Allocator<T> allocator) {
+    return new PoolBuilderImpl<>(inline(), allocator);
   }
 
   /**
@@ -185,7 +184,7 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
    * @return A pool of the given objects.
    */
   @SafeVarargs
-  public static <T> Pool<Pooled<T>> of(T... objects) {
+  static <T> Pool<Pooled<T>> of(T... objects) {
     Allocator<Pooled<T>> allocator = new Allocator<>() {
       private int index;
       @Override
@@ -197,7 +196,7 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
       public void deallocate(Pooled<T> poolable) {
       }
     };
-    PoolBuilder<Pooled<T>> builder = new PoolBuilder<>(direct(), allocator);
+    PoolBuilder<Pooled<T>> builder = new PoolBuilderImpl<>(direct(), allocator);
     builder.setSize(objects.length);
     return builder.build();
   }
@@ -232,7 +231,7 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
    * @return A {@link Completion} instance that represents the shutdown
    * process.
    */
-  public abstract Completion shutdown();
+  Completion shutdown();
 
   /**
    * Set the target size for this pool. The pool will strive to keep this many
@@ -256,7 +255,7 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
    *
    * @param size The new target size of the pool
    */
-  public abstract void setTargetSize(int size);
+  void setTargetSize(int size);
 
   /**
    * Get the currently configured target size of the pool. Note that this is
@@ -265,20 +264,20 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
    *
    * @return The current target size of this pool.
    */
-  public abstract int getTargetSize();
+  int getTargetSize();
 
   /**
    * Get the {@link ManagedPool} instance that represents this pool.
    * @return The {@link ManagedPool} instance for this pool.
    */
-  public abstract ManagedPool getManagedPool();
+  ManagedPool getManagedPool();
 
   /**
    * Get a thread-safe {@link PoolTap} implementation for this pool, which can
    * be freely shared among multiple threads.
    * @return A thread-safe {@link PoolTap}.
    */
-  public final PoolTap<T> getThreadSafeTap() {
+  default PoolTap<T> getThreadSafeTap() {
     // We use the anonymous inner class to enforce encapsulation, which is
     // probably the only reason anyone would wan to use this.
     return new PoolTap<>() {
@@ -308,5 +307,5 @@ public abstract class Pool<T extends Poolable> extends PoolTap<T> {
    *
    * @return A thread-local {@link PoolTap}.
    */
-  public abstract PoolTap<T> getThreadLocalTap();
+  PoolTap<T> getThreadLocalTap();
 }

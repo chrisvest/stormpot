@@ -36,9 +36,7 @@ public interface SlotInfo<T extends Poolable> {
    * was allocated.
    * @return The object allocation {@link System#nanoTime()} timestamp.
    */
-  default long getCreatedNanoTime() {
-    return 0;
-  }
+  long getCreatedNanoTime();
 
   /**
    * Get the number of times the object has been claimed since it was

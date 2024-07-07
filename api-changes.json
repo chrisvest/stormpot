@@ -1,0 +1,178 @@
+[
+  {
+    "extension": "revapi.versions",
+    "configuration": {
+      "enabled": true,
+      "semantic0": true,
+      "strictSemver": true,
+      "versionIncreaseAllows": {
+        "major": {
+          "severity": "BREAKING"
+        },
+        "minor": {
+          "severity": "NON_BREAKING"
+        },
+        "patch": {
+          "severity": "EQUIVALENT"
+        }
+      }
+    }
+  },
+  {
+    "extension": "revapi.differences",
+    "configuration": {
+      "ignore": true,
+      "differences": [
+        {
+          "code": "java.class.noLongerInheritsFromClass",
+          "old": "class stormpot.Pool<T extends stormpot.Poolable>",
+          "new": "interface stormpot.Pool<T extends stormpot.Poolable>",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.class.kindChanged",
+          "old": "class stormpot.Pool<T extends stormpot.Poolable>",
+          "new": "interface stormpot.Pool<T extends stormpot.Poolable>",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.method.nowAbstract",
+          "old": "method stormpot.Pool<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::build()",
+          "new": "method stormpot.Pool<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::build()",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.method.nowAbstract",
+          "old": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::clone()",
+          "new": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::clone()",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.method.nowAbstract",
+          "old": "method stormpot.Allocator<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::getAllocator()",
+          "new": "method stormpot.Allocator<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::getAllocator()",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.method.nowAbstract",
+          "old": "method int stormpot.PoolBuilder<T extends stormpot.Poolable>::getBackgroundExpirationCheckDelay()",
+          "new": "method int stormpot.PoolBuilder<T extends stormpot.Poolable>::getBackgroundExpirationCheckDelay()",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.method.nowAbstract",
+          "old": "method stormpot.Expiration<? super T> stormpot.PoolBuilder<T extends stormpot.Poolable>::getExpiration()",
+          "new": "method stormpot.Expiration<? super T> stormpot.PoolBuilder<T extends stormpot.Poolable>::getExpiration()",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.method.nowAbstract",
+          "old": "method stormpot.MetricsRecorder stormpot.PoolBuilder<T extends stormpot.Poolable>::getMetricsRecorder()",
+          "new": "method stormpot.MetricsRecorder stormpot.PoolBuilder<T extends stormpot.Poolable>::getMetricsRecorder()",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.method.nowAbstract",
+          "old": "method stormpot.Reallocator<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::getReallocator()",
+          "new": "method stormpot.Reallocator<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::getReallocator()",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.method.nowAbstract",
+          "old": "method int stormpot.PoolBuilder<T extends stormpot.Poolable>::getSize()",
+          "new": "method int stormpot.PoolBuilder<T extends stormpot.Poolable>::getSize()",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.method.nowAbstract",
+          "old": "method java.util.concurrent.ThreadFactory stormpot.PoolBuilder<T extends stormpot.Poolable>::getThreadFactory()",
+          "new": "method java.util.concurrent.ThreadFactory stormpot.PoolBuilder<T extends stormpot.Poolable>::getThreadFactory()",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.method.nowAbstract",
+          "old": "method boolean stormpot.PoolBuilder<T extends stormpot.Poolable>::isBackgroundExpirationEnabled()",
+          "new": "method boolean stormpot.PoolBuilder<T extends stormpot.Poolable>::isBackgroundExpirationEnabled()",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.method.nowAbstract",
+          "old": "method boolean stormpot.PoolBuilder<T extends stormpot.Poolable>::isPreciseLeakDetectionEnabled()",
+          "new": "method boolean stormpot.PoolBuilder<T extends stormpot.Poolable>::isPreciseLeakDetectionEnabled()",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.method.nowAbstract",
+          "old": "method <X extends stormpot.Poolable> stormpot.PoolBuilder<X> stormpot.PoolBuilder<T extends stormpot.Poolable>::setAllocator(stormpot.Allocator<X>)",
+          "new": "method <X extends stormpot.Poolable> stormpot.PoolBuilder<X> stormpot.PoolBuilder<T extends stormpot.Poolable>::setAllocator(stormpot.Allocator<X>)",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.method.nowAbstract",
+          "old": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setBackgroundExpirationCheckDelay(int)",
+          "new": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setBackgroundExpirationCheckDelay(int)",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.method.nowAbstract",
+          "old": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setBackgroundExpirationEnabled(boolean)",
+          "new": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setBackgroundExpirationEnabled(boolean)",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.method.nowAbstract",
+          "old": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setExpiration(stormpot.Expiration<? super T>)",
+          "new": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setExpiration(stormpot.Expiration<? super T>)",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.method.nowAbstract",
+          "old": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setMetricsRecorder(stormpot.MetricsRecorder)",
+          "new": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setMetricsRecorder(stormpot.MetricsRecorder)",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.method.nowAbstract",
+          "old": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setPreciseLeakDetectionEnabled(boolean)",
+          "new": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setPreciseLeakDetectionEnabled(boolean)",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.method.nowAbstract",
+          "old": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setSize(int)",
+          "new": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setSize(int)",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.method.nowAbstract",
+          "old": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setThreadFactory(java.util.concurrent.ThreadFactory)",
+          "new": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setThreadFactory(java.util.concurrent.ThreadFactory)",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.class.kindChanged",
+          "old": "class stormpot.PoolBuilder<T extends stormpot.Poolable>",
+          "new": "interface stormpot.PoolBuilder<T extends stormpot.Poolable>",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.class.nowAbstract",
+          "old": "class stormpot.PoolBuilder<T extends stormpot.Poolable>",
+          "new": "interface stormpot.PoolBuilder<T extends stormpot.Poolable>",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.class.kindChanged",
+          "old": "class stormpot.PoolTap<T extends stormpot.Poolable>",
+          "new": "interface stormpot.PoolTap<T extends stormpot.Poolable>",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        },
+        {
+          "code": "java.method.addedToInterface",
+          "new": "method long stormpot.SlotInfo<T extends stormpot.Poolable>::getCreatedNanoTime()",
+          "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+        }
+      ]
+    }
+  }
+]

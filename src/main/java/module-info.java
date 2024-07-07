@@ -29,6 +29,6 @@
  */
 module stormpot {
   requires transitive java.management;
-  requires static java.sql; // For testing only.
   exports stormpot;
+  exports stormpot.internal to stormpot.test;
 }

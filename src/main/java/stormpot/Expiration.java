@@ -15,6 +15,11 @@
  */
 package stormpot;
 
+import stormpot.internal.EveryExpiration;
+import stormpot.internal.OrExpiration;
+import stormpot.internal.TimeExpiration;
+import stormpot.internal.TimeSpreadExpiration;
+
 import java.util.concurrent.TimeUnit;
 
 /**

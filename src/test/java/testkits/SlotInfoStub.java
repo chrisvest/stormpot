@@ -38,6 +38,11 @@ public class SlotInfoStub implements SlotInfo<GenericPoolable> {
   }
 
   @Override
+  public long getCreatedNanoTime() {
+    return 0;
+  }
+
+  @Override
   public long getClaimCount() {
     return 0;
   }
