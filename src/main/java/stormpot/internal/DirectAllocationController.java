@@ -25,7 +25,7 @@ import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class DirectAllocationController<T extends Poolable> extends AllocationController<T> {
+public final class DirectAllocationController<T extends Poolable> extends AllocationController<T> {
   private final LinkedTransferQueue<BSlot<T>> live;
   private final RefillPile<T> disregardPile;
   private final BSlot<T> poisonPill;

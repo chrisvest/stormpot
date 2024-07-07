@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
  * @author Guillaume Lederrey
  * @since 2.4
  */
-public class OrExpiration<T extends Poolable> implements Expiration<T> {
+public final class OrExpiration<T extends Poolable> implements Expiration<T> {
   private final Expiration<T> firstExpiration;
   private final Expiration<T> secondExpiration;
 

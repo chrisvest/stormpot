@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.Objects.requireNonNull;
 
-public class InlineAllocationController<T extends Poolable> extends AllocationController<T> {
+public final class InlineAllocationController<T extends Poolable> extends AllocationController<T> {
   private static final VarHandle SIZE;
   private static final VarHandle ALLOC_COUNT;
   private static final VarHandle FAILED_ALLOC_COUNT;
