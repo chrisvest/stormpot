@@ -17,15 +17,21 @@ package stormpot.tests;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import stormpot.internal.BSlot;
 import stormpot.internal.PreciseLeakDetector;
+import testkits.GarbageCreator;
+import testkits.GenericPoolable;
 
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SuppressWarnings("MismatchedReadAndWriteOfArray")
+@SuppressWarnings({"MismatchedReadAndWriteOfArray", "unchecked"})
 class PreciseLeakDetectorTest {
   private PreciseLeakDetector detector;
 
@@ -36,27 +42,32 @@ class PreciseLeakDetectorTest {
 
   @Test
   void mustHandleManyAddedReplacedAndRemovedObjects() {
-    Object[] objs = new Object[100000];
+    BlockingQueue<BSlot<GenericPoolable>> queue = new LinkedBlockingQueue<>();
+    AtomicInteger poisonedSlots = new AtomicInteger();
+    GenericPoolable[] objs = new GenericPoolable[100000];
 
     // Adding
     for (int i = 0; i < objs.length; i++) {
-      Object obj = new Object();
-      objs[i] = obj;
-      detector.register(obj);
+      BSlot<GenericPoolable> slot = new BSlot<>(queue, poisonedSlots);
+      slot.obj = new GenericPoolable(slot);
+      objs[i] = slot.obj;
+      detector.register(slot);
     }
 
     // Replacing
     for (int i = 0; i < objs.length; i++) {
-      Object a = objs[i];
-      Object b = new Object();
+      GenericPoolable a = objs[i];
+      BSlot<GenericPoolable> slot = (BSlot<GenericPoolable>) a.getSlot();
+      detector.unregister(slot);
+      GenericPoolable b = new GenericPoolable(slot);
+      slot.obj = b;
       objs[i] = b;
-      detector.unregister(a);
-      detector.register(b);
+      detector.register(slot);
     }
 
     // Removing
-    for (Object obj : objs) {
-      detector.unregister(obj);
+    for (GenericPoolable obj : objs) {
+      detector.unregister((BSlot<?>) obj.getSlot());
     }
 
     // We should see no leaks
@@ -68,40 +79,48 @@ class PreciseLeakDetectorTest {
   }
 
   @Test
-  void mustCountCorrectlyAfterAddLeakAddLeakRemove() {
-    Object[] first = new Object[1000];
+  void mustCountCorrectlyAfterAddLeakAddLeakRemove() throws Exception {
+    BlockingQueue<BSlot<GenericPoolable>> queue = new LinkedBlockingQueue<>();
+    AtomicInteger poisonedSlots = new AtomicInteger();
+    GenericPoolable[] first = new GenericPoolable[1000];
     for (int i = 0; i < first.length; i++) {
-      Object obj = new Object();
+      BSlot<GenericPoolable> slot = new BSlot<>(queue, poisonedSlots);
+      GenericPoolable obj = new GenericPoolable(slot);
+      slot.obj = obj;
       first[i] = obj;
-      detector.register(obj);
+      detector.register(slot);
     }
     first[100] = null;
     first[500] = null;
     first[900] = null;
     gc();
 
-    Object[] second = new Object[10000];
+    GenericPoolable[] second = new GenericPoolable[10000];
     for (int i = 0; i < second.length; i++) {
-      Object obj = new Object();
+      BSlot<GenericPoolable> slot = new BSlot<>(queue, poisonedSlots);
+      GenericPoolable obj = new GenericPoolable(slot);
+      slot.obj = obj;
       second[i] = obj;
-      detector.register(obj);
+      detector.register(slot);
     }
     second[1000] = null;
     second[5000] = null;
     second[9000] = null;
     gc();
 
-    for (Object obj : first) {
+    for (GenericPoolable obj : first) {
       if (obj != null) {
-        detector.unregister(obj);
+        detector.unregister((BSlot<?>) obj.getSlot());
       }
     }
 
-    Object[] third = new Object[10000];
+    GenericPoolable[] third = new GenericPoolable[10000];
     for (int i = 0; i < third.length; i++) {
-      Object obj = new Object();
+      BSlot<GenericPoolable> slot = new BSlot<>(queue, poisonedSlots);
+      GenericPoolable obj = new GenericPoolable(slot);
+      slot.obj = obj;
       third[i] = obj;
-      detector.register(obj);
+      detector.register((BSlot<?>) obj.getSlot());
     }
     third[1000] = null;
     third[5000] = null;
@@ -118,6 +137,7 @@ class PreciseLeakDetectorTest {
     long collectionsAfter = collectors.stream().mapToLong(GarbageCollectorMXBean::getCollectionCount).sum();
     while (collectionsAfter == collectionsBefore) {
       try {
+        GarbageCreator.createGarbage();
         Thread.sleep(10);
       } catch (InterruptedException e) {
         throw new RuntimeException(e);

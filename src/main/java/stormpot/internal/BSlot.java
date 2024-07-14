@@ -22,6 +22,8 @@ import stormpot.SlotInfo;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.lang.ref.PhantomReference;
+import java.lang.ref.Reference;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -214,19 +216,14 @@ abstract class PaddedAtomicInteger extends Padding1 {
   }
 }
 
-abstract class Padding2 extends PaddedAtomicInteger {
-  Padding2(int state) {
-    super(state);
-  }
-}
-
-abstract class BSlotColdFields<T extends Poolable> extends Padding2 implements Slot, SlotInfo<T> {
+abstract class BSlotColdFields<T extends Poolable> extends PaddedAtomicInteger implements Slot, SlotInfo<T> {
   final BlockingQueue<BSlot<T>> live;
   final AtomicInteger poisonedSlots;
   long stamp;
   long createdNanos;
   public T obj;
   public Exception poison;
+  public Reference<Object> leakCheck; // Used by PreciseLeakDetector
   long claims;
 
   BSlotColdFields(

@@ -25,6 +25,7 @@ import stormpot.Allocator;
 import stormpot.Completion;
 import stormpot.Expiration;
 import testkits.FixedMeanMetricsRecorder;
+import testkits.GarbageCreator;
 import testkits.GenericPoolable;
 import testkits.LastSampleMetricsRecorder;
 import stormpot.ManagedPool;
@@ -1679,10 +1680,10 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     // Clear any references held by our particular allocator:
     allocator.clearLists();
 
-    // A run of the GC will null out the weak-refs:
-    System.gc();
-    System.gc();
-    System.gc();
+    // Wait for phantom refs to be processed:
+    try (AutoCloseable ignore = GarbageCreator.forkCreateGarbage()) {
+      GarbageCreator.awaitReferenceProcessing();
+    }
 
     pool = null; // null out the pool because we can no longer shut it down.
     assertThat(managedPool.getLeakedObjectsCount()).isOne();
