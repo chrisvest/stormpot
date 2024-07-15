@@ -21,22 +21,18 @@ import stormpot.internal.PreciseLeakDetector;
 import testkits.GarbageCreator;
 import testkits.GenericPoolable;
 
-import java.lang.management.GarbageCollectorMXBean;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static java.lang.management.ManagementFactory.getGarbageCollectorMXBeans;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PreciseLeakDetectorIT {
   private final PreciseLeakDetector detector = new PreciseLeakDetector();
-  private final List<GarbageCollectorMXBean> gcBeans = getGarbageCollectorMXBeans();
 
   @Test
   void mustCountCorrectlyAfterRandomAddRemoveLeakAndCounts() {
