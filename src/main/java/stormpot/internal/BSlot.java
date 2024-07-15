@@ -22,7 +22,6 @@ import stormpot.SlotInfo;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
-import java.lang.ref.PhantomReference;
 import java.lang.ref.Reference;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;

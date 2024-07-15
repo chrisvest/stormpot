@@ -19,21 +19,18 @@ import java.lang.ref.PhantomReference;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.atomic.LongAdder;
 
 public final class PreciseLeakDetector {
   private final ReferenceQueue<Object> referenceQueue;
   private final LongAdder leakedObjectCount;
-  private final Set<Reference<Object>> refs;
+  private final IdentityHashSet refs;
 
   public PreciseLeakDetector() {
     referenceQueue = new ReferenceQueue<>();
     leakedObjectCount = new LongAdder();
-    refs = Collections.newSetFromMap(new IdentityHashMap<>());
+    refs = new IdentityHashSet();
   }
 
   public void register(BSlot<?> slot) {
