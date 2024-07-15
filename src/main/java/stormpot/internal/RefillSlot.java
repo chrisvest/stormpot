@@ -27,6 +27,7 @@ public final class RefillSlot<T extends Poolable> {
 
   @Override
   public String toString() {
-    return "RefillSlot[slot=" + slot + ", next=" + next + "]";
+    return "RefillSlot@" + Integer.toHexString(System.identityHashCode(this)) + "[slot=" + slot + ", next=" +
+            (next == null ? "<null>" : "RefillSlot@" + Integer.toHexString(System.identityHashCode(this))) + "]";
   }
 }
