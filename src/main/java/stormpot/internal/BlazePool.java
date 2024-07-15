@@ -51,10 +51,8 @@ import java.util.concurrent.TimeUnit;
  */
 public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool {
 
-  private static final Exception SHUTDOWN_POISON =
-      new Exception("Stormpot Poison: Shutdown");
-  static final Exception EXPLICIT_EXPIRE_POISON =
-      new Exception("Stormpot Poison: Expired");
+  private static final Exception SHUTDOWN_POISON = new PoisonException("Stormpot Poison: Shutdown");
+  static final Exception EXPLICIT_EXPIRE_POISON = new PoisonException("Stormpot Poison: Expired");
 
   private final LinkedTransferQueue<BSlot<T>> live;
   private final RefillPile<T> disregardPile;
