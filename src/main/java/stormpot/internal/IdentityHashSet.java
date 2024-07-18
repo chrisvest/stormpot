@@ -145,7 +145,9 @@ public class IdentityHashSet implements Iterable<Object> {
       add(obj);
     }
     for (Object obj : oldTable) {
-      add(obj);
+      if (obj != null) {
+        add(obj);
+      }
     }
   }
 }
