@@ -118,6 +118,8 @@
           <argLine>
             @{argLine}
             -Djdk.attach.allowAttachSelf
+            -Djol.magicFieldOffset=true
+            -XX:+EnableDynamicAgentLoading
           </argLine>
         </configuration>
       </plugin>
@@ -130,6 +132,8 @@
           <argLine>
             @{argLine}
             -Djdk.attach.allowAttachSelf
+            -Djol.magicFieldOffset=true
+            -XX:+EnableDynamicAgentLoading
           </argLine>
         </configuration>
         <executions>

@@ -38,7 +38,7 @@ class BSlotTest {
   void slotObjectsShouldBeCacheLineAligned() throws Exception {
     String arch = System.getProperty("os.arch");
     if (arch.equals("x86_64") || arch.equals("amd64")) { // Only enable this on 64-bit machines.
-        Pool<GenericPoolable> pool = Pool.fromInline(AlloKit.allocator()).setSize(1).build();
+      Pool<GenericPoolable> pool = Pool.fromInline(AlloKit.allocator()).setSize(1).build();
       GenericPoolable object = pool.claim(new Timeout(1, TimeUnit.SECONDS));
       Slot slot = object.getSlot();
       ClassLayout classLayout = ClassLayout.parseInstance(slot);

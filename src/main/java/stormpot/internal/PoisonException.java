@@ -15,19 +15,8 @@
  */
 package stormpot.internal;
 
-import stormpot.Poolable;
-
-public final class RefillSlot<T extends Poolable> {
-  final BSlot<T> slot;
-  volatile RefillSlot<T> next;
-
-  RefillSlot(BSlot<T> slot) {
-    this.slot = slot;
-  }
-
-  @Override
-  public String toString() {
-    return "RefillSlot@" + Integer.toHexString(System.identityHashCode(this)) + "[slot=" + slot + ", next=" +
-            (next == null ? "<null>" : "RefillSlot@" + Integer.toHexString(System.identityHashCode(this))) + "]";
+public class PoisonException extends Exception {
+  public PoisonException(String message) {
+    super(message, null, false, false);
   }
 }

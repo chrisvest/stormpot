@@ -16,21 +16,23 @@
 package stormpot.tests;
 
 import org.junit.jupiter.api.Test;
+import stormpot.internal.BSlot;
 import stormpot.internal.PreciseLeakDetector;
+import testkits.GarbageCreator;
+import testkits.GenericPoolable;
 
-import java.lang.management.GarbageCollectorMXBean;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import static java.lang.management.ManagementFactory.getGarbageCollectorMXBeans;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PreciseLeakDetectorIT {
   private final PreciseLeakDetector detector = new PreciseLeakDetector();
-  private final List<GarbageCollectorMXBean> gcBeans = getGarbageCollectorMXBeans();
 
   @Test
   void mustCountCorrectlyAfterRandomAddRemoveLeakAndCounts() {
@@ -39,7 +41,9 @@ class PreciseLeakDetectorIT {
 
     // This particular seed seems to give pretty good coverage:
     Random rng = new Random(-6406176578229504295L);
-    Set<Object> objs = new HashSet<>();
+    BlockingQueue<BSlot<GenericPoolable>> queue = new LinkedBlockingQueue<>();
+    AtomicInteger poisonedSlots = new AtomicInteger();
+    Set<GenericPoolable> objs = new HashSet<>();
     long leaksCreated = 0;
 
     // This distribution of the operations seems to give a good coverage:
@@ -48,14 +52,16 @@ class PreciseLeakDetectorIT {
       int choice = rng.nextInt(100);
       if (choice < 60) {
         // Add
-        Object add = new Object();
+        BSlot<GenericPoolable> slot = new BSlot<>(queue, poisonedSlots);
+        GenericPoolable add = new GenericPoolable(slot);
+        slot.obj = add;
         objs.add(add);
-        detector.register(add);
+        detector.register(slot);
       } else if (choice < 80) {
         // Remove
-        Object remove = removeRandom(objs);
+        GenericPoolable remove = removeRandom(objs);
         if (remove != null) {
-          detector.unregister(remove);
+          detector.unregister((BSlot<?>) remove.getSlot());
         }
       } else if (choice < 90) {
         // Count
@@ -63,15 +69,16 @@ class PreciseLeakDetectorIT {
             .isGreaterThan(leaksCreated - 10)
             .isLessThanOrEqualTo(leaksCreated);
       } else {
-        long gcs = sumGarbageCollections();
+        long gcs = GarbageCreator.countGarbageCollections();
         // Leak
-        Object obj = removeRandom(objs);
+        GenericPoolable obj = removeRandom(objs);
         if (obj != null) {
           //noinspection UnusedAssignment : required for System.gc()
           obj = null;
           do {
+            GarbageCreator.createGarbage();
             System.gc();
-          } while (gcs == sumGarbageCollections());
+          } while (gcs == GarbageCreator.countGarbageCollections());
           leaksCreated++;
         }
       }
@@ -79,23 +86,18 @@ class PreciseLeakDetectorIT {
       printProgress(iterations, i);
     }
     System.out.println();
-    for (Object obj : objs) {
-      detector.unregister(obj);
+    for (GenericPoolable obj : objs) {
+      detector.unregister((BSlot<?>) obj.getSlot());
     }
-    long gcs = sumGarbageCollections();
+    long gcs = GarbageCreator.countGarbageCollections();
     objs.clear();
     //noinspection UnusedAssignment : required for System.gc()
     objs = null;
 
     do {
       System.gc();
-    } while (gcs == sumGarbageCollections());
+    } while (gcs == GarbageCreator.countGarbageCollections());
     assertThat(detector.countLeakedObjects()).isEqualTo(leaksCreated);
-  }
-
-  private long sumGarbageCollections() {
-    return gcBeans.stream().mapToLong(
-        GarbageCollectorMXBean::getCollectionCount).sum();
   }
 
   private static void printProgress(int iterations, int i) {
@@ -107,10 +109,10 @@ class PreciseLeakDetectorIT {
     }
   }
 
-  private Object removeRandom(Set<Object> objs) {
-    Iterator<Object> iterator = objs.iterator();
+  private GenericPoolable removeRandom(Set<GenericPoolable> objs) {
+    Iterator<GenericPoolable> iterator = objs.iterator();
     if (iterator.hasNext()) {
-      Object obj = iterator.next();
+      GenericPoolable obj = iterator.next();
       iterator.remove();
       return obj;
     }

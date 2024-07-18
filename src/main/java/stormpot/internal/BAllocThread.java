@@ -123,6 +123,10 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     } else if (slot != null) {
       reallocateDeadSlot(slot);
     }
+    if (leakDetector != null) {
+      // Make sure we process any cleared references, so the reference queue don't get too big.
+      leakDetector.countLeakedObjects();
+    }
 
     if (shutdown) {
       // Prior allocations might notice that we've been shut down. In that
