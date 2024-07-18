@@ -44,7 +44,7 @@ public class IdentityHashSet implements Iterable<Object> {
   public void add(Object obj) {
     for (;;) {
       int mask = sectionBlocks - 1;
-      int ihash = System.identityHashCode(obj);
+      int ihash = hashOf(obj);
       int h1 = BLOCK_LEN * (ihash & mask);
       int h2 = sectionLength + (BLOCK_LEN * (fmix32(ihash) & mask));
       for (int i = 0; i < stashSize; i++) {
@@ -86,7 +86,7 @@ public class IdentityHashSet implements Iterable<Object> {
 
   public void remove(Object obj) {
     int mask = sectionBlocks - 1;
-    int ihash = System.identityHashCode(obj);
+    int ihash = hashOf(obj);
     int h1 = BLOCK_LEN * (ihash & mask);
     int h2 = sectionLength + (BLOCK_LEN * (fmix32(ihash) & mask));
     for (int i = 0; i < stashSize; i++) {
@@ -121,6 +121,10 @@ public class IdentityHashSet implements Iterable<Object> {
     return Stream.concat(Stream.of(stash), Stream.of(table))
             .filter(Objects::nonNull)
             .iterator();
+  }
+
+  protected int hashOf(Object obj) {
+    return System.identityHashCode(obj);
   }
 
   private static int fmix32(int key) {
