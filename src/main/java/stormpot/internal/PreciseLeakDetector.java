@@ -20,6 +20,7 @@ import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 
 public final class PreciseLeakDetector {
@@ -30,11 +31,11 @@ public final class PreciseLeakDetector {
   public PreciseLeakDetector() {
     referenceQueue = new ReferenceQueue<>();
     leakedObjectCount = new LongAdder();
-    refs = new IdentityHashSet();
+    refs = new CountedPhantomRefHashSet();
   }
 
   public void register(BSlot<?> slot) {
-    PhantomReference<Object> ref = new PhantomReference<>(slot.obj, referenceQueue);
+    CountedPhantomRef<Object> ref = new CountedPhantomRef<>(slot.obj, referenceQueue);
     slot.leakCheck = ref;
     synchronized (refs) {
       refs.add(ref);
@@ -73,5 +74,23 @@ public final class PreciseLeakDetector {
   public long countLeakedObjects() {
     accumulateLeaks();
     return leakedObjectCount.sum();
+  }
+
+  private static final class CountedPhantomRef<T> extends PhantomReference<T> {
+    private static final AtomicInteger COUNTER = new AtomicInteger();
+
+    private final int id; // This hides in alignment padding on most JVMs, including Lilliput.
+
+    CountedPhantomRef(T referent, ReferenceQueue<? super T> q) {
+      super(referent, q);
+      id = COUNTER.getAndIncrement();
+    }
+  }
+
+  private static final class CountedPhantomRefHashSet extends IdentityHashSet {
+    @Override
+    protected int hashOf(Object obj) {
+      return ((CountedPhantomRef<?>) obj).id;
+    }
   }
 }
