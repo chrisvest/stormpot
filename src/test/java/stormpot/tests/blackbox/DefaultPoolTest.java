@@ -15,14 +15,14 @@
  */
 package stormpot.tests.blackbox;
 
-import testkits.AlloKit;
-import testkits.GenericPoolable;
+import stormpot.Allocator;
+import stormpot.Poolable;
 import stormpot.Pool;
 import stormpot.PoolBuilder;
 
 class DefaultPoolTest extends ThreadBasedPoolTest {
   @Override
-  protected PoolBuilder<GenericPoolable> createInitialPoolBuilder(AlloKit.CountingAllocator allocator) {
+  protected <T extends Poolable> PoolBuilder<T> createInitialPoolBuilder(Allocator<T> allocator) {
     return Pool.from(allocator);
   }
 }

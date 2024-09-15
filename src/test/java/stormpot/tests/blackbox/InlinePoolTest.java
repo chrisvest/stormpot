@@ -16,8 +16,8 @@
 package stormpot.tests.blackbox;
 
 import org.junit.jupiter.api.Test;
-import testkits.AlloKit.CountingAllocator;
-import testkits.GenericPoolable;
+import stormpot.Allocator;
+import stormpot.Poolable;
 import stormpot.Pool;
 import stormpot.PoolBuilder;
 
@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class InlinePoolTest extends AllocatorBasedPoolTest {
   @Override
-  protected PoolBuilder<GenericPoolable> createInitialPoolBuilder(CountingAllocator allocator) {
+  protected <T extends Poolable> PoolBuilder<T> createInitialPoolBuilder(Allocator<T> allocator) {
     return Pool.fromInline(allocator);
   }
 

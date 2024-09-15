@@ -20,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import stormpot.BasePoolable;
 import testkits.AlloKit;
 import stormpot.Allocator;
 import stormpot.Completion;
@@ -47,6 +48,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
@@ -131,12 +133,13 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     builder = createInitialPoolBuilder(allocator).setSize(1);
   }
 
-  protected abstract PoolBuilder<GenericPoolable> createInitialPoolBuilder(CountingAllocator allocator);
+  protected abstract <T extends Poolable> PoolBuilder<T> createInitialPoolBuilder(Allocator<T> allocator);
 
   Pool<GenericPoolable> createPool() {
     pool = builder.build();
     threadSafeTap = pool.getThreadSafeTap();
-    threadLocalTap = pool.getThreadLocalTap();
+    threadVirtualTap = pool.getVirtualThreadSafeTap();
+    threadLocalTap = pool.getSingleThreadedTap();
     return pool;
   }
 
@@ -2015,6 +2018,66 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     List<GenericPoolable> deallocations = allocator.getDeallocations();
     synchronized (deallocations) {
       assertThat(deallocations).contains(a);
+    }
+  }
+
+  @Test
+  void virtualThreadSafeTapEnsureExclusiveAccessToClaimObjects() throws Exception {
+    class IntCounter extends BasePoolable {
+      int counter;
+
+      public IntCounter(Slot slot) {
+        super(slot);
+      }
+    }
+    AtomicInteger sum = new AtomicInteger();
+    PoolBuilder<IntCounter> builder = createInitialPoolBuilder(new Allocator<>() {
+      @Override
+      public IntCounter allocate(Slot slot) {
+        return new IntCounter(slot);
+      }
+
+      @Override
+      public void deallocate(IntCounter poolable) {
+        sum.addAndGet(poolable.counter);
+      }
+    });
+    builder.setSize(60).setExpiration(Expiration.never());
+    if (builder.isBackgroundExpirationEnabled()) {
+      builder.setBackgroundExpirationEnabled(false);
+    }
+    Pool<IntCounter> pool = builder.build();
+    AtomicReference<Exception> exception = new AtomicReference<>();
+    PoolTap<IntCounter> tap = pool.getVirtualThreadSafeTap();
+    Runnable task = () -> {
+      for (int i = 0; i < 1000; i++) {
+        try {
+          IntCounter claim = tap.claim(longTimeout);
+          if (claim == null) {
+            i--;
+            continue;
+          }
+          int counter = claim.counter;
+          Thread.yield();
+          claim.counter = counter + 1;
+          claim.release();
+        } catch (InterruptedException e) {
+          exception.set(e);
+        }
+      }
+    };
+    List<Thread> threads = new ArrayList<>();
+    for (int i = 0; i < 100; i++) {
+      threads.add(Thread.ofVirtual().start(task));
+    }
+    for (Thread thread : threads) {
+      thread.join();
+    }
+    assertTrue(pool.shutdown().await(longTimeout));
+    assertThat(sum).hasValue(100_000);
+    Exception e = exception.get();
+    if (e != null) {
+      fail("A virtual thread encountered an exception", e);
     }
   }
 

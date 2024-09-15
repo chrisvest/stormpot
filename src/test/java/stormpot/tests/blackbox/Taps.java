@@ -32,6 +32,12 @@ enum Taps {
       return test.threadSafeTap;
     }
   },
+  THREAD_VIRTUAL {
+    @Override
+    <T extends Poolable> PoolTap<T> get(AbstractPoolTest<T> test) {
+      return test.threadVirtualTap;
+    }
+  },
   THREAD_LOCAL {
     @Override
     <T extends Poolable> PoolTap<T> get(AbstractPoolTest<T> test) {

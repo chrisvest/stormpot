@@ -40,9 +40,12 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
     try {
       MethodHandles.Lookup lookup = MethodHandles.lookup();
       Class<?> receiver = InlineAllocationController.class;
-      SIZE = lookup.findVarHandle(receiver, "size", int.class);
-      ALLOC_COUNT = lookup.findVarHandle(receiver, "allocationCount", long.class);
-      FAILED_ALLOC_COUNT = lookup.findVarHandle(receiver, "failedAllocationCount", long.class);
+      SIZE = lookup.findVarHandle(receiver, "size", int.class)
+              .withInvokeExactBehavior();
+      ALLOC_COUNT = lookup.findVarHandle(receiver, "allocationCount", long.class)
+              .withInvokeExactBehavior();
+      FAILED_ALLOC_COUNT = lookup.findVarHandle(receiver, "failedAllocationCount", long.class)
+              .withInvokeExactBehavior();
     } catch (Exception e) {
       throw new LinkageError("Failed to create VarHandle.", e);
     }
@@ -253,7 +256,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
       poisonedSlots.getAndIncrement();
       slot.poison = e;
     }
-    SIZE.getAndAdd(this, 1);
+    int ignore = (int) SIZE.getAndAdd(this, 1);
     publishSlot(slot, success, NanoClock.nanoTime());
   }
 
@@ -271,9 +274,9 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
 
   private void incrementAllocationCounts(boolean success) {
     if (success) {
-      ALLOC_COUNT.getAndAdd(this, 1);
+      long ignore = (long) ALLOC_COUNT.getAndAdd(this, 1L);
     } else {
-      FAILED_ALLOC_COUNT.getAndAdd(this, 1);
+      long ignore = (long) FAILED_ALLOC_COUNT.getAndAdd(this, 1L);
     }
   }
 
@@ -311,7 +314,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
   }
 
   private void dealloc(BSlot<T> slot) {
-    SIZE.getAndAdd(this, -1);
+    int ignore = (int) SIZE.getAndAdd(this, -1);
     deallocSlot(slot);
   }
 
