@@ -275,23 +275,25 @@ public interface Pool<T extends Poolable> extends PoolTap<T> {
   /**
    * Get a thread-safe {@link PoolTap} implementation for this pool, which can
    * be freely shared among multiple threads.
+   * <p>
+   * If the pool tap will be accessed by {@linkplain Thread#isVirtual() virtual threads},
+   * then {@link #getVirtualThreadSafeTap()} should be used instead.
+   *
    * @return A thread-safe {@link PoolTap}.
    */
-  default PoolTap<T> getThreadSafeTap() {
-    // We use the anonymous inner class to enforce encapsulation, which is
-    // probably the only reason anyone would wan to use this.
-    return new PoolTap<>() {
-      @Override
-      public T claim(Timeout timeout) throws PoolException, InterruptedException {
-        return Pool.this.claim(timeout);
-      }
+  PoolTap<T> getThreadSafeTap();
 
-      @Override
-      public T tryClaim() {
-        return Pool.this.tryClaim();
-      }
-    };
-  }
+  /**
+   * Get a thread-safe {@link PoolTap} implementation for this pool, which can
+   * be freely shared among multiple threads, including {@linkplain Thread#isVirtual() virtual threads}.
+   * <p>
+   * The implementation of this {@link PoolTap} avoids the use of {@link ThreadLocal} variables,
+   * locking mechanisms, and other API calls that are poorly supported by, or disruptive to,
+   * virtual threads.
+   *
+   * @return A thread-safe {@link PoolTap}.
+   */
+  PoolTap<T> getVirtualThreadSafeTap();
 
   /**
    * Get a {@link PoolTap} that only support access by one thread at a time.
@@ -307,5 +309,5 @@ public interface Pool<T extends Poolable> extends PoolTap<T> {
    *
    * @return A thread-local {@link PoolTap}.
    */
-  PoolTap<T> getThreadLocalTap();
+  PoolTap<T> getSingleThreadedTap();
 }

@@ -15,7 +15,12 @@
  */
 package stormpot.internal;
 
-public class PoisonException extends Exception {
+import java.io.Serial;
+
+public final class PoisonException extends Exception {
+  @Serial
+  private static final long serialVersionUID = 5196724916292026430L;
+
   public PoisonException(String message) {
     super(message, null, false, false);
   }

@@ -30,7 +30,8 @@ class DirectPoolTest extends AbstractPoolTest<Pooled<String>> {
   private void createPool(String... objects) {
     pool = Pool.of(objects);
     threadSafeTap = pool.getThreadSafeTap();
-    threadLocalTap = pool.getThreadLocalTap();
+    threadVirtualTap = pool.getVirtualThreadSafeTap();
+    threadLocalTap = pool.getSingleThreadedTap();
   }
 
   @Override

@@ -61,6 +61,7 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
   private final ThreadLocal<BSlotCache<T>> tlr;
   private final Expiration<? super T> deallocRule;
   private final MetricsRecorder metricsRecorder;
+  private final BlazePoolVirtualThreadSafeTap<T> virtualThreadSafeTap;
 
   /**
    * A special slot used to signal that the pool has been shut down.
@@ -84,6 +85,7 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
     metricsRecorder = builder.getMetricsRecorder();
     allocator = factory.buildAllocationController(
         live, disregardPile, newAllocations, builder, poisonPill);
+    virtualThreadSafeTap = new BlazePoolVirtualThreadSafeTap<>(this);
   }
 
   @Override
@@ -113,7 +115,7 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
     return slowClaim(cache);
   }
 
-  private T tlrClaim(BSlotCache<T> cache) {
+  T tlrClaim(BSlotCache<T> cache) {
     BSlot<T> slot = cache.slot;
     // Note that the TLR slot at this point might have been tried by another
     // thread, found to be expired, put on the dead-queue and deallocated.
@@ -314,8 +316,20 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
   }
 
   @Override
-  public PoolTap<T> getThreadLocalTap() {
-    return new BlazePoolThreadLocalTap<>(this);
+  public PoolTap<T> getThreadSafeTap() {
+    // We use a separate class to enforce encapsulation, which is
+    // probably the only reason anyone would want to use this method.
+    return new BlazePoolThreadSafeTap<>(this);
+  }
+
+  @Override
+  public PoolTap<T> getVirtualThreadSafeTap() {
+    return virtualThreadSafeTap;
+  }
+
+  @Override
+  public PoolTap<T> getSingleThreadedTap() {
+    return new BlazePoolSingleThreadedTap<>(this);
   }
 
   @Override

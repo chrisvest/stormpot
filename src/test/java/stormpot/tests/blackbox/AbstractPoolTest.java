@@ -81,6 +81,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
 
   Pool<T> pool;
   PoolTap<T> threadSafeTap;
+  PoolTap<T> threadVirtualTap;
   PoolTap<T> threadLocalTap;
 
   @AfterEach
@@ -228,7 +229,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
 
   /**
    * One uses a pool because a certain type of objects are expensive to
-   * create and we would like to recycle them. So when we claim and object,
+   * create, and we would like to recycle them. So when we claim and object,
    * then release it back into the pool, and then claim and release it again,
    * then we must observe that only a single object allocation has taken
    * place.
@@ -268,9 +269,9 @@ abstract class AbstractPoolTest<T extends Poolable> {
   }
 
   /**
-   * So awaiting the shut down completion cannot return before all
+   * So awaiting the shutdown completion cannot return before all
    * claimed objects are both released and deallocated. Likewise, the
-   * initiation of the shut down process - the call to shutdown() - must
+   * initiation of the shutdown process - the call to shutdown() - must
    * decidedly NOT wait for any claimed objects to be released, before the
    * call returns.
    * We test for this effect by creating a pool and claiming and object
@@ -295,15 +296,15 @@ abstract class AbstractPoolTest<T extends Poolable> {
   /**
    * We know from the
    * {@link AllocatorBasedPoolTest#shutdownMustNotDeallocateClaimedPoolables} test, that
-   * awaiting the shut down completion will wait for any claimed objects to be
+   * awaiting the shutdown completion will wait for any claimed objects to be
    * released.
    * However, once those objects are released, we must also make sure that the
-   * shut down process actually resumes and eventually completes as a result.
-   * We test this by claiming and object and starting the shut down process.
-   * Then we set another thread to await the completion of the shut down
+   * shutdown process actually resumes and eventually completes as a result.
+   * We test this by claiming and object and starting the shutdown process.
+   * Then we set another thread to await the completion of the shutdown
    * process, and make sure that it actually enters the WAITING state.
    * Then we release the claimed object and try to join the thread. If we
-   * manage to join the thread, then the shut down process has completed, and
+   * manage to join the thread, then the shutdown process has completed, and
    * the test pass if this all happens within the test timeout.
    * When a thread is in the WAITING state, it means that it is waiting for
    * another thread to do something that will let it resume. In our case,
@@ -323,7 +324,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
   }
 
   /**
-   * The await with timeout on the Completion of the shut down process
+   * The await with timeout on the Completion of the shutdown process
    * must return false if the timeout elapses, as is the typical contract
    * of such methods in java.util.concurrent.
    * We are going to assume that the implementation adheres to the requested
@@ -341,8 +342,8 @@ abstract class AbstractPoolTest<T extends Poolable> {
   /**
    * We have verified that await with timeout returns false if the timeout
    * elapses. We also have to make sure that the call returns true if the
-   * shut down process completes within the timeout.
-   * We test for this by claiming an object, start the shut down process,
+   * shutdown process completes within the timeout.
+   * We test for this by claiming an object, start the shutdown process,
    * set a thread to await the completion with a timeout, then release the
    * claimed object and join the thread. The result will be put in an
    * AtomicBoolean, which then must contain true after the thread has been
@@ -364,11 +365,11 @@ abstract class AbstractPoolTest<T extends Poolable> {
 
   /**
    * We have verified that the await method works as intended, if you
-   * begin your awaiting while the shut down process is still undergoing.
+   * begin your awaiting while the shutdown process is still undergoing.
    * However, we must also make sure that further calls to await after the
-   * shut down process has completed, do not block.
+   * shutdown process has completed, do not block.
    * We do this by shutting a pool down, and then make a number of await calls
-   * to the shut down Completion. These calls must all return before the
+   * to the shutdown Completion. These calls must all return before the
    * timeout of the test elapses.
    */
   @Test
@@ -381,12 +382,12 @@ abstract class AbstractPoolTest<T extends Poolable> {
 
   /**
    * A call to claim on a pool that has been, or is in the process of being,
-   * shut down, will throw an IllegalStateException. So should calls that
-   * are blocked on claim when the shut down process is initiated.
+   * shutdown, will throw an IllegalStateException. So should calls that
+   * are blocked on claim when the shutdown process is initiated.
    * To test this, we create a pool with one object and claim it. Then we
    * set another thread to also claim an object. This thread will block
    * because the pool has been depleted. To make sure of this, we wait for
-   * the thread to enter the WAITING state. Then we start the shut down
+   * the thread to enter the WAITING state. Then we start the shutdown
    * process of the pool, release the object and join the thread we started.
    * If the call to claim throws an exception in the other thread, then it
    * will be put in an AtomicReference, and we assert that it is indeed an
@@ -410,7 +411,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
   /**
    * Calling await on a completion when your thread is interrupted, must
    * throw an InterruptedException.
-   * In this particular case we make sure that the shut down procedure has
+   * In this particular case we make sure that the shutdown procedure has
    * not yet completed, by claiming an object from the pool without releasing
    * it.
    */
@@ -429,7 +430,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
   }
 
   /**
-   * A thread that is awaiting the completion of a shut down procedure with
+   * A thread that is awaiting the completion of a shutdown procedure with
    * a timeout, must throw an InterruptedException if it is interrupted.
    * We test this the same way we test without the timeout. The only difference
    * is that our thread will enter the TIMED_WAITING state because of the
@@ -757,7 +758,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
   }
 
   /**
-   * If a pool has been depleted, and then shut down, and another call to claim
+   * If a pool has been depleted, and then shutdown, and another call to claim
    * comes in, then it must immediately throw an IllegalStateException.
    * Importantly, it must not block the thread to wait for any objects to be
    * released.
@@ -798,7 +799,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
 
   /**
    * We must ensure that, for pool implementation that do biasing, the checking
-   * of whether the pool has been shut down must come before even a biased
+   * of whether the pool has been shutdown must come before even a biased
    * claim. Even though a biased claim might not do any waiting that a normal
    * claim might do, it is still important that the shutdown notification takes
    * precedence, because we don't know for how long the claimed object will be
@@ -1260,8 +1261,8 @@ abstract class AbstractPoolTest<T extends Poolable> {
   void threadLocalTapsCacheIndependentObjects() throws Exception {
     noBackgroundExpirationChecking();
     createPoolOfSize(2);
-    PoolTap<T> tap1 = pool.getThreadLocalTap();
-    PoolTap<T> tap2 = pool.getThreadLocalTap();
+    PoolTap<T> tap1 = pool.getSingleThreadedTap();
+    PoolTap<T> tap2 = pool.getSingleThreadedTap();
     T a = tap1.claim(longTimeout);
     T b = tap2.claim(longTimeout);
     a.release();
@@ -1277,7 +1278,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
   @Test
   void threadLocalAndThreadSafeTapsCacheIndependentObjects() throws Exception {
     createPoolOfSize(2);
-    PoolTap<T> tap1 = pool.getThreadLocalTap();
+    PoolTap<T> tap1 = pool.getSingleThreadedTap();
     PoolTap<T> tap2 = pool.getThreadSafeTap();
     T a = tap1.claim(longTimeout);
     T b = tap2.claim(longTimeout);

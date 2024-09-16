@@ -55,8 +55,18 @@ class WhiteboxPoolTest {
       }
 
       @Override
-      public PoolTap<Poolable> getThreadLocalTap() {
-        return null;
+      public PoolTap<Poolable> getThreadSafeTap() {
+        return this::claim;
+      }
+
+      @Override
+      public PoolTap<Poolable> getVirtualThreadSafeTap() {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public PoolTap<Poolable> getSingleThreadedTap() {
+        throw new UnsupportedOperationException();
       }
 
       @Override

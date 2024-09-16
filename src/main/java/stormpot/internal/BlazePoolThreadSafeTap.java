@@ -21,31 +21,25 @@ import stormpot.Poolable;
 import stormpot.Timeout;
 
 /**
- * The claim method in this pool tap follows the same idea as the thread-local
- * caching and TLR-claiming in the pool itself. However, instead of relying on
- * a thread-local for the object caching, we instead directly use a field of
- * the pool tap instance.
- * <p>
- * This has two advantages: 1) a field load is faster than a thread-local
- * lookup, and 2) there is no thread-local "leaking" or contamination.
+ * The claim method in this pool tap offers similar thread-safety and
+ * performance to the default thread-safe pool tap.
  *
  * @param <T> The poolable type.
  */
-public final class BlazePoolThreadLocalTap<T extends Poolable> implements PoolTap<T> {
+public final class BlazePoolThreadSafeTap<T extends Poolable> implements PoolTap<T> {
   private final BlazePool<T> pool;
-  private final BSlotCache<T> cache = new BSlotCache<>();
 
-  BlazePoolThreadLocalTap(BlazePool<T> pool) {
+  public BlazePoolThreadSafeTap(BlazePool<T> pool) {
     this.pool = pool;
   }
 
   @Override
   public T claim(Timeout timeout) throws PoolException, InterruptedException {
-    return pool.claim(timeout, cache);
+    return pool.claim(timeout);
   }
 
   @Override
-  public T tryClaim() {
-    return pool.tryClaim(cache);
+  public T tryClaim() throws PoolException {
+    return pool.tryClaim();
   }
 }
