@@ -26,6 +26,8 @@ import stormpot.PoolTap;
 import stormpot.Poolable;
 import stormpot.Timeout;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.Objects;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
@@ -50,6 +52,17 @@ import java.util.concurrent.TimeUnit;
  * @param <T> The type of {@link Poolable} managed by this pool.
  */
 public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool {
+  private static final VarHandle SHUTDOWN;
+
+  static {
+    try {
+      MethodHandles.Lookup lookup = MethodHandles.lookup();
+      SHUTDOWN = lookup.findVarHandle(BlazePool.class, "shutdown", boolean.class)
+              .withInvokeExactBehavior();
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new AssertionError("Failed to initialise the shutdown VarHandle.", e);
+    }
+  }
 
   private static final Exception SHUTDOWN_POISON = new PoisonException("Stormpot Poison: Shutdown");
   static final Exception EXPLICIT_EXPIRE_POISON = new PoisonException("Stormpot Poison: Expired");
@@ -68,6 +81,7 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
    */
   private final BSlot<T> poisonPill;
 
+  @SuppressWarnings("unused") // Accessed via VarHandle
   private volatile boolean shutdown;
 
   /**
@@ -211,7 +225,7 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
   }
 
   private boolean isInvalid(BSlot<T> slot, BSlotCache<T> cache, boolean isTlr) {
-    if (isUncommonlyInvalid(slot)) {
+    if (isShutDown() | slot.poison != null) {
       return handleUncommonInvalidation(slot, cache, isTlr);
     }
 
@@ -221,10 +235,6 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
     } catch (Throwable ex) {
       return handleCommonInvalidation(slot, cache, ex);
     }
-  }
-
-  private boolean isUncommonlyInvalid(BSlot<T> slot) {
-    return shutdown | slot.poison != null;
   }
 
   private boolean handleUncommonInvalidation(
@@ -289,7 +299,7 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
 
   @Override
   public Completion shutdown() {
-    shutdown = true;
+    SHUTDOWN.setOpaque(this, true);
     return allocator.shutdown();
   }
 
@@ -299,7 +309,7 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
       throw new IllegalArgumentException(
           "Target pool size must be positive");
     }
-    if (shutdown) {
+    if (isShutDown()) {
       return;
     }
     allocator.setTargetSize(size);
@@ -344,7 +354,7 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
 
   @Override
   public boolean isShutDown() {
-    return shutdown;
+    return (boolean) SHUTDOWN.getOpaque(this);
   }
 
   @Override
