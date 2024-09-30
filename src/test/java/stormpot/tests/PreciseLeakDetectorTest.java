@@ -24,6 +24,7 @@ import testkits.GenericPoolable;
 
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
+import java.lang.ref.Reference;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -31,7 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SuppressWarnings({"MismatchedReadAndWriteOfArray", "unchecked"})
+@SuppressWarnings("unchecked")
 class PreciseLeakDetectorTest {
   private PreciseLeakDetector detector;
 
@@ -131,6 +132,9 @@ class PreciseLeakDetectorTest {
     }
 
     assertThat(detector.countLeakedObjects()).isEqualTo(9L);
+    Reference.reachabilityFence(first);
+    Reference.reachabilityFence(second);
+    Reference.reachabilityFence(third);
   }
 
   private void gc() {
