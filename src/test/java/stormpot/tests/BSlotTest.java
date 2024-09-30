@@ -17,6 +17,8 @@ package stormpot.tests;
 
 import org.junit.jupiter.api.Test;
 import org.openjdk.jol.info.ClassLayout;
+import org.openjdk.jol.vm.VM;
+import org.opentest4j.TestAbortedException;
 import stormpot.Pool;
 import stormpot.Pooled;
 import stormpot.Slot;
@@ -36,6 +38,11 @@ class BSlotTest {
 
   @Test
   void slotObjectsShouldBeCacheLineAligned() throws Exception {
+    try {
+      VM.current();
+    } catch (IllegalStateException ise) {
+      throw new TestAbortedException("JOL does not support this JVM", ise);
+    }
     String arch = System.getProperty("os.arch");
     if (arch.equals("x86_64") || arch.equals("amd64")) { // Only enable this on 64-bit machines.
       Pool<GenericPoolable> pool = Pool.fromInline(AlloKit.allocator()).setSize(1).build();
