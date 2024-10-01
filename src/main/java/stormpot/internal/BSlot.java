@@ -115,11 +115,6 @@ public final class BSlot<T extends Poolable>
   }
 
   @Override
-  public long getClaimCount() {
-    return claims;
-  }
-
-  @Override
   public T getPoolable() {
     return obj;
   }
@@ -139,10 +134,6 @@ public final class BSlot<T extends Poolable>
   boolean isClaimedOrThreadLocal() {
     int state = get();
     return state == CLAIMED || state == TLR_CLAIMED;
-  }
-
-  void incrementClaims() {
-    claims++;
   }
 
   @Override
@@ -180,6 +171,10 @@ abstract class Padding1 {
   private byte p1;
   private byte p2;
   private byte p3;
+  private byte p4;
+  private byte p5;
+  private byte p6;
+  private byte p7;
 }
 
 abstract class PaddedAtomicInteger extends Padding1 {
@@ -224,7 +219,6 @@ abstract class BSlotColdFields<T extends Poolable> extends PaddedAtomicInteger i
   public T obj;
   public Exception poison;
   public Reference<Object> leakCheck; // Used by PreciseLeakDetector
-  long claims;
 
   BSlotColdFields(
       int state,

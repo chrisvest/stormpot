@@ -39,13 +39,6 @@ public interface SlotInfo<T extends Poolable> {
   long getCreatedNanoTime();
 
   /**
-   * Get the number of times the object has been claimed since it was
-   * allocated.
-   * @return The objects claim count.
-   */
-  long getClaimCount();
-
-  /**
    * Get the Poolable object represented by this SlotInfo instance.
    * <p>
    * WARNING: Do not {@link Poolable#release() release()}

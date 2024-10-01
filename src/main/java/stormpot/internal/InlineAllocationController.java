@@ -282,7 +282,6 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
 
   private void resetSlot(BSlot<T> slot, long now) {
     slot.createdNanos = now;
-    slot.claims = 0;
     slot.stamp = 0;
     slot.dead2live();
   }

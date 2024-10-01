@@ -148,7 +148,6 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
       // had expired, and throw it in the dead queue, causing a claimed
       // Poolable to be deallocated before it is released.
       if (isValid(slot, cache, true)) {
-        slot.incrementClaims();
         return slot.obj;
       }
       // We managed to tlr-claim the slot, but it turned out to be no good.
@@ -180,7 +179,6 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
         return null;
       } else if (slot.live2claim()) {
         if (isValid(slot, cache, false)) {
-          slot.incrementClaims();
           cache.slot = slot;
           return slot.obj;
         }
@@ -210,7 +208,6 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
         disregardPile.refill();
       } else if (slot.live2claim()) {
         if (isValid(slot, cache, false)) {
-          slot.incrementClaims();
           cache.slot = slot;
           return slot.obj;
         }

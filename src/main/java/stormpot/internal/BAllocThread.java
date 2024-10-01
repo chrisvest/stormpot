@@ -306,7 +306,6 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
 
   private void resetSlot(BSlot<T> slot, long now) {
     slot.createdNanos = now;
-    slot.claims = 0;
     slot.stamp = 0;
     slot.dead2live();
   }
