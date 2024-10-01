@@ -146,7 +146,7 @@ public class UnitKit {
   }
   
   public static <T> Callable<T> $catchFrom(
-      final Callable<T> procedure, final AtomicReference<Exception> caught) {
+      final Callable<T> procedure, final AtomicReference<Object> caught) {
     return () -> {
       try {
         return procedure.call();
