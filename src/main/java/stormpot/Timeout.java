@@ -15,8 +15,6 @@
  */
 package stormpot;
 
-import stormpot.internal.NanoClock;
-
 import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -90,26 +88,6 @@ public final class Timeout {
   }
 
   /**
-   * Calculate a deadline, as an instant in the future, in terms of the
-   * {@link #getBaseUnit() base unit}. Once you have a deadline, you can ask
-   * how much time is left until it transpires, with the
-   * {@link #getTimeLeft(long)} method, giving the deadline as an argument.
-   * <p>
-   * If the {@link #getTimeout() timeout value} is very small, zero or
-   * negative, then the deadline might be an instant in the past.
-   * @return A numerical value that represents the deadline from "now" until
-   * this timeout has passed.
-   *
-   * @deprecated This method is deprecated because it encourages code that is
-   * susceptible to overflow bugs.
-   */
-  @SuppressWarnings("WeakerAccess")
-  @Deprecated(forRemoval = true)
-  public long getDeadline() {
-    return NanoClock.nanoTime() + timeoutBase;
-  }
-
-  /**
    * Get the timeout value in terms of the {@link #getBaseUnit() base unit}.
    * @return A numerical value of the timeout. Possibly zero or negative.
    */
@@ -118,26 +96,7 @@ public final class Timeout {
   }
 
   /**
-   * Calculate the amount of time that is left until the deadline, in terms
-   * of the {@link #getBaseUnit() base unit}. The argument is a deadline value
-   * that has been calculated with the {@link #getDeadline()} method.
-   * @param deadline The reference deadline from {@link #getDeadline()}.
-   * @return The amount of time, in terms of the
-   * {@link #getBaseUnit() base unit}, that is left until the deadline. If
-   * this value is negative, then the deadline has transpired.
-   *
-   * @deprecated This method is deprecated because it encourages code that is
-   * susceptible to overflow bugs.
-   */
-  @SuppressWarnings("WeakerAccess")
-  @Deprecated(forRemoval = true)
-  public long getTimeLeft(long deadline) {
-    return deadline - NanoClock.nanoTime();
-  }
-
-  /**
-   * Get the unit of precision for the underlying clock, that is used by
-   * {@link #getDeadline()} and {@link #getTimeLeft(long)}.
+   * Get the unit of precision for the underlying clock.
    * @return TimeUnit The unit of precision used by the clock in this Timeout.
    */
   public TimeUnit getBaseUnit() {

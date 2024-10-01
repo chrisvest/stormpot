@@ -192,6 +192,18 @@
           "old": "method stormpot.PoolTap<T> stormpot.Pool<T extends stormpot.Poolable>::getThreadSafeTap()",
           "new": "method stormpot.PoolTap<T> stormpot.Pool<T extends stormpot.Poolable>::getThreadSafeTap()",
           "justification": "Major version change"
+        },
+        {
+          "ignore": true,
+          "code": "java.method.removed",
+          "old": "method long stormpot.Timeout::getDeadline()",
+          "justification": "Major version change"
+        },
+        {
+          "ignore": true,
+          "code": "java.method.removed",
+          "old": "method long stormpot.Timeout::getTimeLeft(long)",
+          "justification": "Major version change"
         }
       ]
     }
