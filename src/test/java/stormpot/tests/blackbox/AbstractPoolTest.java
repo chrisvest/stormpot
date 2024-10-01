@@ -398,14 +398,25 @@ abstract class AbstractPoolTest<T extends Poolable> {
   void blockedClaimMustThrowWhenPoolIsShutDown(Taps taps) throws Exception {
     createOneObjectPool();
     PoolTap<T> tap = taps.get(this);
-    AtomicReference<Exception> caught = new AtomicReference<>();
+    AtomicReference<Object> caught = new AtomicReference<>();
     Poolable obj = tap.claim(longTimeout);
-    Thread thread = fork($catchFrom($claim(tap, longTimeout), caught));
+    Thread thread = fork($catchFrom(() -> {
+      caught.set(tap.claim(longTimeout));
+      return null;
+    }, caught));
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     pool.shutdown();
     obj.release();
     join(thread);
-    assertThat(caught.get()).isInstanceOf(IllegalStateException.class);
+
+    Object actual = caught.get();
+    if (actual instanceof Poolable) {
+      // It's possible that the thread might snatch the just released poolable,
+      // instead of noticing that the pool has been shut down.
+      ((Poolable) actual).release();
+    } else {
+      assertThat(actual).isInstanceOf(IllegalStateException.class);
+    }
   }
 
   /**

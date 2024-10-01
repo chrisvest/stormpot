@@ -118,6 +118,7 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
 
   T claim(Timeout timeout, BSlotCache<T> cache)
       throws PoolException, InterruptedException {
+    checkShutDown();
     Objects.requireNonNull(timeout, "Timeout cannot be null.");
     T obj = tlrClaim(cache);
     if (obj != null) return obj;
@@ -126,6 +127,7 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
   }
 
   T tryClaim(BSlotCache<T> cache) throws PoolException {
+    checkShutDown();
     T obj = tlrClaim(cache);
     if (obj != null) return obj;
     // The thread-local claim failed, so we have to go through the slow-path.
@@ -199,6 +201,7 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
     TimeUnit baseUnit = timeout.getBaseUnit();
     long maxWaitQuantum = baseUnit.convert(100, TimeUnit.MILLISECONDS);
     do {
+      checkShutDown();
       slot = newAllocations.pop();
       if (slot == null) {
         long pollWait = Math.min(timeoutLeft, maxWaitQuantum);
@@ -220,12 +223,18 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
     return null;
   }
 
+  void checkShutDown() {
+    if (isShutDown()) {
+      throw new IllegalStateException("Pool has been shut down");
+    }
+  }
+
   private boolean isValid(BSlot<T> slot, BSlotCache<T> cache, boolean isTlr) {
     return !isInvalid(slot, cache, isTlr);
   }
 
   private boolean isInvalid(BSlot<T> slot, BSlotCache<T> cache, boolean isTlr) {
-    if (isShutDown() | slot.poison != null) {
+    if (slot.poison != null) {
       return handleUncommonInvalidation(slot, cache, isTlr);
     }
 
@@ -240,26 +249,6 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
   private boolean handleUncommonInvalidation(
       BSlot<T> slot, BSlotCache<T> cache, boolean isTlr) {
     Exception poison = slot.poison;
-    if (poison != null) {
-      return dealWithSlotPoison(slot, cache, isTlr, poison);
-    } else {
-      kill(slot, cache);
-      throw new IllegalStateException("Pool has been shut down");
-    }
-  }
-
-  private boolean handleCommonInvalidation(
-      BSlot<T> slot, BSlotCache<T> cache, Throwable exception) {
-    kill(slot, cache);
-    if (exception != null) {
-      String msg = "Got exception when checking whether an object had expired";
-      throw new PoolException(msg, exception);
-    }
-    return true;
-  }
-
-  private boolean dealWithSlotPoison(
-      BSlot<T> slot, BSlotCache<T> cache, boolean isTlr, Exception poison) {
     if (poison == SHUTDOWN_POISON) {
       // The poison pill means the pool has been shut down. The pill was
       // transitioned from live to claimed just prior to this check, so we
@@ -279,6 +268,16 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
         throw new PoolException("Allocation failed", poison);
       }
     }
+  }
+
+  private boolean handleCommonInvalidation(
+      BSlot<T> slot, BSlotCache<T> cache, Throwable exception) {
+    kill(slot, cache);
+    if (exception != null) {
+      String msg = "Got exception when checking whether an object had expired";
+      throw new PoolException(msg, exception);
+    }
+    return true;
   }
 
   private void kill(BSlot<T> slot, BSlotCache<T> cache) {

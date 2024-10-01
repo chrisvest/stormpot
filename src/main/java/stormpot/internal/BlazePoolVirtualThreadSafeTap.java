@@ -61,6 +61,7 @@ public final class BlazePoolVirtualThreadSafeTap<T extends Poolable> implements 
   }
 
   private T tryTlrClaim(int threadId, BSlotCache<T>[] stripes) {
+    pool.checkShutDown();
     for (int i = 0; i < 4; i++) {
       int index = threadId + i & ARRAY_MASK;
       BSlotCache<T> cache = stripes[index];
