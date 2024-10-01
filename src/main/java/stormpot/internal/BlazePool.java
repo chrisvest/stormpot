@@ -53,12 +53,15 @@ import java.util.concurrent.TimeUnit;
  */
 public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool {
   private static final VarHandle SHUTDOWN;
+  private static final VarHandle VIRT_THR_TAP;
 
   static {
     try {
       MethodHandles.Lookup lookup = MethodHandles.lookup();
       SHUTDOWN = lookup.findVarHandle(BlazePool.class, "shutdown", boolean.class)
               .withInvokeExactBehavior();
+      VIRT_THR_TAP = lookup.findVarHandle(BlazePool.class, "virtualThreadSafeTap",
+              BlazePoolVirtualThreadSafeTap.class).withInvokeExactBehavior();
     } catch (NoSuchFieldException | IllegalAccessException e) {
       throw new AssertionError("Failed to initialise the shutdown VarHandle.", e);
     }
@@ -74,7 +77,8 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
   private final ThreadLocal<BSlotCache<T>> tlr;
   private final Expiration<? super T> deallocRule;
   private final MetricsRecorder metricsRecorder;
-  private final BlazePoolVirtualThreadSafeTap<T> virtualThreadSafeTap;
+  @SuppressWarnings("unused") // Assigned via VarHandle
+  private volatile BlazePoolVirtualThreadSafeTap<T> virtualThreadSafeTap;
 
   /**
    * A special slot used to signal that the pool has been shut down.
@@ -99,7 +103,6 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
     metricsRecorder = builder.getMetricsRecorder();
     allocator = factory.buildAllocationController(
         live, disregardPile, newAllocations, builder, poisonPill);
-    virtualThreadSafeTap = new BlazePoolVirtualThreadSafeTap<>(this);
   }
 
   @Override
@@ -332,9 +335,21 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
     return new BlazePoolThreadSafeTap<>(this);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public PoolTap<T> getVirtualThreadSafeTap() {
-    return virtualThreadSafeTap;
+    var tap = virtualThreadSafeTap;
+    if (tap == null) {
+      tap = new BlazePoolVirtualThreadSafeTap<>(this);
+      var tmp = (BlazePoolVirtualThreadSafeTap<T>) VIRT_THR_TAP.compareAndExchange(
+              this,
+              (BlazePoolVirtualThreadSafeTap<T>) null,
+              tap);
+      if (tmp != null) {
+        tap = tmp;
+      }
+    }
+    return tap;
   }
 
   @Override
