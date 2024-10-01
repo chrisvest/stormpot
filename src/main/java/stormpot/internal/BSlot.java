@@ -171,6 +171,10 @@ abstract class Padding1 {
   private byte p1;
   private byte p2;
   private byte p3;
+  private byte p4;
+  private byte p5;
+  private byte p6;
+  private byte p7;
 }
 
 abstract class PaddedAtomicInteger extends Padding1 {
