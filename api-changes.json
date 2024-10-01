@@ -204,6 +204,12 @@
           "code": "java.method.removed",
           "old": "method long stormpot.Timeout::getTimeLeft(long)",
           "justification": "Major version change"
+        },
+        {
+          "ignore": true,
+          "code": "java.method.removed",
+          "old": "method long stormpot.SlotInfo<T extends stormpot.Poolable>::getClaimCount()",
+          "justification": "Major version change"
         }
       ]
     }

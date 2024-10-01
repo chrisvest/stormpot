@@ -43,11 +43,6 @@ public class SlotInfoStub implements SlotInfo<GenericPoolable> {
   }
 
   @Override
-  public long getClaimCount() {
-    return 0;
-  }
-
-  @Override
   public GenericPoolable getPoolable() {
     return null;
   }

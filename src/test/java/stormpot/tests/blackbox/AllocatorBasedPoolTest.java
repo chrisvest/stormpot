@@ -80,7 +80,6 @@ import static testkits.AlloKit.realloc;
 import static testkits.AlloKit.reallocator;
 import static testkits.ExpireKit.$age;
 import static testkits.ExpireKit.$capture;
-import static testkits.ExpireKit.$claimCount;
 import static testkits.ExpireKit.$expired;
 import static testkits.ExpireKit.$expiredIf;
 import static testkits.ExpireKit.$explicitExpire;
@@ -319,31 +318,6 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   }
   
   /**
-   * SlotInfo objects offer a count of how many times the Poolable it
-   * represents, has been claimed. Naturally, this count must increase every
-   * time that object is claimed.
-   * We test for this by creating an Expiration that writes the count to
-   * an atomic every time it is called. Then we make a couple of claims and
-   * releases, and assert that the recorded count has gone up.
-   */
-  @ParameterizedTest
-  @EnumSource(Taps.class)
-  void slotInfoClaimCountMustIncreaseWithClaims(Taps taps) throws Exception {
-    final AtomicLong claims = new AtomicLong();
-    builder.setExpiration(expire($capture($claimCount(claims), $fresh)));
-    createPool();
-    PoolTap<GenericPoolable> tap = taps.get(this);
-    tap.claim(longTimeout).release();
-    tap.claim(longTimeout).release();
-    tap.claim(longTimeout).release();
-    // We have made claims, and the expiration ought to have noted this.
-    // We should observe a claim-count of 2, rather than 3, because the
-    // expiration only gets to see past claims, not the one that is being
-    // processed at the time the expiration check happens.
-    assertThat(claims.get()).isEqualTo(2L);
-  }
-  
-  /**
    * Expirations might require access to the actual object in question
    * being pooled, in order to implement advanced and/or domain specific
    * logic.
@@ -364,33 +338,6 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     b.release();
     GenericPoolable poolable = (GenericPoolable) lastPoolable.get();
     assertThat(poolable).isIn(a, b);
-  }
-  
-  /**
-   * Pool implementations might reuse their SlotInfo instances. We need to
-   * make sure that if an object is reallocated, then the claim count for that
-   * slot is reset to zero.
-   * We test for this by configuring an expiration that invalidates
-   * objects that have been claimed more than once, and records the maximum
-   * claim count it observes in an atomic. Then we make more claims than this
-   * limit, and observe that precisely one more than the max have been observed.
-   */
-  @ParameterizedTest
-  @EnumSource(Taps.class)
-  void slotInfoClaimCountMustResetIfSlotsAreReused(Taps taps) throws Exception {
-    final AtomicLong maxClaimCount = new AtomicLong();
-    Expiration<Poolable> expiration = info -> {
-      maxClaimCount.set(Math.max(maxClaimCount.get(), info.getClaimCount()));
-      return info.getClaimCount() > 1;
-    };
-    builder.setExpiration(expiration);
-    createPool();
-    PoolTap<GenericPoolable> tap = taps.get(this);
-    tap.claim(longTimeout).release();
-    tap.claim(longTimeout).release();
-    tap.claim(longTimeout).release();
-    // we've made 3 claims, while all objects w/ claimCount > 1 are invalid
-    assertThat(maxClaimCount.get()).isEqualTo(2L);
   }
   
   /**
