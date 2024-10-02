@@ -37,7 +37,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <java.version>21</java.version>
-    <jmh.version>1.38-SNAPSHOT</jmh.version>
+    <jmh.version>1.37</jmh.version>
   </properties>
 
   <build>
