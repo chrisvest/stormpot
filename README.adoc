@@ -121,26 +121,26 @@ try {
  * *Improve the documentation* by all means! Just fork the project and start.
    If you have questions about implementation or behavioural details, then start
    a discussion about it by opening a pull-request or an issue. Documentation
-   and javadoc is formatted with http://asciidoctor.org/[AsciiDoctor].
+   is formatted with http://asciidoctor.org/[AsciiDoctor].
    The website and javadocs can be generated with
-   `mvn clean pre-site javadoc:javadoc`.
+   `./mvnw clean pre-site javadoc:javadoc`.
  * *Fix bugs or implement features* by forking the project, but please start an
    issue about the bug or feature you want to work on (or find the existing
    issue) and describe the approach and design you have in mind. Keep in mind
    that Stormpot is implemented with a very strict adherence to TDD.
    Finally, make sure to respect the existing indentation and formatting.
-   Use `mvn checkstyle:check` to check your formatting.
+   Use `./mvnw checkstyle:check` to check your formatting.
    If you are writing a test that takes more than a few hundred milliseconds to
    run, then put it in the `stormpot.slow` test package; either in the existing
    `PoolIT` suite, or in a new `\*IT` suite.
    Use `mvn clean test` to run only the fast tests. Use `mvn clean verify` to
    also run the slow tests. Javadoc comments are formatted with
    http://asciidoctor.org/[AsciiDoctor].
-   Get test coverage with `mvn clean test site` and
+   Get test coverage with `./mvnw clean test site` and
    `open target/site/jacoco/index.html`. Get mutation test coverage with
    `mvn clean test-compile org.pitest:pitest-maven:mutationCoverage` and
    `open target/pit-reports/*/index.html`.
- * *Update* Maven plugins with `mvn versions:display-plugin-updates`, or other
+ * *Update* Maven plugins with `./mvnw versions:display-plugin-updates`, or other
    dependencies with `versions:display-dependency-updates`.
  * *Add to the ecosystem* and make Stormpot more than just an object pool.
    This is a good thing to take on if you'd like to contribute code, but you
@@ -161,6 +161,8 @@ try {
    ** I'm sure there are other interesting related problems out there to take on.
       There are many database drivers for various NoSQL databases, that have
       object pooling needs.
+ * *Build benchmarks* with `./mvnw package -DskipTests -f modular-pom.xml`,
+   and run them with `java -jar benchmarks/target/benchmarks.jar`.
 
 Whatever you decide to do, don't hesitate to ask questions on the mailing list
 or on github if you have doubts or get stuck.

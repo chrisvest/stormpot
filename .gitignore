@@ -12,3 +12,4 @@ stormpot.iml
 .asciidoctor
 diag-*.png
 .attach_pid*
+dependency-reduced-pom.xml
