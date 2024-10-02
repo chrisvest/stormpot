@@ -6,6 +6,7 @@
   <version>4.0-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>stormpot-benchmarks</name>
+  <inceptionYear>2011-2024</inceptionYear>
 
   <licenses>
     <license>
