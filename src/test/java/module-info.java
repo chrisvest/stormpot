@@ -19,7 +19,6 @@ open module stormpot.test {
     requires transitive org.junit.jupiter.params;
     requires transitive org.junit.jupiter.engine;
     requires org.assertj.core;
-    requires jol.core;
     requires com.codahale.metrics;
     requires java.sql;
     requires HdrHistogram;

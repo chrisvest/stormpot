@@ -17,6 +17,6 @@ package stormpot.internal;
 
 import stormpot.Poolable;
 
-public final class BSlotCache<T extends Poolable> {
+public class BSlotCache<T extends Poolable> {
   BSlot<T> slot;
 }

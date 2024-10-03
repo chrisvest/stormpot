@@ -17,15 +17,22 @@ package stormpot.internal;
 
 import stormpot.Poolable;
 
-public final class ThreadLocalBSlotCache<T extends Poolable> extends ThreadLocal<BSlotCache<T>> {
-  private final boolean optimizeForMemory;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
-  public ThreadLocalBSlotCache(boolean optimizeForMemory) {
-    this.optimizeForMemory = optimizeForMemory;
-  }
+@SuppressWarnings("unused")
+public class BSlotPadded<T extends Poolable> extends BSlot<T> {
+  private long p00;
+  private long p01;
+  private long p02;
+  private long p03;
+  private long p04;
+  private long p05;
+  private long p06;
+  private long p07;
+  private long p08;
 
-  @Override
-  protected BSlotCache<T> initialValue() {
-    return optimizeForMemory ? new BSlotCache<>() : new BSlotCachePadded<>();
+  public BSlotPadded(BlockingQueue<BSlot<T>> live, AtomicInteger poisonedSlots) {
+    super(live, poisonedSlots);
   }
 }

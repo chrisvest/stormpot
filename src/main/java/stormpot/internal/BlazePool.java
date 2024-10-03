@@ -77,6 +77,7 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
   private final ThreadLocal<BSlotCache<T>> tlr;
   private final Expiration<? super T> deallocRule;
   private final MetricsRecorder metricsRecorder;
+  private final boolean optimizeForMemory;
   @SuppressWarnings("unused") // Assigned via VarHandle
   private volatile BlazePoolVirtualThreadSafeTap<T> virtualThreadSafeTap;
 
@@ -96,7 +97,8 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
     live = new LinkedTransferQueue<>();
     disregardPile = new RefillPile<>(live);
     newAllocations = new RefillPile<>(live);
-    tlr = new ThreadLocalBSlotCache<>();
+    optimizeForMemory = builder.isOptimizeForReducedMemoryUsage();
+    tlr = new ThreadLocalBSlotCache<>(optimizeForMemory);
     poisonPill = new BSlot<>(live, null);
     poisonPill.poison = SHUTDOWN_POISON;
     deallocRule = builder.getExpiration();
@@ -336,7 +338,7 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
   public PoolTap<T> getVirtualThreadSafeTap() {
     var tap = virtualThreadSafeTap;
     if (tap == null) {
-      tap = new BlazePoolVirtualThreadSafeTap<>(this);
+      tap = new BlazePoolVirtualThreadSafeTap<>(this, optimizeForMemory);
       var tmp = (BlazePoolVirtualThreadSafeTap<T>) VIRT_THR_TAP.compareAndExchange(
               this,
               (BlazePoolVirtualThreadSafeTap<T>) null,

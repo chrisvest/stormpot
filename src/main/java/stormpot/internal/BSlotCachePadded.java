@@ -17,15 +17,20 @@ package stormpot.internal;
 
 import stormpot.Poolable;
 
-public final class ThreadLocalBSlotCache<T extends Poolable> extends ThreadLocal<BSlotCache<T>> {
-  private final boolean optimizeForMemory;
-
-  public ThreadLocalBSlotCache(boolean optimizeForMemory) {
-    this.optimizeForMemory = optimizeForMemory;
-  }
-
-  @Override
-  protected BSlotCache<T> initialValue() {
-    return optimizeForMemory ? new BSlotCache<>() : new BSlotCachePadded<>();
-  }
+@SuppressWarnings("unused")
+public class BSlotCachePadded<T extends Poolable> extends BSlotCache<T> {
+  private long p00;
+  private long p01;
+  private long p02;
+  private long p03;
+  private long p04;
+  private long p05;
+  private long p06;
+  private long p07;
+  private long p08;
+  private long p09;
+  private long p10;
+  private long p11;
+  private long p12;
+  private long p13;
 }

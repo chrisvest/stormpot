@@ -59,6 +59,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
   private final AtomicInteger poisonedSlots;
   private final PreciseLeakDetector leakDetector;
   private final Reallocator<T> allocator;
+  private final boolean optimizeForMemory;
 
   private volatile int targetSize;
   @SuppressWarnings("unused") // Assigned via VarHandle.
@@ -82,6 +83,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
     this.metricsRecorder = builder.getMetricsRecorder();
     poisonedSlots = new AtomicInteger();
     allocator = builder.getAdaptedReallocator();
+    optimizeForMemory = builder.isOptimizeForReducedMemoryUsage();
     leakDetector = builder.isPreciseLeakDetectionEnabled() ?
         new PreciseLeakDetector() : null;
     setTargetSize(builder.getSize());
@@ -237,7 +239,8 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
   }
 
   private void allocate() {
-    BSlot<T> slot = new BSlot<>(live, poisonedSlots);
+    BSlot<T> slot = optimizeForMemory ?
+            new BSlot<>(live, poisonedSlots) : new BSlotPadded<>(live, poisonedSlots);
     alloc(slot);
     registerWithLeakDetector(slot);
   }

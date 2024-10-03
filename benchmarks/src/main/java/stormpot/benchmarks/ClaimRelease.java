@@ -45,6 +45,7 @@ public class ClaimRelease {
             .setExpiration(Expiration.never())
             .setBackgroundExpirationEnabled(false)
             .setPreciseLeakDetectionEnabled(false)
+            .setOptimizeForReducedMemoryUsage(false)
             .build();
   }
 

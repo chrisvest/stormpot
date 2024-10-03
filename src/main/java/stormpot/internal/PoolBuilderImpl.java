@@ -41,9 +41,9 @@ public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T>
           .factory();
 
   public static final Map<AllocationProcessMode, PoolBuilderDefaults> DEFAULTS = Map.of(
-      THREADED, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, true, true, 1000),
-      INLINE, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, true, false, 0),
-      DIRECT, new PoolBuilderDefaults(never(), THREAD_FACTORY, false, false, 0)
+      THREADED, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, true, true, 1000, true),
+      INLINE, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, true, false, 0, true),
+      DIRECT, new PoolBuilderDefaults(never(), THREAD_FACTORY, false, false, 0, true)
   );
 
   public static final Map<AllocationProcessMode, PoolBuilderPermissions> PERMISSIONS = Map.of(
@@ -62,6 +62,7 @@ public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T>
   private boolean preciseLeakDetectionEnabled;
   private boolean backgroundExpirationEnabled;
   private int backgroundExpirationCheckDelay;
+  private boolean optimizeForMemory;
 
   /**
    * Build a new empty {@code PoolBuilder} object.
@@ -78,6 +79,7 @@ public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T>
     this.preciseLeakDetectionEnabled = defaults.preciseLeakDetectionEnabled;
     this.backgroundExpirationEnabled = defaults.backgroundExpirationEnabled;
     this.backgroundExpirationCheckDelay = defaults.backgroundExpirationCheckDelay;
+    this.optimizeForMemory = defaults.optimizeForMemory;
   }
 
   @Override
@@ -190,6 +192,17 @@ public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T>
       throw new IllegalArgumentException("Background expiration check delay cannot be negative.");
     }
     backgroundExpirationCheckDelay = delay;
+    return this;
+  }
+
+  @Override
+  public synchronized boolean isOptimizeForReducedMemoryUsage() {
+    return optimizeForMemory;
+  }
+
+  @Override
+  public synchronized PoolBuilder<T> setOptimizeForReducedMemoryUsage(boolean reduceMemoryUsage) {
+    this.optimizeForMemory = reduceMemoryUsage;
     return this;
   }
 
