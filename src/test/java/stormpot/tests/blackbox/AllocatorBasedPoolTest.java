@@ -1636,6 +1636,14 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     }
 
     pool = null; // null out the pool because we can no longer shut it down.
+    try (var ignore = GarbageCreator.forkCreateGarbage()) {
+      for (int i = 0; i < 100; i++) {
+        if (managedPool.getLeakedObjectsCount() >= 1) {
+          break;
+        }
+        Thread.sleep(10);
+      }
+    }
     assertThat(managedPool.getLeakedObjectsCount()).isOne();
   }
 
