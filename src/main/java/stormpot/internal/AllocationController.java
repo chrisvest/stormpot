@@ -36,14 +36,14 @@ public abstract class AllocationController<T extends Poolable> {
   abstract Completion shutdown();
 
   /**
-   * @see Pool#setTargetSize(int)
+   * @see Pool#setTargetSize(long)
    */
-  abstract void setTargetSize(int size);
+  abstract void setTargetSize(long size);
 
   /**
    * @see Pool#getTargetSize()
    */
-  abstract int getTargetSize();
+  abstract long getTargetSize();
 
   /**
    * @see ManagedPool#getAllocationCount()
@@ -63,10 +63,10 @@ public abstract class AllocationController<T extends Poolable> {
   /**
    * @see ManagedPool#getCurrentAllocatedCount()
    */
-  abstract int allocatedSize();
+  abstract long allocatedSize();
   
   /**
    * @see ManagedPool#getCurrentInUseCount()
    */
-  abstract int inUse();
+  abstract long inUse();
 }

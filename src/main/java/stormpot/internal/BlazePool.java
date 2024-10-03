@@ -305,7 +305,7 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
   }
 
   @Override
-  public void setTargetSize(int size) {
+  public void setTargetSize(long size) {
     if (size < 0) {
       throw new IllegalArgumentException(
           "Target pool size must be positive");
@@ -317,7 +317,7 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
   }
 
   @Override
-  public int getTargetSize() {
+  public long getTargetSize() {
     return allocator.getTargetSize();
   }
 
@@ -424,12 +424,12 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
   }
   
   @Override
-  public int getCurrentAllocatedCount() {
+  public long getCurrentAllocatedCount() {
     return allocator.allocatedSize();
   }
   
   @Override
-  public int getCurrentInUseCount() {
+  public long getCurrentInUseCount() {
     return allocator.inUse();
   }
 }

@@ -98,14 +98,14 @@ public final class DirectAllocationController<T extends Poolable> extends Alloca
   }
 
   @Override
-  void setTargetSize(int size) {
+  void setTargetSize(long size) {
     throw new UnsupportedOperationException("Target size cannot be changed. " +
         "This pool was created with a fixed set of objects using the Pool.of(...) method. " +
         "Attempted to set target size to " + size + ".");
   }
 
   @Override
-  int getTargetSize() {
+  long getTargetSize() {
     return size;
   }
 
@@ -125,14 +125,14 @@ public final class DirectAllocationController<T extends Poolable> extends Alloca
   }
 
   @Override
-  public int allocatedSize() {
+  public long allocatedSize() {
     return size;
   }
 
   @Override
-  int inUse() {
-    int inUse = 0;
-    int liveSize = 0;
+  long inUse() {
+    long inUse = 0;
+    long liveSize = 0;
     for (BSlot<T> slot: live) {
       liveSize++;
       if (slot.isClaimedOrThreadLocal()) {

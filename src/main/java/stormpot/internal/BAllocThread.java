@@ -55,14 +55,14 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   private final boolean optimizeForMemory;
 
   // Single reader: this. Many writers.
-  private volatile int targetSize;
+  private volatile long targetSize;
   private volatile boolean shutdown;
 
   // Many readers. Single writer: this.
   private volatile long allocationCount;
   private volatile long failedAllocationCount;
 
-  private int size;
+  private long size;
   private boolean didAnythingLastIteration;
   private long consecutiveAllocationFailures;
 
@@ -370,11 +370,11 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     }
   }
 
-  void setTargetSize(int size) {
+  void setTargetSize(long size) {
     this.targetSize = size;
   }
 
-  int getTargetSize() {
+  long getTargetSize() {
     return targetSize;
   }
 
@@ -403,13 +403,13 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     dead.offer(slot);
   }
   
-  int allocatedSize() {
+  long allocatedSize() {
     return size;
   }
   
-  int inUse() {
-    int inUse = 0;
-    int liveSize = 0;
+  long inUse() {
+    long inUse = 0;
+    long liveSize = 0;
     for (BSlot<T> slot: live) {
       liveSize++;
       if (slot.isClaimedOrThreadLocal()) {

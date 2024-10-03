@@ -41,11 +41,11 @@ class WhiteboxPoolTest {
       }
 
       @Override
-      public void setTargetSize(int size) {
+      public void setTargetSize(long size) {
       }
 
       @Override
-      public int getTargetSize() {
+      public long getTargetSize() {
         return 0;
       }
 

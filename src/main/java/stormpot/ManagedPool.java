@@ -74,9 +74,9 @@ public interface ManagedPool {
    * Set a new target size of the pool.
    *
    * @param size The new target size.
-   * @see Pool#setTargetSize(int)
+   * @see Pool#setTargetSize(long)
    */
-  void setTargetSize(int size);
+  void setTargetSize(long size);
 
   /**
    * Get the current target size of the pool.
@@ -84,7 +84,7 @@ public interface ManagedPool {
    * @return The current target size.
    * @see Pool#getTargetSize()
    */
-  int getTargetSize();
+  long getTargetSize();
 
   /**
    * Returns {@code true} if the shutdown process has been started on this pool,
@@ -191,7 +191,7 @@ public interface ManagedPool {
    *
    * @return The current approximate number of allocated objects.
    */
-  default int getCurrentAllocatedCount() {
+  default long getCurrentAllocatedCount() {
     return -1;
   }
   
@@ -207,7 +207,7 @@ public interface ManagedPool {
    *
    * @return number of objects currently in use
    */
-  default int getCurrentInUseCount() {
+  default long getCurrentInUseCount() {
     return -1;
   }
 }
