@@ -26,17 +26,20 @@ public final class PoolBuilderDefaults {
   public final boolean preciseLeakDetectionEnabled;
   public final boolean backgroundExpirationEnabled;
   public final int backgroundExpirationCheckDelay;
+  public final boolean optimizeForMemory;
 
   public PoolBuilderDefaults(
       Expiration<Poolable> expiration,
       ThreadFactory threadFactory,
       boolean preciseLeakDetectionEnabled,
       boolean backgroundExpirationEnabled,
-      int backgroundExpirationCheckDelay) {
+      int backgroundExpirationCheckDelay,
+      boolean optimizeForMemory) {
     this.expiration = expiration;
     this.threadFactory = threadFactory;
     this.preciseLeakDetectionEnabled = preciseLeakDetectionEnabled;
     this.backgroundExpirationEnabled = backgroundExpirationEnabled;
     this.backgroundExpirationCheckDelay = backgroundExpirationCheckDelay;
+    this.optimizeForMemory = optimizeForMemory;
   }
 }

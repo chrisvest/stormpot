@@ -248,6 +248,31 @@ public sealed interface PoolBuilder<T extends Poolable>
   PoolBuilder<T> setBackgroundExpirationCheckDelay(int delay);
 
   /**
+   * Return whether Stormpot will prioritize minimizing its memory overhead over
+   * maximizing performance.
+   * <p>
+   * This is {@code true} by default, as the performance gains don't show except in
+   * intense and highly concurrent use cases.
+   *
+   * @return {@code true} for prioritizing memory usage over absolute performance,
+   * otherwise {@code false} for prioritizing performance at all costs.
+   */
+  boolean isOptimizeForReducedMemoryUsage();
+
+  /**
+   * Tell the pool to optimize for either low memory usage (when giving {@code true}),
+   * or maximal performance (when giving {@code false}).
+   * <p>
+   * This is {@code true} by default, and should only be set to {@code false} when the
+   * pool is expected to be "relatively small" and will experience an extremely high
+   * level of multithreaded access.
+   *
+   * @param reduceMemoryUsage whether to prioritize memory usage or performance.
+   * @return This {@code PoolBuilder} instance.
+   */
+  PoolBuilder<T> setOptimizeForReducedMemoryUsage(boolean reduceMemoryUsage);
+
+  /**
    * Returns a shallow copy of this {@code PoolBuilder} object.
    * @return A new {@code PoolBuilder} object of the exact same type as this one, with
    * identical values in all its fields.

@@ -16,46 +16,12 @@
 package stormpot.tests;
 
 import org.junit.jupiter.api.Test;
-import org.openjdk.jol.info.ClassLayout;
-import org.openjdk.jol.vm.VM;
-import org.opentest4j.TestAbortedException;
-import stormpot.Pool;
 import stormpot.Pooled;
-import stormpot.Slot;
-import stormpot.Timeout;
 import stormpot.internal.BSlot;
-import testkits.AlloKit;
-import testkits.GenericPoolable;
-
-import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class BSlotTest {
-  // Blindly assume that cache lines are always 64 bytes wide.
-  // Architectures where this is not the case, will just have to suffer.
-  private static final int CACHE_LINE_SIZE = 64;
-
-  @Test
-  void slotObjectsShouldBeCacheLineAligned() throws Exception {
-    try {
-      VM.current();
-    } catch (IllegalStateException ise) {
-      throw new TestAbortedException("JOL does not support this JVM", ise);
-    }
-    String arch = System.getProperty("os.arch");
-    if (arch.equals("x86_64") || arch.equals("amd64")) { // Only enable this on 64-bit machines.
-      Pool<GenericPoolable> pool = Pool.fromInline(AlloKit.allocator()).setSize(1).build();
-      GenericPoolable object = pool.claim(new Timeout(1, TimeUnit.SECONDS));
-      Slot slot = object.getSlot();
-      ClassLayout classLayout = ClassLayout.parseInstance(slot);
-      long size = classLayout.instanceSize();
-      String description = "BSlot instance size should be an even multiple of 64, " +
-          "but was " + size + ", which is " + (size % CACHE_LINE_SIZE) + " bytes too big:" +
-          System.lineSeparator() + classLayout.toPrintable();
-      assertThat(size % CACHE_LINE_SIZE).as(description).isEqualTo(0);
-    }
-  }
 
   @Test
   void toStringForBSlot() {

@@ -115,12 +115,6 @@
         <version>3.2.5</version>
         <configuration>
           <trimStackTrace>false</trimStackTrace>
-          <argLine>
-            @{argLine}
-            -Djdk.attach.allowAttachSelf
-            -Djol.magicFieldOffset=true
-            -XX:+EnableDynamicAgentLoading
-          </argLine>
         </configuration>
       </plugin>
       <plugin>
@@ -129,12 +123,6 @@
         <version>3.2.5</version>
         <configuration>
           <trimStackTrace>false</trimStackTrace>
-          <argLine>
-            @{argLine}
-            -Djdk.attach.allowAttachSelf
-            -Djol.magicFieldOffset=true
-            -XX:+EnableDynamicAgentLoading
-          </argLine>
         </configuration>
         <executions>
           <execution>
@@ -392,12 +380,6 @@
       <groupId>org.hdrhistogram</groupId>
       <artifactId>HdrHistogram</artifactId>
       <version>2.2.2</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.openjdk.jol</groupId>
-      <artifactId>jol-core</artifactId>
-      <version>0.17</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

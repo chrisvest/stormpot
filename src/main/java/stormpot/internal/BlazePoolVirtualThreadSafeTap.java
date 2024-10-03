@@ -39,11 +39,11 @@ public final class BlazePoolVirtualThreadSafeTap<T extends Poolable> implements 
   private final BSlotCache<T>[] stripes;
 
   @SuppressWarnings("unchecked")
-  BlazePoolVirtualThreadSafeTap(BlazePool<T> pool) {
+  BlazePoolVirtualThreadSafeTap(BlazePool<T> pool, boolean optimizeForMemory) {
     this.pool = pool;
     stripes = new BSlotCache[ARRAY_SIZE];
     for (int i = 0; i < ARRAY_SIZE; i++) {
-      stripes[i] = new BSlotCache<>();
+      stripes[i] = optimizeForMemory ? new BSlotCache<>() : new BSlotCachePadded<>();
     }
   }
 

@@ -52,6 +52,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   private final BlockingQueue<BSlot<T>> dead;
   private final AtomicInteger poisonedSlots;
   private final long defaultDeadPollTimeout;
+  private final boolean optimizeForMemory;
 
   // Single reader: this. Many writers.
   private volatile int targetSize;
@@ -86,6 +87,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     this.dead = new LinkedTransferQueue<>();
     this.poisonedSlots = new AtomicInteger();
     this.defaultDeadPollTimeout = builder.getBackgroundExpirationCheckDelay();
+    this.optimizeForMemory = builder.isOptimizeForReducedMemoryUsage();
     this.size = 0;
     this.didAnythingLastIteration = true; // start out busy
   }
@@ -158,7 +160,8 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   }
 
   private void increaseSizeByAllocating() {
-    BSlot<T> slot = new BSlot<>(live, poisonedSlots);
+    BSlot<T> slot = optimizeForMemory ?
+            new BSlot<>(live, poisonedSlots) : new BSlotPadded<>(live, poisonedSlots);
     alloc(slot);
     registerWithLeakDetector(slot);
   }

@@ -32,18 +32,61 @@ import java.util.concurrent.atomic.AtomicInteger;
  * the effect of even the tiniest changes!
  * False-sharing can be quite sneaky.
  */
-public final class BSlot<T extends Poolable>
-    extends BSlotColdFields<T> {
+public class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   private static final int CLAIMED = 1;
   private static final int TLR_CLAIMED = 2;
   private static final int LIVING = 3;
   private static final int DEAD = 4;
 
+  private static final VarHandle STATE;
+  static {
+    try {
+      MethodHandles.Lookup lookup = MethodHandles.lookup();
+      STATE = lookup.findVarHandle(BSlot.class, "state", int.class)
+              .withInvokeExactBehavior();
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new AssertionError("Failed to initialise the state VarHandle.", e);
+    }
+  }
+
+  @SuppressWarnings("FieldMayBeFinal")
+  private volatile int state;
+
+  final BlockingQueue<BSlot<T>> live;
+  final AtomicInteger poisonedSlots;
+  long stamp;
+  long createdNanos;
+  public T obj;
+  public Exception poison;
+  public Reference<Object> leakCheck; // Used by PreciseLeakDetector
+
   public BSlot(BlockingQueue<BSlot<T>> live, AtomicInteger poisonedSlots) {
     // Volatile write in the constructor: This object must be safely published,
     // so that we are sure that the volatile write happens-before other
     // threads observe the pointer to this object.
-    super(DEAD, live, poisonedSlots);
+    state = DEAD;
+    this.live = live;
+    this.poisonedSlots = poisonedSlots;
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  final boolean compareAndSet(int expected, int update) {
+    return STATE.compareAndSet(this, expected, update);
+  }
+
+  final void lazySet(int update) {
+    STATE.setOpaque(this, update);
+  }
+
+  int get() {
+    return state;
+  }
+
+  @Override
+  public void expire(Poolable obj) {
+    if (poison != BlazePool.EXPLICIT_EXPIRE_POISON) {
+      poison = BlazePool.EXPLICIT_EXPIRE_POISON;
+    }
   }
 
   @Override
@@ -162,77 +205,5 @@ public final class BSlot<T extends Poolable>
       s = "UnknownState(" + state + ")";
     }
     return "BSolt[" + s + ", obj = " + obj + ", poison = " + poison + "]";
-  }
-}
-
-@SuppressWarnings("unused")
-abstract class Padding1 {
-  private byte p0;
-  private byte p1;
-  private byte p2;
-  private byte p3;
-  private byte p4;
-  private byte p5;
-  private byte p6;
-  private byte p7;
-}
-
-abstract class PaddedAtomicInteger extends Padding1 {
-  private static final VarHandle STATE;
-
-  static {
-    try {
-      MethodHandles.Lookup lookup = MethodHandles.lookup();
-      STATE = lookup.findVarHandle(PaddedAtomicInteger.class, "state", int.class)
-              .withInvokeExactBehavior();
-    } catch (NoSuchFieldException | IllegalAccessException e) {
-      throw new AssertionError("Failed to initialise the state VarHandle.", e);
-    }
-  }
-
-  @SuppressWarnings("FieldMayBeFinal")
-  private volatile int state;
-
-  PaddedAtomicInteger(int state) {
-    this.state = state;
-  }
-
-  @SuppressWarnings("SameParameterValue")
-  final boolean compareAndSet(int expected, int update) {
-    return STATE.compareAndSet(this, expected, update);
-  }
-
-  final void lazySet(int update) {
-    STATE.setOpaque(this, update);
-  }
-
-  int get() {
-    return state;
-  }
-}
-
-abstract class BSlotColdFields<T extends Poolable> extends PaddedAtomicInteger implements Slot, SlotInfo<T> {
-  final BlockingQueue<BSlot<T>> live;
-  final AtomicInteger poisonedSlots;
-  long stamp;
-  long createdNanos;
-  public T obj;
-  public Exception poison;
-  public Reference<Object> leakCheck; // Used by PreciseLeakDetector
-
-  BSlotColdFields(
-      int state,
-      BlockingQueue<BSlot<T>> live,
-      AtomicInteger poisonedSlots) {
-    super(state);
-    this.live = live;
-    this.poisonedSlots = poisonedSlots;
-  }
-
-  @Override
-  public void expire(Poolable obj) {
-    if (poison != BlazePool.EXPLICIT_EXPIRE_POISON) {
-      poison = BlazePool.EXPLICIT_EXPIRE_POISON;
-    }
   }
 }

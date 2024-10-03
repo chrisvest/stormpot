@@ -44,8 +44,10 @@ public final class DirectAllocationController<T extends Poolable> extends Alloca
     this.size = builder.getSize();
     poisonedSlots = new AtomicInteger();
     Allocator<T> allocator = builder.getAllocator();
+    boolean optimizeForMemory = builder.isOptimizeForReducedMemoryUsage();
     for (int i = 0; i < size; i++) {
-      BSlot<T> slot = new BSlot<>(live, poisonedSlots);
+      BSlot<T> slot = optimizeForMemory ?
+              new BSlot<>(live, poisonedSlots) : new BSlotPadded<>(live, poisonedSlots);
       try {
         slot.obj = allocator.allocate(slot);
         slot.createdNanos = System.nanoTime();

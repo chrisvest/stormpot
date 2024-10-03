@@ -176,6 +176,21 @@ In this case, there is still a chance that the object may be returned, but if no
 Such a case will not be detected by the precise leak detector.
 
 While precise leak detection is able to detect leaks – and a leak is always a bug in user code – it is not able to _prevent_ the leaks.
-This means that if a leak has been observed, you know for sure that the shut down process will not terminate.
-The shut down process won't finish until all allocated objects has been deallocated; which will never happen because leaked objects will remain logically claimed for perpetuity.
-In such a case it's nice that the API for awaiting on the completion of the shut down process mandates a timeout, so there's no waiting forever.
+This means that if a leak has been observed, you know for sure that the shutdown process will not terminate.
+The shutdown process won't finish until all allocated objects has been deallocated; which will never happen because leaked objects will remain logically claimed for perpetuity.
+In such a case it's nice that the API for awaiting on the completion of the shutdown process mandates a timeout, so there's no waiting forever.
+
+=== Optimizing for Reduced Memory Usage
+
+Stormpot 4.0 introduces a setting to optimize the pool for either reduced memory usage, or peak performance.
+The default is to reduce memory usage, because the performance enhancements that otherwise get enabled only make sense in the most extreme, high performance and high concurrency use cases.
+
+What this setting does when you turn "reduce memory usage" _off_, is to add padding to every `Slot` object.
+This padding inflate the object size, such that no two slot objects will ever occupy the same _CPU cache line_.
+The slot objects control the state of what objects can be claim and which are in use.
+This state is the primary source of multithreaded contention in Stormpot.
+However, the CPU deal with contention in terms of its cache lines of memory, rather than objects.
+By keeping slot objects on separate cache lines, we avoid a phenomenon called _false sharing_ where contention bleeds between different objects that happen to share a cache line.
+
+Most systems are so large, and have so many objects, that false sharing have no discernible impact on performance.
+For this reason, Stormpot optimizes for reduced memory usage by default, and does _not_ add any padding to its slot objects.
