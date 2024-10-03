@@ -49,7 +49,7 @@ public final class BlazePoolVirtualThreadSafeTap<T extends Poolable> implements 
 
   @Override
   public T claim(Timeout timeout) throws PoolException, InterruptedException {
-    int threadId = (int) Thread.currentThread().threadId();
+    int threadId = getThreadId();
     T obj = tryTlrClaim(threadId, stripes);
     if (obj != null) {
       return obj;
@@ -58,6 +58,11 @@ public final class BlazePoolVirtualThreadSafeTap<T extends Poolable> implements 
     BSlotCache<T> cache = stripes[index];
     assert cache != null;
     return pool.claim(timeout, cache);
+  }
+
+  private static int getThreadId() {
+    long threadId = Thread.currentThread().threadId();
+    return (int) (threadId ^ threadId >> 7);
   }
 
   private T tryTlrClaim(int threadId, BSlotCache<T>[] stripes) {
@@ -75,7 +80,7 @@ public final class BlazePoolVirtualThreadSafeTap<T extends Poolable> implements 
 
   @Override
   public T tryClaim() throws PoolException {
-    int threadId = (int) Thread.currentThread().threadId();
+    int threadId = getThreadId();
     T obj = tryTlrClaim(threadId, stripes);
     if (obj != null) {
       return obj;

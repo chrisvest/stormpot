@@ -22,18 +22,13 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Threads;
-import org.openjdk.jmh.annotations.Warmup;
-import stormpot.Allocator;
-import stormpot.BasePoolable;
 import stormpot.Expiration;
 import stormpot.Pool;
 import stormpot.PoolTap;
-import stormpot.Slot;
 import stormpot.Timeout;
 
 import java.util.concurrent.TimeUnit;
 
-@Warmup(iterations = 30)
 @Threads(12)
 @State(Scope.Benchmark)
 public class ClaimRelease {
@@ -85,22 +80,5 @@ public class ClaimRelease {
   @Benchmark
   public void sequential(PerThread state) throws InterruptedException {
     state.sequential.claim(timeout).release();
-  }
-}
-
-class GenericAllocator implements Allocator<GenericPoolable> {
-  @Override
-  public GenericPoolable allocate(Slot slot) {
-    return new GenericPoolable(slot);
-  }
-
-  @Override
-  public void deallocate(GenericPoolable genericPoolable) {
-  }
-}
-
-class GenericPoolable extends BasePoolable {
-  public GenericPoolable(Slot slot) {
-    super(slot);
   }
 }
