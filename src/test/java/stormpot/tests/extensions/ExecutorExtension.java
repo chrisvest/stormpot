@@ -205,11 +205,13 @@ public class ExecutorExtension implements Extension, BeforeEachCallback, AfterEa
             ThreadInfo info,
             StackTraceElement[] stackTrace) {
       Thread.State state = thread.getState();
-      LockInfo lockInfo = info.getLockInfo();
-      MonitorInfo[] monitors = info.getLockedMonitors();
+      LockInfo lockInfo = info != null ? info.getLockInfo() : null;
+      MonitorInfo[] monitors = info != null ? info.getLockedMonitors() : null;
       Map<StackTraceElement, MonitorInfo> locks = new HashMap<>();
-      for (MonitorInfo monitor : monitors) {
-        locks.put(monitor.getLockedStackFrame(), monitor);
+      if (monitors != null) {
+        for (MonitorInfo monitor : monitors) {
+          locks.put(monitor.getLockedStackFrame(), monitor);
+        }
       }
       System.err.printf("\"%s\" #%s prio=%s daemon=%s tid=0 nid=0 %s%n   java.lang.Thread.State: %s%n",
               thread.getName(), thread.threadId(), thread.getPriority(), thread.isDaemon(),

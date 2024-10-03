@@ -24,6 +24,7 @@ import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import stormpot.Completion;
+import stormpot.tests.extensions.LongTimeout;
 import testkits.GenericPoolable;
 import stormpot.Pool;
 import stormpot.PoolBuilder;
@@ -119,7 +120,7 @@ abstract class PoolIT {
     pool = builder.build();
   }
 
-  @org.junit.jupiter.api.Timeout(160)
+  @LongTimeout
   @Test
   void highContentionMustNotCausePoolLeakage() throws Exception {
     createPool();
@@ -157,7 +158,7 @@ abstract class PoolIT {
     };
   }
 
-  @org.junit.jupiter.api.Timeout(160)
+  @LongTimeout
   @Test
   void shutdownMustCompleteSuccessfullyEvenAtHighContention() throws Exception {
     int size = 100000;
@@ -186,7 +187,7 @@ abstract class PoolIT {
     }
   }
 
-  @org.junit.jupiter.api.Timeout(160)
+  @LongTimeout
   @Test
   void highObjectChurnMustNotCausePoolLeakage() throws Exception {
     builder.setSize(8);
@@ -239,7 +240,7 @@ abstract class PoolIT {
     }
   }
 
-  @org.junit.jupiter.api.Timeout(160)
+  @LongTimeout
   @Test
   void mustNotDeallocateNullsFromLiveQueueDuringShutdown() throws Exception {
     int startingSize = 256;
