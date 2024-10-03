@@ -33,13 +33,17 @@ import static stormpot.Expiration.never;
 import static stormpot.internal.AllocationProcessMode.DIRECT;
 import static stormpot.internal.AllocationProcessMode.INLINE;
 import static stormpot.internal.AllocationProcessMode.THREADED;
-import static stormpot.internal.StormpotThreadFactory.INSTANCE;
 
 public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T> {
+  public static final ThreadFactory THREAD_FACTORY = Thread.ofVirtual()
+          .name("Stormpot-", 1)
+          .inheritInheritableThreadLocals(false)
+          .factory();
+
   public static final Map<AllocationProcessMode, PoolBuilderDefaults> DEFAULTS = Map.of(
-      THREADED, new PoolBuilderDefaults(after(8, 10, MINUTES), INSTANCE, true, true, 1000),
-      INLINE, new PoolBuilderDefaults(after(8, 10, MINUTES), INSTANCE, true, false, 0),
-      DIRECT, new PoolBuilderDefaults(never(), INSTANCE, false, false, 0)
+      THREADED, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, true, true, 1000),
+      INLINE, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, true, false, 0),
+      DIRECT, new PoolBuilderDefaults(never(), THREAD_FACTORY, false, false, 0)
   );
 
   public static final Map<AllocationProcessMode, PoolBuilderPermissions> PERMISSIONS = Map.of(
