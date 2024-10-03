@@ -24,6 +24,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import stormpot.Completion;
+import stormpot.tests.extensions.LongTimeout;
 import testkits.ExpectedException;
 import stormpot.Expiration;
 import stormpot.ManagedPool;
@@ -67,7 +68,7 @@ import static testkits.UnitKit.spinwait;
 import static testkits.UnitKit.waitForThreadState;
 
 @Execution(ExecutionMode.CONCURRENT)
-@org.junit.jupiter.api.Timeout(42)
+@LongTimeout
 @ExtendWith(FailurePrinterExtension.class)
 abstract class AbstractPoolTest<T extends Poolable> {
   static final Timeout longTimeout = new Timeout(5, TimeUnit.MINUTES);

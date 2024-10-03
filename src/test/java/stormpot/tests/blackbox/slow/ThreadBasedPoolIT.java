@@ -16,6 +16,7 @@
 package stormpot.tests.blackbox.slow;
 
 import org.junit.jupiter.api.Test;
+import stormpot.tests.extensions.LongTimeout;
 import testkits.ExpireKit;
 import testkits.GenericPoolable;
 import stormpot.Slot;
@@ -48,7 +49,7 @@ import static testkits.ExpireKit.expire;
 
 abstract class ThreadBasedPoolIT extends PoolIT {
 
-  @org.junit.jupiter.api.Timeout(160)
+  @LongTimeout
   @Test
   void backgroundExpirationMustDoNothingWhenPoolIsDepleted() throws Exception {
     AtomicBoolean hasExpired = new AtomicBoolean();
@@ -95,7 +96,7 @@ abstract class ThreadBasedPoolIT extends PoolIT {
     obj.release();
   }
 
-  @org.junit.jupiter.api.Timeout(160)
+  @LongTimeout
   @Test
   void decreasingSizeOfDepletedPoolMustOnlyDeallocateAllocatedObjects()
       throws Exception {
