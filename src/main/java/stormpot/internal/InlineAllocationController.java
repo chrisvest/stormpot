@@ -40,7 +40,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
     try {
       MethodHandles.Lookup lookup = MethodHandles.lookup();
       Class<?> receiver = InlineAllocationController.class;
-      SIZE = lookup.findVarHandle(receiver, "size", int.class)
+      SIZE = lookup.findVarHandle(receiver, "size", long.class)
               .withInvokeExactBehavior();
       ALLOC_COUNT = lookup.findVarHandle(receiver, "allocationCount", long.class)
               .withInvokeExactBehavior();
@@ -61,9 +61,9 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
   private final Reallocator<T> allocator;
   private final boolean optimizeForMemory;
 
-  private volatile int targetSize;
+  private volatile long targetSize;
   @SuppressWarnings("unused") // Assigned via VarHandle.
-  private volatile int size;
+  private volatile long size;
   private volatile boolean shutdown;
   @SuppressWarnings("unused") // Assigned via VarHandle.
   private volatile long allocationCount;
@@ -94,9 +94,9 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
     if (shutdown) {
       dealloc(slot);
     } else {
-      int s = size;
+      long s = size;
       while (s > targetSize) {
-        if (SIZE.compareAndSet(this, s, s - 1)) {
+        if (SIZE.compareAndSet(this, s, s - 1L)) {
           deallocSlot(slot);
           return;
         }
@@ -180,7 +180,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
   }
 
   @Override
-  synchronized void setTargetSize(int targetSize) {
+  synchronized void setTargetSize(long targetSize) {
     if (shutdown) {
       return;
     }
@@ -189,7 +189,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
   }
 
   @Override
-  int getTargetSize() {
+  long getTargetSize() {
     return targetSize;
   }
 
@@ -223,7 +223,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
     }
   }
 
-  private void changePoolSize(int targetSize) {
+  private void changePoolSize(long targetSize) {
     while (size != targetSize) {
       if (size < targetSize) {
         // Grow the pool.
@@ -259,7 +259,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
       poisonedSlots.getAndIncrement();
       slot.poison = e;
     }
-    int ignore = (int) SIZE.getAndAdd(this, 1);
+    long ignore = (long) SIZE.getAndAdd(this, 1L);
     publishSlot(slot, success, NanoClock.nanoTime());
   }
 
@@ -316,7 +316,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
   }
 
   private void dealloc(BSlot<T> slot) {
-    int ignore = (int) SIZE.getAndAdd(this, -1);
+    long ignore = (long) SIZE.getAndAdd(this, -1L);
     deallocSlot(slot);
   }
 
@@ -375,14 +375,14 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
   }
   
   @Override
-  public int allocatedSize() {
+  public long allocatedSize() {
     return live.size() - poisonedSlots.get();
   }
 
   @Override
-  int inUse() {
-    int inUse = 0;
-    int liveSize = 0;
+  long inUse() {
+    long inUse = 0;
+    long liveSize = 0;
     for (BSlot<T> slot: live) {
       liveSize++;
       if (slot.isClaimedOrThreadLocal()) {

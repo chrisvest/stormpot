@@ -43,7 +43,7 @@ import static stormpot.internal.AllocationProcess.threaded;
  * <p>
  * All pools are configured with a certain size, the number of objects that the
  * pool will have allocated at any one time, and they can change this number on
- * the fly using the {@link #setTargetSize(int)} method. The change does not
+ * the fly using the {@link #setTargetSize(long)} method. The change does not
  * take effect immediately, but instead moves the "goal post" and leaves the
  * pool to move towards it at its own pace.
  * <p>
@@ -57,7 +57,7 @@ import static stormpot.internal.AllocationProcess.threaded;
  * <th scope="row">NOTE</th>
  * <td>
  * Pools created with {@link Pool#of(Object[])} are <em>not</em> resizable, and calling
- * {@link Pool#setTargetSize(int)} or {@link ManagedPool#setTargetSize(int)} will
+ * {@link Pool#setTargetSize(long)} or {@link ManagedPool#setTargetSize(long)} will
  * cause an {@link UnsupportedOperationException} to be thrown.
  * </td>
  * </tr>
@@ -255,7 +255,7 @@ public interface Pool<T extends Poolable> extends PoolTap<T> {
    *
    * @param size The new target size of the pool
    */
-  void setTargetSize(int size);
+  void setTargetSize(long size);
 
   /**
    * Get the currently configured target size of the pool. Note that this is
@@ -264,7 +264,7 @@ public interface Pool<T extends Poolable> extends PoolTap<T> {
    *
    * @return The current target size of this pool.
    */
-  int getTargetSize();
+  long getTargetSize();
 
   /**
    * Get the {@link ManagedPool} instance that represents this pool.

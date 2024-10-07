@@ -222,6 +222,50 @@
           "code": "java.method.addedToInterface",
           "new": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setOptimizeForReducedMemoryUsage(boolean)",
           "justification": "Major version change"
+        },
+        {
+          "ignore": true,
+          "code": "java.method.returnTypeChanged",
+          "old": "method int stormpot.ManagedPool::getCurrentAllocatedCount()",
+          "new": "method long stormpot.ManagedPool::getCurrentAllocatedCount()",
+          "justification": "Major version change"
+        },
+        {
+          "ignore": true,
+          "code": "java.method.returnTypeChanged",
+          "old": "method int stormpot.ManagedPool::getCurrentInUseCount()",
+          "new": "method long stormpot.ManagedPool::getCurrentInUseCount()",
+          "justification": "Major version change"
+        },
+        {
+          "ignore": true,
+          "code": "java.method.returnTypeChanged",
+          "old": "method int stormpot.ManagedPool::getTargetSize()",
+          "new": "method long stormpot.ManagedPool::getTargetSize()",
+          "justification": "Major version change"
+        },
+        {
+          "ignore": true,
+          "code": "java.method.parameterTypeChanged",
+          "old": "parameter void stormpot.ManagedPool::setTargetSize(===int===)",
+          "new": "parameter void stormpot.ManagedPool::setTargetSize(===long===)",
+          "parameterIndex": "0",
+          "justification": "Major version change"
+        },
+        {
+          "ignore": true,
+          "code": "java.method.returnTypeChanged",
+          "old": "method int stormpot.Pool<T extends stormpot.Poolable>::getTargetSize()",
+          "new": "method long stormpot.Pool<T extends stormpot.Poolable>::getTargetSize()",
+          "justification": "Major version change"
+        },
+        {
+          "ignore": true,
+          "code": "java.method.parameterTypeChanged",
+          "old": "parameter void stormpot.Pool<T extends stormpot.Poolable>::setTargetSize(===int===)",
+          "new": "parameter void stormpot.Pool<T extends stormpot.Poolable>::setTargetSize(===long===)",
+          "parameterIndex": "0",
+          "justification": "Major version change"
         }
       ]
     }

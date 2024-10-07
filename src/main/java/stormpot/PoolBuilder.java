@@ -56,8 +56,8 @@ public sealed interface PoolBuilder<T extends Poolable>
    * be thrown when building the pool.
    * <p>
    * Note that the pool size can be modified after the pool has been built, by
-   * calling the {@link Pool#setTargetSize(int)} or
-   * {@link ManagedPool#setTargetSize(int)} methods.
+   * calling the {@link Pool#setTargetSize(long)} or
+   * {@link ManagedPool#setTargetSize(long)} methods.
    *
    * @param size The target pool size. Must be at least 0.
    * @return This {@code PoolBuilder} instance.

@@ -48,12 +48,12 @@ public final class ThreadedAllocationController<T extends Poolable> extends Allo
   }
 
   @Override
-  public void setTargetSize(int size) {
+  public void setTargetSize(long size) {
     allocator.setTargetSize(size);
   }
 
   @Override
-  public int getTargetSize() {
+  public long getTargetSize() {
     return allocator.getTargetSize();
   }
 
@@ -73,12 +73,12 @@ public final class ThreadedAllocationController<T extends Poolable> extends Allo
   }
   
   @Override
-  public int allocatedSize() {
+  public long allocatedSize() {
     return allocator.allocatedSize();
   }
   
   @Override
-  public int inUse() {
+  public long inUse() {
     return allocator.inUse();
   }
 }
