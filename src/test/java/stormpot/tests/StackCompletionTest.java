@@ -225,7 +225,7 @@ class StackCompletionTest {
   }
 
   @Test
-  void managedBlockMustAllowSpuriousUnblock() {
+  void managedBlockMustAllowSpuriousUnblock() throws Exception {
     Thread thread = fork(() -> {
       assertFalse(completion.block());
       return null;
@@ -233,8 +233,9 @@ class StackCompletionTest {
     AtomicReference<Throwable> capture = capture(thread);
     waitForThreadState(thread, Thread.State.WAITING);
     LockSupport.unpark(thread);
-    complete();
+    thread.join();
     assertThat(capture).hasNullValue();
+    complete();
   }
 
   @RepeatedTest(50)
