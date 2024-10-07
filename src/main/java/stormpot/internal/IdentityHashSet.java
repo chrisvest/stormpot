@@ -18,33 +18,44 @@ package stormpot.internal;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Objects;
+import java.util.function.ToIntFunction;
 import java.util.stream.Stream;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Like {@link java.util.IdentityHashMap}, but as a Set with no overhead for storing values.
  */
-public class IdentityHashSet implements Iterable<Object> {
+public final class IdentityHashSet implements Iterable<Object> {
   // Implementation is based on open-addressing 2-choice hashing,
   // with 8-element buckets, and an 8-element stash for unresolvable collisions.
 
   private static final int BLOCK_LEN = 8;
+  private static final ToIntFunction<Object> DEFAULT_HASH = System::identityHashCode;
+
   private final Object[] stash;
+  private final ToIntFunction<Object> hashOf;
   private int stashSize;
   private int sectionLength;
   private int sectionBlocks;
   private Object[] table;
 
   public IdentityHashSet() {
+    this(DEFAULT_HASH);
+  }
+
+  public IdentityHashSet(ToIntFunction<Object> hashOf) {
     stash = new Object[BLOCK_LEN];
     sectionBlocks = 8;
     sectionLength = BLOCK_LEN * sectionBlocks;
     table = new Object[sectionLength * 2];
+    this.hashOf = requireNonNull(hashOf, "hashOf");
   }
 
   public void add(Object obj) {
     for (;;) {
       int mask = sectionBlocks - 1;
-      int ihash = hashOf(obj);
+      int ihash = hashOf.applyAsInt(obj);
       int h1 = BLOCK_LEN * (ihash & mask);
       int h2 = sectionLength + (BLOCK_LEN * (fmix32(ihash) & mask));
       for (int i = 0; i < stashSize; i++) {
@@ -86,7 +97,7 @@ public class IdentityHashSet implements Iterable<Object> {
 
   public void remove(Object obj) {
     int mask = sectionBlocks - 1;
-    int ihash = hashOf(obj);
+    int ihash = hashOf.applyAsInt(obj);
     int h1 = BLOCK_LEN * (ihash & mask);
     int h2 = sectionLength + (BLOCK_LEN * (fmix32(ihash) & mask));
     for (int i = 0; i < stashSize; i++) {
@@ -121,10 +132,6 @@ public class IdentityHashSet implements Iterable<Object> {
     return Stream.concat(Stream.of(stash), Stream.of(table))
             .filter(Objects::nonNull)
             .iterator();
-  }
-
-  protected int hashOf(Object obj) {
-    return System.identityHashCode(obj);
   }
 
   private static int fmix32(int key) {
