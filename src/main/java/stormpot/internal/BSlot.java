@@ -25,7 +25,7 @@ import java.lang.invoke.VarHandle;
 import java.lang.ref.Reference;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * This class is very sensitive to the memory layout, so be careful to measure
@@ -53,14 +53,14 @@ public class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   private volatile int state;
 
   final BlockingQueue<BSlot<T>> live;
-  final AtomicInteger poisonedSlots;
+  final AtomicLong poisonedSlots;
   long stamp;
   long createdNanos;
   public T obj;
   public Exception poison;
   public Reference<Object> leakCheck; // Used by PreciseLeakDetector
 
-  public BSlot(BlockingQueue<BSlot<T>> live, AtomicInteger poisonedSlots) {
+  public BSlot(BlockingQueue<BSlot<T>> live, AtomicLong poisonedSlots) {
     // Volatile write in the constructor: This object must be safely published,
     // so that we are sure that the volatile write happens-before other
     // threads observe the pointer to this object.

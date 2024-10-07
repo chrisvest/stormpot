@@ -23,14 +23,15 @@ import stormpot.Poolable;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public final class DirectAllocationController<T extends Poolable> extends AllocationController<T> {
   private final LinkedTransferQueue<BSlot<T>> live;
   private final RefillPile<T> disregardPile;
   private final BSlot<T> poisonPill;
-  private final int size;
-  private final AtomicInteger shutdownState;
-  private final AtomicInteger poisonedSlots;
+  private final long size;
+  private final AtomicLong shutdownState;
+  private final AtomicLong poisonedSlots;
 
   DirectAllocationController(
       LinkedTransferQueue<BSlot<T>> live,
@@ -41,7 +42,7 @@ public final class DirectAllocationController<T extends Poolable> extends Alloca
     this.disregardPile = disregardPile;
     this.poisonPill = poisonPill;
     this.size = builder.getSize();
-    poisonedSlots = new AtomicInteger();
+    poisonedSlots = new AtomicLong();
     Allocator<T> allocator = builder.getAllocator();
     boolean optimizeForMemory = builder.isOptimizeForReducedMemoryUsage();
     for (int i = 0; i < size; i++) {
@@ -56,7 +57,7 @@ public final class DirectAllocationController<T extends Poolable> extends Alloca
       }
       live.offer(slot);
     }
-    shutdownState = new AtomicInteger(size);
+    shutdownState = new AtomicLong(size);
   }
 
   @Override

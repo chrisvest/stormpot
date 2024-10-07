@@ -52,7 +52,7 @@ public sealed interface PoolBuilder<T extends Poolable>
    * This means that a pool of size 1, whose single object have expired, will
    * deallocate that one object before allocating a replacement.
    * <p>
-   * The size must be at least one, or an {@link IllegalArgumentException} will
+   * The size must be at least zero, or an {@link IllegalArgumentException} will
    * be thrown when building the pool.
    * <p>
    * Note that the pool size can be modified after the pool has been built, by
@@ -62,13 +62,13 @@ public sealed interface PoolBuilder<T extends Poolable>
    * @param size The target pool size. Must be at least 0.
    * @return This {@code PoolBuilder} instance.
    */
-  PoolBuilder<T> setSize(int size);
+  PoolBuilder<T> setSize(long size);
 
   /**
    * Get the currently configured size. The default is 10.
    * @return The configured pool size.
    */
-  int getSize();
+  long getSize();
 
   /**
    * Set the {@link Allocator} or {@link Reallocator} to use for the pools we

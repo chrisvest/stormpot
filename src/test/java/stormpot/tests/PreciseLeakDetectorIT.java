@@ -27,7 +27,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -42,7 +42,7 @@ class PreciseLeakDetectorIT {
     // This particular seed seems to give pretty good coverage:
     Random rng = new Random(-6406176578229504295L);
     BlockingQueue<BSlot<GenericPoolable>> queue = new LinkedBlockingQueue<>();
-    AtomicInteger poisonedSlots = new AtomicInteger();
+    AtomicLong poisonedSlots = new AtomicLong();
     Set<GenericPoolable> objs = new HashSet<>();
     long leaksCreated = 0;
 
