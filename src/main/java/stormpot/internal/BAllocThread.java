@@ -22,7 +22,6 @@ import stormpot.Poolable;
 import stormpot.Reallocator;
 
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -48,7 +47,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   private final Expiration<? super T> expiration;
   private final boolean backgroundExpirationEnabled;
   private final PreciseLeakDetector leakDetector;
-  private final CountDownLatch completionLatch;
+  private final StackCompletion shutdownCompletion;
   private final BlockingQueue<BSlot<T>> dead;
   private final AtomicInteger poisonedSlots;
   private final long defaultDeadPollTimeout;
@@ -83,7 +82,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     this.backgroundExpirationEnabled = builder.isBackgroundExpirationEnabled();
     this.leakDetector = builder.isPreciseLeakDetectionEnabled() ?
         new PreciseLeakDetector() : null;
-    this.completionLatch = new CountDownLatch(1);
+    this.shutdownCompletion = new StackCompletion();
     this.dead = new LinkedTransferQueue<>();
     this.poisonedSlots = new AtomicInteger();
     this.defaultDeadPollTimeout = builder.getBackgroundExpirationCheckDelay();
@@ -96,7 +95,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   public void run() {
     continuouslyReplenishPool();
     shutPoolDown();
-    completionLatch.countDown();
+    shutdownCompletion.complete();
   }
 
   private void continuouslyReplenishPool() {
@@ -381,7 +380,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   Completion shutdown(Thread allocatorThread) {
     shutdown = true;
     allocatorThread.interrupt();
-    return new LatchCompletion(completionLatch);
+    return shutdownCompletion;
   }
 
   long getAllocationCount() {

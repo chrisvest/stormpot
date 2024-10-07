@@ -15,18 +15,45 @@
  */
 package stormpot;
 
+import stormpot.internal.StackCompletion;
+
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinPool.ManagedBlocker;
+
 /**
  * A Completion represents some task that is going to be completed at some
  * point in the future, or maybe already has completed. It is similar to
  * {@link java.util.concurrent.Future Future} but without any options for
- * cancellation or returning a result. Indeed, you cannot even precisely tell
- * if the task has already completed, but the await methods will return
- * immediately if that is the case.
+ * cancellation or returning a result.
+ * <p>
+ * Completions implement the {@link ManagedBlocker} interface, so they can
+ * be safely used with {@link ForkJoinPool#managedBlock(ManagedBlocker)}.
+ * <p>
+ * Completions are also {@link Flow.Publisher} of {@link Void}.
+ * No messages or exceptions are ever published, but the
+ * {@link Flow.Subscriber#onComplete()} methods will be called when the
+ * completion is completed.
+ * If the completion has already completed, then the
+ * {@link Flow.Subscriber#onComplete()} method will be called immediately
+ * from {@link java.util.concurrent.Flow.Publisher#subscribe(Flow.Subscriber)}.
  *
  * @author Chris Vest
  * @see Pool#shutdown()
  */
-public interface Completion {
+public interface Completion extends ManagedBlocker, Flow.Publisher<Void> {
+  /**
+   * Translate the given {@link CompletionStage} into a Stormpot {@code Completion}.
+   *
+   * @param stage The {@link CompletionStage}.
+   * @return A {@link Completion} that completes when the given stage completes.
+   */
+  static Completion from(CompletionStage<?> stage) {
+    StackCompletion completion = new StackCompletion();
+    stage.whenComplete((v, e) -> completion.complete());
+    return completion;
+  }
   
   /**
    * Causes the current thread to wait until the completion is finished,
@@ -56,4 +83,11 @@ public interface Completion {
    * {@code null}.
    */
   boolean await(Timeout timeout) throws InterruptedException;
+
+  /**
+   * Immediately return whether the completion has completed or not.
+   *
+   * @return {@code true} if this completion has completed, otherwise {@code false}.
+   */
+  boolean isCompleted();
 }

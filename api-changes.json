@@ -266,6 +266,30 @@
           "new": "parameter void stormpot.Pool<T extends stormpot.Poolable>::setTargetSize(===long===)",
           "parameterIndex": "0",
           "justification": "Major version change"
+        },
+        {
+          "ignore": true,
+          "code": "java.method.addedToInterface",
+          "new": "method boolean java.util.concurrent.ForkJoinPool.ManagedBlocker::block() throws java.lang.InterruptedException @ stormpot.Completion",
+          "justification": "Major version change"
+        },
+        {
+          "ignore": true,
+          "code": "java.method.addedToInterface",
+          "new": "method boolean stormpot.Completion::isCompleted()",
+          "justification": "Major version change"
+        },
+        {
+          "ignore": true,
+          "code": "java.method.addedToInterface",
+          "new": "method boolean java.util.concurrent.ForkJoinPool.ManagedBlocker::isReleasable() @ stormpot.Completion",
+          "justification": "Major version change"
+        },
+        {
+          "ignore": true,
+          "code": "java.method.addedToInterface",
+          "new": "method void java.util.concurrent.Flow.Publisher<T>::subscribe(java.util.concurrent.Flow.Subscriber<? super T>) @ stormpot.Completion",
+          "justification": "Major version change"
         }
       ]
     }
