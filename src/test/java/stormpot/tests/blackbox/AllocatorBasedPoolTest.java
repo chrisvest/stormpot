@@ -205,7 +205,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   
   /**
    * Be careful and prevent the creation of pools with a size less than zero.
-   * @see PoolBuilder#setSize(int)
+   * @see PoolBuilder#setSize(long)
    */
   @Test
   void constructorMustThrowOnPoolSizeLessThanOne() {
@@ -527,7 +527,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
    * had at least one deallocation. Note that our TTL is so short, that an
    * object might expire before a claim call can complete, so this is why we
    * check for *at least* one deallocation.
-   * @see PoolBuilder#setSize(int)
+   * @see PoolBuilder#setSize(long)
    */
   @ParameterizedTest
   @EnumSource(Taps.class)
@@ -1615,6 +1615,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
 
   @Test
   void managedPoolLeakedObjectCountMustStartAtZero() {
+    builder.setPreciseLeakDetectionEnabled(true);
     ManagedPool managedPool = createPool().getManagedPool();
     // Pools that don't support this feature return -1L.
     assertThat(managedPool.getLeakedObjectsCount()).isZero();
@@ -1622,7 +1623,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
 
   @Test
   void managedPoolMustCountLeakedObjects() throws Exception {
-    builder.setSize(2);
+    builder.setPreciseLeakDetectionEnabled(true).setSize(2);
     ManagedPool managedPool = createPool().getManagedPool();
     pool.claim(longTimeout); // leak!
     // Clear any thread-local reference to the leaked object:
@@ -1696,7 +1697,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
 
   @Test
   void managedPoolMustNotCountShutDownAsLeak() throws Exception {
-    builder.setSize(2);
+    builder.setPreciseLeakDetectionEnabled(true).setSize(2);
     ManagedPool managedPool = createPool().getManagedPool();
     claimRelease(2, pool, longTimeout);
     pool.shutdown().await(longTimeout);
@@ -1709,7 +1710,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
 
   @Test
   void managedPoolMustNotCountResizeAsLeak() throws Exception {
-    builder.setSize(2);
+    builder.setPreciseLeakDetectionEnabled(true).setSize(2);
     reducedBackgroundExpirationCheckDelay();
     ManagedPool managedPool = createPool().getManagedPool();
     claimRelease(2, pool, longTimeout);

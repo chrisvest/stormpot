@@ -116,8 +116,8 @@ class PoolBuilderTest {
   }
 
   @Test
-  void preciseLeakDetectionMustBeEnabledByDefault() {
-    assertTrue(builder.isPreciseLeakDetectionEnabled());
+  void preciseLeakDetectionMustBeDisabledByDefault() {
+    assertFalse(builder.isPreciseLeakDetectionEnabled());
   }
 
   @Test

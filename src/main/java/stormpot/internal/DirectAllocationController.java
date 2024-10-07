@@ -22,7 +22,6 @@ import stormpot.Poolable;
 
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public final class DirectAllocationController<T extends Poolable> extends AllocationController<T> {

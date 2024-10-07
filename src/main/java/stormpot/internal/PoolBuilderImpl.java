@@ -41,8 +41,8 @@ public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T>
           .factory();
 
   public static final Map<AllocationProcessMode, PoolBuilderDefaults> DEFAULTS = Map.of(
-      THREADED, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, true, true, 1000, true),
-      INLINE, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, true, false, 0, true),
+      THREADED, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, false, true, 1000, true),
+      INLINE, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, false, false, 0, true),
       DIRECT, new PoolBuilderDefaults(never(), THREAD_FACTORY, false, false, 0, true)
   );
 
