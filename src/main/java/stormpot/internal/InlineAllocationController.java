@@ -29,8 +29,6 @@ import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static java.util.Objects.requireNonNull;
-
 public final class InlineAllocationController<T extends Poolable> extends AllocationController<T> {
   private static final VarHandle SIZE;
   private static final VarHandle ALLOC_COUNT;
@@ -135,11 +133,10 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
     }
 
     // Leave the rest of the deallocations to the blocking completion object.
-    return this::shutdownCompletion;
+    return new StackCompletion(this::shutdownCompletion);
   }
 
   private boolean shutdownCompletion(Timeout timeout) throws InterruptedException {
-    requireNonNull(timeout);
     if (Thread.interrupted()) {
       throw new InterruptedException();
     }
@@ -148,20 +145,20 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
     }
     BSlot<T> slot;
     long startNanos = NanoClock.nanoTime();
-    long timeoutNanos = timeout.getTimeoutInBaseUnit();
+    TimeUnit baseUnit = timeout == null ? null : timeout.getBaseUnit();
+    long timeoutNanos = timeout == null ? 0 : timeout.getTimeoutInBaseUnit();
     long timeoutLeft = timeoutNanos;
-    TimeUnit baseUnit = timeout.getBaseUnit();
-    long maxWaitQuantum = baseUnit.convert(100, TimeUnit.MILLISECONDS);
+    long maxWaitQuantum = baseUnit == null ? 0 : baseUnit.convert(100, TimeUnit.MILLISECONDS);
     disregardPile.refill();
     while (size > 0) {
-      if (timeoutLeft <= 0) {
+      if (timeoutLeft <= 0 && baseUnit != null) {
         // We timed out.
         return false;
       }
       long pollWait = Math.min(timeoutLeft, maxWaitQuantum);
-      slot = live.poll(pollWait, baseUnit);
+      slot = baseUnit == null ? live.take() : live.poll(pollWait, baseUnit);
       if (slot == poisonPill) {
-        slot = live.poll(pollWait, baseUnit);
+        slot = baseUnit == null ? live.take() : live.poll(pollWait, baseUnit);
         live.offer(poisonPill);
       }
       timeoutLeft = NanoClock.timeoutLeft(startNanos, timeoutNanos);

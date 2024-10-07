@@ -20,7 +20,6 @@ import stormpot.Completion;
 import stormpot.PoolBuilder;
 import stormpot.Poolable;
 
-import java.util.Objects;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -64,18 +63,18 @@ public final class DirectAllocationController<T extends Poolable> extends Alloca
   Completion shutdown() {
     poisonPill.dead2live();
     live.offer(poisonPill);
-    return timeout -> {
-      Objects.requireNonNull(timeout, "Timeout cannot be null.");
+    return new StackCompletion(timeout -> {
       if (Thread.interrupted()) {
         throw new InterruptedException("Interrupted while waiting for pool shut down to complete.");
       }
-      TimeUnit unit = timeout.getBaseUnit();
+      TimeUnit unit = timeout == null ? null : timeout.getBaseUnit();
+      long timeoutNanos = timeout == null ? 0 : timeout.getTimeoutInBaseUnit();
       long startNanos = NanoClock.nanoTime();
-      long timeoutNanos = timeout.getTimeoutInBaseUnit();
       long timeoutLeft = timeoutNanos;
       disregardPile.refill();
       BSlot<T> slot;
-      while (shutdownState.get() > 0 && (slot = live.poll(timeoutLeft, unit)) != null) {
+      while (shutdownState.get() > 0 &&
+              (slot = (unit == null ? live.take() : live.poll(timeoutLeft, unit))) != null) {
         if (slot != poisonPill) {
           shutdownState.getAndDecrement();
         }
@@ -84,7 +83,7 @@ public final class DirectAllocationController<T extends Poolable> extends Alloca
       }
       live.offer(poisonPill);
       return shutdownState.get() == 0;
-    };
+    });
   }
 
   @Override

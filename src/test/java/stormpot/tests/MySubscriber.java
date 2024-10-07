@@ -13,24 +13,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot.internal;
+package stormpot.tests;
 
-import stormpot.Completion;
-import stormpot.Timeout;
+import java.util.concurrent.Flow;
 
-import java.util.Objects;
-import java.util.concurrent.CountDownLatch;
+import static org.junit.jupiter.api.Assertions.fail;
 
-public final class LatchCompletion implements Completion {
-  private final CountDownLatch completionLatch;
-  
-  LatchCompletion(CountDownLatch completionLatch) {
-    this.completionLatch = completionLatch;
+class MySubscriber implements Flow.Subscriber<Void> {
+  final Runnable onComplete;
+
+  MySubscriber(Runnable onComplete) {
+    this.onComplete = onComplete;
   }
 
   @Override
-  public boolean await(Timeout timeout) throws InterruptedException {
-    Objects.requireNonNull(timeout, "Timeout cannot be null.");
-    return completionLatch.await(timeout.getTimeout(), timeout.getUnit());
+  public void onSubscribe(Flow.Subscription subscription) {
+    subscription.request(1);
+  }
+
+  @Override
+  public void onNext(Void item) {
+    fail("No item expected: " + item);
+  }
+
+  @Override
+  public void onError(Throwable throwable) {
+    fail("No error expecte", throwable);
+  }
+
+  @Override
+  public void onComplete() {
+    onComplete.run();
   }
 }

@@ -86,7 +86,11 @@ public class UnitKit {
   }
 
   public static AtomicReference<Throwable> capture(Thread thread) {
-    return (CatchingExceptionHandler) thread.getUncaughtExceptionHandler();
+    Thread.UncaughtExceptionHandler handler = thread.getUncaughtExceptionHandler();
+    if (handler instanceof CatchingExceptionHandler catcher) {
+      return catcher;
+    }
+    return null;
   }
   
   public static <T> Future<T> forkFuture(Callable<T> procedure) {
@@ -185,11 +189,20 @@ public class UnitKit {
   }
   
   public static void waitForThreadState(Thread thread, Thread.State targetState) {
+    AtomicReference<Throwable> capture = capture(thread);
     long start = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
     long check = start + 30;
     State currentState = thread.getState();
     while (currentState != targetState) {
-      assertThat(currentState).isNotEqualTo(Thread.State.TERMINATED);
+      try {
+        assertThat(currentState).isNotEqualTo(State.TERMINATED);
+      } catch (Throwable e) {
+        Throwable suppressed;
+        if (capture != null && (suppressed = capture.get()) != null) {
+          e.addSuppressed(suppressed);
+        }
+        throw e;
+      }
       long now = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
       if (now > check) {
         long elapsed = now - start;

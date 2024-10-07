@@ -277,7 +277,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
    * call returns.
    * We test for this effect by creating a pool and claiming and object
    * without ever releasing it. Then we call shutdown, without ever awaiting
-   * its completion. The test passes if this does not dead-lock, hence the
+   * its completion. The test passes if this does not deadlock, hence the
    * test timeout.
    */
   @ParameterizedTest
@@ -377,8 +377,9 @@ abstract class AbstractPoolTest<T extends Poolable> {
   void awaitingOnAlreadyCompletedShutDownMustNotBlock() throws Exception {
     createOneObjectPool();
     Completion completion = pool.shutdown();
-    completion.await(longTimeout);
-    completion.await(longTimeout);
+    assertTrue(completion.await(longTimeout));
+    assertTrue(completion.isCompleted());
+    assertTrue(completion.await(longTimeout));
   }
 
   /**
@@ -441,6 +442,20 @@ abstract class AbstractPoolTest<T extends Poolable> {
     }
   }
 
+  @Test
+  void blockOnCompletionWhenInterruptedMustThrow() throws Exception {
+    createOneObjectPool();
+    T obj = pool.claim(longTimeout);
+    assertNotNull(obj, "Did not deplete pool in time");
+    Completion completion = pool.shutdown();
+    Thread.currentThread().interrupt();
+    try {
+      assertThrows(InterruptedException.class, completion::block);
+    } finally {
+      obj.release();
+    }
+  }
+
   /**
    * A thread that is awaiting the completion of a shutdown procedure with
    * a timeout, must throw an InterruptedException if it is interrupted.
@@ -458,6 +473,21 @@ abstract class AbstractPoolTest<T extends Poolable> {
         Thread.currentThread(), Thread.State.TIMED_WAITING));
     try {
       assertThrows(InterruptedException.class, () -> completion.await(longTimeout));
+    } finally {
+      obj.release();
+    }
+  }
+
+  @Test
+  void blockOnCompletionMustThrowUponInterruption() throws Exception {
+    createOneObjectPool();
+    T obj = pool.claim(longTimeout);
+    assertNotNull(obj, "Did not deplete pool in time");
+    Completion completion = pool.shutdown();
+    forkFuture($interruptUponState(
+        Thread.currentThread(), Thread.State.WAITING));
+    try {
+      assertThrows(InterruptedException.class, completion::block);
     } finally {
       obj.release();
     }
@@ -484,7 +514,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
   private Completion givenFinishedInterruptedCompletion()
       throws InterruptedException {
     createOneObjectPool();
-    pool.shutdown().await(longTimeout);
+    assertTrue(pool.shutdown().await(longTimeout));
     Thread.currentThread().interrupt();
     return pool.shutdown();
   }
@@ -498,6 +528,12 @@ abstract class AbstractPoolTest<T extends Poolable> {
   void awaitWithTimeoutOnFinishedCompletionWhenInterruptedMustThrow() throws InterruptedException {
     Completion completion = givenFinishedInterruptedCompletion();
     assertThrows(InterruptedException.class, () -> completion.await(longTimeout));
+  }
+
+  @Test
+  void blockOnFinishedCompletionWhenInterruptedMustThrow() throws InterruptedException {
+    Completion completion = givenFinishedInterruptedCompletion();
+    assertThrows(InterruptedException.class, completion::block);
   }
 
   /**
@@ -1151,6 +1187,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     join(thread);
     obj.release();
     shutdown.await(longTimeout);
+    assertNotNull(exception);
     assertThat(exception.get()).isInstanceOf(IllegalStateException.class);
   }
 
@@ -1167,6 +1204,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     join(thread);
     obj.release();
     shutdown.await(longTimeout);
+    assertNotNull(exception);
     assertThat(exception.get()).isInstanceOf(IllegalStateException.class);
   }
 
@@ -1212,6 +1250,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     thread.interrupt();
     join(thread);
     obj.release();
+    assertNotNull(exception);
     assertThat(exception.get()).isInstanceOf(InterruptedException.class);
   }
 
@@ -1227,6 +1266,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     thread.interrupt();
     join(thread);
     obj.release();
+    assertNotNull(exception);
     assertThat(exception.get()).isInstanceOf(InterruptedException.class);
   }
 
