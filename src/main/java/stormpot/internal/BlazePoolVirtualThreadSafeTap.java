@@ -38,8 +38,14 @@ public final class BlazePoolVirtualThreadSafeTap<T extends Poolable> implements 
   @SuppressWarnings("unused") // Accessed via VarHandle
   private final BSlotCache<T>[] stripes;
 
-  @SuppressWarnings("unchecked")
-  BlazePoolVirtualThreadSafeTap(BlazePool<T> pool, boolean optimizeForMemory) {
+  /**
+   * Create a virtual-thread-safe tap for the given pool.
+   * @param pool The pool to tap from.
+   * @param optimizeForMemory {@code true} to optimise for lower memory usage,
+   *                                     otherwise {@code false} to prioritize performance.
+   */
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  public BlazePoolVirtualThreadSafeTap(BlazePool<T> pool, boolean optimizeForMemory) {
     this.pool = pool;
     stripes = new BSlotCache[ARRAY_SIZE];
     for (int i = 0; i < ARRAY_SIZE; i++) {

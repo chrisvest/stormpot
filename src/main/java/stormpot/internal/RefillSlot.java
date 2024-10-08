@@ -17,6 +17,10 @@ package stormpot.internal;
 
 import stormpot.Poolable;
 
+/**
+ * The node type of {@link RefillPile}.
+ * @param <T> The concrete poolable type.
+ */
 public final class RefillSlot<T extends Poolable> {
   final BSlot<T> slot;
   volatile RefillSlot<T> next;

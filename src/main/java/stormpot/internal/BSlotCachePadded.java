@@ -17,6 +17,10 @@ package stormpot.internal;
 
 import stormpot.Poolable;
 
+/**
+ * A reference to a {@link BSlot}, with extra padding to keep the pointer on its own cache line.
+ * @param <T> The concrete poolable type.
+ */
 @SuppressWarnings("unused")
 public class BSlotCachePadded<T extends Poolable> extends BSlotCache<T> {
   private long p00;
@@ -33,4 +37,10 @@ public class BSlotCachePadded<T extends Poolable> extends BSlotCache<T> {
   private long p11;
   private long p12;
   private long p13;
+
+  /**
+   * Create a new, empty instance.
+   */
+  public BSlotCachePadded() {
+  }
 }

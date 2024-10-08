@@ -29,6 +29,12 @@ import java.util.concurrent.locks.LockSupport;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+/**
+ * The dedicated background allocation process of a pool that operates in the
+ * {@link AllocationProcessMode#THREADED} mode.
+ *
+ * @param <T> The concrete poolable type.
+ */
 @SuppressWarnings("NonAtomicOperationOnVolatileField")
 public final class BAllocThread<T extends Poolable> implements Runnable {
   /**

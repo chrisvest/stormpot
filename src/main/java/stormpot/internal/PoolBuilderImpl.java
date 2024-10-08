@@ -34,18 +34,28 @@ import static stormpot.internal.AllocationProcessMode.DIRECT;
 import static stormpot.internal.AllocationProcessMode.INLINE;
 import static stormpot.internal.AllocationProcessMode.THREADED;
 
+/**
+ * The {@link PoolBuilder} implementation.
+ * @param <T> The concrete poolable type.
+ */
 public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T> {
-  public static final ThreadFactory THREAD_FACTORY = Thread.ofVirtual()
+  static final ThreadFactory THREAD_FACTORY = Thread.ofVirtual()
           .name("Stormpot-", 1)
           .inheritInheritableThreadLocals(false)
           .factory();
 
+  /**
+   * Mapping of {@link AllocationProcessMode} to the pool builder default settings.
+   */
   public static final Map<AllocationProcessMode, PoolBuilderDefaults> DEFAULTS = Map.of(
       THREADED, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, false, true, 1000, true),
       INLINE, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, false, false, 0, true),
       DIRECT, new PoolBuilderDefaults(never(), THREAD_FACTORY, false, false, 0, true)
   );
 
+  /**
+   * Mapping of {@link AllocationProcessMode} to the pool builder permissions, deciding what settings can be changed.
+   */
   public static final Map<AllocationProcessMode, PoolBuilderPermissions> PERMISSIONS = Map.of(
       THREADED, new PoolBuilderPermissions(true, true, true, true, true),
       INLINE, new PoolBuilderPermissions(true, true, true, false, false),
@@ -66,6 +76,8 @@ public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T>
 
   /**
    * Build a new empty {@code PoolBuilder} object.
+   * @param allocationProcess The allocation process to use.
+   * @param allocator The allocator instance to use.
    */
   public PoolBuilderImpl(AllocationProcess allocationProcess, Allocator<T> allocator) {
     requireNonNull(allocator, "The Allocator cannot be null.");
@@ -221,6 +233,10 @@ public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T>
     return new BlazePool<>(this, allocationProcess);
   }
 
+  /**
+   * Get a {@link Reallocator} from this pool builder, possibly by adapting the configured {@link Allocator}.
+   * @return A {@link Reallocator} instance, either the one given to the pool builder, or a new adapted instance.
+   */
   public synchronized Reallocator<T> getAdaptedReallocator() {
     if (metricsRecorder == null) {
       if (allocator instanceof Reallocator) {

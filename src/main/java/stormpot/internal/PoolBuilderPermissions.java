@@ -15,6 +15,15 @@
  */
 package stormpot.internal;
 
+/**
+ * A holder of permissions, deciding what {@link stormpot.PoolBuilder} settings are allowed to be changed.
+ * @param setAllocator {@code true} if the allocator can be changed, otherwise {@code false}.
+ * @param setSize {@code true} if the size can be changed, otherwise {@code false}.
+ * @param setExpiration {@code true} if the expiration can be changed, otherwise {@code false}.
+ * @param setThreadFactory {@code true} if the thread factory can be changed, otherwise {@code false}.
+ * @param setBackgroundExpiration {@code true} if background expiration checking can be enabled or disabled,
+ *                                            otherwise {@code false}.
+ */
 public record PoolBuilderPermissions(
         boolean setAllocator,
         boolean setSize,

@@ -23,13 +23,13 @@ import stormpot.Slot;
 
 import java.util.concurrent.TimeUnit;
 
-public class TimingReallocatingAdaptor<T extends Poolable>
+class TimingReallocatingAdaptor<T extends Poolable>
     extends ReallocatingAdaptor<T>
     implements Reallocator<T> {
 
   final MetricsRecorder metricsRecorder;
 
-  public TimingReallocatingAdaptor(
+  TimingReallocatingAdaptor(
       Allocator<T> allocator,
       MetricsRecorder metricsRecorder) {
     super(allocator);

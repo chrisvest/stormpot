@@ -35,7 +35,11 @@ public final class BlazePoolSingleThreadedTap<T extends Poolable> implements Poo
   private final BlazePool<T> pool;
   private final BSlotCache<T> cache = new BSlotCache<>();
 
-  BlazePoolSingleThreadedTap(BlazePool<T> pool) {
+  /**
+   * Create a sequential (only usable by one thread at a time) tap for the given pool.
+   * @param pool The pool to tap from.
+   */
+  public BlazePoolSingleThreadedTap(BlazePool<T> pool) {
     this.pool = pool;
   }
 

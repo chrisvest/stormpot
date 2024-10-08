@@ -17,6 +17,16 @@ package stormpot.internal;
 
 import stormpot.Poolable;
 
+/**
+ * A reference to a {@link BSlot}.
+ * @param <T> The concrete poolable type.
+ */
 public class BSlotCache<T extends Poolable> {
+  /**
+   * Create a new, empty instance.
+   */
+  public BSlotCache() {
+  }
+
   BSlot<T> slot;
 }

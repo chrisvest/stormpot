@@ -17,10 +17,21 @@ package stormpot.internal;
 
 import java.io.Serial;
 
+/**
+ * Exception type used to mark poison conditions on slots or in the pool.
+ * <p>
+ * This exception type is suitable for use in constants.
+ * Exception objects of this type do not include stack traces,
+ * and do not allow suppressed exceptions to be added to them.
+ */
 public final class PoisonException extends Exception {
   @Serial
   private static final long serialVersionUID = 5196724916292026430L;
 
+  /**
+   * Create a new exception with the given message.
+   * @param message The message of the exception.
+   */
   public PoisonException(String message) {
     super(message, null, false, false);
   }
