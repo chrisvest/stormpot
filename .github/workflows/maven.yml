@@ -24,6 +24,7 @@ jobs:
       with:
         java-version: ${{ matrix.java-version }}
         distribution: ${{ matrix.java-distribution }}
+        cache: 'maven'
     - name: Build with Maven
       run: ./mvnw -Dmaven.javadoc.skip=true verify -B
   site:
@@ -35,6 +36,7 @@ jobs:
         with:
           java-version: '21'
           distribution: 'zulu'
+          cache: 'maven'
       - name: Build with Maven
         run: ./mvnw verify package site -B
   build-benchmarks:
@@ -46,5 +48,6 @@ jobs:
         with:
           java-version: '23'
           distribution: 'zulu'
+          cache: 'maven'
       - name: Build with Maven
         run: ./mvnw -Dmaven.javadoc.skip=true -DskipTests package -f modular-pom.xml
