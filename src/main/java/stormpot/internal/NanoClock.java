@@ -23,7 +23,7 @@ public final class NanoClock {
     return System.nanoTime();
   }
 
-  static long elapsed(long startNanos) {
+  public static long elapsed(long startNanos) {
     return nanoTime() - startNanos;
   }
 
