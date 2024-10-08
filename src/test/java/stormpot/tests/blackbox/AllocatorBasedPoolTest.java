@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import stormpot.BasePoolable;
+import stormpot.internal.NanoClock;
 import testkits.AlloKit;
 import stormpot.Allocator;
 import stormpot.Completion;
@@ -418,17 +419,14 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   @ParameterizedTest
   @EnumSource(Taps.class)
   void slotInfoAgeMustResetAfterAllocation(Taps taps) throws InterruptedException {
-    final AtomicBoolean hasExpired = new AtomicBoolean();
     final AtomicLong age = new AtomicLong();
-    final AtomicLong expectedAge = new AtomicLong();
     final AtomicLong createdNanoTime = new AtomicLong();
     builder.setExpiration(expire(
         $capture(info -> {
           age.set(info.getAgeMillis());
           long created = info.getCreatedNanoTime();
           createdNanoTime.set(created);
-          expectedAge.set(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - created));
-        }, $expiredIf(hasExpired))));
+        }, $fresh)));
     noBackgroundExpirationChecking();
     // Reallocations will fail, causing the slot to be poisoned.
     // Then, the poisoned slot will not be reallocated again, but rather
@@ -438,21 +436,27 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     PoolTap<GenericPoolable> tap = taps.get(this);
     tap.claim(longTimeout).release();
     Thread.sleep(100); // time transpires
-    tap.claim(longTimeout).release();
-    long firstAge = age.get(); // age is now at least 5 ms
-    long firstCreatedNanoTime = createdNanoTime.get();
-    assertThat(firstAge).isCloseTo(expectedAge.get(), Offset.offset(25L));
-    hasExpired.set(true);
+    long firstCreatedNanoTime;
+    GenericPoolable obj = tap.claim(longTimeout);
+    try {
+      long firstAge = age.get(); // age is now at least 5 ms
+      firstCreatedNanoTime = createdNanoTime.get();
+      assertThat(firstAge).isGreaterThanOrEqualTo(100);
+      obj.expire();
+    } finally {
+      obj.release();
+    }
+
     try {
       tap.claim(longTimeout).release();
     } catch (Exception e) {
       // ignore
     }
-    hasExpired.set(false);
+
     // new object should have a new age
     tap.claim(longTimeout).release();
     long secondAge = age.get(); // age should be less than age of prev. obj.
-    assertThat(secondAge).isCloseTo(expectedAge.get(), Offset.offset(25L));
+    assertThat(TimeUnit.MILLISECONDS.toNanos(secondAge)).isLessThan(NanoClock.elapsed(firstCreatedNanoTime));
     long secondCreatedNanoTime = createdNanoTime.get();
     assertThat(secondCreatedNanoTime).isNotEqualTo(firstCreatedNanoTime);
   }
@@ -468,6 +472,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
               long created = info.getCreatedNanoTime();
               createdNanoTime.set(created);
             }, $fresh)));
+    noBackgroundExpirationChecking();
     createPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
     tap.claim(longTimeout).release();
@@ -484,7 +489,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     }
     tap.claim(longTimeout).release(); // new object, new age
     long secondAge = age.get();
-    assertThat(secondAge).isLessThan(100);
+    assertThat(TimeUnit.MILLISECONDS.toNanos(secondAge)).isLessThan(NanoClock.elapsed(firstCreatedNanoTime));
     long secondCreatedNanoTime = createdNanoTime.get();
     assertThat(secondCreatedNanoTime).isNotEqualTo(firstCreatedNanoTime);
   }
