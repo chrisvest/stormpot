@@ -551,7 +551,8 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
             $countDown(allocationLatch, $new))),
         realloc($throw(new RuntimeException("boo")))));
     builder.setExpiration(expire($expiredIf(hasExpired)));
-    createPool();
+    noBackgroundExpirationChecking();
+    createOneObjectPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
     tap.claim(longTimeout).release(); // object now allocated
     throwInAllocate.set(true);
