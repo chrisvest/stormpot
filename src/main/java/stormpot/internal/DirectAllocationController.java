@@ -47,7 +47,7 @@ public final class DirectAllocationController<T extends Poolable> extends Alloca
     poisonedSlots = new AtomicLong();
     Allocator<T> allocator = builder.getAllocator();
     boolean optimizeForMemory = builder.isOptimizeForReducedMemoryUsage();
-    for (int i = 0; i < size; i++) {
+    for (long i = 0; i < size; i++) {
       BSlot<T> slot = optimizeForMemory ?
               new BSlot<>(live, poisonedSlots) : new BSlotPadded<>(live, poisonedSlots);
       try {
