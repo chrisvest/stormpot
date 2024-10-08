@@ -270,7 +270,7 @@ public abstract class Sim {
       // Wait for the pool to boot up.
       long size = builder.getSize();
       List<GenericPoolable> objs = new ArrayList<>();
-      for (int j = 0; j < size; j++) {
+      for (long j = 0; j < size; j++) {
         objs.add(pool.claim(new Timeout(30, TimeUnit.MINUTES)));
       }
       for (GenericPoolable obj : objs) {
