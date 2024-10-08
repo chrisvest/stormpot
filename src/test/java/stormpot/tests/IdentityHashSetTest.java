@@ -32,8 +32,11 @@ class IdentityHashSetTest {
   static IntStream setSizes() {
     // Do roughly 100 tests.
     ThreadLocalRandom rng = ThreadLocalRandom.current();
-    return IntStream.range(1, 5000).filter(
-            i -> rng.nextDouble() < (i < 1000 ? 0.1 : 0.02));
+    IntStream initial = IntStream.range(1, 5000)
+            .filter(i -> rng.nextDouble() < (i < 1000 ? 0.1 : 0.02));
+    // Include tests that force the sets into tree modes.
+    IntStream withSubtrees = IntStream.of(2_097_152, 2_097_152 * 2);
+    return IntStream.concat(initial, withSubtrees);
   }
 
   private static Object[] createObjects(int numberOfObjects) {

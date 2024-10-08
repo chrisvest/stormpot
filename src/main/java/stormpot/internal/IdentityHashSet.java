@@ -18,8 +18,10 @@ package stormpot.internal;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.ToIntFunction;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static java.util.Objects.requireNonNull;
 
@@ -34,11 +36,13 @@ public final class IdentityHashSet implements Iterable<Object> {
   private static final ToIntFunction<Object> DEFAULT_HASH = System::identityHashCode;
 
   private final Object[] stash;
+  private final int subtreeMix;
   private final ToIntFunction<Object> hashOf;
   private int stashSize;
   private int sectionLength;
   private int sectionBlocks;
   private Object[] table;
+  private boolean treeMode;
 
   public IdentityHashSet() {
     this(DEFAULT_HASH);
@@ -49,11 +53,16 @@ public final class IdentityHashSet implements Iterable<Object> {
     sectionBlocks = 8;
     sectionLength = BLOCK_LEN * sectionBlocks;
     table = new Object[sectionLength * 2];
+    subtreeMix = ThreadLocalRandom.current().nextInt();
     this.hashOf = requireNonNull(hashOf, "hashOf");
   }
 
   public void add(Object obj) {
     for (;;) {
+      if (treeMode) {
+        subtree(obj).add(obj);
+        return;
+      }
       int mask = sectionBlocks - 1;
       int ihash = hashOf.applyAsInt(obj);
       int h1 = BLOCK_LEN * (ihash & mask);
@@ -96,8 +105,12 @@ public final class IdentityHashSet implements Iterable<Object> {
   }
 
   public void remove(Object obj) {
-    int mask = sectionBlocks - 1;
+    if (treeMode) {
+      subtree(obj).remove(obj);
+      return;
+    }
     int ihash = hashOf.applyAsInt(obj);
+    int mask = sectionBlocks - 1;
     int h1 = BLOCK_LEN * (ihash & mask);
     int h2 = sectionLength + (BLOCK_LEN * (fmix32(ihash) & mask));
     for (int i = 0; i < stashSize; i++) {
@@ -126,12 +139,27 @@ public final class IdentityHashSet implements Iterable<Object> {
     }
   }
 
+  private IdentityHashSet subtree(Object obj) {
+    int ihash = hashOf.applyAsInt(obj);
+    ihash = fmix32(ihash ^ subtreeMix) & sectionBlocks;
+    return ((IdentityHashSet) table[ihash]);
+  }
+
   @Override
   public Iterator<Object> iterator() {
     // This is only used by the tests.
-    return Stream.concat(Stream.of(stash), Stream.of(table))
-            .filter(Objects::nonNull)
-            .iterator();
+    if (treeMode) {
+      return Stream.of(table)
+              .flatMap(obj -> {
+                IdentityHashSet set = (IdentityHashSet) obj;
+                return StreamSupport.stream(set.spliterator(), false);
+              })
+              .iterator();
+    } else {
+      return Stream.concat(Stream.of(stash), Stream.of(table))
+              .filter(Objects::nonNull)
+              .iterator();
+    }
   }
 
   private static int fmix32(int key) {
@@ -145,13 +173,30 @@ public final class IdentityHashSet implements Iterable<Object> {
   }
 
   private void resize() {
+    int newSectionLength = sectionLength * 2;
+    int newTableLength = newSectionLength * 2;
+    int newSectionBlocks = sectionBlocks * 2;
     Object[] stashCopy = Arrays.copyOfRange(stash, 0, stashSize);
     Arrays.fill(stash, null);
     stashSize = 0;
     Object[] oldTable = table;
-    sectionLength *= 2;
-    sectionBlocks *= 2;
-    table = new Object[sectionLength * 2];
+
+    if (newTableLength >= 2_097_152) {
+      treeMode = true;
+      int len = 16384;
+      Object[] newTable = new Object[len];
+      for (int i = 0; i < len; i++) {
+        newTable[i] = new IdentityHashSet(hashOf);
+      }
+      table = newTable;
+      sectionLength = len;
+      sectionBlocks = len - 1;
+    } else {
+      sectionLength = newSectionLength;
+      sectionBlocks = newSectionBlocks;
+      table = new Object[newTableLength];
+    }
+
     for (Object obj : stashCopy) {
       add(obj);
     }
