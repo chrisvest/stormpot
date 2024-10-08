@@ -21,6 +21,10 @@ import stormpot.Poolable;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.ThreadFactory;
 
+/**
+ * The {@link AllocationController} implementation for the {@link AllocationProcessMode#THREADED} mode.
+ * @param <T> The concrete poolable type.
+ */
 public final class ThreadedAllocationController<T extends Poolable> extends AllocationController<T> {
   private final BAllocThread<T> allocator;
   private final Thread allocatorThread;

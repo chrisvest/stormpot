@@ -27,6 +27,11 @@ import stormpot.Poolable;
  * @param <T> The type of {@link Poolable poolables} to allocate or deallocate.
  */
 public abstract class AllocationController<T extends Poolable> {
+  /**
+   * Default constructor.
+   */
+  public AllocationController() {
+  }
 
   abstract void offerDeadSlot(BSlot<T> slot);
 

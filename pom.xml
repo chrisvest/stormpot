@@ -220,7 +220,7 @@
         <configuration>
           <additionalOptions>
             <additionalOption>--snippet-path</additionalOption>
-            <additionalOption>${build.testSourceDirectory}/examples/</additionalOption>
+            <additionalOption>${project.build.testSourceDirectory}/examples/</additionalOption>
           </additionalOptions>
           <detectJavaApiLink>true</detectJavaApiLink>
         </configuration>

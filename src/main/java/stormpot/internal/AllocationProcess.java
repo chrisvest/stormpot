@@ -23,7 +23,14 @@ import static stormpot.internal.AllocationProcessMode.DIRECT;
 import static stormpot.internal.AllocationProcessMode.INLINE;
 import static stormpot.internal.AllocationProcessMode.THREADED;
 
+/**
+ * The allocation process represent the means of building pool-specific {@link AllocationController} instances.
+ */
 public abstract class AllocationProcess {
+  /**
+   * Create an allocation process that create pool controllers that use dedicated background threads.
+   * @return The new allocation process.
+   */
   public static AllocationProcess threaded() {
     return new AllocationProcess(THREADED) {
       @Override
@@ -39,6 +46,10 @@ public abstract class AllocationProcess {
     };
   }
 
+  /**
+   * Create an allocation process where all allocation and deallocation is performed in-line with the claim calls.
+   * @return The new allocation process.
+   */
   public static AllocationProcess inline() {
     return new AllocationProcess(INLINE) {
       @Override
@@ -54,6 +65,10 @@ public abstract class AllocationProcess {
     };
   }
 
+  /**
+   * Create an allocation process where all the pooled objects are given up-front.
+   * @return The new allocation process.
+   */
   public static AllocationProcess direct() {
     return new AllocationProcess(DIRECT) {
       @Override
@@ -71,10 +86,18 @@ public abstract class AllocationProcess {
 
   private final AllocationProcessMode mode;
 
+  /**
+   * Create an allocation process with the given operating mode.
+   * @param mode The operating mode of this allocation process.
+   */
   protected AllocationProcess(AllocationProcessMode mode) {
     this.mode = mode;
   }
 
+  /**
+   * Get the operating mode of this allocation process.
+   * @return The operating mode.
+   */
   public AllocationProcessMode getMode() {
     return mode;
   }

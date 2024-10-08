@@ -15,8 +15,20 @@
  */
 package stormpot.internal;
 
+/**
+ * The operating mode of an {@link AllocationProcess}.
+ */
 public enum AllocationProcessMode {
+  /**
+   * The operating mode of {@link AllocationProcess#threaded()}.
+   */
   THREADED,
+  /**
+   * The operating mode of {@link AllocationProcess#inline()}.
+   */
   INLINE,
+  /**
+   * The operating mode of {@link AllocationProcess#direct()}.
+   */
   DIRECT
 }

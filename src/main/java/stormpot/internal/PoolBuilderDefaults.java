@@ -20,15 +20,18 @@ import stormpot.Poolable;
 
 import java.util.concurrent.ThreadFactory;
 
+/**
+ * Container of default, initial settings for a {@link stormpot.PoolBuilder}.
+ */
 public final class PoolBuilderDefaults {
-  public final Expiration<? super Poolable> expiration;
-  public final ThreadFactory threadFactory;
-  public final boolean preciseLeakDetectionEnabled;
-  public final boolean backgroundExpirationEnabled;
-  public final int backgroundExpirationCheckDelay;
-  public final boolean optimizeForMemory;
+  final Expiration<? super Poolable> expiration;
+  final ThreadFactory threadFactory;
+  final boolean preciseLeakDetectionEnabled;
+  final boolean backgroundExpirationEnabled;
+  final int backgroundExpirationCheckDelay;
+  final boolean optimizeForMemory;
 
-  public PoolBuilderDefaults(
+  PoolBuilderDefaults(
       Expiration<Poolable> expiration,
       ThreadFactory threadFactory,
       boolean preciseLeakDetectionEnabled,

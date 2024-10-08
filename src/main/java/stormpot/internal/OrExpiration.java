@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
  * {@link Expiration} returns {@code true}. This makes it easy to have an {@link Expiration} that
  * expires both on time ({@link Expiration#after(long, TimeUnit)}) and some other criteria.
  *
+ * @param <T> The concrete poolable type.
  * @author Guillaume Lederrey
  * @since 2.4
  */
@@ -35,6 +36,11 @@ public final class OrExpiration<T extends Poolable> implements Expiration<T> {
   private final Expiration<T> firstExpiration;
   private final Expiration<T> secondExpiration;
 
+  /**
+   * Create a new instance with the given two expirations.
+   * @param firstExpiration The first expiration to check.
+   * @param secondExpiration The second expiration to check.
+   */
   public OrExpiration(Expiration<T> firstExpiration, Expiration<T> secondExpiration) {
     this.firstExpiration = firstExpiration;
     this.secondExpiration = secondExpiration;

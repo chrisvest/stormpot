@@ -29,6 +29,10 @@ import stormpot.Timeout;
 public final class BlazePoolThreadSafeTap<T extends Poolable> implements PoolTap<T> {
   private final BlazePool<T> pool;
 
+  /**
+   * Create a thread-safe tap for the given pool.
+   * @param pool The pool to tap from.
+   */
   public BlazePoolThreadSafeTap(BlazePool<T> pool) {
     this.pool = pool;
   }

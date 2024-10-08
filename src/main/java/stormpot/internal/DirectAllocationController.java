@@ -24,6 +24,10 @@ import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * The {@link AllocationController} that implements the {@link AllocationProcessMode#DIRECT} mode.
+ * @param <T> The concrete poolable type.
+ */
 public final class DirectAllocationController<T extends Poolable> extends AllocationController<T> {
   private final LinkedTransferQueue<BSlot<T>> live;
   private final RefillPile<T> disregardPile;

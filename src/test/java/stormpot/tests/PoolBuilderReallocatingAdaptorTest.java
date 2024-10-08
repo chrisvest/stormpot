@@ -63,7 +63,7 @@ class PoolBuilderReallocatingAdaptorTest {
   @Test
   void mustNotReAdaptConfiguredReallocators() {
     Reallocator<GenericPoolable> expected =
-        new ReallocatingAdaptor<>(null);
+        new ReallocatingAdaptor<>(AlloKit.allocator());
     builder = Pool.from(expected);
     Reallocator<GenericPoolable> actual = builder.getReallocator();
     assertThat(actual).isSameAs(expected);

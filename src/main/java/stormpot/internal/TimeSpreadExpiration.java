@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
  * This is the standard time based {@link Expiration}. It will invalidate
  * objects based on about how long ago they were allocated.
  *
+ * @param <T> The concrete poolable type.
  * @author Chris Vest
  * @since 2.2
  */

@@ -28,9 +28,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * This class is very sensitive to the memory layout, so be careful to measure
- * the effect of even the tiniest changes!
- * False-sharing can be quite sneaky.
+ * The BSlot implements the {@link Slot} and {@link SlotInfo} interfaces for the blaze pool implementation.
+ *
+ * @param <T> The concrete poolable type.
  */
 public class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   private static final int CLAIMED = 1;
@@ -56,10 +56,25 @@ public class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   final AtomicLong poisonedSlots;
   long stamp;
   long createdNanos;
+  /**
+   * The object being pooled.
+   */
   public T obj;
+  /**
+   * Any exception encountered when trying to allocate an object for this slot.
+   */
   public Exception poison;
+  /**
+   * A reference to the allocated object, used by the {@link PreciseLeakDetector}.
+   */
   public Reference<Object> leakCheck; // Used by PreciseLeakDetector
 
+  /**
+   * Create a new BSlot instance, which will return to the given live queue when released from a claim,
+   * and update the given counter when poisoned.
+   * @param live The queue of live slots.
+   * @param poisonedSlots The counter of poisoned slots.
+   */
   public BSlot(BlockingQueue<BSlot<T>> live, AtomicLong poisonedSlots) {
     // Volatile write in the constructor: This object must be safely published,
     // so that we are sure that the volatile write happens-before other
@@ -123,22 +138,39 @@ public class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
     lazySet(LIVING);
   }
 
+  /**
+   * Transition this slot from thread-locally claimed, to live.
+   */
   public void claimTlr2live() {
     lazySet(LIVING);
   }
 
+  /**
+   * Transition this slot from dead to live.
+   */
   public void dead2live() {
     lazySet(LIVING);
   }
 
+  /**
+   * Transition this slot from claimed to dead.
+   */
   public void claim2dead() {
     lazySet(DEAD);
   }
 
+  /**
+   * Attempt to transition this slot from live to claimed.
+   * @return {@code true} if the state transition succeeds, otherwise {@code false}.
+   */
   public boolean live2claim() {
     return compareAndSet(LIVING, CLAIMED);
   }
-  
+
+  /**
+   * Attempt to transition this slot from live to thread-locally claimed.
+   * @return {@code true} if the state transition succeeds, otherwise {@code false}.
+   */
   public boolean live2claimTlr() {
     return compareAndSet(LIVING, TLR_CLAIMED);
   }

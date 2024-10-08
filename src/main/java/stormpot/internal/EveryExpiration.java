@@ -21,10 +21,24 @@ import stormpot.SlotInfo;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * The implementation of the {@link Expiration#every(long, TimeUnit)} and
+ * {@link Expiration#every(long, long, TimeUnit)} expiration combinators.
+ *
+ * @param <T> The concrete poolable type.
+ */
 public final class EveryExpiration<T extends Poolable> implements Expiration<T> {
   private final Expiration<T> innerExpiration;
   private final TimeSpreadExpiration<T> timeExpiration;
 
+  /**
+   * Create an instance of the combinator with the given configuration.
+   *
+   * @param innerExpiration The inner expiration to wrap.
+   * @param fromTime The lower expiration time bound.
+   * @param toTime The upper expiration time bound.
+   * @param unit The time unit of the bounds.
+   */
   public EveryExpiration(Expiration<T> innerExpiration, long fromTime, long toTime, TimeUnit unit) {
     this.innerExpiration = innerExpiration;
     timeExpiration = new TimeSpreadExpiration<>(fromTime, toTime, unit);

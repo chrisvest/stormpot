@@ -24,6 +24,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.ToIntFunction;
 
+/**
+ * Leak detector, used to detect if objects allocated by the pool get garbage collected,
+ * without first being deallocated by the pool.
+ */
 public final class PreciseLeakDetector {
   private static final ToIntFunction<Object> REF_HASH = obj -> ((CountedPhantomRef<?>) obj).id;
 
@@ -31,12 +35,22 @@ public final class PreciseLeakDetector {
   private final LongAdder leakedObjectCount;
   private final IdentityHashSet refs;
 
+  /**
+   * Create a new instance.
+   */
   public PreciseLeakDetector() {
     referenceQueue = new ReferenceQueue<>();
     leakedObjectCount = new LongAdder();
     refs = new IdentityHashSet(REF_HASH);
   }
 
+  /**
+   * Register the given slot and its contained object with the detector.
+   * <p>
+   * The slot has had an object allocated to it, and is about to be handed over to user code.
+   *
+   * @param slot The slot to register.
+   */
   public void register(BSlot<?> slot) {
     CountedPhantomRef<Object> ref = new CountedPhantomRef<>(slot.obj, referenceQueue);
     slot.leakCheck = ref;
@@ -65,6 +79,13 @@ public final class PreciseLeakDetector {
     }
   }
 
+  /**
+   * Deregister the given slot from the leak detector.
+   * <p>
+   * The object held by the slot has been deallocated by the pool.
+   *
+   * @param slot The slot to deregister.
+   */
   public void unregister(BSlot<?> slot) {
     slot.leakCheck.clear();
     synchronized (refs) {
@@ -74,6 +95,10 @@ public final class PreciseLeakDetector {
     accumulateLeaks();
   }
 
+  /**
+   * Compute a count of the leaked objects that this detector has detected.
+   * @return The number of object leaks observed.
+   */
   public long countLeakedObjects() {
     accumulateLeaks();
     return leakedObjectCount.sum();

@@ -44,19 +44,30 @@ public final class IdentityHashSet implements Iterable<Object> {
   private Object[] table;
   private boolean treeMode;
 
+  /**
+   * Create an empty identity hash set that uses {@link System#identityHashCode(Object)} as the hash code for entries.
+   */
   public IdentityHashSet() {
     this(DEFAULT_HASH);
   }
 
-  public IdentityHashSet(ToIntFunction<Object> hashOf) {
+  /**
+   * Create an empty identity hash set that uses the given function as the hash code for entries.
+   * @param hashCode A function that converts a given object into a reasonably unique integer.
+   */
+  public IdentityHashSet(ToIntFunction<Object> hashCode) {
     stash = new Object[BLOCK_LEN];
     sectionBlocks = 8;
     sectionLength = BLOCK_LEN * sectionBlocks;
     table = new Object[sectionLength * 2];
     subtreeMix = ThreadLocalRandom.current().nextInt();
-    this.hashOf = requireNonNull(hashOf, "hashOf");
+    this.hashOf = requireNonNull(hashCode, "hashCode");
   }
 
+  /**
+   * Add the given object to the set.
+   * @param obj The object to add.
+   */
   public void add(Object obj) {
     for (;;) {
       if (treeMode) {
@@ -104,6 +115,10 @@ public final class IdentityHashSet implements Iterable<Object> {
     }
   }
 
+  /**
+   * Remove the given object from the set.
+   * @param obj The object to remove.
+   */
   public void remove(Object obj) {
     if (treeMode) {
       subtree(obj).remove(obj);

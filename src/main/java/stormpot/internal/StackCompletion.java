@@ -24,6 +24,11 @@ import java.util.Objects;
 import java.util.concurrent.Flow;
 import java.util.concurrent.locks.LockSupport;
 
+/**
+ * An implementation of {@link Completion} based on a wait-free stack.
+ * This implementation also supports a callback mechanism that trigger every time
+ * a and {@link #await(Timeout)} or {@link #block()} call is about to block.
+ */
 public final class StackCompletion implements Completion {
   private static final Node END = new Node("END");
   private static final Node DONE = new Node("DONE");
@@ -42,11 +47,18 @@ public final class StackCompletion implements Completion {
   @SuppressWarnings("FieldMayBeFinal") // Accessed via VarHandle
   private volatile Node nodes;
   private final OnAwait onAwait;
-  
+
+  /**
+   * Create an unfinished completion with no {@link OnAwait} callback.
+   */
   public StackCompletion() {
     this(null);
   }
 
+  /**
+   * Create an unfinished completion with the given {@link OnAwait} callback.
+   * @param onAwait The callback to notify for blocking, may be {@code null}.
+   */
   public StackCompletion(OnAwait onAwait) {
     nodes = END;
     this.onAwait = onAwait;
@@ -68,6 +80,9 @@ public final class StackCompletion implements Completion {
     return next;
   }
 
+  /**
+   * Complete this completion and notify all waiters and subscribers.
+   */
   public void complete() {
     if (nodes == DONE) {
       return;
@@ -307,7 +322,17 @@ public final class StackCompletion implements Completion {
   private record CancelledSubscription(Flow.Subscriber<?> subscriber) {
   }
 
+  /**
+   * A callback that will be notified when threads block on a given completion.
+   */
+  @FunctionalInterface
   public interface OnAwait {
+    /**
+     * Implements the blocking await of a {@link StackCompletion}.
+     * @param timeout A timeout to bound the waiting. May be {@code null}.
+     * @return {@code true} if the completion completed, otherwise {@code false}.
+     * @throws InterruptedException If the thread was interrupted while waiting.
+     */
     boolean await(Timeout timeout) throws InterruptedException;
   }
 

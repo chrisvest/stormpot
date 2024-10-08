@@ -20,6 +20,10 @@ import stormpot.Poolable;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * A {@link BSlot} type with extra padding to ensure each slot is on their own CPU cache line.
+ * @param <T> The concrete poolable type.
+ */
 @SuppressWarnings("unused")
 public class BSlotPadded<T extends Poolable> extends BSlot<T> {
   private long p00;
@@ -32,6 +36,12 @@ public class BSlotPadded<T extends Poolable> extends BSlot<T> {
   private long p07;
   private long p08;
 
+  /**
+   * Create a new BSlot instance, which will return to the given live queue when released from a claim,
+   * and update the given counter when poisoned.
+   * @param live The queue of live slots.
+   * @param poisonedSlots The counter of poisoned slots.
+   */
   public BSlotPadded(BlockingQueue<BSlot<T>> live, AtomicLong poisonedSlots) {
     super(live, poisonedSlots);
   }

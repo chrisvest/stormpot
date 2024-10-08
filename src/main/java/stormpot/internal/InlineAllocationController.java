@@ -29,6 +29,10 @@ import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * The {@link AllocationController} implementation for the {@link AllocationProcessMode#INLINE} mode.
+ * @param <T> The concrete poolable type.
+ */
 public final class InlineAllocationController<T extends Poolable> extends AllocationController<T> {
   private static final VarHandle SIZE;
   private static final VarHandle ALLOC_COUNT;

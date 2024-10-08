@@ -20,11 +20,21 @@ import stormpot.Poolable;
 import stormpot.Reallocator;
 import stormpot.Slot;
 
+import java.util.Objects;
+
+/**
+ * An adaptor that implements {@link Reallocator} in terms of a given {@link Allocator}.
+ * @param <T> The concrete poolable type.
+ */
 public class ReallocatingAdaptor<T extends Poolable> implements Reallocator<T> {
   final Allocator<T> allocator;
 
+  /**
+   * Adapt the given {@link Allocator} into a {@link Reallocator}.
+   * @param allocator The allocator to adapt.
+   */
   public ReallocatingAdaptor(Allocator<T> allocator) {
-    this.allocator = allocator;
+    this.allocator = Objects.requireNonNull(allocator, "allocator");
   }
 
   @Override
@@ -47,6 +57,10 @@ public class ReallocatingAdaptor<T extends Poolable> implements Reallocator<T> {
     allocator.deallocate(poolable);
   }
 
+  /**
+   * Unwrap this adaptor to reveal the underlying {@link Allocator}.
+   * @return The allocator adapted by this reallocator.
+   */
   public Allocator<T> unwrap() {
     return allocator;
   }

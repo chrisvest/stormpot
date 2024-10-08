@@ -92,6 +92,7 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
   /**
    * Construct a new BlazePool instance based on the given {@link PoolBuilder}.
    * @param builder The pool configuration to use.
+   * @param factory The allocation process that builds the {@link AllocationController} used by this pool.
    */
   public BlazePool(PoolBuilderImpl<T> builder, AllocationProcess factory) {
     live = new LinkedTransferQueue<>();
