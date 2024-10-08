@@ -35,7 +35,7 @@ class PreciseLeakDetectorIT {
   private final PreciseLeakDetector detector = new PreciseLeakDetector();
 
   @Test
-  void mustCountCorrectlyAfterRandomAddRemoveLeakAndCounts() {
+  void mustCountCorrectlyAfterRandomAddRemoveLeakAndCounts() throws Exception {
     System.out.print(
         "NOTE: this test takes about 15 to 30 seconds to run...    ");
 
@@ -65,9 +65,12 @@ class PreciseLeakDetectorIT {
         }
       } else if (choice < 90) {
         // Count
-        assertThat(detector.countLeakedObjects())
-            .isGreaterThan(leaksCreated - 10)
-            .isLessThanOrEqualTo(leaksCreated);
+        try (AutoCloseable ignore = GarbageCreator.forkCreateGarbage()) {
+          GarbageCreator.awaitReferenceProcessing();
+          assertThat(detector.countLeakedObjects())
+                  .isGreaterThan(leaksCreated - 10)
+                  .isLessThanOrEqualTo(leaksCreated);
+        }
       } else {
         long gcs = GarbageCreator.countGarbageCollections();
         // Leak
@@ -97,6 +100,9 @@ class PreciseLeakDetectorIT {
     do {
       System.gc();
     } while (gcs == GarbageCreator.countGarbageCollections());
+    try (AutoCloseable ignore = GarbageCreator.forkCreateGarbage()) {
+      GarbageCreator.awaitReferenceProcessing();
+    }
     assertThat(detector.countLeakedObjects()).isEqualTo(leaksCreated);
   }
 
