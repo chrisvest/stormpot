@@ -15,7 +15,6 @@
  */
 package stormpot.tests.blackbox;
 
-import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -2037,11 +2036,11 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
       thread.join();
     }
     assertTrue(pool.shutdown().await(longTimeout));
-    assertThat(sum).hasValue(100_000);
     Exception e = exception.get();
     if (e != null) {
-      fail("A virtual thread encountered an exception", e);
+      fail("A virtual thread encountered an exception (computed sum was " + sum + ")", e);
     }
+    assertThat(sum).hasValue(100_000);
   }
 
   // NOTE: When adding, removing or modifying tests, also remember to update

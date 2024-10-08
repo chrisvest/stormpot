@@ -55,6 +55,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static testkits.UnitKit.$await;
 import static testkits.UnitKit.$catchFrom;
 import static testkits.UnitKit.$claim;
@@ -478,16 +479,27 @@ abstract class AbstractPoolTest<T extends Poolable> {
     }
   }
 
+  @SuppressWarnings("ResultOfMethodCallIgnored")
   @Test
   void blockOnCompletionMustThrowUponInterruption() throws Exception {
     createOneObjectPool();
     T obj = pool.claim(longTimeout);
     assertNotNull(obj, "Did not deplete pool in time");
     Completion completion = pool.shutdown();
+    Thread.interrupted(); // Clear interrupted flag
     forkFuture($interruptUponState(
         Thread.currentThread(), Thread.State.WAITING));
     try {
-      assertThrows(InterruptedException.class, completion::block);
+      try {
+        for (int i = 0; i < 10; i++) {
+          // Loop a few times because we may spuriously awake from our blocking.
+          assertFalse(completion.block());
+        }
+      } catch (InterruptedException ignore) {
+        // Excellent.
+        return;
+      }
+      fail("Expected to get an InterruptedException, but nothing was thrown.");
     } finally {
       obj.release();
     }
@@ -620,11 +632,13 @@ abstract class AbstractPoolTest<T extends Poolable> {
    * appropriate claim method. If it throws an InterruptException, then the
    * test passes.
    */
+  @SuppressWarnings("ResultOfMethodCallIgnored")
   @ParameterizedTest
   @EnumSource(Taps.class)
   void blockedClaimWithTimeoutMustThrowUponInterruption(Taps taps) throws Exception {
     createOneObjectPool();
     PoolTap<T> tap = taps.get(this);
+    Thread.interrupted(); // Clear interrupted flag.
     T a = tap.claim(longTimeout);
     assertNotNull(a, "Did not deplete pool in time");
     forkFuture($interruptUponState(
