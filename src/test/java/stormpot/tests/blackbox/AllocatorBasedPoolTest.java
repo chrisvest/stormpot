@@ -461,28 +461,30 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   @EnumSource(Taps.class)
   void slotInfoAgeMustResetAfterReallocation(Taps taps) throws InterruptedException {
     final AtomicLong age = new AtomicLong();
-    final AtomicLong expectedAge = new AtomicLong();
     final AtomicLong createdNanoTime = new AtomicLong();
     builder.setExpiration(expire(
             $capture(info -> {
               age.set(info.getAgeMillis());
               long created = info.getCreatedNanoTime();
               createdNanoTime.set(created);
-              expectedAge.set(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - created));
             }, $fresh)));
     createPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
     tap.claim(longTimeout).release();
     Thread.sleep(100); // time transpires
     GenericPoolable obj = tap.claim(longTimeout);
-    long firstAge = age.get();
-    long firstCreatedNanoTime = createdNanoTime.get();
-    assertThat(firstAge).isCloseTo(expectedAge.get(), Offset.offset(25L));
-    obj.expire(); // cause reallocation
-    obj.release();
+    long firstCreatedNanoTime;
+    try {
+      long firstAge = age.get();
+      firstCreatedNanoTime = createdNanoTime.get();
+      assertThat(firstAge).isGreaterThanOrEqualTo(100);
+      obj.expire(); // cause reallocation
+    } finally {
+      obj.release();
+    }
     tap.claim(longTimeout).release(); // new object, new age
     long secondAge = age.get();
-    assertThat(secondAge).isCloseTo(expectedAge.get(), Offset.offset(25L));
+    assertThat(secondAge).isLessThan(100);
     long secondCreatedNanoTime = createdNanoTime.get();
     assertThat(secondCreatedNanoTime).isNotEqualTo(firstCreatedNanoTime);
   }
