@@ -52,7 +52,17 @@ public final class StackCompletion implements Completion {
    * Create an unfinished completion with no {@link OnAwait} callback.
    */
   public StackCompletion() {
-    this(null);
+    this(false);
+  }
+
+  /**
+   * Create a possibly finished completion with no {@link OnAwait} callback.
+   * @param completed {@code true} if the completion should be initialized in the finished state,
+   *                              otherwise {@code false}.
+   */
+  public StackCompletion(boolean completed) {
+    nodes = completed ? DONE : END;
+    onAwait = null;
   }
 
   /**
@@ -132,17 +142,9 @@ public final class StackCompletion implements Completion {
     }
 
     Node node = new Node();
-    Node setNext = node;
     node.obj = subscriber;
-
-    if (onAwait != null) {
-      setNext = new Node();
-      setNext.obj = new Awaitable(this, onAwait);
-      node.next = setNext;
-    }
-
     Node existing = (Node) NODES.getAndSet(this, node);
-    setNext.next = existing;
+    node.next = existing;
     subscriber.onSubscribe(node);
     if (existing == DONE) {
       complete();
@@ -279,24 +281,10 @@ public final class StackCompletion implements Completion {
 
     @Override
     public void request(long n) {
-      Node next = loadNext(this);
+      loadNext(this); // We must do this before we can safely load 'obj'.
       if (n <= 0 && obj instanceof Flow.Subscriber<?> subscriber) {
         cancel();
         subscriber.onError(new IllegalArgumentException("Must request a positive number of objects"));
-        return;
-      }
-      if (next != END && next != DONE) {
-        if (next.obj instanceof Awaitable awaitable) {
-          try {
-            awaitable.await();
-          } catch (InterruptedException e) {
-            if (obj instanceof Flow.Subscriber<?> subscriber) {
-              subscriber.onError(e);
-            } else {
-              Thread.currentThread().interrupt();
-            }
-          }
-        }
       }
     }
 
@@ -334,13 +322,5 @@ public final class StackCompletion implements Completion {
      * @throws InterruptedException If the thread was interrupted while waiting.
      */
     boolean await(Timeout timeout) throws InterruptedException;
-  }
-
-  private record Awaitable(StackCompletion completion, OnAwait onAwait) {
-    void await() throws InterruptedException {
-      if (onAwait.await(null)) {
-        completion.complete();
-      }
-    }
   }
 }

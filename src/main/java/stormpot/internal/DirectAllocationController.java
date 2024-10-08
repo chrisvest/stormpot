@@ -30,11 +30,11 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public final class DirectAllocationController<T extends Poolable> extends AllocationController<T> {
   private final LinkedTransferQueue<BSlot<T>> live;
-  private final RefillPile<T> disregardPile;
   private final BSlot<T> poisonPill;
   private final long size;
   private final AtomicLong shutdownState;
   private final AtomicLong poisonedSlots;
+  private final StackCompletion shutdownCompletion;
 
   DirectAllocationController(
       LinkedTransferQueue<BSlot<T>> live,
@@ -42,7 +42,6 @@ public final class DirectAllocationController<T extends Poolable> extends Alloca
       PoolBuilder<T> builder,
       BSlot<T> poisonPill) {
     this.live = live;
-    this.disregardPile = disregardPile;
     this.poisonPill = poisonPill;
     this.size = builder.getSize();
     poisonedSlots = new AtomicLong();
@@ -61,13 +60,7 @@ public final class DirectAllocationController<T extends Poolable> extends Alloca
       live.offer(slot);
     }
     shutdownState = new AtomicLong(size);
-  }
-
-  @Override
-  Completion shutdown() {
-    poisonPill.dead2live();
-    live.offer(poisonPill);
-    return new StackCompletion(timeout -> {
+    shutdownCompletion = new StackCompletion(timeout -> {
       if (Thread.interrupted()) {
         throw new InterruptedException("Interrupted while waiting for pool shut down to complete.");
       }
@@ -88,6 +81,15 @@ public final class DirectAllocationController<T extends Poolable> extends Alloca
       live.offer(poisonPill);
       return shutdownState.get() == 0;
     });
+  }
+
+  @Override
+  Completion shutdown() {
+    if (shutdownState.get() > 0) {
+      poisonPill.dead2live();
+      live.offer(poisonPill);
+    }
+    return shutdownCompletion;
   }
 
   @Override

@@ -62,6 +62,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
   private final PreciseLeakDetector leakDetector;
   private final Reallocator<T> allocator;
   private final boolean optimizeForMemory;
+  private final StackCompletion shutdownCompletion;
 
   private volatile long targetSize;
   @SuppressWarnings("unused") // Assigned via VarHandle.
@@ -89,6 +90,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
     leakDetector = builder.isPreciseLeakDetectionEnabled() ?
         new PreciseLeakDetector() : null;
     setTargetSize(builder.getSize());
+    shutdownCompletion = new StackCompletion(this::shutdownCompletion);
   }
 
   @Override
@@ -137,7 +139,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
     }
 
     // Leave the rest of the deallocations to the blocking completion object.
-    return new StackCompletion(this::shutdownCompletion);
+    return shutdownCompletion;
   }
 
   private boolean shutdownCompletion(Timeout timeout) throws InterruptedException {

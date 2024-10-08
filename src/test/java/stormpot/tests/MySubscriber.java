@@ -19,10 +19,10 @@ import java.util.concurrent.Flow;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
-class MySubscriber implements Flow.Subscriber<Void> {
+public class MySubscriber implements Flow.Subscriber<Void> {
   final Runnable onComplete;
 
-  MySubscriber(Runnable onComplete) {
+  public MySubscriber(Runnable onComplete) {
     this.onComplete = onComplete;
   }
 

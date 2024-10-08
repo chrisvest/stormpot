@@ -15,6 +15,7 @@
  */
 package stormpot.tests.blackbox;
 
+import stormpot.tests.MySubscriber;
 import stormpot.tests.extensions.FailurePrinterExtension;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +42,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -766,6 +768,24 @@ abstract class AbstractPoolTest<T extends Poolable> {
     Thread.currentThread().interrupt();
     pool.shutdown();
     assertTrue(Thread.interrupted());
+  }
+
+  @Test
+  void callbacksOnMultipleShutdownCompletionsMustAllBeNotified() throws Exception {
+    Semaphore firstCounter = new Semaphore(0);
+    Semaphore secondCounter = new Semaphore(0);
+    MySubscriber firstSubscriber = new MySubscriber(firstCounter::release);
+    MySubscriber secondSubscriber = new MySubscriber(secondCounter::release);
+    createOneObjectPool();
+    T obj = pool.claim(longTimeout);
+    Completion firstCompletion = pool.shutdown();
+    Completion secondCompletion = pool.shutdown();
+    firstCompletion.subscribe(firstSubscriber);
+    secondCompletion.subscribe(secondSubscriber);
+    obj.release();
+    firstCompletion.await(longTimeout); // Only await on the first completion.
+    assertTrue(firstCounter.tryAcquire(10, TimeUnit.SECONDS));
+    assertTrue(secondCounter.tryAcquire(10, TimeUnit.SECONDS));
   }
 
   /**
