@@ -24,12 +24,9 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -89,32 +86,18 @@ public class StackCompletionWithOnAwaitTest {
   }
 
   @Test
-  void mustRunOnAwaitFromSubscriberRequestMethod() throws Exception {
+  void mustNotRunOnAwaitFromSubscriberRequestMethod() throws Exception {
     AtomicInteger awaitCounter = new AtomicInteger();
     AtomicInteger completionCounter = new AtomicInteger();
     awaits.put(timeout -> awaitCounter.incrementAndGet() > 0);
     MySubscriber subscriber = new MySubscriber(completionCounter::incrementAndGet);
     completion.subscribe(subscriber);
-    assertTrue(completion.isCompleted());
-    assertEquals(1, awaitCounter.get());
-    assertEquals(1, completionCounter.get());
-  }
-
-  @Test
-  void awaitInterruptMustSignalErrorToSubscriber() throws Exception {
-    AtomicReference<Throwable> error = new AtomicReference<>();
-    AtomicInteger completionCounter = new AtomicInteger();
-    awaits.put(timeout -> {
-      throw new InterruptedException();
-    });
-    MySubscriber subscriber = new MySubscriber(completionCounter::incrementAndGet) {
-      @Override
-      public void onError(Throwable throwable) {
-        assertNull(error.getAndSet(throwable));
-      }
-    };
-    completion.subscribe(subscriber);
+    assertFalse(completion.isCompleted());
+    assertEquals(0, awaitCounter.get());
     assertEquals(0, completionCounter.get());
-    assertThat(error.get()).isInstanceOf(InterruptedException.class);
+    completion.complete();
+    assertTrue(completion.isCompleted());
+    assertEquals(0, awaitCounter.get());
+    assertEquals(1, completionCounter.get());
   }
 }
