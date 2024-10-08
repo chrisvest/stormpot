@@ -268,7 +268,7 @@ public abstract class Sim {
       deps.replace(pool);
 
       // Wait for the pool to boot up.
-      int size = builder.getSize();
+      long size = builder.getSize();
       List<GenericPoolable> objs = new ArrayList<>();
       for (int j = 0; j < size; j++) {
         objs.add(pool.claim(new Timeout(30, TimeUnit.MINUTES)));
@@ -303,7 +303,7 @@ public abstract class Sim {
   }
 
   private static String describe(PoolBuilder<GenericPoolable> builder) {
-    int size = builder.getSize();
+    long size = builder.getSize();
     Expiration<? super GenericPoolable> expiration = builder.getExpiration();
     boolean backgroundExpirationEnabled = builder.isBackgroundExpirationEnabled();
     boolean preciseLeakDetectionEnabled = builder.isPreciseLeakDetectionEnabled();

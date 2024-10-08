@@ -116,8 +116,8 @@ class PoolBuilderTest {
   }
 
   @Test
-  void preciseLeakDetectionMustBeEnabledByDefault() {
-    assertTrue(builder.isPreciseLeakDetectionEnabled());
+  void preciseLeakDetectionMustBeDisabledByDefault() {
+    assertFalse(builder.isPreciseLeakDetectionEnabled());
   }
 
   @Test
@@ -158,6 +158,7 @@ class PoolBuilderTest {
       Object arg =
           parameterType == Boolean.TYPE ? true :
           parameterType == Integer.TYPE ? 1 :
+          parameterType == Long.TYPE ? 1L :
           parameterType == Allocator.class ? allocator() :
           parameterType == Expiration.class ? Expiration.never() :
           parameterType == ThreadFactory.class ? (ThreadFactory) (r -> null) : null;

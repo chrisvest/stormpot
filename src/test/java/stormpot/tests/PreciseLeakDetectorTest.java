@@ -28,7 +28,7 @@ import java.lang.ref.Reference;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,7 +44,7 @@ class PreciseLeakDetectorTest {
   @Test
   void mustHandleManyAddedReplacedAndRemovedObjects() {
     BlockingQueue<BSlot<GenericPoolable>> queue = new LinkedBlockingQueue<>();
-    AtomicInteger poisonedSlots = new AtomicInteger();
+    AtomicLong poisonedSlots = new AtomicLong();
     GenericPoolable[] objs = new GenericPoolable[100000];
 
     // Adding
@@ -82,7 +82,7 @@ class PreciseLeakDetectorTest {
   @Test
   void mustCountCorrectlyAfterAddLeakAddLeakRemove() throws Exception {
     BlockingQueue<BSlot<GenericPoolable>> queue = new LinkedBlockingQueue<>();
-    AtomicInteger poisonedSlots = new AtomicInteger();
+    AtomicLong poisonedSlots = new AtomicLong();
     GenericPoolable[] first = new GenericPoolable[1000];
     for (int i = 0; i < first.length; i++) {
       BSlot<GenericPoolable> slot = new BSlot<>(queue, poisonedSlots);

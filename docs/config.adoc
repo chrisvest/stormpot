@@ -158,10 +158,9 @@ The thread factory setting is not used by pools that operate in the _inline_ mod
 
 === Precise Leak Detection
 
-Stormpot has precise leak detection enabled by default (except in the direct pool mode) because the CPU overhead is very low.
-There is, however, a bit of memory overhead.
-Therefor, it may make sense to disable this in use cases where memory is very constrained, and/or the pool contains a very large number of objects.
-If you pool upwards a hundred thousand objects or more, you might want to disable it for performance reasons.
+Stormpot has a precise leak detection feature.
+It is disabled by default because it has some memory overhead and a bit of CPU overhead.
+It can be enabled when you suspect your code might be leaking objects.
 
 The precise leak detection feature lets Stormpot keep track of when objects that were meant to circulate in the pool, suddenly leak out and never come back.
 The number of leaks detected is reported via the `getLeakedObjectsCount` method of the `ManagedPool` interface.

@@ -290,6 +290,36 @@
           "code": "java.method.addedToInterface",
           "new": "method void java.util.concurrent.Flow.Publisher<T>::subscribe(java.util.concurrent.Flow.Subscriber<? super T>) @ stormpot.Completion",
           "justification": "Major version change"
+        },
+
+        {
+          "ignore": true,
+          "code": "java.method.returnTypeChanged",
+          "old": "method int stormpot.PoolBuilder<T extends stormpot.Poolable>::getSize()",
+          "new": "method long stormpot.PoolBuilder<T extends stormpot.Poolable>::getSize()",
+          "justification": "Major version change"
+        },
+        {
+          "ignore": true,
+          "code": "java.method.nowAbstract",
+          "old": "method int stormpot.PoolBuilder<T extends stormpot.Poolable>::getSize()",
+          "new": "method long stormpot.PoolBuilder<T extends stormpot.Poolable>::getSize()",
+          "justification": "Major version change"
+        },
+        {
+          "ignore": true,
+          "code": "java.method.parameterTypeChanged",
+          "old": "parameter stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setSize(===int===)",
+          "new": "parameter stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setSize(===long===)",
+          "parameterIndex": "0",
+          "justification": "Major version change"
+        },
+        {
+          "ignore": true,
+          "code": "java.method.nowAbstract",
+          "old": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setSize(int)",
+          "new": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setSize(long)",
+          "justification": "Major version change"
         }
       ]
     }

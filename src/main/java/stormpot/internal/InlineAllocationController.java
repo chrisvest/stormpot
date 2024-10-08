@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public final class InlineAllocationController<T extends Poolable> extends AllocationController<T> {
   private static final VarHandle SIZE;
@@ -54,7 +54,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
   private final RefillPile<T> newAllocations;
   private final BSlot<T> poisonPill;
   private final MetricsRecorder metricsRecorder;
-  private final AtomicInteger poisonedSlots;
+  private final AtomicLong poisonedSlots;
   private final PreciseLeakDetector leakDetector;
   private final Reallocator<T> allocator;
   private final boolean optimizeForMemory;
@@ -79,7 +79,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
     this.newAllocations = newAllocations;
     this.poisonPill = poisonPill;
     this.metricsRecorder = builder.getMetricsRecorder();
-    poisonedSlots = new AtomicInteger();
+    poisonedSlots = new AtomicLong();
     allocator = builder.getAdaptedReallocator();
     optimizeForMemory = builder.isOptimizeForReducedMemoryUsage();
     leakDetector = builder.isPreciseLeakDetectionEnabled() ?

@@ -19,7 +19,7 @@ import stormpot.BasePoolable;
 import stormpot.Slot;
 
 public class GenericPoolable extends BasePoolable {
-  @SuppressWarnings("WeakerAccess")
+  @SuppressWarnings({"WeakerAccess", "unused"})
   public Thread lastReleaseBy; // readable in debuggers
 
   public GenericPoolable(Slot slot) {

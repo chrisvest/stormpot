@@ -18,7 +18,7 @@ package stormpot.internal;
 import stormpot.Poolable;
 
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 @SuppressWarnings("unused")
 public class BSlotPadded<T extends Poolable> extends BSlot<T> {
@@ -32,7 +32,7 @@ public class BSlotPadded<T extends Poolable> extends BSlot<T> {
   private long p07;
   private long p08;
 
-  public BSlotPadded(BlockingQueue<BSlot<T>> live, AtomicInteger poisonedSlots) {
+  public BSlotPadded(BlockingQueue<BSlot<T>> live, AtomicLong poisonedSlots) {
     super(live, poisonedSlots);
   }
 }

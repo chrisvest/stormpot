@@ -24,7 +24,7 @@ import stormpot.Reallocator;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -49,7 +49,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   private final PreciseLeakDetector leakDetector;
   private final StackCompletion shutdownCompletion;
   private final BlockingQueue<BSlot<T>> dead;
-  private final AtomicInteger poisonedSlots;
+  private final AtomicLong poisonedSlots;
   private final long defaultDeadPollTimeout;
   private final boolean optimizeForMemory;
 
@@ -84,7 +84,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
         new PreciseLeakDetector() : null;
     this.shutdownCompletion = new StackCompletion();
     this.dead = new LinkedTransferQueue<>();
-    this.poisonedSlots = new AtomicInteger();
+    this.poisonedSlots = new AtomicLong();
     this.defaultDeadPollTimeout = builder.getBackgroundExpirationCheckDelay();
     this.optimizeForMemory = builder.isOptimizeForReducedMemoryUsage();
     this.size = 0;

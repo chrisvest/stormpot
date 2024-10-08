@@ -41,8 +41,8 @@ public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T>
           .factory();
 
   public static final Map<AllocationProcessMode, PoolBuilderDefaults> DEFAULTS = Map.of(
-      THREADED, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, true, true, 1000, true),
-      INLINE, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, true, false, 0, true),
+      THREADED, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, false, true, 1000, true),
+      INLINE, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, false, false, 0, true),
       DIRECT, new PoolBuilderDefaults(never(), THREAD_FACTORY, false, false, 0, true)
   );
 
@@ -55,7 +55,7 @@ public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T>
   private final AllocationProcess allocationProcess;
   private final PoolBuilderPermissions permissions;
   private Allocator<T> allocator;
-  private int size = 10;
+  private long size = 10;
   private Expiration<? super T> expiration;
   private MetricsRecorder metricsRecorder;
   private ThreadFactory threadFactory;
@@ -83,7 +83,7 @@ public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T>
   }
 
   @Override
-  public synchronized PoolBuilder<T> setSize(int size) {
+  public synchronized PoolBuilder<T> setSize(long size) {
     checkPermission(permissions.setSize(), "size");
     if (size < 0) {
       throw new IllegalArgumentException("Size must be at least 0, but was " + size + ".");
@@ -93,7 +93,7 @@ public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T>
   }
 
   @Override
-  public synchronized int getSize() {
+  public synchronized long getSize() {
     return size;
   }
 

@@ -22,8 +22,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.function.ToIntFunction;
 
 public final class PreciseLeakDetector {
+  private static final ToIntFunction<Object> REF_HASH = obj -> ((CountedPhantomRef<?>) obj).id;
+
   private final ReferenceQueue<Object> referenceQueue;
   private final LongAdder leakedObjectCount;
   private final IdentityHashSet refs;
@@ -31,7 +34,7 @@ public final class PreciseLeakDetector {
   public PreciseLeakDetector() {
     referenceQueue = new ReferenceQueue<>();
     leakedObjectCount = new LongAdder();
-    refs = new CountedPhantomRefHashSet();
+    refs = new IdentityHashSet(REF_HASH);
   }
 
   public void register(BSlot<?> slot) {
@@ -84,13 +87,6 @@ public final class PreciseLeakDetector {
     CountedPhantomRef(T referent, ReferenceQueue<? super T> q) {
       super(referent, q);
       id = COUNTER.getAndIncrement();
-    }
-  }
-
-  private static final class CountedPhantomRefHashSet extends IdentityHashSet {
-    @Override
-    protected int hashOf(Object obj) {
-      return ((CountedPhantomRef<?>) obj).id;
     }
   }
 }

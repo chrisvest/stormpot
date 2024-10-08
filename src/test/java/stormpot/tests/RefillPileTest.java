@@ -30,7 +30,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -39,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class RefillPileTest {
     @RegisterExtension
     static final ExecutorExtension EXECUTOR_EXTENSION = new ExecutorExtension();
-    private final AtomicInteger poisonedSlots = new AtomicInteger();
+    private final AtomicLong poisonedSlots = new AtomicLong();
     private ExecutorService executor;
 
     @BeforeEach
