@@ -128,7 +128,10 @@ class PreciseLeakDetectorTest {
     third[9000] = null;
 
     try (AutoCloseable ignore = GarbageCreator.forkCreateGarbage()) {
-      GarbageCreator.awaitReferenceProcessing();
+      int i = 0;
+      do {
+        GarbageCreator.awaitReferenceProcessing();
+      } while (++i < 10 && detector.countLeakedObjects() < 9);
     }
 
     assertThat(detector.countLeakedObjects()).isEqualTo(9L);
