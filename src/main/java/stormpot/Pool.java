@@ -234,6 +234,33 @@ public interface Pool<T extends Poolable> extends PoolTap<T> {
   Completion shutdown();
 
   /**
+   * Initiate a switch from the current allocator to the given allocator.
+   * <p>
+   * This will cause all current objects to be deallocated by the old allocator,
+   * and reallocated by the new allocator.
+   * The objects will be replaced one at a time.
+   * <p>
+   * The returned completion will complete when all objects have been replaced,
+   * or if the pool shuts down. If another switch is initiated before the
+   * completion of a prior switch, then the prior completion will complete when
+   * there are no more objects left from the allocator that was current at the
+   * time the prior completion was initiated.
+   * <p>
+   * Direct pools, created with the {@link #of(Object[])} method, do not support
+   * switching allocators, and will instead throw an
+   * {@link UnsupportedOperationException} from this method.
+   * <p>
+   * If this pool has already been shut down, then this method immediately returns
+   * a completed completion instance.
+   *
+   * @param replacementAllocator The new allocator.
+   * @return A {@link Completion} instance that represents the switch process.
+   * @throws UnsupportedOperationException If this pool contain only contain
+   * pre-allocated objects.
+   */
+  Completion switchAllocator(Allocator<T> replacementAllocator);
+
+  /**
    * Set the target size for this pool. The pool will strive to keep this many
    * objects allocated at any one time.
    * <p>
@@ -253,7 +280,8 @@ public interface Pool<T extends Poolable> extends PoolTap<T> {
    * Pools that do not support online resizing will throw an
    * {@link UnsupportedOperationException}.
    *
-   * @param size The new target size of the pool
+   * @param size The new target size of the pool.
+   * @throws UnsupportedOperationException If this pool cannot be resized.
    */
   void setTargetSize(long size);
 

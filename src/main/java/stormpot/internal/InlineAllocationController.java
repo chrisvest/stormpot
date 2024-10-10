@@ -15,6 +15,7 @@
  */
 package stormpot.internal;
 
+import stormpot.Allocator;
 import stormpot.Completion;
 import stormpot.MetricsRecorder;
 import stormpot.Poolable;
@@ -180,6 +181,11 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
       }
     }
     return true;
+  }
+
+  @Override
+  Completion switchAllocator(Allocator<T> replacementAllocator) {
+    throw new UnsupportedOperationException("Inline pools cannot switch allocators.");
   }
 
   @Override

@@ -16,6 +16,7 @@
 package stormpot.tests;
 
 import org.junit.jupiter.api.Test;
+import stormpot.Allocator;
 import stormpot.Completion;
 import stormpot.ManagedPool;
 import stormpot.Pool;
@@ -37,6 +38,11 @@ class WhiteboxPoolTest {
     Pool<Poolable> pool = new Pool<>() {
       @Override
       public Completion shutdown() {
+        return null;
+      }
+
+      @Override
+      public Completion switchAllocator(Allocator<Poolable> replacementAllocator) {
         return null;
       }
 

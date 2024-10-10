@@ -68,6 +68,10 @@ public class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
    * A reference to the allocated object, used by the {@link PreciseLeakDetector}.
    */
   public Reference<Object> leakCheck; // Used by PreciseLeakDetector
+  /**
+   * A generation id, used for switching allocators.
+   */
+  int generation;
 
   /**
    * Create a new BSlot instance, which will return to the given live queue when released from a claim,

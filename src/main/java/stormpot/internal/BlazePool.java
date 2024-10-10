@@ -15,6 +15,7 @@
  */
 package stormpot.internal;
 
+import stormpot.Allocator;
 import stormpot.Completion;
 import stormpot.Expiration;
 import stormpot.ManagedPool;
@@ -303,6 +304,14 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
   public Completion shutdown() {
     SHUTDOWN.setOpaque(this, true);
     return allocator.shutdown();
+  }
+
+  @Override
+  public Completion switchAllocator(Allocator<T> replacementAllocator) {
+    if (isShutDown()) {
+      return new StackCompletion(true);
+    }
+    return allocator.switchAllocator(replacementAllocator);
   }
 
   @Override

@@ -238,18 +238,7 @@ public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T>
    * @return A {@link Reallocator} instance, either the one given to the pool builder, or a new adapted instance.
    */
   public synchronized Reallocator<T> getAdaptedReallocator() {
-    if (metricsRecorder == null) {
-      if (allocator instanceof Reallocator) {
-        return (Reallocator<T>) allocator;
-      }
-      return new ReallocatingAdaptor<>(allocator);
-    } else {
-      if (allocator instanceof Reallocator) {
-        return new TimingReallocatorAdaptor<>(
-            (Reallocator<T>) allocator, metricsRecorder);
-      }
-      return new TimingReallocatingAdaptor<>(allocator, metricsRecorder);
-    }
+    return ReallocatingAdaptor.adapt(allocator, metricsRecorder);
   }
 
   private void checkPermission(boolean permission, String fieldDescription) {

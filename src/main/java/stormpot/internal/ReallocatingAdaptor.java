@@ -16,6 +16,7 @@
 package stormpot.internal;
 
 import stormpot.Allocator;
+import stormpot.MetricsRecorder;
 import stormpot.Poolable;
 import stormpot.Reallocator;
 import stormpot.Slot;
@@ -35,6 +36,22 @@ public class ReallocatingAdaptor<T extends Poolable> implements Reallocator<T> {
    */
   public ReallocatingAdaptor(Allocator<T> allocator) {
     this.allocator = Objects.requireNonNull(allocator, "allocator");
+  }
+
+  static <T extends Poolable> Reallocator<T> adapt(
+          Allocator<T> allocator, MetricsRecorder metricsRecorder) {
+    if (metricsRecorder == null) {
+      if (allocator instanceof Reallocator) {
+        return (Reallocator<T>) allocator;
+      }
+      return new ReallocatingAdaptor<>(allocator);
+    } else {
+      if (allocator instanceof Reallocator) {
+        return new TimingReallocatorAdaptor<>(
+                (Reallocator<T>) allocator, metricsRecorder);
+      }
+      return new TimingReallocatingAdaptor<>(allocator, metricsRecorder);
+    }
   }
 
   @Override

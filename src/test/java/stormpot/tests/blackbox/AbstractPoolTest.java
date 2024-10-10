@@ -1391,4 +1391,11 @@ abstract class AbstractPoolTest<T extends Poolable> {
     c.release();
     assertThat(c).isSameAs(b);
   }
+
+  protected void assumeCanSwitchAllocator() {
+  }
+  // todo switch must return completed completion for shut down pool
+  // todo switch must eventually replace all objects
+  // todo switching allocator and resizing pool down
+  // todo switching allocator and resizing pool up
 }

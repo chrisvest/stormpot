@@ -16,10 +16,12 @@
 package stormpot.tests.blackbox;
 
 import org.junit.jupiter.api.Test;
+import org.opentest4j.TestAbortedException;
 import stormpot.Allocator;
 import stormpot.Poolable;
 import stormpot.Pool;
 import stormpot.PoolBuilder;
+import testkits.AlloKit;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -41,5 +43,17 @@ class InlinePoolTest extends AllocatorBasedPoolTest {
     assertThrows(IllegalStateException.class, () -> builder.setThreadFactory(null));
     assertThrows(IllegalStateException.class, () -> builder.setThreadFactory(r -> null));
     assertThrows(IllegalStateException.class, () -> builder.setThreadFactory(Thread::new));
+  }
+
+  @Override
+  protected void assumeCanSwitchAllocator() {
+    throw new TestAbortedException("The inline pool cannot switch allocator.");
+  }
+
+  @Test
+  void mustThrowWhenSwitchingAllocator() {
+    createOneObjectPool();
+    AlloKit.CountingAllocator newAllocator = AlloKit.allocator();
+    assertThrows(UnsupportedOperationException.class, () -> pool.switchAllocator(newAllocator));
   }
 }
