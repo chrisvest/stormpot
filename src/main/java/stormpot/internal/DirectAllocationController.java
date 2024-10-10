@@ -93,6 +93,12 @@ public final class DirectAllocationController<T extends Poolable> extends Alloca
   }
 
   @Override
+  Completion switchAllocator(Allocator<T> replacementAllocator) {
+    // todo
+    return null;
+  }
+
+  @Override
   void offerDeadSlot(BSlot<T> slot) {
     if (slot.poison != null) {
       slot.poison = null;

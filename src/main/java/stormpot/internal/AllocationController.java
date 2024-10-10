@@ -15,6 +15,7 @@
  */
 package stormpot.internal;
 
+import stormpot.Allocator;
 import stormpot.Completion;
 import stormpot.ManagedPool;
 import stormpot.Pool;
@@ -39,6 +40,18 @@ public abstract class AllocationController<T extends Poolable> {
    * @see Pool#shutdown()
    */
   abstract Completion shutdown();
+
+  /**
+   * Switch the underlying allocator to the new replacement allocator,
+   * and return a {@link Completion} that completes when all current objects
+   * are replaced by the given or a newer allocator.
+   *
+   * @param replacementAllocator The new replacement allocator.
+   * @return The completion for the switching process.
+   * @throws UnsupportedOperationException If this allocation controller don't
+   * support switching allocators.
+   */
+  abstract Completion switchAllocator(Allocator<T> replacementAllocator);
 
   /**
    * @see Pool#setTargetSize(long)

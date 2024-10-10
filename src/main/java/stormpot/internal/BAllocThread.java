@@ -15,13 +15,17 @@
  */
 package stormpot.internal;
 
+import stormpot.Allocator;
 import stormpot.Completion;
 import stormpot.Expiration;
 import stormpot.MetricsRecorder;
 import stormpot.Poolable;
 import stormpot.Reallocator;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Flow;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -47,7 +51,6 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   private final LinkedTransferQueue<BSlot<T>> live;
   private final RefillPile<T> disregardPile;
   private final RefillPile<T> newAllocations;
-  private final Reallocator<T> allocator;
   private final BSlot<T> poisonPill;
   private final MetricsRecorder metricsRecorder;
   private final Expiration<? super T> expiration;
@@ -58,6 +61,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   private final AtomicLong poisonedSlots;
   private final long defaultDeadPollTimeout;
   private final boolean optimizeForMemory;
+  private final LinkedTransferQueue<AllocatorSwitch<T>> switchRequests;
 
   // Single reader: this. Many writers.
   private volatile long targetSize;
@@ -67,9 +71,13 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   private volatile long allocationCount;
   private volatile long failedAllocationCount;
 
+  private Reallocator<T> allocator;
   private long size;
   private boolean didAnythingLastIteration;
   private long consecutiveAllocationFailures;
+  private AllocatorSwitch<T> nextAllocator;
+  private long priorGenerationObjectsToReplace;
+  private int currentGeneration;
 
   BAllocThread(
       LinkedTransferQueue<BSlot<T>> live,
@@ -93,6 +101,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     this.poisonedSlots = new AtomicLong();
     this.defaultDeadPollTimeout = builder.getBackgroundExpirationCheckDelay();
     this.optimizeForMemory = builder.isOptimizeForReducedMemoryUsage();
+    switchRequests = new LinkedTransferQueue<>();
     this.size = 0;
     this.didAnythingLastIteration = true; // start out busy
   }
@@ -122,6 +131,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   private void replenishPool() throws InterruptedException {
     long deadPollTimeout = computeDeadPollTimeout();
     BSlot<T> slot = deadPollTimeout == 0 ? dead.poll() : dead.poll(deadPollTimeout, MILLISECONDS);
+    checkForAllocatorSwitch();
     if (size < targetSize) {
       increaseSizeByAllocating();
     }
@@ -146,6 +156,36 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
       proactivelyHealPoison();
     } else if (backgroundExpirationEnabled && size == targetSize) {
       backgroundExpirationCheck();
+    }
+  }
+
+  private void checkForAllocatorSwitch() {
+    List<StackCompletion> skippedCompletions = null;
+    AllocatorSwitch<T> newSwitch, previous = nextAllocator;
+    while ((newSwitch = switchRequests.poll()) != null) {
+      if (previous != null) {
+        if (skippedCompletions == null) {
+          skippedCompletions = new ArrayList<>();
+        }
+        skippedCompletions.add(previous.completion());
+      }
+      previous = newSwitch;
+    }
+    if (previous != null && skippedCompletions != null) {
+      List<StackCompletion> skipped = skippedCompletions;
+      previous.completion().subscribe(new BaseSubscriber() {
+        @Override
+        public void onComplete() {
+          for (StackCompletion completion : skipped) {
+            completion.complete();
+          }
+        }
+      });
+    }
+    if (previous != nextAllocator) {
+      priorGenerationObjectsToReplace = size;
+      currentGeneration++;
+      nextAllocator = previous;
     }
   }
 
@@ -315,6 +355,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   private void resetSlot(BSlot<T> slot, long now) {
     slot.createdNanos = now;
     slot.stamp = 0;
+    slot.generation = currentGeneration;
     slot.dead2live();
   }
 
@@ -337,6 +378,9 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     slot.poison = null;
     slot.obj = null;
     didAnythingLastIteration = true;
+    if (slot.generation != currentGeneration) {
+      replacedPriorGenerationSlot();
+    }
   }
 
   private void realloc(BSlot<T> slot) {
@@ -360,12 +404,23 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
       }
       long now = NanoClock.nanoTime();
       recordObjectLifetimeSample(now - slot.createdNanos);
+      if (slot.generation != currentGeneration) {
+        replacedPriorGenerationSlot();
+      }
       publishSlot(slot, success, now);
     } else {
       dealloc(slot);
       alloc(slot);
     }
     didAnythingLastIteration = true;
+  }
+
+  private void replacedPriorGenerationSlot() {
+    if (--priorGenerationObjectsToReplace == 0) {
+      allocator = ReallocatingAdaptor.adapt(nextAllocator.allocator(), metricsRecorder);
+      nextAllocator.completion().complete();
+      nextAllocator = null;
+    }
   }
 
   private void recordObjectLifetimeSample(long nanoseconds) {
@@ -387,6 +442,35 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     shutdown = true;
     allocatorThread.interrupt();
     return shutdownCompletion;
+  }
+
+  Completion switchAllocator(Allocator<T> replacementAllocator) {
+    StackCompletion completion = new StackCompletion();
+    switchRequests.offer(new AllocatorSwitch<>(completion, replacementAllocator));
+    if (shutdown) {
+      AllocatorSwitch<T> entry;
+      while ((entry = switchRequests.poll()) != null) {
+        entry.completion().complete();
+      }
+    } else {
+      shutdownCompletion.subscribe(new BaseSubscriber() {
+        @Override
+        public void onSubscribe(Flow.Subscription shutdownSubscription) {
+          completion.subscribe(new BaseSubscriber() {
+            @Override
+            public void onComplete() {
+              shutdownSubscription.cancel();
+            }
+          });
+        }
+
+        @Override
+        public void onComplete() {
+          completion.complete();
+        }
+      });
+    }
+    return completion;
   }
 
   long getAllocationCount() {
@@ -422,5 +506,5 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
       }
     }
     return size - liveSize + inUse;
-  } 
+  }
 }

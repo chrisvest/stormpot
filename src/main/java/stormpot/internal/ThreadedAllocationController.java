@@ -15,6 +15,7 @@
  */
 package stormpot.internal;
 
+import stormpot.Allocator;
 import stormpot.Completion;
 import stormpot.Poolable;
 
@@ -44,6 +45,11 @@ public final class ThreadedAllocationController<T extends Poolable> extends Allo
   @Override
   public Completion shutdown() {
     return allocator.shutdown(allocatorThread);
+  }
+
+  @Override
+  Completion switchAllocator(Allocator<T> replacementAllocator) {
+    return allocator.switchAllocator(replacementAllocator);
   }
 
   @Override
