@@ -2212,7 +2212,59 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     assertEquals(10, allocator1.countAllocations() - allocator1.countDeallocations());
     assertEquals(allocator.countAllocations(), allocator.countDeallocations());
   }
-  // todo switch with some poison
+
+  @Test
+  void switchingAllocatorWithExplicitlyExpiredSlots() throws Exception {
+    builder.setSize(5);
+    reducedBackgroundExpirationCheckDelay();
+    createPool();
+    Deque<GenericPoolable> list = new ArrayDeque<>();
+    for (int i = 0; i < 5; i++) {
+      list.add(pool.claim(longTimeout));
+    }
+    for (GenericPoolable obj : list) {
+      obj.expire();
+    }
+    CountingAllocator allocator1 = allocator();
+    Completion completion1 = pool.switchAllocator(allocator1);
+    assertFalse(completion1.await(shortTimeout));
+    list.removeIf(obj -> {
+      obj.release();
+      return true;
+    });
+    assertTrue(completion1.await(longTimeout));
+    for (int i = 0; i < 5; i++) {
+      list.add(pool.claim(longTimeout));
+    }
+    list.removeIf(obj -> {
+      obj.release();
+      return true;
+    });
+    assertEquals(5, allocator1.countAllocations() - allocator1.countDeallocations());
+    assertEquals(allocator.countAllocations(), allocator.countDeallocations());
+  }
+
+  @Test
+  void switchingAllocatorWithSomeFailedSlots() throws Exception {
+    builder.setSize(5);
+    allocator = allocator(alloc($throw(new RuntimeException("oops"))));
+    builder.setAllocator(allocator);
+    reducedBackgroundExpirationCheckDelay();
+    createPool();
+    assertThrows(PoolException.class, () -> pool.claim(longTimeout));
+    CountingAllocator allocator1 = allocator();
+    Completion completion1 = pool.switchAllocator(allocator1);
+    Deque<GenericPoolable> list = new ArrayDeque<>();
+    assertTrue(completion1.await(longTimeout));
+    for (int i = 0; i < 5; i++) {
+      list.add(pool.claim(longTimeout));
+    }
+    list.removeIf(obj -> {
+      obj.release();
+      return true;
+    });
+    assertEquals(5, allocator1.countAllocations() - allocator1.countDeallocations());
+  }
 
   // NOTE: When adding, removing or modifying tests, also remember to update
   //       the javadocs and docs pages.
