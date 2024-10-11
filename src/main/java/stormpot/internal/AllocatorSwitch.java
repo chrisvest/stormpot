@@ -15,9 +15,9 @@
  */
 package stormpot.internal;
 
-import stormpot.Allocator;
 import stormpot.Poolable;
+import stormpot.Reallocator;
 
 record AllocatorSwitch<T extends Poolable>(
-        StackCompletion completion, Allocator<T> allocator) {
+        StackCompletion completion, Reallocator<T> allocator) {
 }

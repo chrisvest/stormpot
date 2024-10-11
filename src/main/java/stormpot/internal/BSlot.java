@@ -15,6 +15,7 @@
  */
 package stormpot.internal;
 
+import stormpot.Allocator;
 import stormpot.PoolException;
 import stormpot.Poolable;
 import stormpot.Slot;
@@ -69,9 +70,10 @@ public class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
    */
   public Reference<Object> leakCheck; // Used by PreciseLeakDetector
   /**
-   * A generation id, used for switching allocators.
+   * Used to make sure objects are deallocated by the same allocator that created them,
+   * for pools that support switching allocators at runtime.
    */
-  int generation;
+  Allocator<T> allocator;
 
   /**
    * Create a new BSlot instance, which will return to the given live queue when released from a claim,

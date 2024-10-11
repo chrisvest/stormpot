@@ -61,9 +61,9 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
   private final MetricsRecorder metricsRecorder;
   private final AtomicLong poisonedSlots;
   private final PreciseLeakDetector leakDetector;
-  private final Reallocator<T> allocator;
   private final boolean optimizeForMemory;
   private final StackCompletion shutdownCompletion;
+  private final LinkedTransferQueue<AllocatorSwitch<T>> switchRequests;
 
   private volatile long targetSize;
   @SuppressWarnings("unused") // Assigned via VarHandle.
@@ -73,6 +73,10 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
   private volatile long allocationCount;
   @SuppressWarnings("unused") // Assigned via VarHandle.
   private volatile long failedAllocationCount;
+
+  private Reallocator<T> allocator;
+  private AllocatorSwitch<T> nextAllocator;
+  private long priorGenerationObjectsToReplace;
 
   InlineAllocationController(
       LinkedTransferQueue<BSlot<T>> live,
@@ -90,6 +94,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
     optimizeForMemory = builder.isOptimizeForReducedMemoryUsage();
     leakDetector = builder.isPreciseLeakDetectionEnabled() ?
         new PreciseLeakDetector() : null;
+    switchRequests = new LinkedTransferQueue<>();
     setTargetSize(builder.getSize());
     shutdownCompletion = new StackCompletion(this::shutdownCompletion);
   }
@@ -185,7 +190,73 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
 
   @Override
   Completion switchAllocator(Allocator<T> replacementAllocator) {
-    throw new UnsupportedOperationException("Inline pools cannot switch allocators.");
+    StackCompletion completion = new StackCompletion(this::reallocateForAllocatorSwitch);
+    Reallocator<T> reallocator = ReallocatingAdaptor.adapt(replacementAllocator, metricsRecorder);
+    AllocatorSwitch<T> switchRequest = new AllocatorSwitch<>(completion, reallocator);
+    switchRequests.offer(switchRequest);
+    if (shutdown) {
+      AllocatorSwitch<T> entry;
+      while ((entry = switchRequests.poll()) != null) {
+        entry.completion().complete();
+      }
+    } else {
+      shutdownCompletion.propagateTo(completion);
+    }
+    return completion;
+  }
+
+  private synchronized boolean reallocateForAllocatorSwitch(Timeout timeout) {
+    checkForAllocatorSwitch();
+    newAllocations.refill();
+    disregardPile.refill();
+    BSlot<T> slot;
+    while ((slot = live.poll()) != null) {
+      if (slot.allocator != allocator && slot.live2dead()) {
+        dealloc(slot);
+        if (size < targetSize) {
+          alloc(slot);
+        }
+      } else {
+        disregardPile.push(slot);
+      }
+    }
+    return priorGenerationObjectsToReplace == 0;
+  }
+
+  private void checkForAllocatorSwitch() {
+    if (!switchRequests.isEmpty()) {
+      switchToLatestAllocator();
+    }
+  }
+
+  private synchronized void switchToLatestAllocator() {
+    List<StackCompletion> skippedCompletions = null;
+    AllocatorSwitch<T> newSwitch, previous = nextAllocator;
+    while ((newSwitch = switchRequests.poll()) != null) {
+      if (previous != null) {
+        if (skippedCompletions == null) {
+          skippedCompletions = new ArrayList<>();
+        }
+        skippedCompletions.add(previous.completion());
+      }
+      previous = newSwitch;
+    }
+    if (previous != null && skippedCompletions != null) {
+      List<StackCompletion> skipped = skippedCompletions;
+      previous.completion().subscribe(new BaseSubscriber() {
+        @Override
+        public void onComplete() {
+          for (StackCompletion completion : skipped) {
+            completion.complete();
+          }
+        }
+      });
+    }
+    if (previous != nextAllocator) {
+      priorGenerationObjectsToReplace = size;
+      allocator = previous.allocator();
+      nextAllocator = previous;
+    }
   }
 
   @Override
@@ -255,6 +326,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
   }
 
   private void alloc(BSlot<T> slot) {
+    checkForAllocatorSwitch();
     boolean success = false;
     try {
       slot.obj = allocator.allocate(slot);
@@ -262,6 +334,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
         poisonedSlots.getAndIncrement();
         slot.poison = new NullPointerException("Allocation returned null.");
       } else {
+        slot.allocator = allocator;
         success = true;
       }
     } catch (Exception e) {
@@ -330,6 +403,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
   }
 
   private void deallocSlot(BSlot<T> slot) {
+    checkForAllocatorSwitch();
     try {
       if (slot.poison == BlazePool.EXPLICIT_EXPIRE_POISON) {
         slot.poison = null;
@@ -337,7 +411,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
       }
       if (slot.poison == null) {
         recordObjectLifetimeSample(NanoClock.elapsed(slot.createdNanos));
-        allocator.deallocate(slot.obj);
+        slot.allocator.deallocate(slot.obj);
       } else {
         poisonedSlots.getAndDecrement();
       }
@@ -346,14 +420,18 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
     }
     slot.poison = null;
     slot.obj = null;
+    if (slot.allocator != allocator) {
+      replacedPriorGenerationSlot();
+    }
   }
 
   private void realloc(BSlot<T> slot) {
+    checkForAllocatorSwitch();
     if (slot.poison == BlazePool.EXPLICIT_EXPIRE_POISON) {
       slot.poison = null;
       poisonedSlots.getAndDecrement();
     }
-    if (slot.poison == null) {
+    if (slot.poison == null && nextAllocator == null) {
       boolean success = false;
       try {
         slot.obj = allocator.reallocate(slot, slot.obj);
@@ -380,6 +458,13 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
     if (metricsRecorder != null) {
       long milliseconds = TimeUnit.NANOSECONDS.toMillis(nanoseconds);
       metricsRecorder.recordObjectLifetimeSampleMillis(milliseconds);
+    }
+  }
+
+  private void replacedPriorGenerationSlot() {
+    if (--priorGenerationObjectsToReplace == 0) {
+      nextAllocator.completion().complete();
+      nextAllocator = null;
     }
   }
   

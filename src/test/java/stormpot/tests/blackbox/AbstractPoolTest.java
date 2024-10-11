@@ -75,6 +75,7 @@ import static testkits.UnitKit.waitForThreadState;
 @ExtendWith(FailurePrinterExtension.class)
 abstract class AbstractPoolTest<T extends Poolable> {
   static final Timeout longTimeout = new Timeout(5, TimeUnit.MINUTES);
+  static final Timeout shutdownTimeout = new Timeout(30, TimeUnit.SECONDS);
   static final Timeout mediumTimeout = new Timeout(10, MILLISECONDS);
   static final Timeout shortTimeout = new Timeout(1, MILLISECONDS);
   static final Timeout zeroTimeout = new Timeout(0, MILLISECONDS);
@@ -95,7 +96,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
       Thread.interrupted(); // Clear the interrupt flag.
       String poolName = pool.getClass().getSimpleName();
       assertTrue(
-          pool.shutdown().await(longTimeout),
+          pool.shutdown().await(shutdownTimeout),
           "Pool did not shut down within timeout: " + poolName);
     }
   }
@@ -802,8 +803,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     Poolable obj = tap.claim(longTimeout);
     obj.release(); // item now biased to our thread
     // claiming in a different thread should give us the same object.
-    AtomicReference<T> ref =
-        new AtomicReference<>();
+    AtomicReference<T> ref = new AtomicReference<>();
     join(forkFuture(capture($claim(tap, longTimeout), ref)));
     try {
       assertThat(ref.get()).isSameAs(obj);
@@ -1391,11 +1391,4 @@ abstract class AbstractPoolTest<T extends Poolable> {
     c.release();
     assertThat(c).isSameAs(b);
   }
-
-  protected void assumeCanSwitchAllocator() {
-  }
-  // todo switch must return completed completion for shut down pool
-  // todo switch must eventually replace all objects
-  // todo switching allocator and resizing pool down
-  // todo switching allocator and resizing pool up
 }

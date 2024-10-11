@@ -621,13 +621,13 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     final AtomicReference<Slot> failOnAllocatingSlot =
         new AtomicReference<>();
     final AtomicInteger observedFailedAllocation = new AtomicInteger();
-    Action observeFailure = (slot, obj) -> {
+    Action observeFailure = (slot, obj, allocator) -> {
       if (slot == failOnAllocatingSlot.get()) {
         observedFailedAllocation.incrementAndGet();
         failOnAllocatingSlot.set(null);
         throw new RuntimeException(allocationCause);
       }
-      return new GenericPoolable(slot);
+      return new GenericPoolable(slot, allocator);
     };
     allocator = allocator(alloc($acquire(semaphore, observeFailure)));
     builder.setAllocator(allocator);

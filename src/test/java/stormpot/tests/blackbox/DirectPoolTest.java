@@ -16,9 +16,11 @@
 package stormpot.tests.blackbox;
 
 import org.junit.jupiter.api.Test;
+import stormpot.Allocator;
 import stormpot.ManagedPool;
 import stormpot.Pool;
 import stormpot.Pooled;
+import stormpot.Slot;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -88,5 +90,22 @@ class DirectPoolTest extends AbstractPoolTest<Pooled<String>> {
     try (Pooled<String> object = pool.claim(longTimeout)) {
       assertThat(object.object).isSameAs(claimedObject);
     }
+  }
+
+  @Test
+  void mustThrowWhenSwitchingAllocator() {
+    createOneObjectPool();
+    Allocator<Pooled<String>> newAllocator = new Allocator<>() {
+      @Override
+      public Pooled<String> allocate(Slot slot) {
+        return fail("Not meant to be called.");
+      }
+
+      @Override
+      public void deallocate(Pooled<String> poolable) {
+        fail("Not meant to be called.");
+      }
+    };
+    assertThrows(UnsupportedOperationException.class, () -> pool.switchAllocator(newAllocator));
   }
 }

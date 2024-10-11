@@ -234,23 +234,24 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
   }
 
   private boolean isValid(BSlot<T> slot, BSlotCache<T> cache, boolean isTlr) {
-    return !isInvalid(slot, cache, isTlr);
-  }
-
-  private boolean isInvalid(BSlot<T> slot, BSlotCache<T> cache, boolean isTlr) {
     if (slot.poison != null) {
-      return handleUncommonInvalidation(slot, cache, isTlr);
+      handleUncommonInvalidation(slot, cache, isTlr);
+      return false;
     }
 
     try {
-      return deallocRule.hasExpired(slot)
-          && handleCommonInvalidation(slot, cache, null);
+      if (deallocRule.hasExpired(slot)) {
+        handleCommonInvalidation(slot, cache, null);
+        return false;
+      }
+      return true;
     } catch (Throwable ex) {
-      return handleCommonInvalidation(slot, cache, ex);
+      handleCommonInvalidation(slot, cache, ex);
+      return false;
     }
   }
 
-  private boolean handleUncommonInvalidation(
+  private void handleUncommonInvalidation(
       BSlot<T> slot, BSlotCache<T> cache, boolean isTlr) {
     Exception poison = slot.poison;
     if (poison == SHUTDOWN_POISON) {
@@ -266,22 +267,19 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
       throw new IllegalStateException("Pool has been shut down");
     } else {
       kill(slot, cache);
-      if (isTlr || poison == EXPLICIT_EXPIRE_POISON) {
-        return true;
-      } else {
+      if (!isTlr && poison != EXPLICIT_EXPIRE_POISON) {
         throw new PoolException("Allocation failed", poison);
       }
     }
   }
 
-  private boolean handleCommonInvalidation(
+  private void handleCommonInvalidation(
       BSlot<T> slot, BSlotCache<T> cache, Throwable exception) {
     kill(slot, cache);
     if (exception != null) {
       String msg = "Got exception when checking whether an object had expired";
       throw new PoolException(msg, exception);
     }
-    return true;
   }
 
   private void kill(BSlot<T> slot, BSlotCache<T> cache) {

@@ -161,6 +161,37 @@ public final class StackCompletion implements Completion {
     }
   }
 
+  /**
+   * Complete the given completion when this completion completes. If the given completion completes first,
+   * then their subscription to this completion is cancelled.
+   * @param other The completion to propagate to.
+   */
+  public void propagateTo(StackCompletion other) {
+    if (other.isCompleted()) {
+      return;
+    }
+    if (isCompleted()) {
+      other.complete();
+    }
+    subscribe(new BaseSubscriber() {
+      @Override
+      public void onSubscribe(Flow.Subscription subscription) {
+        super.onSubscribe(subscription);
+        other.subscribe(new BaseSubscriber() {
+          @Override
+          public void onComplete() {
+            subscription.cancel();
+          }
+        });
+      }
+
+      @Override
+      public void onComplete() {
+        other.complete();
+      }
+    });
+  }
+
   @Override
   public boolean await(Timeout timeout) throws InterruptedException {
     Objects.requireNonNull(timeout, "Timeout cannot be null.");
@@ -291,6 +322,7 @@ public final class StackCompletion implements Completion {
     @SuppressWarnings("unchecked")
     @Override
     public void cancel() {
+      // todo we should CAS obj to null, and void accumulating cancelled subscribers
       Flow.Subscriber<Void> subscriber;
       CancelledSubscription cancelled;
       do {

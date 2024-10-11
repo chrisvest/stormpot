@@ -200,12 +200,12 @@ public abstract class Sim {
 
     final TimeUnit unit = allocationTimeUnit;
     final Method method = allocationTimeMethod;
-    return allocator(alloc((slot, obj) -> {
+    return allocator(alloc((slot, obj, allocator) -> {
       if (enableAllocationCost.get()) {
         Number time = (Number) method.invoke(sim);
         unit.sleep(time.longValue());
       }
-      return $new.apply(slot, obj);
+      return $new.apply(slot, obj, allocator);
     }));
   }
 

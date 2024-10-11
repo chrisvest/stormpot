@@ -94,8 +94,7 @@ public final class DirectAllocationController<T extends Poolable> extends Alloca
 
   @Override
   Completion switchAllocator(Allocator<T> replacementAllocator) {
-    // todo
-    return null;
+    throw new UnsupportedOperationException("Direct pools do not support switching allocators");
   }
 
   @Override
