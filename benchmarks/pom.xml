@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.github.chrisvest</groupId>
   <artifactId>stormpot-benchmarks</artifactId>
-  <version>4.0</version>
+  <version>4.1-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>stormpot-benchmarks</name>
   <inceptionYear>2011-2024</inceptionYear>
