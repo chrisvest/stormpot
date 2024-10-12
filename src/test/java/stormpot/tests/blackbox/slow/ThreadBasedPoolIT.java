@@ -16,6 +16,7 @@
 package stormpot.tests.blackbox.slow;
 
 import org.junit.jupiter.api.Test;
+import stormpot.Allocator;
 import stormpot.tests.extensions.LongTimeout;
 import testkits.ExpireKit;
 import testkits.GenericPoolable;
@@ -170,13 +171,14 @@ abstract class ThreadBasedPoolIT extends PoolIT {
       boolean first = true;
 
       @Override
-      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
+      public GenericPoolable apply(Slot slot, GenericPoolable obj, Allocator<GenericPoolable> allocator)
+              throws Exception {
         GenericPoolable poolable;
         if (first) {
           first = false;
 
           // Don't count all the class loading in the first allocation.
-          poolable = $new.apply(slot, obj);
+          poolable = $new.apply(slot, obj, allocator);
 
           threads.setThreadCpuTimeEnabled(true);
           long currentThreadUserTime = threads.getCurrentThreadUserTime();
@@ -184,7 +186,7 @@ abstract class ThreadBasedPoolIT extends PoolIT {
         } else {
           long userTime = threads.getCurrentThreadUserTime();
           cpuTimeSum.set(userTime - cpuTimeSum.get());
-          poolable = $new.apply(slot, obj);
+          poolable = $new.apply(slot, obj, allocator);
         }
         return poolable;
       }
@@ -202,10 +204,11 @@ abstract class ThreadBasedPoolIT extends PoolIT {
       boolean first = true;
 
       @Override
-      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
+      public GenericPoolable apply(Slot slot, GenericPoolable obj, Allocator<GenericPoolable> allocator)
+              throws Exception {
         if (first) {
           first = false;
-          GenericPoolable poolable = $new.apply(slot, obj);
+          GenericPoolable poolable = $new.apply(slot, obj, allocator);
           threads.setThreadCpuTimeEnabled(true);
           lastUserTimeIncrement.set(threads.getCurrentThreadUserTime());
           return poolable;
@@ -218,7 +221,7 @@ abstract class ThreadBasedPoolIT extends PoolIT {
           existingDelta = maxUserTimeIncrement.get();
         } while (!maxUserTimeIncrement.compareAndSet(
             existingDelta, Math.max(delta, existingDelta)));
-        return $new.apply(slot, obj);
+        return $new.apply(slot, obj, allocator);
       }
     }));
     builder.setAllocator(allocator);

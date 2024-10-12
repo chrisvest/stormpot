@@ -15,15 +15,23 @@
  */
 package testkits;
 
+import stormpot.Allocator;
 import stormpot.BasePoolable;
 import stormpot.Slot;
 
 public class GenericPoolable extends BasePoolable {
   @SuppressWarnings({"WeakerAccess", "unused"})
   public Thread lastReleaseBy; // readable in debuggers
+  public final Allocator<GenericPoolable> originAllocator;
 
   public GenericPoolable(Slot slot) {
     super(slot);
+    originAllocator = null;
+  }
+
+  public GenericPoolable(Slot slot, Allocator<GenericPoolable> originAllocator) {
+    super(slot);
+    this.originAllocator = originAllocator;
   }
 
   @Override

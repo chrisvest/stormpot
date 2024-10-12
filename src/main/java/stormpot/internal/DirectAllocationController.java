@@ -93,6 +93,11 @@ public final class DirectAllocationController<T extends Poolable> extends Alloca
   }
 
   @Override
+  Completion switchAllocator(Allocator<T> replacementAllocator) {
+    throw new UnsupportedOperationException("Direct pools do not support switching allocators");
+  }
+
+  @Override
   void offerDeadSlot(BSlot<T> slot) {
     if (slot.poison != null) {
       slot.poison = null;

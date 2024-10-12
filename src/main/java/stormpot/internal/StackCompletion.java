@@ -105,7 +105,7 @@ public final class StackCompletion implements Completion {
       if (obj instanceof Thread th) {
         LockSupport.unpark(th);
       } else if (obj instanceof Flow.Subscriber<?> subscriber &&
-              ns.compareAndSetObj(subscriber, new CancelledSubscription(subscriber))) {
+              ns.compareAndSetObj(subscriber, null)) {
         subscriber.onComplete();
       }
       ns = next;
@@ -124,12 +124,10 @@ public final class StackCompletion implements Completion {
     while (ns != END && ns != DONE) {
       Node next = loadNext(ns);
       Object obj = ns.obj;
-      if (obj instanceof CancelledSubscription cs && cs.subscriber == subscriber) {
-        if (ns.compareAndSetObj(cs, subscriber)) {
-          subscriber.onSubscribe(ns);
-          if (isCompleted() && ns.compareAndSetObj(subscriber, new CancelledSubscription(subscriber))) {
-            subscriber.onComplete();
-          }
+      if (obj == null && ns.compareAndSetObj(null, subscriber)) {
+        subscriber.onSubscribe(ns);
+        if (isCompleted() && ns.compareAndSetObj(subscriber, null)) {
+          subscriber.onComplete();
         }
         return;
       }
@@ -159,6 +157,37 @@ public final class StackCompletion implements Completion {
     if (node.obj == subscriber) {
       subscriber.onComplete();
     }
+  }
+
+  /**
+   * Complete the given completion when this completion completes. If the given completion completes first,
+   * then their subscription to this completion is cancelled.
+   * @param other The completion to propagate to.
+   */
+  public void propagateTo(StackCompletion other) {
+    if (other.isCompleted()) {
+      return;
+    }
+    if (isCompleted()) {
+      other.complete();
+    }
+    subscribe(new BaseSubscriber() {
+      @Override
+      public void onSubscribe(Flow.Subscription subscription) {
+        super.onSubscribe(subscription);
+        other.subscribe(new BaseSubscriber() {
+          @Override
+          public void onComplete() {
+            subscription.cancel();
+          }
+        });
+      }
+
+      @Override
+      public void onComplete() {
+        other.complete();
+      }
+    });
   }
 
   @Override
@@ -292,22 +321,15 @@ public final class StackCompletion implements Completion {
     @Override
     public void cancel() {
       Flow.Subscriber<Void> subscriber;
-      CancelledSubscription cancelled;
       do {
         Object curr = obj;
         if (curr instanceof Flow.Subscriber<?>) {
           subscriber = (Flow.Subscriber<Void>) curr;
-          cancelled = new CancelledSubscription(subscriber);
-        } else if (curr instanceof CancelledSubscription) {
-          return; // Already cancelled
         } else {
-          throw new IllegalStateException("Not a subscription node");
+          return;
         }
-      } while (!compareAndSetObj(subscriber, cancelled));
+      } while (!compareAndSetObj(subscriber, null));
     }
-  }
-
-  private record CancelledSubscription(Flow.Subscriber<?> subscriber) {
   }
 
   /**

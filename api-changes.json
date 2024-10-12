@@ -320,6 +320,12 @@
           "old": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setSize(int)",
           "new": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setSize(long)",
           "justification": "Major version change"
+        },
+        {
+          "ignore": true,
+          "code": "java.method.addedToInterface",
+          "new": "method stormpot.Completion stormpot.Pool<T extends stormpot.Poolable>::switchAllocator(stormpot.Allocator<T>)",
+          "justification": "Major version change"
         }
       ]
     }

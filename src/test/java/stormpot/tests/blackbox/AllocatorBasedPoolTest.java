@@ -42,8 +42,10 @@ import testkits.SomeRandomThrowable;
 import stormpot.Timeout;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -2041,6 +2043,227 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
       fail("A virtual thread encountered an exception (computed sum was " + sum + ")", e);
     }
     assertThat(sum).hasValue(100_000);
+  }
+
+  @Test
+  void switchingAllocatorMustReturnCompletedCompletionForShutDownPool() throws Exception {
+    createOneObjectPool();
+    pool.shutdown().await(longTimeout);
+    Completion completion = pool.switchAllocator(allocator());
+    assertTrue(completion.isCompleted());
+  }
+
+  @Test
+  void switchingAllocatorMustNotCompleteWhileOldObjectsAreClaimed() throws Exception {
+    reducedBackgroundExpirationCheckDelay();
+    createOneObjectPool();
+    Completion completion;
+    GenericPoolable obj = pool.claim(longTimeout);
+    try {
+      completion = pool.switchAllocator(allocator());
+      assertFalse(completion.await(shortTimeout));
+      assertFalse(completion.isCompleted());
+    } finally {
+      obj.release();
+    }
+    assertTrue(completion.await(longTimeout));
+  }
+
+  @Test
+  void switchingAllocatorMustNotCompleteWhileOldObjectsAreClaimedWithTlrClaims() throws Exception {
+    reducedBackgroundExpirationCheckDelay();
+    createOneObjectPool();
+    Completion completion;
+    pool.claim(longTimeout).release();
+    GenericPoolable obj = pool.claim(longTimeout); // TLR claim
+    try {
+      completion = pool.switchAllocator(allocator());
+      assertFalse(completion.await(shortTimeout));
+      assertFalse(completion.isCompleted());
+    } finally {
+      obj.release();
+    }
+    assertTrue(completion.await(longTimeout));
+  }
+
+  @Test
+  void switchingAllocatorMustEventuallyReplaceAllObjects() throws Exception {
+    builder.setSize(5);
+    reducedBackgroundExpirationCheckDelay();
+    createPool();
+    pool.claim(longTimeout).release();
+    GenericPoolable obj1 = pool.claim(longTimeout);
+    GenericPoolable obj2 = pool.claim(longTimeout);
+    GenericPoolable obj3 = pool.claim(longTimeout);
+    GenericPoolable obj4 = pool.claim(longTimeout);
+    obj2.release();
+    CountingAllocator allocator2 = allocator();
+    Completion completion = pool.switchAllocator(allocator2);
+    assertFalse(completion.await(shortTimeout));
+    assertFalse(completion.isCompleted());
+    obj1.release();
+    obj3.release();
+    obj4.release();
+    assertTrue(completion.await(longTimeout));
+    GenericPoolable[] objs = new GenericPoolable[5];
+    try {
+      for (int i = 0; i < 5; i++) {
+        objs[i] = pool.claim(longTimeout);
+      }
+      assertThat(allocator.countDeallocations()).isGreaterThanOrEqualTo(4);
+      assertEquals(5, allocator2.countAllocations());
+      assertEquals(0, allocator2.countDeallocations());
+    } finally {
+      for (GenericPoolable obj : objs) {
+        if (obj != null) {
+          obj.release();
+        }
+      }
+    }
+  }
+
+  @Test
+  void switchingThroughMultipleAllocatorsMustDeallocateWithCorrectAllocators() throws Exception {
+    builder.setSize(5);
+    reducedBackgroundExpirationCheckDelay();
+    createPool();
+    Deque<GenericPoolable> list = new ArrayDeque<>();
+    for (int i = 0; i < 5; i++) {
+      list.add(pool.claim(longTimeout));
+    }
+    CountingAllocator allocator1 = allocator();
+    Completion completion1 = pool.switchAllocator(allocator1);
+    assertFalse(completion1.await(shortTimeout));
+    for (int i = 0; i < 3; i++) {
+      list.removeFirst().release();
+    }
+    while (allocator1.countAllocations() == 0) {
+      completion1.await(shortTimeout);
+    }
+    for (int i = 0; i < 3; i++) {
+      list.add(pool.claim(longTimeout));
+    }
+    assertFalse(completion1.await(shortTimeout));
+    CountingAllocator allocator2 = allocator();
+    Completion completion2 = pool.switchAllocator(allocator2);
+    assertFalse(completion2.await(shortTimeout));
+    for (int i = 0; i < 5; i++) {
+      list.removeFirst().release();
+    }
+    assertTrue(completion1.await(longTimeout));
+    assertTrue(completion2.await(longTimeout));
+  }
+
+  @Test
+  void switchingAllocatorAndResizingPoolDownMustEventuallyOnlyContainNewObjects() throws Exception {
+    builder.setSize(5);
+    reducedBackgroundExpirationCheckDelay();
+    createPool();
+    Deque<GenericPoolable> list = new ArrayDeque<>();
+    for (int i = 0; i < 5; i++) {
+      list.add(pool.claim(longTimeout));
+    }
+    pool.setTargetSize(2);
+    CountingAllocator allocator1 = allocator();
+    Completion completion1 = pool.switchAllocator(allocator1);
+    assertFalse(completion1.await(shortTimeout));
+    list.removeIf(obj -> {
+      obj.release();
+      return true;
+    });
+    assertTrue(completion1.await(longTimeout));
+    for (int i = 0; i < 2; i++) {
+      list.add(pool.claim(longTimeout));
+    }
+    list.removeIf(obj -> {
+      obj.release();
+      return true;
+    });
+    assertEquals(2, allocator1.countAllocations() - allocator1.countDeallocations());
+    assertEquals(5, allocator.countAllocations());
+    assertEquals(5, allocator.countDeallocations());
+  }
+
+  @Test
+  void switchingAllocatorAndResizingPoolUpMustEventuallyOnlyContainNewObjects() throws Exception {
+    builder.setSize(5);
+    reducedBackgroundExpirationCheckDelay();
+    createPool();
+    Deque<GenericPoolable> list = new ArrayDeque<>();
+    for (int i = 0; i < 5; i++) {
+      list.add(pool.claim(longTimeout));
+    }
+    pool.setTargetSize(10);
+    CountingAllocator allocator1 = allocator();
+    Completion completion1 = pool.switchAllocator(allocator1);
+    assertFalse(completion1.await(shortTimeout));
+    list.removeIf(obj -> {
+      obj.release();
+      return true;
+    });
+    assertTrue(completion1.await(longTimeout));
+    for (int i = 0; i < 10; i++) {
+      list.add(pool.claim(longTimeout));
+    }
+    list.removeIf(obj -> {
+      obj.release();
+      return true;
+    });
+    assertEquals(10, allocator1.countAllocations() - allocator1.countDeallocations());
+    assertEquals(allocator.countAllocations(), allocator.countDeallocations());
+  }
+
+  @Test
+  void switchingAllocatorWithExplicitlyExpiredSlots() throws Exception {
+    builder.setSize(5);
+    reducedBackgroundExpirationCheckDelay();
+    createPool();
+    Deque<GenericPoolable> list = new ArrayDeque<>();
+    for (int i = 0; i < 5; i++) {
+      list.add(pool.claim(longTimeout));
+    }
+    for (GenericPoolable obj : list) {
+      obj.expire();
+    }
+    CountingAllocator allocator1 = allocator();
+    Completion completion1 = pool.switchAllocator(allocator1);
+    assertFalse(completion1.await(shortTimeout));
+    list.removeIf(obj -> {
+      obj.release();
+      return true;
+    });
+    assertTrue(completion1.await(longTimeout));
+    for (int i = 0; i < 5; i++) {
+      list.add(pool.claim(longTimeout));
+    }
+    list.removeIf(obj -> {
+      obj.release();
+      return true;
+    });
+    assertEquals(5, allocator1.countAllocations() - allocator1.countDeallocations());
+    assertEquals(allocator.countAllocations(), allocator.countDeallocations());
+  }
+
+  @Test
+  void switchingAllocatorWithSomeFailedSlots() throws Exception {
+    builder.setSize(5);
+    allocator = allocator(alloc($throw(new RuntimeException("oops"))));
+    builder.setAllocator(allocator);
+    reducedBackgroundExpirationCheckDelay();
+    createPool();
+    assertThrows(PoolException.class, () -> pool.claim(longTimeout));
+    CountingAllocator allocator1 = allocator();
+    Completion completion1 = pool.switchAllocator(allocator1);
+    Deque<GenericPoolable> list = new ArrayDeque<>();
+    assertTrue(completion1.await(longTimeout));
+    for (int i = 0; i < 5; i++) {
+      list.add(pool.claim(longTimeout));
+    }
+    list.removeIf(obj -> {
+      obj.release();
+      return true;
+    });
+    assertEquals(5, allocator1.countAllocations() - allocator1.countDeallocations());
   }
 
   // NOTE: When adding, removing or modifying tests, also remember to update

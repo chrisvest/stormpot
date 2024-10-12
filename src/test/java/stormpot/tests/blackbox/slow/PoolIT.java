@@ -15,6 +15,7 @@
  */
 package stormpot.tests.blackbox.slow;
 
+import stormpot.Allocator;
 import stormpot.tests.extensions.ExecutorExtension;
 import stormpot.tests.extensions.FailurePrinterExtension;
 import org.junit.jupiter.api.AfterEach;
@@ -152,7 +153,12 @@ abstract class PoolIT {
           assertThat(e).hasMessage("Pool has been shut down");
           break;
         } catch (PoolException e) {
-          assertThat(e.getCause().getClass()).isIn(asList(acceptableExceptions));
+          try {
+            assertThat(e.getCause().getClass()).isIn(asList(acceptableExceptions));
+          } catch (Throwable ex) {
+            ex.addSuppressed(e);
+            throw ex;
+          }
         }
       }
     };
@@ -195,12 +201,13 @@ abstract class PoolIT {
       private final Random rnd = new Random();
 
       @Override
-      public GenericPoolable apply(Slot slot, GenericPoolable obj) throws Exception {
+      public GenericPoolable apply(Slot slot, GenericPoolable obj, Allocator<GenericPoolable> allocator)
+              throws Exception {
         // About 20% of allocations, deallocations and reallocations will throw
         if (rnd.nextInt(1024) < 201) {
           throw new SomeRandomException();
         }
-        return new GenericPoolable(slot);
+        return new GenericPoolable(slot, allocator);
       }
     };
     allocator = reallocator(
@@ -283,7 +290,7 @@ abstract class PoolIT {
   @Test
   void mustGraduallyReduceAggressivenessInRepairingFailingAllocator() throws Exception {
     AtomicLong counter = new AtomicLong();
-    allocator = allocator(alloc($new, (slot, obj) -> {
+    allocator = allocator(alloc($new, (slot, obj, allocator) -> {
       counter.getAndIncrement();
       throw new RuntimeException("boom");
     }));
