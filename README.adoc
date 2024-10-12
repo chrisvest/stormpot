@@ -57,6 +57,12 @@ operation. Some of the things that sets Stormpot apart include:
    (since 3.1)
  * Support for configuring zero-sized (dormant) pools.
    (since 3.1)
+ * Support for virtual threads.
+   (since 4.0)
+ * Support for more than 2 billion objects in a pool.
+   (since 4.0)
+ * Support for changing the `Allocator` after the pool has been created.
+   (since 4.0)
  * And other features that makes for a smooth runtime behaviour.
 
 [NOTE]
@@ -68,7 +74,8 @@ We recommend https://github.com/ben-manes/caffeine[Caffeine] for object caching.
 
 === Installing
 
-Stormpot 3.2 only depends on Java 11 or newer.
+Stormpot 4.0 only depends on Java 21 or newer.
+If you need to use Java 11 or newer, use Stormpot 3.2.
 Add it as a Maven dependency to your projects:
 
 [source,xml]
@@ -76,7 +83,7 @@ Add it as a Maven dependency to your projects:
 <dependency>
   <groupId>com.github.chrisvest</groupId>
   <artifactId>stormpot</artifactId>
-  <version>3.2</version>
+  <version>4.0</version>
 </dependency>
 ----
 
@@ -164,5 +171,5 @@ try {
  * *Build benchmarks* with `./mvnw package -DskipTests -f modular-pom.xml`,
    and run them with `java -jar benchmarks/target/benchmarks.jar`.
 
-Whatever you decide to do, don't hesitate to ask questions on the mailing list
-or on github if you have doubts or get stuck.
+Whatever you decide to do, don't hesitate to ask questions in the discussions
+on github if you have doubts or get stuck.
