@@ -24,7 +24,6 @@ import stormpot.SlotInfo;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.lang.ref.Reference;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -53,7 +52,7 @@ public class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
   @SuppressWarnings("FieldMayBeFinal")
   private volatile int state;
 
-  final BlockingQueue<BSlot<T>> live;
+  final MpmcChunkedBlockingQueue<BSlot<T>> live;
   final AtomicLong poisonedSlots;
   long stamp;
   long createdNanos;
@@ -81,7 +80,7 @@ public class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
    * @param live The queue of live slots.
    * @param poisonedSlots The counter of poisoned slots.
    */
-  public BSlot(BlockingQueue<BSlot<T>> live, AtomicLong poisonedSlots) {
+  public BSlot(MpmcChunkedBlockingQueue<BSlot<T>> live, AtomicLong poisonedSlots) {
     // Volatile write in the constructor: This object must be safely published,
     // so that we are sure that the volatile write happens-before other
     // threads observe the pointer to this object.

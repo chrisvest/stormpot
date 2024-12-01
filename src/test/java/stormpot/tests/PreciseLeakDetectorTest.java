@@ -18,6 +18,7 @@ package stormpot.tests;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import stormpot.internal.BSlot;
+import stormpot.internal.MpmcChunkedBlockingQueue;
 import stormpot.internal.PreciseLeakDetector;
 import testkits.GarbageCreator;
 import testkits.GenericPoolable;
@@ -26,8 +27,6 @@ import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.ref.Reference;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,7 +42,7 @@ class PreciseLeakDetectorTest {
 
   @Test
   void mustHandleManyAddedReplacedAndRemovedObjects() {
-    BlockingQueue<BSlot<GenericPoolable>> queue = new LinkedBlockingQueue<>();
+    MpmcChunkedBlockingQueue<BSlot<GenericPoolable>> queue = new MpmcChunkedBlockingQueue<>();
     AtomicLong poisonedSlots = new AtomicLong();
     GenericPoolable[] objs = new GenericPoolable[100000];
 
@@ -81,7 +80,7 @@ class PreciseLeakDetectorTest {
 
   @Test
   void mustCountCorrectlyAfterAddLeakAddLeakRemove() throws Exception {
-    BlockingQueue<BSlot<GenericPoolable>> queue = new LinkedBlockingQueue<>();
+    MpmcChunkedBlockingQueue<BSlot<GenericPoolable>> queue = new MpmcChunkedBlockingQueue<>();
     AtomicLong poisonedSlots = new AtomicLong();
     GenericPoolable[] first = new GenericPoolable[1000];
     for (int i = 0; i < first.length; i++) {

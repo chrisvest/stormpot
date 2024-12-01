@@ -17,8 +17,6 @@ package stormpot.internal;
 
 import stormpot.Poolable;
 
-import java.util.concurrent.LinkedTransferQueue;
-
 import static stormpot.internal.AllocationProcessMode.DIRECT;
 import static stormpot.internal.AllocationProcessMode.INLINE;
 import static stormpot.internal.AllocationProcessMode.THREADED;
@@ -35,7 +33,7 @@ public abstract class AllocationProcess {
     return new AllocationProcess(THREADED) {
       @Override
       <T extends Poolable> AllocationController<T> buildAllocationController(
-          LinkedTransferQueue<BSlot<T>> live,
+          MpmcChunkedBlockingQueue<BSlot<T>> live,
           RefillPile<T> disregardPile,
           RefillPile<T> newAllocations,
           PoolBuilderImpl<T> builder,
@@ -54,7 +52,7 @@ public abstract class AllocationProcess {
     return new AllocationProcess(INLINE) {
       @Override
       <T extends Poolable> AllocationController<T> buildAllocationController(
-          LinkedTransferQueue<BSlot<T>> live,
+          MpmcChunkedBlockingQueue<BSlot<T>> live,
           RefillPile<T> disregardPile,
           RefillPile<T> newAllocations,
           PoolBuilderImpl<T> builder,
@@ -73,7 +71,7 @@ public abstract class AllocationProcess {
     return new AllocationProcess(DIRECT) {
       @Override
       <T extends Poolable> AllocationController<T> buildAllocationController(
-          LinkedTransferQueue<BSlot<T>> live,
+          MpmcChunkedBlockingQueue<BSlot<T>> live,
           RefillPile<T> disregardPile,
           RefillPile<T> newAllocations,
           PoolBuilderImpl<T> builder,
@@ -103,7 +101,7 @@ public abstract class AllocationProcess {
   }
 
   abstract <T extends Poolable> AllocationController<T> buildAllocationController(
-      LinkedTransferQueue<BSlot<T>> live,
+      MpmcChunkedBlockingQueue<BSlot<T>> live,
       RefillPile<T> disregardPile,
       RefillPile<T> newAllocations,
       PoolBuilderImpl<T> builder,

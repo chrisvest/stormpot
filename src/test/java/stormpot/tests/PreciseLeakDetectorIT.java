@@ -17,6 +17,7 @@ package stormpot.tests;
 
 import org.junit.jupiter.api.Test;
 import stormpot.internal.BSlot;
+import stormpot.internal.MpmcChunkedBlockingQueue;
 import stormpot.internal.PreciseLeakDetector;
 import testkits.GarbageCreator;
 import testkits.GenericPoolable;
@@ -25,8 +26,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,7 +40,7 @@ class PreciseLeakDetectorIT {
 
     // This particular seed seems to give pretty good coverage:
     Random rng = new Random(-6406176578229504295L);
-    BlockingQueue<BSlot<GenericPoolable>> queue = new LinkedBlockingQueue<>();
+    MpmcChunkedBlockingQueue<BSlot<GenericPoolable>> queue = new MpmcChunkedBlockingQueue<>();
     AtomicLong poisonedSlots = new AtomicLong();
     Set<GenericPoolable> objs = new HashSet<>();
     long leaksCreated = 0;

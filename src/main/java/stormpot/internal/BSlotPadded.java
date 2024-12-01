@@ -17,7 +17,6 @@ package stormpot.internal;
 
 import stormpot.Poolable;
 
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -42,7 +41,7 @@ public class BSlotPadded<T extends Poolable> extends BSlot<T> {
    * @param live The queue of live slots.
    * @param poisonedSlots The counter of poisoned slots.
    */
-  public BSlotPadded(BlockingQueue<BSlot<T>> live, AtomicLong poisonedSlots) {
+  public BSlotPadded(MpmcChunkedBlockingQueue<BSlot<T>> live, AtomicLong poisonedSlots) {
     super(live, poisonedSlots);
   }
 }

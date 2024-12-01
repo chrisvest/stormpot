@@ -20,7 +20,6 @@ import stormpot.Completion;
 import stormpot.PoolBuilder;
 import stormpot.Poolable;
 
-import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -29,7 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @param <T> The concrete poolable type.
  */
 public final class DirectAllocationController<T extends Poolable> extends AllocationController<T> {
-  private final LinkedTransferQueue<BSlot<T>> live;
+  private final MpmcChunkedBlockingQueue<BSlot<T>> live;
   private final BSlot<T> poisonPill;
   private final long size;
   private final AtomicLong shutdownState;
@@ -37,7 +36,7 @@ public final class DirectAllocationController<T extends Poolable> extends Alloca
   private final StackCompletion shutdownCompletion;
 
   DirectAllocationController(
-      LinkedTransferQueue<BSlot<T>> live,
+      MpmcChunkedBlockingQueue<BSlot<T>> live,
       RefillPile<T> disregardPile,
       PoolBuilder<T> builder,
       BSlot<T> poisonPill) {
@@ -141,14 +140,8 @@ public final class DirectAllocationController<T extends Poolable> extends Alloca
 
   @Override
   long inUse() {
-    long inUse = 0;
-    long liveSize = 0;
-    for (BSlot<T> slot: live) {
-      liveSize++;
-      if (slot.isClaimedOrThreadLocal()) {
-        inUse++;
-      }
-    }
+    long inUse = live.count(BSlot::isClaimedOrThreadLocal);
+    long liveSize = live.size();
     return size - liveSize + inUse;
   }  
 }

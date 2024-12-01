@@ -19,7 +19,6 @@ import stormpot.Allocator;
 import stormpot.Completion;
 import stormpot.Poolable;
 
-import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.ThreadFactory;
 
 /**
@@ -31,7 +30,7 @@ public final class ThreadedAllocationController<T extends Poolable> extends Allo
   private final Thread allocatorThread;
 
   ThreadedAllocationController(
-      LinkedTransferQueue<BSlot<T>> live,
+      MpmcChunkedBlockingQueue<BSlot<T>> live,
       RefillPile<T> disregardPile,
       RefillPile<T> newAllocations,
       PoolBuilderImpl<T> builder,

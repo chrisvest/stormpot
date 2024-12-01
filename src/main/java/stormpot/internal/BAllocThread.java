@@ -24,8 +24,6 @@ import stormpot.Reallocator;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
@@ -47,7 +45,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
    */
   private static final long shutdownPauseNanos = MILLISECONDS.toNanos(10);
 
-  private final LinkedTransferQueue<BSlot<T>> live;
+  private final MpmcChunkedBlockingQueue<BSlot<T>> live;
   private final RefillPile<T> disregardPile;
   private final RefillPile<T> newAllocations;
   private final BSlot<T> poisonPill;
@@ -56,11 +54,11 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   private final boolean backgroundExpirationEnabled;
   private final PreciseLeakDetector leakDetector;
   private final StackCompletion shutdownCompletion;
-  private final BlockingQueue<BSlot<T>> dead;
+  private final MpmcChunkedBlockingQueue<BSlot<T>> dead;
   private final AtomicLong poisonedSlots;
   private final long defaultDeadPollTimeout;
   private final boolean optimizeForMemory;
-  private final LinkedTransferQueue<AllocatorSwitch<T>> switchRequests;
+  private final MpmcChunkedBlockingQueue<AllocatorSwitch<T>> switchRequests;
 
   // Single reader: this. Many writers.
   private volatile long targetSize;
@@ -78,7 +76,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   private long priorGenerationObjectsToReplace;
 
   BAllocThread(
-      LinkedTransferQueue<BSlot<T>> live,
+      MpmcChunkedBlockingQueue<BSlot<T>> live,
       RefillPile<T> disregardPile,
       RefillPile<T> newAllocations,
       PoolBuilderImpl<T> builder,
@@ -95,11 +93,11 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     this.leakDetector = builder.isPreciseLeakDetectionEnabled() ?
         new PreciseLeakDetector() : null;
     this.shutdownCompletion = new StackCompletion();
-    this.dead = new LinkedTransferQueue<>();
+    this.dead = new MpmcChunkedBlockingQueue<>();
     this.poisonedSlots = new AtomicLong();
     this.defaultDeadPollTimeout = builder.getBackgroundExpirationCheckDelay();
     this.optimizeForMemory = builder.isOptimizeForReducedMemoryUsage();
-    switchRequests = new LinkedTransferQueue<>();
+    switchRequests = new MpmcChunkedBlockingQueue<>();
     this.size = 0;
     this.didAnythingLastIteration = true; // start out busy
   }
@@ -479,14 +477,8 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   }
   
   long inUse() {
-    long inUse = 0;
-    long liveSize = 0;
-    for (BSlot<T> slot: live) {
-      liveSize++;
-      if (slot.isClaimedOrThreadLocal()) {
-        inUse++;
-      }
-    }
+    long inUse = live.count(BSlot::isClaimedOrThreadLocal);
+    long liveSize = live.size();
     return size - liveSize + inUse;
   }
 }

@@ -40,13 +40,13 @@ public final class RefillPile<T extends Poolable>
    * However, it is not actually serializable because the {@link BlockingQueue} interface
    * is not serializable.
    */
-  private final BlockingQueue<BSlot<T>> refillQueue;
+  private final MpmcChunkedBlockingQueue<BSlot<T>> refillQueue;
 
   /**
    * Create a refill pile that will refill into the given queue.
    * @param refillQueue The queue to refill into.
    */
-  public RefillPile(BlockingQueue<BSlot<T>> refillQueue) {
+  public RefillPile(MpmcChunkedBlockingQueue<BSlot<T>> refillQueue) {
     this.refillQueue = refillQueue;
     set((RefillSlot<T>) STACK_END);
   }
