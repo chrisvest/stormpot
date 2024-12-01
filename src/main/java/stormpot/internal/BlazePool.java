@@ -30,7 +30,6 @@ import stormpot.Timeout;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.Objects;
-import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -71,7 +70,7 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
   private static final Exception SHUTDOWN_POISON = new PoisonException("Stormpot Poison: Shutdown");
   static final Exception EXPLICIT_EXPIRE_POISON = new PoisonException("Stormpot Poison: Expired");
 
-  private final LinkedTransferQueue<BSlot<T>> live;
+  private final MpmcChunkedBlockingQueue<BSlot<T>> live;
   private final RefillPile<T> disregardPile;
   private final RefillPile<T> newAllocations;
   private final AllocationController<T> allocator;
@@ -96,7 +95,7 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
    * @param factory The allocation process that builds the {@link AllocationController} used by this pool.
    */
   public BlazePool(PoolBuilderImpl<T> builder, AllocationProcess factory) {
-    live = new LinkedTransferQueue<>();
+    live = new MpmcChunkedBlockingQueue<>();
     disregardPile = new RefillPile<>(live);
     newAllocations = new RefillPile<>(live);
     optimizeForMemory = builder.isOptimizeForReducedMemoryUsage();
