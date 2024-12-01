@@ -37,7 +37,7 @@ public class MpmcChunkedBlockingQueue<T> {
   private final ChunkQueue<Thread> waiters;
 
   public MpmcChunkedBlockingQueue() {
-    messages = new ChunkQueue<>(128, 1024);
+    messages = new ChunkQueue<>(256, 32);
     waiters = new ChunkQueue<>(32, 32);
   }
 
@@ -130,10 +130,58 @@ public class MpmcChunkedBlockingQueue<T> {
     return messages.count(obj -> obj != TOMBSTONE && predicate.test(obj));
   }
 
+  @SuppressWarnings("unused")
+  private static class ChunkQueueP1 {
+    private long p00;
+    private long p01;
+    private long p02;
+    private long p03;
+    private long p04;
+    private long p05;
+    private long p06;
+    private long p07;
+    private long p08;
+    private long p09;
+    private long p0A;
+    private long p0B;
+    private long p0C;
+    private long p0D;
+    private long p0E;
+    private long p0F;
+  }
+
+  private static class ChunkQueueConsumerFields extends ChunkQueueP1 {
+    @SuppressWarnings("unused")
+    public volatile long consumerIndex;
+    @SuppressWarnings("unused")
+    public volatile Chunk consumerChunk;
+  }
+
+  @SuppressWarnings({"jol", "unused"})
+  private static class ChunkQueueP2 extends ChunkQueueConsumerFields {
+    private long p10;
+    private long p11;
+    private long p12;
+    private long p13;
+    private long p14;
+    private long p15;
+    private long p16;
+    private long p17;
+    private long p18;
+    private long p19;
+    private long p1A;
+    private long p1B;
+    private long p1C;
+    private long p1D;
+    private long p1E;
+    private long p1F;
+  }
+
   /**
    * A modified version of JCTools' MpmcUnboundedXaddArrayQueue.
    */
-  private static class ChunkQueue<E> {
+  @SuppressWarnings("jol")
+  private static class ChunkQueue<E> extends ChunkQueueP2 {
     private static final VarHandle PRODUCER_INDEX;
     private static final VarHandle PRODUCER_CHUNK;
     private static final VarHandle PRODUCER_CHUNK_INDEX;
@@ -145,11 +193,16 @@ public class MpmcChunkedBlockingQueue<T> {
     static {
       MethodHandles.Lookup lookup = MethodHandles.lookup();
       try {
-        PRODUCER_INDEX = lookup.findVarHandle(ChunkQueue.class, "producerIndex", long.class);
-        PRODUCER_CHUNK = lookup.findVarHandle(ChunkQueue.class, "producerChunk", Chunk.class);
-        PRODUCER_CHUNK_INDEX = lookup.findVarHandle(ChunkQueue.class, "producerChunkIndex", long.class);
-        CONSUMER_INDEX = lookup.findVarHandle(ChunkQueue.class, "consumerIndex", long.class);
-        CONSUMER_CHUNK = lookup.findVarHandle(ChunkQueue.class, "consumerChunk", Chunk.class);
+        PRODUCER_INDEX = lookup.findVarHandle(ChunkQueue.class, "producerIndex", long.class)
+                .withInvokeExactBehavior();
+        PRODUCER_CHUNK = lookup.findVarHandle(ChunkQueue.class, "producerChunk", Chunk.class)
+                .withInvokeExactBehavior();
+        PRODUCER_CHUNK_INDEX = lookup.findVarHandle(ChunkQueue.class, "producerChunkIndex", long.class)
+                .withInvokeExactBehavior();
+        CONSUMER_INDEX = lookup.findVarHandle(ChunkQueueConsumerFields.class, "consumerIndex", long.class)
+                .withInvokeExactBehavior();
+        CONSUMER_CHUNK = lookup.findVarHandle(ChunkQueueConsumerFields.class, "consumerChunk", Chunk.class)
+                .withInvokeExactBehavior();
       } catch (Exception e) {
         throw new ExceptionInInitializerError(e);
       }
@@ -161,10 +214,6 @@ public class MpmcChunkedBlockingQueue<T> {
     private volatile Chunk producerChunk;
     @SuppressWarnings("unused")
     private volatile long producerChunkIndex;
-    @SuppressWarnings("unused")
-    private volatile long consumerIndex;
-    @SuppressWarnings("unused")
-    private volatile Chunk consumerChunk;
     private final int chunkMask;
     private final int chunkShift;
     // XXX was SpscArrayQueue, using ArrayDeque might not be thread-safe?
@@ -226,7 +275,7 @@ public class MpmcChunkedBlockingQueue<T> {
     }
 
     final boolean casConsumerIndex(long expect, long newValue) {
-      return (boolean) CONSUMER_INDEX.compareAndSet(this, expect, newValue);
+      return (boolean) CONSUMER_INDEX.compareAndSet((ChunkQueueConsumerFields) this, expect, newValue);
     }
 
     final Chunk lvConsumerChunk() {
@@ -234,7 +283,7 @@ public class MpmcChunkedBlockingQueue<T> {
     }
 
     final void soConsumerChunk(Chunk newValue) {
-      CONSUMER_CHUNK.setRelease(this, newValue);
+      CONSUMER_CHUNK.setRelease((ChunkQueueConsumerFields) this, newValue);
     }
 
     /**
@@ -598,11 +647,16 @@ public class MpmcChunkedBlockingQueue<T> {
     static {
       MethodHandles.Lookup lookup = MethodHandles.lookup();
       try {
-        PREV = lookup.findVarHandle(Chunk.class, "prev", Chunk.class);
-        NEXT = lookup.findVarHandle(Chunk.class, "next", Chunk.class);
-        INDEX = lookup.findVarHandle(Chunk.class, "index", long.class);
-        BUFFER = MethodHandles.arrayElementVarHandle(Object[].class);
-        SEQUENCE = MethodHandles.arrayElementVarHandle(long[].class);
+        PREV = lookup.findVarHandle(Chunk.class, "prev", Chunk.class)
+                .withInvokeExactBehavior();
+        NEXT = lookup.findVarHandle(Chunk.class, "next", Chunk.class)
+                .withInvokeExactBehavior();
+        INDEX = lookup.findVarHandle(Chunk.class, "index", long.class)
+                .withInvokeExactBehavior();
+        BUFFER = MethodHandles.arrayElementVarHandle(Object[].class)
+                .withInvokeExactBehavior();
+        SEQUENCE = MethodHandles.arrayElementVarHandle(long[].class)
+                .withInvokeExactBehavior();
       } catch (Exception e) {
         throw new ExceptionInInitializerError(e);
       }
