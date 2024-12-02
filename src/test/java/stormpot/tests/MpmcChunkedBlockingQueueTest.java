@@ -17,7 +17,9 @@ package stormpot.tests;
 
 import org.junit.jupiter.api.Test;
 import stormpot.internal.MpmcChunkedBlockingQueue;
+import testkits.UnitKit;
 
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -56,5 +58,14 @@ class MpmcChunkedBlockingQueueTest {
     assertEquals(42, queue.poll(1, TimeUnit.MILLISECONDS));
     assertFalse(queue.hasWaitingConsumer());
     assertNull(queue.poll(1, TimeUnit.MILLISECONDS));
+  }
+
+  @Test
+  void offerMustUnblockTimedPoll() throws Exception {
+    FutureTask<Integer> task = new FutureTask<>(() -> queue.poll(1, TimeUnit.MINUTES));
+    Thread thread = Thread.ofPlatform().start(task);
+    UnitKit.waitForThreadState(thread, Thread.State.TIMED_WAITING);
+    queue.offer(42);
+    assertEquals(42, task.get());
   }
 }

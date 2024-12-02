@@ -43,11 +43,13 @@ public class MpmcChunkedBlockingQueue<T> {
 
   public void offer(T obj) {
     messages.offer(obj);
-    Thread th;
-    while ((th = waiters.poll()) != null) {
-      if (th != TOMBSTONE) {
-        LockSupport.unpark(th);
-        break;
+    if (!waiters.isEmpty()) {
+      Thread th;
+      while ((th = waiters.poll()) != null) {
+        if (th != TOMBSTONE) {
+          LockSupport.unpark(th);
+          break;
+        }
       }
     }
   }
@@ -61,9 +63,9 @@ public class MpmcChunkedBlockingQueue<T> {
     if (obj != null) {
       return obj;
     }
-    long waitTime = unit.toNanos(timeout);
     Thread thread = Thread.currentThread();
     long stamp = waiters.offer(thread);
+    long waitTime = unit.toNanos(timeout);
     long start = System.nanoTime();
     do {
       LockSupport.parkNanos(this, waitTime);
