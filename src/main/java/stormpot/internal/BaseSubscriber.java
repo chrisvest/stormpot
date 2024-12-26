@@ -15,6 +15,7 @@
  */
 package stormpot.internal;
 
+import java.util.Objects;
 import java.util.concurrent.Flow;
 
 class BaseSubscriber implements Flow.Subscriber<Void> {
@@ -22,7 +23,7 @@ class BaseSubscriber implements Flow.Subscriber<Void> {
 
   @Override
   public void onSubscribe(Flow.Subscription subscription) {
-    this.subscription = subscription;
+    this.subscription = Objects.requireNonNull(subscription, "subscription");
   }
 
   @Override
