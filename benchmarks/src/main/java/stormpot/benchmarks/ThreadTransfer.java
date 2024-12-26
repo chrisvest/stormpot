@@ -106,8 +106,10 @@ public class ThreadTransfer {
     Options opt = new OptionsBuilder()
             .include(ThreadTransfer.class.getSimpleName())
             .measurementTime(TimeValue.seconds(1))
+            .measurementIterations(10)
             .warmupTime(TimeValue.seconds(1))
-            .forks(0) // For debugging.
+            .warmupIterations(20)
+//            .forks(0) // For debugging.
             .threads(4)
             .build();
 

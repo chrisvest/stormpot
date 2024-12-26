@@ -33,14 +33,18 @@ import stormpot.Timeout;
  */
 public final class BlazePoolSingleThreadedTap<T extends Poolable> implements PoolTap<T> {
   private final BlazePool<T> pool;
-  private final BSlotCache<T> cache = new BSlotCache<>();
+  private final BSlotCache<T> cache;
 
   /**
    * Create a sequential (only usable by one thread at a time) tap for the given pool.
-   * @param pool The pool to tap from.
+   *
+   * @param pool              The pool to tap from.
+   * @param optimizeForMemory {@code true} to optimise for lower memory usage,
+   *                                     otherwise {@code false} to prioritize performance.
    */
-  public BlazePoolSingleThreadedTap(BlazePool<T> pool) {
+  public BlazePoolSingleThreadedTap(BlazePool<T> pool, boolean optimizeForMemory) {
     this.pool = pool;
+    cache = optimizeForMemory ? new BSlotCache<>() : new BSlotCachePadded<>();
   }
 
   @Override
