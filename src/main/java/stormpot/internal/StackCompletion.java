@@ -82,7 +82,7 @@ public final class StackCompletion implements Completion {
         do {
           Thread.onSpinWait();
           next = ns.next;
-        } while (next == null && ++i < 128);
+        } while (next == null && ++i < 256);
         Thread.yield();
         next = ns.next;
       } while (next == null);
@@ -141,9 +141,9 @@ public final class StackCompletion implements Completion {
 
     Node node = new Node();
     node.obj = subscriber;
+    subscriber.onSubscribe(node);
     Node existing = (Node) NODES.getAndSet(this, node);
     node.next = existing;
-    subscriber.onSubscribe(node);
     if (existing == DONE) {
       complete();
     }
@@ -310,7 +310,6 @@ public final class StackCompletion implements Completion {
 
     @Override
     public void request(long n) {
-      loadNext(this); // We must do this before we can safely load 'obj'.
       if (n <= 0 && obj instanceof Flow.Subscriber<?> subscriber) {
         cancel();
         subscriber.onError(new IllegalArgumentException("Must request a positive number of objects"));

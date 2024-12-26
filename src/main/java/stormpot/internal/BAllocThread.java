@@ -443,7 +443,6 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     StackCompletion completion = new StackCompletion();
     Reallocator<T> reallocator = ReallocatingAdaptor.adapt(replacementAllocator, metricsRecorder);
     AllocatorSwitch<T> switchRequest = new AllocatorSwitch<>(completion, reallocator);
-    switchRequests.offer(switchRequest);
     if (shutdown) {
       AllocatorSwitch<T> entry;
       while ((entry = switchRequests.poll()) != null) {
@@ -451,6 +450,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
       }
     } else {
       shutdownCompletion.propagateTo(completion);
+      switchRequests.offer(switchRequest);
     }
     return completion;
   }
