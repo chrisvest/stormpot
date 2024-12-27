@@ -16,12 +16,18 @@
 package stormpot.benchmarks;
 
 import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Threads;
+import org.openjdk.jmh.runner.Runner;
+import org.openjdk.jmh.runner.RunnerException;
+import org.openjdk.jmh.runner.options.Options;
+import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.openjdk.jmh.runner.options.TimeValue;
 import stormpot.Expiration;
 import stormpot.Pool;
 import stormpot.PoolTap;
@@ -29,6 +35,7 @@ import stormpot.Timeout;
 
 import java.util.concurrent.TimeUnit;
 
+@Fork(jvmArgsAppend = {"-XX:+UnlockDiagnosticVMOptions", "-XX:+DebugNonSafepoints"})
 @Threads(12)
 @State(Scope.Benchmark)
 public class ClaimRelease {
@@ -56,10 +63,13 @@ public class ClaimRelease {
     PoolTap<GenericPoolable> sequential;
 
     @Setup
-    public void setUp(ClaimRelease bench) {
+    public void setUp(ClaimRelease bench) throws InterruptedException {
       threadLocal = bench.pool.getThreadSafeTap();
       vthreadSafe = bench.pool.getVirtualThreadSafeTap();
       sequential = bench.pool.getSingleThreadedTap();
+      threadLocal.claim(timeout).release();
+      vthreadSafe.claim(timeout).release();
+      sequential.claim(timeout).release();
     }
   }
 
@@ -81,5 +91,18 @@ public class ClaimRelease {
   @Benchmark
   public void sequential(PerThread state) throws InterruptedException {
     state.sequential.claim(timeout).release();
+  }
+
+  public static void main(String[] args) throws RunnerException {
+    Options opt = new OptionsBuilder()
+            .include(ClaimRelease.class.getSimpleName())
+            .measurementTime(TimeValue.seconds(1))
+            .measurementIterations(10)
+            .warmupTime(TimeValue.seconds(1))
+            .warmupIterations(20)
+//            .forks(0) // For debugging.
+            .build();
+
+    new Runner(opt).run();
   }
 }
