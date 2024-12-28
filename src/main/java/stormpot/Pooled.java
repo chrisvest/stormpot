@@ -23,7 +23,10 @@ package stormpot;
 public class Pooled<T> extends BasePoolable implements Poolable, AutoCloseable {
   /**
    * The object managed by this pooled instance.
+   *
+   * @deprecated Use {@link #getObject()} instead.
    */
+  @Deprecated
   public final T object;
 
   /**
@@ -35,6 +38,14 @@ public class Pooled<T> extends BasePoolable implements Poolable, AutoCloseable {
   public Pooled(Slot slot, T object) {
     super(slot);
     this.object = object;
+  }
+
+  /**
+   * Get the pooled object.
+   * @return The pooled object held by this {@link Pooled} reference.
+   */
+  public T getObject() {
+    return object;
   }
 
   /**
