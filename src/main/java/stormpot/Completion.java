@@ -21,6 +21,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinPool.ManagedBlocker;
+import java.util.function.Consumer;
 
 /**
  * A Completion represents some task that is going to be completed at some
@@ -52,6 +53,20 @@ public interface Completion extends ManagedBlocker, Flow.Publisher<Void> {
   static Completion from(CompletionStage<?> stage) {
     StackCompletion completion = new StackCompletion();
     stage.whenComplete((v, e) -> completion.complete());
+    return completion;
+  }
+
+  /**
+   * Create a completion using the given callback handler.
+   * The {@link Consumer} argument will be given a {@link Runnable} instance,
+   * which will complete the {@link Completion} when the {@link Runnable#run()} method is called.
+   *
+   * @param completionCallback The handler controlling the completion.
+   * @return A {@link Completion} that completes when the given {@link Runnable#run()} method is called.
+   */
+  static Completion from(Consumer<Runnable> completionCallback) {
+    StackCompletion completion = new StackCompletion();
+    completionCallback.accept(completion::complete);
     return completion;
   }
   
