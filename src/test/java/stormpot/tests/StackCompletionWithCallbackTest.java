@@ -18,21 +18,17 @@ package stormpot.tests;
 import org.junit.jupiter.api.BeforeEach;
 import stormpot.Completion;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-
-public class StackCompletionWithCompletionStageTest extends StackCompletionTest {
-  protected CompletionStage<Object> stage;
+public class StackCompletionWithCallbackTest extends StackCompletionTest {
+  protected Runnable callback;
 
   @BeforeEach
   @Override
   void setUp() {
-    stage = new CompletableFuture<>();
-    completion = Completion.from(stage);
+    completion = Completion.from(cb -> this.callback = cb);
   }
 
   @Override
   void complete() {
-    ((CompletableFuture<?>) stage).complete(null);
+    callback.run();
   }
 }
