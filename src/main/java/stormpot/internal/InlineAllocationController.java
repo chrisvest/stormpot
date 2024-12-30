@@ -26,7 +26,6 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -54,7 +53,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
     }
   }
 
-  private final LinkedTransferQueue<BSlot<T>> live;
+  private final MpmcChunkedBlockingQueue<BSlot<T>> live;
   private final RefillPile<T> disregardPile;
   private final RefillPile<T> newAllocations;
   private final BSlot<T> poisonPill;
@@ -63,7 +62,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
   private final PreciseLeakDetector leakDetector;
   private final boolean optimizeForMemory;
   private final StackCompletion shutdownCompletion;
-  private final LinkedTransferQueue<AllocatorSwitch<T>> switchRequests;
+  private final MpmcChunkedBlockingQueue<AllocatorSwitch<T>> switchRequests;
 
   private volatile long targetSize;
   @SuppressWarnings("unused") // Assigned via VarHandle.
@@ -79,7 +78,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
   private long priorGenerationObjectsToReplace;
 
   InlineAllocationController(
-      LinkedTransferQueue<BSlot<T>> live,
+      MpmcChunkedBlockingQueue<BSlot<T>> live,
       RefillPile<T> disregardPile,
       RefillPile<T> newAllocations,
       PoolBuilderImpl<T> builder,
@@ -94,7 +93,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
     optimizeForMemory = builder.isOptimizeForReducedMemoryUsage();
     leakDetector = builder.isPreciseLeakDetectionEnabled() ?
         new PreciseLeakDetector() : null;
-    switchRequests = new LinkedTransferQueue<>();
+    switchRequests = new MpmcChunkedBlockingQueue<>();
     setTargetSize(builder.getSize());
     shutdownCompletion = new StackCompletion(this::shutdownCompletion);
   }
@@ -475,14 +474,8 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
 
   @Override
   long inUse() {
-    long inUse = 0;
-    long liveSize = 0;
-    for (BSlot<T> slot: live) {
-      liveSize++;
-      if (slot.isClaimedOrThreadLocal()) {
-        inUse++;
-      }
-    }
+    long inUse = live.count(BSlot::isClaimedOrThreadLocal);
+    long liveSize = live.size();
     return size - liveSize + inUse;
   } 
 }
