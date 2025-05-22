@@ -27,7 +27,7 @@ import java.util.concurrent.locks.LockSupport;
 /**
  * An implementation of {@link Completion} based on a wait-free stack.
  * This implementation also supports a callback mechanism that trigger every time
- * a and {@link #await(Timeout)} or {@link #block()} call is about to block.
+ * an {@link #await(Timeout)} or {@link #block()} call is about to block.
  */
 public final class StackCompletion implements Completion {
   private static final Node END = new Node("END");

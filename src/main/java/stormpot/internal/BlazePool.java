@@ -359,7 +359,7 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
 
   @Override
   public PoolTap<T> getSingleThreadedTap() {
-    return new BlazePoolSingleThreadedTap<>(this);
+    return new BlazePoolSingleThreadedTap<>(this, optimizeForMemory);
   }
 
   @Override

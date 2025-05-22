@@ -24,7 +24,6 @@ import stormpot.internal.StackCompletion;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Flow;
 import java.util.concurrent.Future;
@@ -48,7 +47,6 @@ class StackCompletionTest {
   static final Timeout longTimeout = new Timeout(5, TimeUnit.MINUTES);
 
   protected Completion completion;
-  protected CompletionStage<Object> stage;
 
   @BeforeEach
   void setUp() {
