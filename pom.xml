@@ -44,7 +44,7 @@
     <javadoc.version>3.7.0</javadoc.version>
     <asciidoclet.version>2.0.0</asciidoclet.version>
     <revapi.maven.version>0.15.0</revapi.maven.version>
-    <revapi.version>0.28.1</revapi.version>
+    <revapi.version>0.28.4</revapi.version>
   </properties>
 
   <distributionManagement>
