@@ -2,6 +2,6 @@ version: 2
 updates:
   - package-ecosystem: "maven" # See documentation for possible values
     directory: "/" # Location of package manifests
-    target-branch: "3.2"
+    target-branch: "main"
     schedule:
       interval: "weekly"
