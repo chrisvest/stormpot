@@ -15,6 +15,7 @@
  */
 package stormpot.tests;
 
+import stormpot.internal.MpmcChunkedBlockingQueue;
 import stormpot.tests.extensions.ExecutorExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,8 +27,6 @@ import testkits.GenericPoolable;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
@@ -49,7 +48,7 @@ class RefillPileTest {
 
     @Test
     void pushAndRefill() {
-        BlockingQueue<BSlot<GenericPoolable>> queue = new ArrayBlockingQueue<>(10);
+        MpmcChunkedBlockingQueue<BSlot<GenericPoolable>> queue = new MpmcChunkedBlockingQueue<>();
         RefillPile<GenericPoolable> pile = new RefillPile<>(queue);
         BSlot<GenericPoolable> a = new BSlot<>(queue, poisonedSlots);
         BSlot<GenericPoolable> b = new BSlot<>(queue, poisonedSlots);
@@ -65,7 +64,7 @@ class RefillPileTest {
 
     @Test
     void pushAndPop() {
-        BlockingQueue<BSlot<GenericPoolable>> queue = new ArrayBlockingQueue<>(10);
+        MpmcChunkedBlockingQueue<BSlot<GenericPoolable>> queue = new MpmcChunkedBlockingQueue<>();
         RefillPile<GenericPoolable> pile = new RefillPile<>(queue);
         BSlot<GenericPoolable> a = new BSlot<>(queue, poisonedSlots);
         BSlot<GenericPoolable> b = new BSlot<>(queue, poisonedSlots);
@@ -85,7 +84,7 @@ class RefillPileTest {
         int iterations = 100_000;
         CountDownLatch start = new CountDownLatch(2);
         Set<Integer> observedInts = new HashSet<>();
-        BlockingQueue<BSlot<Pooled<Integer>>> queue = new ArrayBlockingQueue<>(10);
+        MpmcChunkedBlockingQueue<BSlot<Pooled<Integer>>> queue = new MpmcChunkedBlockingQueue<>();
         RefillPile<Pooled<Integer>> pile = new RefillPile<>(queue);
         var pusher = executor.submit(() -> {
             start.countDown();
@@ -116,14 +115,14 @@ class RefillPileTest {
 
     @Test
     void toStringOfEmptyRefillPile() {
-        BlockingQueue<BSlot<GenericPoolable>> queue = new ArrayBlockingQueue<>(10);
+        MpmcChunkedBlockingQueue<BSlot<GenericPoolable>> queue = new MpmcChunkedBlockingQueue<>();
         RefillPile<GenericPoolable> pile = new RefillPile<>(queue);
         assertThat(pile.toString()).contains("EMPTY");
     }
 
     @Test
     void toStringOfNonEmptyRefillPile() {
-        BlockingQueue<BSlot<GenericPoolable>> queue = new ArrayBlockingQueue<>(10);
+        MpmcChunkedBlockingQueue<BSlot<GenericPoolable>> queue = new MpmcChunkedBlockingQueue<>();
         RefillPile<GenericPoolable> pile = new RefillPile<>(queue);
         BSlot<GenericPoolable> a = new BSlot<>(queue, poisonedSlots);
         pile.push(a);
