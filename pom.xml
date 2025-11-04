@@ -43,7 +43,7 @@
     <jacoco.version>0.8.14</jacoco.version>
     <javadoc.version>3.12.0</javadoc.version>
     <asciidoclet.version>2.0.0</asciidoclet.version>
-    <revapi.maven.version>0.15.0</revapi.maven.version>
+    <revapi.maven.version>0.15.1</revapi.maven.version>
     <revapi.version>0.28.4</revapi.version>
   </properties>
 
