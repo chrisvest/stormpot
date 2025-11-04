@@ -307,6 +307,7 @@ abstract class PoolIT {
       long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
       if (elapsedMillis >= 150) {
         // Ignore outliers with very high sleep time.
+        prev = counter.get();
         i--;
         continue;
       }
