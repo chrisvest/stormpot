@@ -176,7 +176,6 @@ public sealed interface PoolBuilder<T extends Poolable>
    * they are not) are ever reported.
    *
    * <table>
-   * <caption>Note</caption>
    * <tr>
    * <th scope="row">NOTE</th>
    * <td>
@@ -271,6 +270,27 @@ public sealed interface PoolBuilder<T extends Poolable>
    * @return This {@code PoolBuilder} instance.
    */
   PoolBuilder<T> setOptimizeForReducedMemoryUsage(boolean reduceMemoryUsage);
+
+  /**
+   * Return the maximum number of object allocations and deallocations that Stormpot
+   * will perform concurrently.
+   * <p>
+   * The default is 1, so only one object at a time can be allocated or deallocated.
+   *
+   * @return The maximum number of concurrent allocations and deallocations.
+   */
+  int getMaxConcurrentAllocations();
+
+  /**
+   * Set the maximum number of concurrent allocations or deallocations.
+   * <p>
+   * If object allocation is particularly slow, it can make sense to allow Stormpot to
+   * perform allocations in parallel, so that the pool can fill up faster when its newly
+   * created, or recover faster if a large number of objects need to be replaced.
+   *
+   * @return This {@code PoolBuilder} instance.
+   */
+  PoolBuilder<T> setMaxConcurrentAllocations(int allocationConcurrency);
 
   /**
    * Returns a shallow copy of this {@code PoolBuilder} object.

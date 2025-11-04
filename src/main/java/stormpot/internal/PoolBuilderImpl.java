@@ -39,18 +39,18 @@ import static stormpot.internal.AllocationProcessMode.THREADED;
  * @param <T> The concrete poolable type.
  */
 public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T> {
-  static final ThreadFactory THREAD_FACTORY = Thread.ofVirtual()
+  public static final Thread.Builder.OfVirtual THREAD_BUILDER = Thread.ofVirtual()
           .name("Stormpot-", 1)
-          .inheritInheritableThreadLocals(false)
-          .factory();
+          .inheritInheritableThreadLocals(false);
+  public static final ThreadFactory THREAD_FACTORY = THREAD_BUILDER.factory();
 
   /**
    * Mapping of {@link AllocationProcessMode} to the pool builder default settings.
    */
   public static final Map<AllocationProcessMode, PoolBuilderDefaults> DEFAULTS = Map.of(
-      THREADED, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, false, true, 1000, true),
-      INLINE, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, false, false, 0, true),
-      DIRECT, new PoolBuilderDefaults(never(), THREAD_FACTORY, false, false, 0, true)
+      THREADED, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, false, true, 1000, true, 1),
+      INLINE, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, false, false, 0, true, 1),
+      DIRECT, new PoolBuilderDefaults(never(), THREAD_FACTORY, false, false, 0, true, 1)
   );
 
   /**
@@ -73,6 +73,7 @@ public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T>
   private boolean backgroundExpirationEnabled;
   private int backgroundExpirationCheckDelay;
   private boolean optimizeForMemory;
+  private int allocationConcurrency;
 
   /**
    * Build a new empty {@code PoolBuilder} object.
@@ -92,6 +93,7 @@ public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T>
     this.backgroundExpirationEnabled = defaults.backgroundExpirationEnabled;
     this.backgroundExpirationCheckDelay = defaults.backgroundExpirationCheckDelay;
     this.optimizeForMemory = defaults.optimizeForMemory;
+    this.allocationConcurrency = defaults.allocationConcurrency;
   }
 
   @Override
@@ -215,6 +217,17 @@ public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T>
   @Override
   public synchronized PoolBuilder<T> setOptimizeForReducedMemoryUsage(boolean reduceMemoryUsage) {
     this.optimizeForMemory = reduceMemoryUsage;
+    return this;
+  }
+
+  @Override
+  public synchronized int getMaxConcurrentAllocations() {
+    return allocationConcurrency;
+  }
+
+  @Override
+  public synchronized PoolBuilder<T> setMaxConcurrentAllocations(int allocationConcurrency) {
+    this.allocationConcurrency = allocationConcurrency;
     return this;
   }
 
