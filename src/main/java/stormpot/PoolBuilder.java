@@ -141,7 +141,7 @@ public sealed interface PoolBuilder<T extends Poolable>
   MetricsRecorder getMetricsRecorder();
 
   /**
-   * Get the ThreadFactory that has been configured, and will be used to create
+   * Get the {@link ThreadFactory} that has been configured, and will be used to create
    * the background allocation threads for the pools. The default is similar to
    * the {@link java.util.concurrent.Executors#defaultThreadFactory()}, except
    * the string "Stormpot-" is prepended to the thread name.
@@ -150,9 +150,12 @@ public sealed interface PoolBuilder<T extends Poolable>
   ThreadFactory getThreadFactory();
 
   /**
-   * Set the ThreadFactory that the pools will use to create its background
-   * threads with. The ThreadFactory is not allowed to be null, and creating
-   * a pool with a null ThreadFactory will throw an IllegalArgumentException.
+   * Set the {@link ThreadFactory} that the pools will use to create its background
+   * threads with. The ThreadFactory is not allowed to be {@code null}, and creating
+   * a pool with a {@code null} ThreadFactory will throw an {@link IllegalArgumentException}.
+   * <p>
+   * This setting only affects {@linkplain Pool#fromThreaded(Allocator) threaded} pools.
+   *
    * @param factory The ThreadFactory the pool should use to create their
    *                background threads.
    * @return This {@code PoolBuilder} instance.
@@ -162,6 +165,7 @@ public sealed interface PoolBuilder<T extends Poolable>
   /**
    * Return whether precise object leak detection is enabled, which is
    * the case by default.
+   *
    * @return {@code true} if precise object leak detection is enabled.
    * @see #setPreciseLeakDetectionEnabled(boolean)
    */
@@ -189,6 +193,9 @@ public sealed interface PoolBuilder<T extends Poolable>
    * Precise object leak detection incurs virtually no overhead, and is safe to
    * leave enabled at all times – even in the most demanding production
    * environments.
+   * <p>
+   * This setting only affects {@linkplain Pool#fromThreaded(Allocator) threaded} and
+   * {@linkplain Pool#fromInline(Allocator) inline} pools.
    *
    * @param enabled {@code true} to turn on precise object leak detection (the
    *                default) {@code false} to turn it off.
@@ -212,6 +219,8 @@ public sealed interface PoolBuilder<T extends Poolable>
    * away from the background thread and hinder its ability to keep up with the
    * demand for allocations and deallocations, even though these tasks always
    * take priority over any expiration checking.
+   * <p>
+   * This setting only affects {@linkplain Pool#fromThreaded(Allocator) threaded} pools.
    *
    * @param enabled {@code true} (the default) to turn background expiration checking on,
    *               {@code false} to turn it off.
@@ -240,6 +249,8 @@ public sealed interface PoolBuilder<T extends Poolable>
    * It is not recommended to set this value lower than 100 milliseconds. Values lower
    * than this tend to have increased CPU and power usage, for very little gain in
    * responsiveness for the background tasks.
+   * <p>
+   * This setting only affects {@linkplain Pool#fromThreaded(Allocator) threaded} pools.
    *
    * @param delay the desired delay, in milliseconds, between background maintenance tasks.
    * @return This {@code PoolBuilder} instance.
@@ -287,6 +298,8 @@ public sealed interface PoolBuilder<T extends Poolable>
    * If object allocation is particularly slow, it can make sense to allow Stormpot to
    * perform allocations in parallel, so that the pool can fill up faster when its newly
    * created, or recover faster if a large number of objects need to be replaced.
+   * <p>
+   * This setting only affects {@linkplain Pool#fromThreaded(Allocator) threaded} pools.
    *
    * @return This {@code PoolBuilder} instance.
    */
