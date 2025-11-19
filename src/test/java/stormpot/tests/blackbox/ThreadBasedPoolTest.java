@@ -15,6 +15,7 @@
  */
 package stormpot.tests.blackbox;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -28,8 +29,11 @@ import stormpot.PoolException;
 import stormpot.PoolTap;
 import stormpot.Slot;
 
+import java.time.Duration;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -41,6 +45,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -51,11 +56,13 @@ import static testkits.AlloKit.$countDown;
 import static testkits.AlloKit.$if;
 import static testkits.AlloKit.$new;
 import static testkits.AlloKit.$null;
+import static testkits.AlloKit.$sleep;
 import static testkits.AlloKit.$throw;
 import static testkits.AlloKit.Action;
 import static testkits.AlloKit.CountingReallocator;
 import static testkits.AlloKit.alloc;
 import static testkits.AlloKit.allocator;
+import static testkits.AlloKit.dealloc;
 import static testkits.AlloKit.realloc;
 import static testkits.AlloKit.reallocator;
 import static testkits.ExpireKit.$countDown;
@@ -76,6 +83,27 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
   @Test
   void constructorMustThrowIfBackgroundExpirationCheckDelayIsNegative() {
     assertThrows(IllegalArgumentException.class, () -> builder.setBackgroundExpirationCheckDelay(-1));
+  }
+
+  @Test
+  void mustThrowIfConcurrentAllocationsAreNotPositive() {
+    assertEquals(1, builder.getMaxConcurrentAllocations());
+    assertThrows(IllegalArgumentException.class, () -> builder.setMaxConcurrentAllocations(0));
+    assertEquals(1, builder.getMaxConcurrentAllocations());
+    assertThrows(IllegalArgumentException.class, () -> builder.setMaxConcurrentAllocations(-1));
+    assertEquals(1, builder.getMaxConcurrentAllocations());
+  }
+
+  @Test
+  void mustSupportSettingAllocationConcurrency() {
+    builder.setMaxConcurrentAllocations(2);
+    assertEquals(2, builder.getMaxConcurrentAllocations());
+    builder.setMaxConcurrentAllocations(1);
+    assertEquals(1, builder.getMaxConcurrentAllocations());
+    builder.setMaxConcurrentAllocations(Integer.MAX_VALUE);
+    assertEquals(Integer.MAX_VALUE, builder.getMaxConcurrentAllocations());
+    builder.setMaxConcurrentAllocations(1);
+    assertEquals(1, builder.getMaxConcurrentAllocations());
   }
 
   /**
@@ -719,4 +747,50 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     noBackgroundExpirationChecking();
     super.managedPoolMustGiveNumberOfAllocatedAndInUseObjects();
   }
+
+  @Test
+  void allocatorConcurrencyMustAllowAllocatingObjectsInParallel() throws Exception {
+    int count = 250;
+    int sleepMillis = 100;
+    builder.setMaxConcurrentAllocations(count);
+    allocator = allocator(alloc($sleep(sleepMillis, $new)));
+    builder.setAllocator(allocator);
+    createPoolOfSize(count);
+    Deque<GenericPoolable> objs = new ArrayDeque<>(count);
+    long start = System.nanoTime();
+    for (int i = 0; i < count; i++) {
+      objs.add(pool.claim(longTimeout));
+    }
+    long elapsedNanos = System.nanoTime() - start;
+    objs.forEach(GenericPoolable::release);
+    assertThat(Duration.ofNanos(elapsedNanos)).isLessThan(Duration.ofMillis(count * sleepMillis));
+  }
+
+  @Disabled
+  @Test
+  void allocatorConcurrencyMustAllowDeallocatingObjectsInParallel() throws Exception {
+    int count = 250;
+    int sleepMillis = 100;
+    builder.setMaxConcurrentAllocations(count);
+    allocator = allocator(alloc($new), dealloc($sleep(sleepMillis, $null)));
+    builder.setAllocator(allocator);
+    createPoolOfSize(count);
+    Deque<GenericPoolable> objs = new ArrayDeque<>(count);
+    for (int i = 0; i < count; i++) {
+      objs.add(pool.claim(longTimeout));
+    }
+    objs.removeIf(obj -> {
+      obj.expire();
+      obj.release();
+      return true;
+    });
+    long start = System.nanoTime();
+    for (int i = 0; i < count; i++) {
+      objs.add(pool.claim(longTimeout));
+    }
+    long elapsedNanos = System.nanoTime() - start;
+    objs.forEach(GenericPoolable::release);
+    assertThat(Duration.ofNanos(elapsedNanos)).isLessThan(Duration.ofMillis(count * sleepMillis));
+  }
+  // todo allocatorConcurrencyMustAllowReallocatingObjectsInParallel
 }

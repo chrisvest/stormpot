@@ -19,11 +19,13 @@ import stormpot.Allocator;
 import stormpot.Completion;
 import stormpot.Expiration;
 import stormpot.MetricsRecorder;
+import stormpot.PoolException;
 import stormpot.Poolable;
 import stormpot.Reallocator;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -60,6 +62,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   private final long defaultTaskPollTimeout;
   private final boolean optimizeForMemory;
   private final LinkedTransferQueue<AllocatorSwitch<T>> switchRequests;
+  private final int allocationConcurrency;
 
   // Single reader: this. Many writers.
   private volatile long targetSize;
@@ -71,6 +74,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
 
   private Reallocator<T> allocator;
   private long size;
+  private int inFlightConcurrentAllocations;
   private boolean didAnythingLastIteration;
   private long consecutiveAllocationFailures;
   private AllocatorSwitch<T> nextAllocator;
@@ -99,6 +103,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     this.defaultTaskPollTimeout = builder.getBackgroundExpirationCheckDelay();
     this.optimizeForMemory = builder.isOptimizeForReducedMemoryUsage();
     switchRequests = new LinkedTransferQueue<>();
+    allocationConcurrency = builder.getMaxConcurrentAllocations();
     this.size = 0;
     this.didAnythingLastIteration = true; // start out busy
   }
@@ -138,6 +143,9 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
       } else {
         reallocateDeadSlot((BSlot<T>) slot);
       }
+    } else if (task instanceof AsyncAllocationCompletion completion) {
+      publishSlot((BSlot<T>) completion.slot, completion.success, NanoClock.nanoTime());
+      inFlightConcurrentAllocations--;
     } else if (size > targetSize) {
       reduceSizeByDeallocating(null);
     }
@@ -289,11 +297,13 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   }
 
   private void shutPoolDown() {
-    while (size > 0) {
+    while (size > 0 /* TODO: || inFlightConcurrentAllocations > 0 */) {
       BSlot<T> slot;
       Task task = tasks.poll();
       if (task instanceof BSlot<?> bSlot) {
         slot = (BSlot<T>) bSlot;
+      } else if (task instanceof AsyncAllocationCompletion completion) {
+        slot = (BSlot<T>) completion.slot;
       } else if (task == null) {
         slot = live.poll();
       } else {
@@ -319,22 +329,61 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   }
 
   private void alloc(BSlot<T> slot) {
-    boolean success = false;
-    try {
-      slot.obj = allocator.allocate(slot);
-      if (slot.obj == null) {
+    slot.allocator = allocator;
+    if (allocationConcurrency > 1 && inFlightConcurrentAllocations < allocationConcurrency) {
+      inFlightConcurrentAllocations++;
+      CompletionStage<T> stage = allocator.allocateAsync(slot);
+      if (stage == null) {
         poisonedSlots.getAndIncrement();
-        slot.poison = new NullPointerException("Allocation returned null.");
+        slot.poison = new NullPointerException("Asynchronous allocation returned null completion stage.");
+        publishSlot(slot, false, NanoClock.nanoTime());
       } else {
-        success = true;
+        stage.whenComplete((obj, e) -> {
+          boolean success = false;
+          if (e != null) {
+            poisonedSlots.getAndIncrement();
+            if (hasNoSuppressedPoolException(e)) {
+              e.addSuppressed(new PoolException("Asynchronous allocation failed."));
+            }
+            slot.poison = e;
+          } else if (obj == null) {
+            poisonedSlots.getAndIncrement();
+            slot.poison = new PoolException("Asynchronous allocation returned null.");
+          } else {
+            slot.obj = obj;
+            success = true;
+          }
+          tasks.add(new AsyncAllocationCompletion(slot, success));
+        });
       }
-    } catch (Exception e) {
-      poisonedSlots.getAndIncrement();
-      slot.poison = e;
+    } else {
+      boolean success = false;
+      try {
+        slot.obj = allocator.allocate(slot);
+        if (slot.obj == null) {
+          poisonedSlots.getAndIncrement();
+          slot.poison = new NullPointerException("Allocation returned null.");
+        } else {
+          success = true;
+        }
+      } catch (Exception e) {
+        poisonedSlots.getAndIncrement();
+        slot.poison = e;
+      }
+      publishSlot(slot, success, NanoClock.nanoTime());
     }
     size++;
-    publishSlot(slot, success, NanoClock.nanoTime());
     didAnythingLastIteration = true;
+  }
+
+  private boolean hasNoSuppressedPoolException(Throwable e) {
+    Throwable[] suppressed = e.getSuppressed();
+    for (Throwable throwable : suppressed) {
+      if (throwable instanceof PoolException) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private void publishSlot(BSlot<T> slot, boolean success, long now) {
@@ -362,7 +411,6 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   private void resetSlot(BSlot<T> slot, long now) {
     slot.createdNanos = now;
     slot.stamp = 0;
-    slot.allocator = allocator;
     slot.dead2live();
   }
 
@@ -398,6 +446,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     if (slot.poison == null && nextAllocator == null) {
       boolean success = false;
       try {
+        slot.allocator = allocator;
         slot.obj = allocator.reallocate(slot, slot.obj);
         if (slot.obj == null) {
           poisonedSlots.getAndIncrement();
@@ -459,6 +508,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     } else {
       shutdownCompletion.propagateTo(completion);
       switchRequests.offer(switchRequest);
+      tasks.add(new AllocatorSwitchRequestPending());
     }
     return completion;
   }

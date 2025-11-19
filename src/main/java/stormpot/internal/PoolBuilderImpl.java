@@ -39,7 +39,7 @@ import static stormpot.internal.AllocationProcessMode.THREADED;
  * @param <T> The concrete poolable type.
  */
 public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T> {
-  public static final Thread.Builder.OfVirtual THREAD_BUILDER = Thread.ofVirtual()
+  public static final Thread.Builder THREAD_BUILDER = Thread.ofVirtual()
           .name("Stormpot-", 1)
           .inheritInheritableThreadLocals(false);
   public static final ThreadFactory THREAD_FACTORY = THREAD_BUILDER.factory();
@@ -227,6 +227,9 @@ public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T>
 
   @Override
   public synchronized PoolBuilder<T> setMaxConcurrentAllocations(int allocationConcurrency) {
+    if (allocationConcurrency < 1) {
+      throw new IllegalArgumentException("Allocation concurrency must be positive, but was: " + allocationConcurrency);
+    }
     this.allocationConcurrency = allocationConcurrency;
     return this;
   }
