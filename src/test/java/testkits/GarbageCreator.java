@@ -15,6 +15,7 @@
  */
 package testkits;
 
+import java.lang.invoke.VarHandle;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.ref.PhantomReference;
@@ -78,6 +79,19 @@ public class GarbageCreator {
   }
 
   private static PhantomReference<Object> createLeakedObjectReference(ReferenceQueue<Object> queue) {
-    return new PhantomReference<>(new Object() /* intentionally leak */, queue);
+    return createLeakedObjectReference(queue, 10.0, 50.0);
+  }
+
+  private static PhantomReference<Object> createLeakedObjectReference(
+          ReferenceQueue<Object> queue, double threshold, double current) {
+    if (threshold > 20.0 * (current + ThreadLocalRandom.current().nextDouble())) {
+      Object object = new Object();
+      PhantomReference<Object> reference = new PhantomReference<>(object, queue);
+      VarHandle.fullFence();
+      object = null; // intentionally leak
+      VarHandle.fullFence();
+      return reference;
+    }
+    return createLeakedObjectReference(queue, threshold, current - 1.0);
   }
 }
