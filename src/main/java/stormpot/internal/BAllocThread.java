@@ -24,7 +24,6 @@ import stormpot.Reallocator;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -56,9 +55,9 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   private final boolean backgroundExpirationEnabled;
   private final PreciseLeakDetector leakDetector;
   private final StackCompletion shutdownCompletion;
-  private final BlockingQueue<BSlot<T>> dead;
+  private final LinkedTransferQueue<Task> tasks;
   private final AtomicLong poisonedSlots;
-  private final long defaultDeadPollTimeout;
+  private final long defaultTaskPollTimeout;
   private final boolean optimizeForMemory;
   private final LinkedTransferQueue<AllocatorSwitch<T>> switchRequests;
 
@@ -95,9 +94,9 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     this.leakDetector = builder.isPreciseLeakDetectionEnabled() ?
         new PreciseLeakDetector() : null;
     this.shutdownCompletion = new StackCompletion();
-    this.dead = new LinkedTransferQueue<>();
+    this.tasks = new LinkedTransferQueue<>();
     this.poisonedSlots = new AtomicLong();
-    this.defaultDeadPollTimeout = builder.getBackgroundExpirationCheckDelay();
+    this.defaultTaskPollTimeout = builder.getBackgroundExpirationCheckDelay();
     this.optimizeForMemory = builder.isOptimizeForReducedMemoryUsage();
     switchRequests = new LinkedTransferQueue<>();
     this.size = 0;
@@ -117,7 +116,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
         replenishPool();
       }
     } catch (InterruptedException ignore) {
-      // This can only be thrown by the dead.poll() method call, because alloc
+      // This can only be thrown by the tasks.poll() method call, because alloc
       // catches exceptions and use them for poison.
     }
     // This means we've been shut down.
@@ -127,16 +126,20 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   }
 
   private void replenishPool() throws InterruptedException {
-    long deadPollTimeout = computeDeadPollTimeout();
-    BSlot<T> slot = deadPollTimeout == 0 ? dead.poll() : dead.poll(deadPollTimeout, MILLISECONDS);
+    long deadPollTimeout = computeTaskPollTimeout();
+    Task task = deadPollTimeout == 0 ? tasks.poll() : tasks.poll(deadPollTimeout, MILLISECONDS);
     checkForAllocatorSwitch();
     if (size < targetSize) {
       increaseSizeByAllocating();
     }
-    if (size > targetSize) {
-      reduceSizeByDeallocating(slot);
-    } else if (slot != null) {
-      reallocateDeadSlot(slot);
+    if (task instanceof BSlot<?> slot) {
+      if (size > targetSize) {
+        reduceSizeByDeallocating((BSlot<T>) slot);
+      } else {
+        reallocateDeadSlot((BSlot<T>) slot);
+      }
+    } else if (size > targetSize) {
+      reduceSizeByDeallocating(null);
     }
     if (leakDetector != null) {
       // Make sure we process any cleared references, so the reference queue don't get too big.
@@ -188,19 +191,19 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     }
   }
 
-  private long computeDeadPollTimeout() {
+  private long computeTaskPollTimeout() {
     // Default timeout.
-    long deadPollTimeout = defaultDeadPollTimeout;
+    long taskPollTimeout = defaultTaskPollTimeout;
     if (size != targetSize || poisonedSlots.get() > 0) {
       // Make timeout shorter if we have work piled up.
-      deadPollTimeout = (didAnythingLastIteration ? 0 : 10);
+      taskPollTimeout = (didAnythingLastIteration ? 0 : 10);
       // Unless we have a lot of allocation failures.
       // In that case, make the timeout longer to avoid wasting CPU.
-      deadPollTimeout += Math.min(consecutiveAllocationFailures,
-          defaultDeadPollTimeout - deadPollTimeout);
+      taskPollTimeout += Math.min(consecutiveAllocationFailures,
+          defaultTaskPollTimeout - taskPollTimeout);
     }
     didAnythingLastIteration = false;
-    return deadPollTimeout;
+    return taskPollTimeout;
   }
 
   private void increaseSizeByAllocating() {
@@ -273,7 +276,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
         }
         if (expired) {
           slot.claim2dead(); // Not strictly necessary
-          dead.offer(slot);
+          tasks.offer(slot);
           didAnythingLastIteration = true;
         } else {
           slot.claim2live();
@@ -287,9 +290,14 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
 
   private void shutPoolDown() {
     while (size > 0) {
-      BSlot<T> slot = dead.poll();
-      if (slot == null) {
+      BSlot<T> slot;
+      Task task = tasks.poll();
+      if (task instanceof BSlot<?> bSlot) {
+        slot = (BSlot<T>) bSlot;
+      } else if (task == null) {
         slot = live.poll();
+      } else {
+        slot = null;
       }
       if (slot == poisonPill) {
         live.offer(poisonPill);
@@ -471,7 +479,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   }
 
   void offerDeadSlot(BSlot<T> slot) {
-    dead.offer(slot);
+    tasks.offer(slot);
   }
   
   long allocatedSize() {

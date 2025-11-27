@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @param <T> The concrete poolable type.
  */
 @SuppressWarnings("unused")
-public class BSlotPadded<T extends Poolable> extends BSlot<T> {
+public final class BSlotPadded<T extends Poolable> extends BSlot<T> {
   private long p00;
   private long p01;
   private long p02;

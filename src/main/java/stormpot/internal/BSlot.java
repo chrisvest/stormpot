@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * @param <T> The concrete poolable type.
  */
-public class BSlot<T extends Poolable> implements Slot, SlotInfo<T> {
+public sealed class BSlot<T extends Poolable> implements Slot, SlotInfo<T>, Task permits BSlotPadded {
   private static final int CLAIMED = 1;
   private static final int TLR_CLAIMED = 2;
   private static final int LIVING = 3;
