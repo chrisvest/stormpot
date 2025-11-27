@@ -15,5 +15,10 @@
  */
 package stormpot.internal;
 
+/**
+ * Sealed interface for the different kinds of tasks the {@link BAllocThread} will respond and react to.
+ * The specific supported task types are hard-coded in the {@link BAllocThread} class, because each one needs special
+ * treatment.
+ */
 public sealed interface Task permits BSlot {
 }
