@@ -135,7 +135,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     if (task instanceof BSlot<?> slot) {
       if (size > targetSize) {
         reduceSizeByDeallocating((BSlot<T>) slot);
-      } else if (slot != null) {
+      } else {
         reallocateDeadSlot((BSlot<T>) slot);
       }
     } else if (size > targetSize) {
