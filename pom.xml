@@ -183,7 +183,14 @@
         <artifactId>license-maven-plugin</artifactId>
         <version>5.0.0</version>
         <configuration>
-          <header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
+            <licenseSets>
+              <licenseSet>
+                <header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
+                <includes>
+                  <include>**/*.java</include>
+                </includes>
+              </licenseSet>
+            </licenseSets>
           <properties>
             <owner>Chris Vest</owner>
             <year>${project.inceptionYear}</year>
@@ -192,9 +199,6 @@
           <mapping>
             <java>SLASHSTAR_STYLE</java>
           </mapping>
-          <includes>
-            <include>**/*.java</include>
-          </includes>
         </configuration>
         <executions>
           <execution>
