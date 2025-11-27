@@ -24,7 +24,6 @@ import stormpot.Reallocator;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -56,7 +55,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   private final boolean backgroundExpirationEnabled;
   private final PreciseLeakDetector leakDetector;
   private final StackCompletion shutdownCompletion;
-  private final BlockingQueue<BSlot<T>> dead;
+  private final LinkedTransferQueue<Task> dead;
   private final AtomicLong poisonedSlots;
   private final long defaultDeadPollTimeout;
   private final boolean optimizeForMemory;
@@ -128,15 +127,19 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
 
   private void replenishPool() throws InterruptedException {
     long deadPollTimeout = computeDeadPollTimeout();
-    BSlot<T> slot = deadPollTimeout == 0 ? dead.poll() : dead.poll(deadPollTimeout, MILLISECONDS);
+    Task task = deadPollTimeout == 0 ? dead.poll() : dead.poll(deadPollTimeout, MILLISECONDS);
     checkForAllocatorSwitch();
     if (size < targetSize) {
       increaseSizeByAllocating();
     }
-    if (size > targetSize) {
-      reduceSizeByDeallocating(slot);
-    } else if (slot != null) {
-      reallocateDeadSlot(slot);
+    if (task instanceof BSlot<?> slot) {
+      if (size > targetSize) {
+        reduceSizeByDeallocating((BSlot<T>) slot);
+      } else if (slot != null) {
+        reallocateDeadSlot((BSlot<T>) slot);
+      }
+    } else if (size > targetSize) {
+      reduceSizeByDeallocating(null);
     }
     if (leakDetector != null) {
       // Make sure we process any cleared references, so the reference queue don't get too big.
@@ -287,9 +290,14 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
 
   private void shutPoolDown() {
     while (size > 0) {
-      BSlot<T> slot = dead.poll();
-      if (slot == null) {
+      BSlot<T> slot;
+      Task task = dead.poll();
+      if (task instanceof BSlot<?> bSlot) {
+        slot = (BSlot<T>) bSlot;
+      } else if (task == null) {
         slot = live.poll();
+      } else {
+        slot = null;
       }
       if (slot == poisonPill) {
         live.offer(poisonPill);
