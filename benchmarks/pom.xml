@@ -6,7 +6,7 @@
   <version>4.2-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>stormpot-benchmarks</name>
-  <inceptionYear>2011-2024</inceptionYear>
+  <inceptionYear>2011</inceptionYear>
 
   <licenses>
     <license>
@@ -45,7 +45,7 @@
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.13.0</version>
+        <version>3.14.1</version>
         <configuration>
           <release>${java.version}</release>
           <annotationProcessors>
@@ -56,20 +56,23 @@
       <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
-        <version>4.5</version>
+        <version>5.0.0</version>
         <configuration>
-          <header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
+          <licenseSets>
+            <licenseSet>
+              <header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
+              <includes>
+                <include>**/*.java</include>
+              </includes>
+            </licenseSet>
+          </licenseSets>
           <properties>
             <owner>Chris Vest</owner>
-            <year>${project.inceptionYear}</year>
             <email>mr.chrisvest@gmail.com</email>
           </properties>
           <mapping>
             <java>SLASHSTAR_STYLE</java>
           </mapping>
-          <includes>
-            <include>**/*.java</include>
-          </includes>
         </configuration>
         <executions>
           <execution>
