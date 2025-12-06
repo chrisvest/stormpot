@@ -183,14 +183,14 @@
         <artifactId>license-maven-plugin</artifactId>
         <version>5.0.0</version>
         <configuration>
-            <licenseSets>
-              <licenseSet>
-                <header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
-                <includes>
-                  <include>**/*.java</include>
-                </includes>
-              </licenseSet>
-            </licenseSets>
+          <licenseSets>
+            <licenseSet>
+              <header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
+              <includes>
+                <include>**/*.java</include>
+              </includes>
+            </licenseSet>
+          </licenseSets>
           <properties>
             <owner>Chris Vest</owner>
             <email>mr.chrisvest@gmail.com</email>
