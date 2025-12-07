@@ -56,12 +56,14 @@ class Examples {
 
   @Test
   void managedPoolExample() throws Exception {
+    // tag::managedPoolExample[]
     // @start region=managedPoolExample
     Pool<MyPoolable> pool = Pool.from(new MyAllocator()).build();
     MBeanServer server = ManagementFactory.getPlatformMBeanServer();
     ObjectName name = new ObjectName("com.myapp:objectpool=stormpot");
     server.registerMBean(pool.getManagedPool(), name);
     // @end
+    // end::managedPoolExample[]
   }
 
   @SuppressWarnings("EmptyTryBlock")
@@ -100,7 +102,7 @@ class Examples {
 
   @Test
   void directPoolExample() throws Exception {
-    // @start region=directPoolExample
+    // tag::directPoolExample[]
     Object a = new Object();
     Object b = new Object();
     Object c = new Object();
@@ -110,20 +112,20 @@ class Examples {
         System.out.println(claim.object);
       }
     }
-    // @end
+    // end::directPoolExample[]
   }
 
   @Test
   void inlinePoolExample() throws Exception {
     MyAllocator allocator = new MyAllocator();
-    // @start region=inlinePoolExample
+    // tag::inlinePoolExample[]
     Pool<MyPoolable> pool = Pool.fromInline(allocator).build();
     MyPoolable obj = pool.claim(TIMEOUT);
     if (obj != null) {
       System.out.println(obj);
       obj.release();
     }
-    // @end
+    // end::inlinePoolExample[]
   }
 
   @SuppressWarnings("InnerClassMayBeStatic")
@@ -195,13 +197,13 @@ class Examples {
       }
     };
 
-    // @start region=expensiveExpirationWithEveryExample
+    // tag::expensiveExpirationWithEveryExample[]
     Expiration<PooledConnection> checkConnection = new CheckConnectionExpiration()
         .every(10, SECONDS); // <1>
     Pool<PooledConnection> connectionPool = Pool.from(connectionAllocator)
         .setExpiration(checkConnection)
         .build();
-    // @end
+    // end::expensiveExpirationWithEveryExample[]
     assertThat(connectionPool).isNotNull();
   }
 }
