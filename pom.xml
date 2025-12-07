@@ -245,7 +245,9 @@
           <sourceDirectory>docs</sourceDirectory>
           <outputDirectory>target/docs</outputDirectory>
           <backend>html</backend>
-          <sourceHighlighter>coderay</sourceHighlighter>
+          <attributes>
+            <source-highlighter>coderay</source-highlighter>
+          </attributes>
           <requires>
             <require>asciidoctor-diagram</require>
           </requires>
@@ -255,6 +257,11 @@
             <groupId>org.asciidoctor</groupId>
             <artifactId>asciidoctorj-diagram</artifactId>
             <version>3.1.0</version>
+          </dependency>
+          <dependency>
+            <groupId>org.asciidoctor</groupId>
+            <artifactId>asciidoctorj-diagram-ditaamini</artifactId>
+            <version>1.0.3</version>
           </dependency>
         </dependencies>
       </plugin>
