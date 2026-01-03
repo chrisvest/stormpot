@@ -64,7 +64,7 @@ public sealed class BSlot<T extends Poolable> implements Slot, SlotInfo<T>, Task
   /**
    * Any exception encountered when trying to allocate an object for this slot.
    */
-  public Exception poison;
+  public Throwable poison;
   /**
    * A reference to the allocated object, used by the {@link PreciseLeakDetector}.
    */

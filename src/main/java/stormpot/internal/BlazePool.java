@@ -253,7 +253,7 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
 
   private void handleUncommonInvalidation(
       BSlot<T> slot, BSlotCache<T> cache, boolean isTlr) {
-    Exception poison = slot.poison;
+    Throwable poison = slot.poison;
     if (poison == SHUTDOWN_POISON) {
       // The poison pill means the pool has been shut down. The pill was
       // transitioned from live to claimed just prior to this check, so we
