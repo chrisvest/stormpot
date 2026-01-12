@@ -60,7 +60,7 @@
         <configuration>
           <licenseSets>
             <licenseSet>
-              <header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
+              <header>../license-header.txt</header>
               <includes>
                 <include>**/*.java</include>
               </includes>
