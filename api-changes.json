@@ -36,6 +36,18 @@
     "configuration": {
       "ignore": true,
       "differences": [
+        {
+          "ignore": true,
+          "code": "java.method.addedToInterface",
+          "new": "method int stormpot.PoolBuilder<T extends stormpot.Poolable>::getMaxConcurrentAllocations()",
+          "justification": "False positive. See https://github.com/revapi/revapi/issues/304"
+        },
+        {
+          "ignore": true,
+          "code": "java.method.addedToInterface",
+          "new": "method stormpot.PoolBuilder<T> stormpot.PoolBuilder<T extends stormpot.Poolable>::setMaxConcurrentAllocations(int)",
+          "justification": "False positive. See https://github.com/revapi/revapi/issues/304"
+        }
       ]
     }
   }
