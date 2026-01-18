@@ -39,9 +39,22 @@ import static stormpot.internal.AllocationProcessMode.THREADED;
  * @param <T> The concrete poolable type.
  */
 public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T> {
-  public static final Thread.Builder THREAD_BUILDER = Thread.ofVirtual()
-          .name("Stormpot-", 1)
-          .inheritInheritableThreadLocals(false);
+  /**
+   * The default thread builder.
+   * <p>
+   * This thread builder creates numbered threads named with a "Stormpot-" prefix.
+   * <p>
+   * The threads created are virtual unless the {@code stormpot.usePlatformThreads} system property
+   * is set to {@code "true"}.
+   */
+  public static final Thread.Builder THREAD_BUILDER =
+          (Boolean.getBoolean("stormpot.usePlatformThreads") ? Thread.ofPlatform() : Thread.ofVirtual())
+                  .name("Stormpot-", 1)
+                  .inheritInheritableThreadLocals(false);
+
+  /**
+   * The default thread factory, derived from the {@linkplain #THREAD_BUILDER default thread builder}.
+   */
   public static final ThreadFactory THREAD_FACTORY = THREAD_BUILDER.factory();
 
   /**

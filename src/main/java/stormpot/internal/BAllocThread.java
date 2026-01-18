@@ -508,7 +508,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     } else {
       shutdownCompletion.propagateTo(completion);
       switchRequests.offer(switchRequest);
-      tasks.add(new AllocatorSwitchRequestPending());
+      tasks.add(AllocatorSwitchRequestPending.INSTANCE);
     }
     return completion;
   }

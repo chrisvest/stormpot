@@ -180,6 +180,7 @@ public sealed interface PoolBuilder<T extends Poolable>
    * they are not) are ever reported.
    *
    * <table>
+   * <caption>Note</caption>
    * <tr>
    * <th scope="row">NOTE</th>
    * <td>
@@ -301,6 +302,20 @@ public sealed interface PoolBuilder<T extends Poolable>
    * <p>
    * This setting only affects {@linkplain Pool#fromThreaded(Allocator) threaded} pools.
    *
+   * <table>
+   * <caption>Note</caption>
+   * <tr>
+   * <th scope="row">NOTE</th>
+   * <td>
+   * Setting this to a value greater than 1 means the allocator implementation will experience
+   * concurrent allocation and deallocation calls from multiple threads.
+   * The configured {@link Allocator} implementation must therefor be thread-safe.
+   * </td>
+   * </tr>
+   * </table>
+   *
+   * @param allocationConcurrency The maximum number of objects that can be allocated in parallel
+   * at any one time. Must be positive.
    * @return This {@code PoolBuilder} instance.
    */
   PoolBuilder<T> setMaxConcurrentAllocations(int allocationConcurrency);

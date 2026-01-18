@@ -15,5 +15,15 @@
  */
 package stormpot.internal;
 
+/**
+ * Used to signal that an allocator switch has been requested.
+ */
 public final class AllocatorSwitchRequestPending implements Task {
+  /**
+   * The singleton instance of this class.
+   */
+  static final AllocatorSwitchRequestPending INSTANCE = new AllocatorSwitchRequestPending();
+
+  private AllocatorSwitchRequestPending() {
+  }
 }
