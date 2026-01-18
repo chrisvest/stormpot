@@ -297,13 +297,14 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   }
 
   private void shutPoolDown() {
-    while (size > 0 /* TODO: || inFlightConcurrentAllocations > 0 */) {
+    while (size > 0 || inFlightConcurrentAllocations > 0) {
       BSlot<T> slot;
       Task task = tasks.poll();
       if (task instanceof BSlot<?> bSlot) {
         slot = (BSlot<T>) bSlot;
       } else if (task instanceof AsyncAllocationCompletion completion) {
         slot = (BSlot<T>) completion.slot;
+        inFlightConcurrentAllocations--;
       } else if (task == null) {
         slot = live.poll();
       } else {
