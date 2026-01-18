@@ -144,7 +144,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
         reallocateDeadSlot((BSlot<T>) slot);
       }
     } else if (task instanceof AsyncAllocationCompletion completion) {
-      publishSlot((BSlot<T>) completion.slot, completion.success, NanoClock.nanoTime());
+      publishSlot((BSlot<T>) completion.slot, completion.slot.poison == null, NanoClock.nanoTime());
       inFlightConcurrentAllocations--;
     } else if (size > targetSize) {
       reduceSizeByDeallocating(null);
@@ -339,7 +339,6 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
         publishSlot(slot, false, NanoClock.nanoTime());
       } else {
         stage.whenComplete((obj, e) -> {
-          boolean success = false;
           if (e != null) {
             poisonedSlots.getAndIncrement();
             if (hasNoSuppressedPoolException(e)) {
@@ -351,9 +350,8 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
             slot.poison = new PoolException("Asynchronous allocation returned null.");
           } else {
             slot.obj = obj;
-            success = true;
           }
-          tasks.add(new AsyncAllocationCompletion(slot, success));
+          tasks.add(new AsyncAllocationCompletion(slot));
         });
       }
     } else {

@@ -22,17 +22,13 @@ import stormpot.Poolable;
  */
 public final class AsyncAllocationCompletion implements Task {
   final BSlot<? extends Poolable> slot;
-  final boolean success;
 
   /**
    * Create a new asynchronous allocation completion.
    * @param slot The slot that was allocated into.
-   * @param success {@code true} if the allocation was successful, otherwise {@code false}.
    * @param <T> The type of object that was allocated.
    */
-  public <T extends Poolable> AsyncAllocationCompletion(
-          BSlot<T> slot, boolean success) {
+  public <T extends Poolable> AsyncAllocationCompletion(BSlot<T> slot) {
     this.slot = slot;
-    this.success = success;
   }
 }
