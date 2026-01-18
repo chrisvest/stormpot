@@ -19,17 +19,16 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import testkits.ExpireKit;
-import testkits.GenericPoolable;
-import testkits.LastSampleMetricsRecorder;
 import stormpot.ManagedPool;
 import stormpot.Pool;
 import stormpot.PoolBuilder;
 import stormpot.PoolException;
 import stormpot.PoolTap;
 import stormpot.Slot;
+import testkits.ExpireKit;
+import testkits.GenericPoolable;
+import testkits.LastSampleMetricsRecorder;
 
-import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,7 +55,6 @@ import static testkits.AlloKit.$countDown;
 import static testkits.AlloKit.$if;
 import static testkits.AlloKit.$new;
 import static testkits.AlloKit.$null;
-import static testkits.AlloKit.$sleep;
 import static testkits.AlloKit.$throw;
 import static testkits.AlloKit.Action;
 import static testkits.AlloKit.CountingReallocator;
@@ -750,47 +748,49 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
 
   @Test
   void allocatorConcurrencyMustAllowAllocatingObjectsInParallel() throws Exception {
-    int count = 250;
-    int sleepMillis = 100;
+    int count = 4;
+    CountDownLatch latch = new CountDownLatch(count);
     builder.setMaxConcurrentAllocations(count);
-    allocator = allocator(alloc($sleep(sleepMillis, $new)));
+    allocator = allocator(alloc((s, o, a) -> {
+      latch.countDown();
+      latch.await();
+      return $new.apply(s, o, a);
+    }));
     builder.setAllocator(allocator);
     createPoolOfSize(count);
     Deque<GenericPoolable> objs = new ArrayDeque<>(count);
-    long start = System.nanoTime();
     for (int i = 0; i < count; i++) {
       objs.add(pool.claim(longTimeout));
     }
-    long elapsedNanos = System.nanoTime() - start;
     objs.forEach(GenericPoolable::release);
-    assertThat(Duration.ofNanos(elapsedNanos)).isLessThan(Duration.ofMillis(count * sleepMillis));
   }
 
   @Disabled
   @Test
   void allocatorConcurrencyMustAllowDeallocatingObjectsInParallel() throws Exception {
-    int count = 250;
-    int sleepMillis = 100;
+    int count = 4;
+    CountDownLatch latch = new CountDownLatch(count);
     builder.setMaxConcurrentAllocations(count);
-    allocator = allocator(alloc($new), dealloc($sleep(sleepMillis, $null)));
+    allocator = allocator(alloc($new), dealloc((s, o, a) -> {
+      latch.countDown();
+      latch.await();
+      return null;
+    }));
     builder.setAllocator(allocator);
     createPoolOfSize(count);
     Deque<GenericPoolable> objs = new ArrayDeque<>(count);
     for (int i = 0; i < count; i++) {
       objs.add(pool.claim(longTimeout));
     }
-    objs.removeIf(obj -> {
+    objs.forEach(obj -> {
       obj.expire();
       obj.release();
-      return true;
     });
-    long start = System.nanoTime();
+    objs.clear();
     for (int i = 0; i < count; i++) {
-      objs.add(pool.claim(longTimeout));
+      objs.add(pool.claim(longTimeout)); // Will time out if objects cannot allocate concurrently.
     }
-    long elapsedNanos = System.nanoTime() - start;
     objs.forEach(GenericPoolable::release);
-    assertThat(Duration.ofNanos(elapsedNanos)).isLessThan(Duration.ofMillis(count * sleepMillis));
   }
   // todo allocatorConcurrencyMustAllowReallocatingObjectsInParallel
 }
