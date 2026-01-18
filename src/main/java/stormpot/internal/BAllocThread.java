@@ -30,6 +30,7 @@ import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.Consumer;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
@@ -229,8 +230,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     slot = slot == null ? live.poll() : slot;
     if (slot != null) {
       if (slot.isDead() || slot.live2dead()) {
-        dealloc(slot);
-        unregisterWithLeakDetector(slot);
+        dealloc(slot, this::unregisterWithLeakDetector);
       } else {
         live.offer(slot);
       }
@@ -320,8 +320,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
         }
       } else {
         if (slot.isDead() || slot.live2dead()) {
-          dealloc(slot);
-          unregisterWithLeakDetector(slot);
+          dealloc(slot, this::unregisterWithLeakDetector);
         } else {
           live.offer(slot);
         }
@@ -413,7 +412,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     slot.dead2live();
   }
 
-  private void dealloc(BSlot<T> slot) {
+  private void dealloc(BSlot<T> slot, Consumer<BSlot<T>> andThen) {
     size--;
     try {
       if (slot.poison == BlazePool.EXPLICIT_EXPIRE_POISON) {
@@ -435,6 +434,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     if (slot.allocator != allocator) {
       replacedPriorGenerationSlot();
     }
+    andThen.accept(slot);
   }
 
   private void realloc(BSlot<T> slot) {
@@ -461,8 +461,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
       recordObjectLifetimeSample(now - slot.createdNanos);
       publishSlot(slot, success, now);
     } else {
-      dealloc(slot);
-      alloc(slot);
+      dealloc(slot, this::alloc);
     }
     didAnythingLastIteration = true;
   }
