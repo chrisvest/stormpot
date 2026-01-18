@@ -15,6 +15,11 @@
  */
 package stormpot;
 
+import stormpot.internal.PoolBuilderImpl;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
 /**
  * Reallocators are a special kind of {@link Allocator} that can reallocate
  * {@link Poolable}s that have expired. This is useful since the {@link Pool}
@@ -74,4 +79,36 @@ public interface Reallocator<T extends Poolable> extends Allocator<T> {
    * @see #deallocate(Poolable)
    */
   T reallocate(Slot slot, T poolable) throws Exception;
+
+  /**
+   * Start the task of reallocating the given instance of T for the given slot, and
+   * produce the new instance if the reallocation was successful, or a fresh replacement if
+   * the instance could not be reallocated.
+   * <p>
+   * This method works as if a new thread is started to call {@link #reallocate(Slot, Poolable)}.
+   *
+   * @param slot The slot the pool wish to allocate an object for.
+   * Implementers do not need to concern themselves with the details of a
+   * pools slot objects. They just have to call release on them as the
+   * protocol demands.
+   * @param poolable The non-null Poolable instance to be reallocated.
+   * @return A {@link CompletionStage} that completes with a fresh,
+   * or rejuvenated instance of T, or completes with an exception.
+   * Never {@code null}.
+   * @see #reallocate(Slot, Poolable)
+   * @see #allocate(Slot)
+   * @see #deallocate(Poolable)
+   * @since 4.2
+   */
+  default CompletionStage<T> reallocateAsync(Slot slot, T poolable) {
+    CompletableFuture<T> task = new CompletableFuture<>();
+    PoolBuilderImpl.THREAD_BUILDER.start(() -> {
+      try {
+        task.complete(reallocate(slot, poolable));
+      } catch (Exception e) {
+        task.completeExceptionally(e);
+      }
+    });
+    return task;
+  }
 }

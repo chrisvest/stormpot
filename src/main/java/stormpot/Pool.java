@@ -140,7 +140,7 @@ public interface Pool<T extends Poolable> extends PoolTap<T> {
    * and automatically replacing failed allocations, are not available.
    * On the other hand, inline pool consumes fewer memory and CPU resources.
    *
-   * @param allocator The allcoator we want our pools to use. This cannot be {@code null}.
+   * @param allocator The allocator we want our pools to use. This cannot be {@code null}.
    * @param <T> The type of {@link Poolable} that is created by the allocator,
    *           and the type of objects that the configured pools will contain.
    * @return A {@link PoolBuilder} that admits additional configurations,

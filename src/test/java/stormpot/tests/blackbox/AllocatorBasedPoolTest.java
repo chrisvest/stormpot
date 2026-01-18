@@ -48,6 +48,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1633,7 +1634,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   void managedPoolMustCountLeakedObjects() throws Exception {
     builder.setPreciseLeakDetectionEnabled(true).setSize(2);
     ManagedPool managedPool = createPool().getManagedPool();
-    pool.claim(longTimeout); // leak!
+    claimAndLeak(200); // leak!
     // Clear any thread-local reference to the leaked object:
     pool.claim(longTimeout).release();
     // Clear any references held by our particular allocator:
@@ -1644,16 +1645,26 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
       GarbageCreator.awaitReferenceProcessing();
     }
 
-    pool = null; // null out the pool because we can no longer shut it down.
+    // null out the pool because we can no longer shut it down.
+    pool = null;
+
     try (var ignore = GarbageCreator.forkCreateGarbage()) {
-      for (int i = 0; i < 100; i++) {
+      for (int i = 0; i < 1000; i++) {
         if (managedPool.getLeakedObjectsCount() >= 1) {
           break;
         }
-        Thread.sleep(10);
+        GarbageCreator.awaitReferenceProcessing();
       }
     }
     assertThat(managedPool.getLeakedObjectsCount()).isOne();
+  }
+
+  private void claimAndLeak(int callDepthRemaining) throws InterruptedException {
+    if (ThreadLocalRandom.current().nextInt(50) < callDepthRemaining) {
+      claimAndLeak(callDepthRemaining - 1);
+    } else {
+      pool.claim(longTimeout);
+    }
   }
 
   @SuppressWarnings("UnusedAssignment")
@@ -1851,6 +1862,13 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     PoolTap<GenericPoolable> tap = taps.get(this);
 
     while (pool.getManagedPool().getAllocationCount() < 3) {
+      Thread.yield();
+    }
+
+    // Add one more at the tail end, after the pool has quiesced.
+    pool.setTargetSize(4);
+
+    while (pool.getManagedPool().getAllocationCount() < 4) {
       Thread.yield();
     }
 
