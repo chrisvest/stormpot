@@ -20,5 +20,9 @@ package stormpot.internal;
  * The specific supported task types are hard-coded in the {@link BAllocThread} class, because each one needs special
  * treatment.
  */
-public sealed interface Task permits AllocatorSwitchRequestPending, AsyncAllocationCompletion, BSlot {
+public sealed interface Task permits
+        AllocatorSwitchRequestPending,
+        AsyncAllocationCompletion,
+        AsyncDeallocationCompletion,
+        BSlot {
 }

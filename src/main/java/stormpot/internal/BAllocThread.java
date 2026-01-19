@@ -147,6 +147,9 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     } else if (task instanceof AsyncAllocationCompletion completion) {
       publishSlot((BSlot<T>) completion.slot, completion.slot.poison == null, NanoClock.nanoTime());
       inFlightConcurrentAllocations--;
+    } else if (task instanceof AsyncDeallocationCompletion completion) {
+      inFlightConcurrentAllocations--;
+      completion.doComplete(this);
     } else if (size > targetSize) {
       reduceSizeByDeallocating(null);
     }
@@ -230,7 +233,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     slot = slot == null ? live.poll() : slot;
     if (slot != null) {
       if (slot.isDead() || slot.live2dead()) {
-        dealloc(slot, this::unregisterWithLeakDetector);
+        dealloc(slot, true, this::unregisterWithLeakDetector);
       } else {
         live.offer(slot);
       }
@@ -305,6 +308,10 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
       } else if (task instanceof AsyncAllocationCompletion completion) {
         slot = (BSlot<T>) completion.slot;
         inFlightConcurrentAllocations--;
+      } else if (task instanceof AsyncDeallocationCompletion completion) {
+        slot = null; // Already deallocated.
+        inFlightConcurrentAllocations--;
+        completion.doComplete(this);
       } else if (task == null) {
         slot = live.poll();
       } else {
@@ -320,7 +327,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
         }
       } else {
         if (slot.isDead() || slot.live2dead()) {
-          dealloc(slot, this::unregisterWithLeakDetector);
+          dealloc(slot, true, this::unregisterWithLeakDetector);
         } else {
           live.offer(slot);
         }
@@ -329,6 +336,12 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   }
 
   private void alloc(BSlot<T> slot) {
+    size++;
+    allocSingle(slot);
+  }
+
+  private void allocSingle(BSlot<T> slot) {
+    didAnythingLastIteration = true;
     slot.allocator = allocator;
     if (allocationConcurrency > 1 && inFlightConcurrentAllocations < allocationConcurrency) {
       inFlightConcurrentAllocations++;
@@ -370,8 +383,6 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
       }
       publishSlot(slot, success, NanoClock.nanoTime());
     }
-    size++;
-    didAnythingLastIteration = true;
   }
 
   private boolean hasNoSuppressedPoolException(Throwable e) {
@@ -412,29 +423,50 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     slot.dead2live();
   }
 
-  private void dealloc(BSlot<T> slot, Consumer<BSlot<T>> andThen) {
-    size--;
-    try {
-      if (slot.poison == BlazePool.EXPLICIT_EXPIRE_POISON) {
-        slot.poison = null;
-        poisonedSlots.getAndDecrement();
-      }
-      if (slot.poison == null) {
-        recordObjectLifetimeSample(NanoClock.elapsed(slot.createdNanos));
-        slot.allocator.deallocate(slot.obj);
+  private void dealloc(BSlot<T> slot, boolean updateSize, Consumer<BSlot<T>> andThen) {
+    if (updateSize) {
+      size--;
+    }
+    if (slot.poison == BlazePool.EXPLICIT_EXPIRE_POISON) {
+      slot.poison = null;
+      poisonedSlots.getAndDecrement();
+    }
+    if (allocationConcurrency > 1 && inFlightConcurrentAllocations < allocationConcurrency && slot.poison == null) {
+      inFlightConcurrentAllocations++;
+      recordObjectLifetimeSample(NanoClock.elapsed(slot.createdNanos));
+      CompletionStage<Void> stage = slot.allocator.deallocateAsync(slot.obj);
+      slot.obj = null;
+      if (stage == null) {
+        if (updateSize) {
+          size++;
+        }
+        poisonedSlots.getAndIncrement();
+        slot.poison = new NullPointerException("Asynchronous deallocation returned null completion stage.");
+        publishSlot(slot, false, NanoClock.nanoTime());
       } else {
-        poisonedSlots.getAndDecrement();
+        stage.whenComplete((obj, ignore) -> {
+          tasks.add(new AsyncDeallocationCompletion(slot, andThen));
+        });
       }
-    } catch (Exception ignore) { // NOPMD
-      // Ignored as per specification
+    } else {
+      try {
+        if (slot.poison == null) {
+          recordObjectLifetimeSample(NanoClock.elapsed(slot.createdNanos));
+          slot.allocator.deallocate(slot.obj);
+        } else {
+          poisonedSlots.getAndDecrement();
+        }
+      } catch (Exception ignore) { // NOPMD
+        // Ignored as per specification
+      }
+      slot.poison = null;
+      slot.obj = null;
+      if (slot.allocator != allocator) {
+        replacedPriorGenerationSlot();
+      }
+      andThen.accept(slot);
     }
-    slot.poison = null;
-    slot.obj = null;
     didAnythingLastIteration = true;
-    if (slot.allocator != allocator) {
-      replacedPriorGenerationSlot();
-    }
-    andThen.accept(slot);
   }
 
   private void realloc(BSlot<T> slot) {
@@ -461,9 +493,15 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
       recordObjectLifetimeSample(now - slot.createdNanos);
       publishSlot(slot, success, now);
     } else {
-      dealloc(slot, this::alloc);
+      dealloc(slot, false, this::allocSingle);
     }
     didAnythingLastIteration = true;
+  }
+
+  void maybeReplacePriorGenerationSlot(BSlot<?> slot) {
+    if (slot.allocator != allocator) {
+      replacedPriorGenerationSlot();
+    }
   }
 
   private void replacedPriorGenerationSlot() {
