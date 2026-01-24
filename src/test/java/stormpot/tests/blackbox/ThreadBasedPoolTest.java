@@ -855,7 +855,67 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     });
     assertThat(poolException).hasCauseExactlyInstanceOf(ExpectedException.class);
   }
-  // todo must propagate exception when asynchronous allocate returns null stage
-  // todo must propagate exception when asynchronous reallocate returns null stage
-  // todo must propagate exception when asynchronous deallocate returns null stage
+
+  @Test
+  void mustPropagateExceptionWhenAsynchronousAllocationReturnsNullStage() throws Exception {
+    builder.setMaxConcurrentAllocations(4);
+    CountDownLatch latch = new CountDownLatch(1);
+    builder.setAllocator(new DelegateAllocator<>(allocator) {
+      @Override
+      public CompletionStage<GenericPoolable> allocateAsync(Slot slot) {
+        latch.countDown();
+        return null;
+      }
+    });
+    createOneObjectPool();
+    latch.await();
+    PoolException poolException = assertThrows(PoolException.class, () -> {
+      GenericPoolable obj = pool.claim(longTimeout);
+      obj.expire();
+      obj.release();
+    });
+    assertThat(poolException).hasCauseExactlyInstanceOf(NullPointerException.class);
+  }
+
+  @Test
+  void mustPropagateExceptionWhenAsynchronousReallocationReturnsNullStage() {
+    builder.setMaxConcurrentAllocations(4);
+    builder.setAllocator(new DelegateReallocator<>(reallocator()) {
+      @Override
+      public CompletionStage<GenericPoolable> reallocateAsync(Slot slot, GenericPoolable obj) {
+        return null;
+      }
+    });
+    createOneObjectPool();
+    PoolException poolException = assertThrows(PoolException.class, () -> {
+      for (;;) {
+        // We're racing with proactive poison healing, so keep trying until we hit the realloc failure.
+        GenericPoolable obj = pool.claim(longTimeout);
+        obj.expire();
+        obj.release();
+      }
+    });
+    assertThat(poolException).hasCauseExactlyInstanceOf(NullPointerException.class);
+  }
+
+  @Test
+  void mustPropagateExceptionWhenAsynchronousDeallocationReturnsNullStage() throws Exception {
+    builder.setMaxConcurrentAllocations(4);
+    createOneObjectPool();
+    PoolException poolException = assertThrows(PoolException.class, () -> {
+      for (;;) {
+        // We're racing with proactive poison healing, so keep trying until we hit the async dealloc failure.
+        pool.claim(longTimeout).release();
+        // Switching allocator causes deallocations to occur. Create a new instance every time.
+        pool.switchAllocator(new DelegateAllocator<>(this.allocator) {
+          @Override
+          public CompletionStage<Void> deallocateAsync(GenericPoolable obj) {
+            return null;
+          }
+        });
+      }
+    });
+    assertThat(poolException).hasCauseExactlyInstanceOf(NullPointerException.class);
+    pool.switchAllocator(this.allocator).await(longTimeout); // Switch to something that can actually deallocate.
+  }
 }
