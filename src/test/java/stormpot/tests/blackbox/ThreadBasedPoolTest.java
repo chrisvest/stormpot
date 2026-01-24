@@ -15,7 +15,6 @@
  */
 package stormpot.tests.blackbox;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -765,7 +764,6 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     objs.forEach(GenericPoolable::release);
   }
 
-  @Disabled
   @Test
   void allocatorConcurrencyMustAllowDeallocatingObjectsInParallel() throws Exception {
     int count = 4;
@@ -788,7 +786,7 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     });
     objs.clear();
     for (int i = 0; i < count; i++) {
-      objs.add(pool.claim(longTimeout)); // Will time out if objects cannot allocate concurrently.
+      objs.add(pool.claim(longTimeout)); // Will time out if objects cannot deallocate concurrently.
     }
     objs.forEach(GenericPoolable::release);
   }

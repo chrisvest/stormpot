@@ -351,21 +351,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
         slot.poison = new NullPointerException("Asynchronous allocation returned null completion stage.");
         publishSlot(slot, false, NanoClock.nanoTime());
       } else {
-        stage.whenComplete((obj, e) -> {
-          if (e != null) {
-            poisonedSlots.getAndIncrement();
-            if (hasNoSuppressedPoolException(e)) {
-              e.addSuppressed(new PoolException("Asynchronous allocation failed."));
-            }
-            slot.poison = e;
-          } else if (obj == null) {
-            poisonedSlots.getAndIncrement();
-            slot.poison = new PoolException("Asynchronous allocation returned null.");
-          } else {
-            slot.obj = obj;
-          }
-          tasks.add(new AsyncAllocationCompletion(slot));
-        });
+        stage.whenComplete((obj, e) -> onCompleteAsyncAllocation(slot, obj, e));
       }
     } else {
       boolean success = false;
@@ -444,9 +430,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
         slot.poison = new NullPointerException("Asynchronous deallocation returned null completion stage.");
         publishSlot(slot, false, NanoClock.nanoTime());
       } else {
-        stage.whenComplete((obj, ignore) -> {
-          tasks.add(new AsyncDeallocationCompletion(slot, andThen));
-        });
+        stage.whenComplete((obj, ignore) -> tasks.add(new AsyncDeallocationCompletion(slot, andThen)));
       }
     } else {
       try {
@@ -476,26 +460,58 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     }
     if (slot.poison == null && nextAllocator == null) {
       boolean success = false;
-      try {
-        slot.allocator = allocator;
-        slot.obj = allocator.reallocate(slot, slot.obj);
-        if (slot.obj == null) {
+      slot.allocator = allocator;
+      if (allocationConcurrency > 1 && inFlightConcurrentAllocations < allocationConcurrency) {
+        inFlightConcurrentAllocations++;
+        CompletionStage<T> stage = allocator.reallocateAsync(slot, slot.obj);
+        if (stage == null) {
           poisonedSlots.getAndIncrement();
-          slot.poison = new NullPointerException("Reallocation returned null.");
+          slot.poison = new NullPointerException("Asynchronous reallocation returned null completion stage.");
+          publishSlot(slot, false, NanoClock.nanoTime());
         } else {
-          success = true;
+          stage.whenComplete((obj, e) -> {
+            long now = NanoClock.nanoTime();
+            recordObjectLifetimeSample(now - slot.createdNanos);
+            onCompleteAsyncAllocation(slot, obj, e);
+          });
         }
-      } catch (Exception e) {
-        poisonedSlots.getAndIncrement();
-        slot.poison = e;
+      } else {
+        try {
+          slot.obj = allocator.reallocate(slot, slot.obj);
+          if (slot.obj == null) {
+            poisonedSlots.getAndIncrement();
+            slot.poison = new NullPointerException("Reallocation returned null.");
+          } else {
+            success = true;
+          }
+        } catch (Exception e) {
+          poisonedSlots.getAndIncrement();
+          slot.poison = e;
+        }
+        long now = NanoClock.nanoTime();
+        recordObjectLifetimeSample(now - slot.createdNanos);
+        publishSlot(slot, success, now);
       }
-      long now = NanoClock.nanoTime();
-      recordObjectLifetimeSample(now - slot.createdNanos);
-      publishSlot(slot, success, now);
     } else {
       dealloc(slot, false, this::allocSingle);
     }
     didAnythingLastIteration = true;
+  }
+
+  private void onCompleteAsyncAllocation(BSlot<T> slot, T obj, Throwable e) {
+    if (e != null) {
+      poisonedSlots.getAndIncrement();
+      if (hasNoSuppressedPoolException(e)) {
+        e.addSuppressed(new PoolException("Asynchronous allocation failed."));
+      }
+      slot.poison = e;
+    } else if (obj == null) {
+      poisonedSlots.getAndIncrement();
+      slot.poison = new PoolException("Asynchronous allocation returned null.");
+    } else {
+      slot.obj = obj;
+    }
+    tasks.add(new AsyncAllocationCompletion(slot));
   }
 
   void maybeReplacePriorGenerationSlot(BSlot<?> slot) {
