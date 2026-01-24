@@ -941,5 +941,19 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     pool.switchAllocator(this.allocator).await(longTimeout); // Switch to something that can actually deallocate.
   }
 
-  // todo recording metrics for async alloc, realloc, dealloc and failures
+  @Test
+  void mustRecordObjectLifetimesInMetricsRecorderFromAsynchronousOperations() throws Exception {
+    LastSampleMetricsRecorder recorder = new LastSampleMetricsRecorder();
+    builder.setMetricsRecorder(recorder).setMaxConcurrentAllocations(4);
+    builder.setAllocator(reallocator());
+    createOneObjectPool();
+    GenericPoolable obj = pool.claim(longTimeout);
+    assertThat(recorder.getAllocationLatencyPercentile(0)).isNotNaN();
+    obj.expire();
+    obj.release();
+    pool.claim(longTimeout).release();
+    assertThat(recorder.getReallocationLatencyPercentile(0)).isNotNaN();
+    pool.switchAllocator(allocator()).await(longTimeout);
+    assertThat(recorder.getDeallocationLatencyPercentile(0)).isNotNaN();
+  }
 }
