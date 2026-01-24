@@ -24,6 +24,9 @@ import stormpot.PoolBuilder;
 import stormpot.PoolException;
 import stormpot.PoolTap;
 import stormpot.Slot;
+import testkits.DelegateAllocator;
+import testkits.DelegateReallocator;
+import testkits.ExpectedException;
 import testkits.ExpireKit;
 import testkits.GenericPoolable;
 import testkits.LastSampleMetricsRecorder;
@@ -33,6 +36,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -780,15 +785,77 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     for (int i = 0; i < count; i++) {
       objs.add(pool.claim(longTimeout));
     }
+    pool.setTargetSize(0);
+    objs.forEach(GenericPoolable::release);
+    objs.clear();
+    latch.await(); // Will time out if objects cannot deallocate concurrently.
+  }
+
+  @Test
+  void allocatorConcurrencyMustAllowReallocatingObjectsInParallel() throws Exception {
+    int count = 4;
+    CountDownLatch latch = new CountDownLatch(count);
+    builder.setMaxConcurrentAllocations(count);
+    allocator = reallocator(alloc($new), realloc((s, o, a) -> {
+      latch.countDown();
+      latch.await();
+      return $new.apply(s, o, a);
+    }));
+    builder.setAllocator(allocator);
+    createPoolOfSize(count);
+    Deque<GenericPoolable> objs = new ArrayDeque<>(count);
+    for (int i = 0; i < count; i++) {
+      objs.add(pool.claim(longTimeout));
+    }
     objs.forEach(obj -> {
       obj.expire();
       obj.release();
     });
     objs.clear();
     for (int i = 0; i < count; i++) {
-      objs.add(pool.claim(longTimeout)); // Will time out if objects cannot deallocate concurrently.
+      objs.add(pool.claim(longTimeout)); // Will time out if objects cannot reallocate concurrently.
     }
     objs.forEach(GenericPoolable::release);
   }
-  // todo allocatorConcurrencyMustAllowReallocatingObjectsInParallel
+
+  @Test
+  void mustPropagateExceptionWhenAsynchronousAllocationFails() throws Exception {
+    builder.setMaxConcurrentAllocations(4);
+    CountDownLatch latch = new CountDownLatch(1);
+    builder.setAllocator(new DelegateAllocator<>(allocator) {
+      @Override
+      public CompletionStage<GenericPoolable> allocateAsync(Slot slot) {
+        latch.countDown();
+        return CompletableFuture.failedFuture(new ExpectedException());
+      }
+    });
+    createOneObjectPool();
+    latch.await();
+    PoolException poolException = assertThrows(PoolException.class, () -> pool.claim(longTimeout));
+    assertThat(poolException).hasCauseExactlyInstanceOf(ExpectedException.class);
+  }
+
+  @Test
+  void mustPropagateExceptionWhenAsynchronousReallocationFails() {
+    builder.setMaxConcurrentAllocations(4);
+    builder.setAllocator(new DelegateReallocator<>(reallocator()) {
+      @Override
+      public CompletionStage<GenericPoolable> reallocateAsync(Slot slot, GenericPoolable obj) {
+        return CompletableFuture.failedFuture(new ExpectedException());
+      }
+    });
+    createOneObjectPool();
+    PoolException poolException = assertThrows(PoolException.class, () -> {
+      for (;;) {
+        // We're racing with proactive poison healing, so keep trying until we hit the realloc failure.
+        GenericPoolable obj = pool.claim(longTimeout);
+        obj.expire();
+        obj.release();
+      }
+    });
+    assertThat(poolException).hasCauseExactlyInstanceOf(ExpectedException.class);
+  }
+  // todo must propagate exception when asynchronous allocate returns null stage
+  // todo must propagate exception when asynchronous reallocate returns null stage
+  // todo must propagate exception when asynchronous deallocate returns null stage
 }

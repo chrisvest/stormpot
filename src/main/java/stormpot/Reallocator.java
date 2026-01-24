@@ -33,7 +33,7 @@ import java.util.concurrent.CompletionStage;
  * The accretion of old generation garbage is inevitable, but the rate can be
  * slowed by reusing as much as possible of the Poolable instances, when they
  * are to be reallocated. This interface is only here to enable this
- * optimisation, and implementing it is completely optional.
+ * optimization, and implementing it is completely optional.
  *
  * @author Chris Vest
  *
