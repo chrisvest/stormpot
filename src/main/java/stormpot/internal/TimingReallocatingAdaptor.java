@@ -21,6 +21,7 @@ import stormpot.Poolable;
 import stormpot.Reallocator;
 import stormpot.Slot;
 
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
 class TimingReallocatingAdaptor<T extends Poolable>
@@ -38,31 +39,64 @@ class TimingReallocatingAdaptor<T extends Poolable>
 
   @Override
   public T allocate(Slot slot) throws Exception {
-    long start = System.nanoTime();
+    long start = start();
     try {
       T obj = super.allocate(slot);
-      long elapsedNanos = System.nanoTime() - start;
-      long milliseconds = TimeUnit.NANOSECONDS.toMillis(elapsedNanos);
-      metricsRecorder.recordAllocationLatencySampleMillis(milliseconds);
+      metricsRecorder.recordAllocationLatencySampleMillis(elapsedMillis(start));
       return obj;
     } catch (Exception e) {
-      long elapsedNanos = System.nanoTime() - start;
-      long milliseconds = TimeUnit.NANOSECONDS.toMillis(elapsedNanos);
-      metricsRecorder.recordAllocationFailureLatencySampleMillis(milliseconds);
+      metricsRecorder.recordAllocationFailureLatencySampleMillis(elapsedMillis(start));
       throw e;
     }
   }
 
   @Override
+  public CompletionStage<T> allocateAsync(Slot slot) {
+    final long start = start();
+    CompletionStage<T> stage = allocator.allocateAsync(slot);
+    if (stage == null) {
+      metricsRecorder.recordAllocationFailureLatencySampleMillis(elapsedMillis(start));
+      return null;
+    }
+    stage.whenComplete((obj, e) -> {
+      if (obj == null) {
+        metricsRecorder.recordAllocationFailureLatencySampleMillis(elapsedMillis(start));
+      } else {
+        metricsRecorder.recordAllocationLatencySampleMillis(elapsedMillis(start));
+      }
+    });
+    return stage;
+  }
+
+  @Override
   public void deallocate(T poolable) throws Exception {
-    long start = System.nanoTime();
+    long start = start();
     try {
       super.deallocate(poolable);
     } finally {
-      long elapsedNanos = System.nanoTime() - start;
-      long milliseconds = TimeUnit.NANOSECONDS.toMillis(elapsedNanos);
-      metricsRecorder.recordDeallocationLatencySampleMillis(milliseconds);
+      metricsRecorder.recordDeallocationLatencySampleMillis(elapsedMillis(start));
     }
   }
-  // TODO async overrides?
+
+  @Override
+  public CompletionStage<Void> deallocateAsync(T poolable) {
+    final long start = start();
+    CompletionStage<Void> stage = allocator.deallocateAsync(poolable);
+    if (stage == null) {
+      metricsRecorder.recordDeallocationLatencySampleMillis(elapsedMillis(start));
+      return null;
+    }
+    stage.whenComplete(
+            (obj, e) -> metricsRecorder.recordDeallocationLatencySampleMillis(elapsedMillis(start)));
+    return stage;
+  }
+
+  static long start() {
+    return System.nanoTime();
+  }
+
+  static long elapsedMillis(long start) {
+    long elapsedNanos = System.nanoTime() - start;
+    return TimeUnit.NANOSECONDS.toMillis(elapsedNanos);
+  }
 }

@@ -18,6 +18,7 @@ package stormpot.tests.blackbox;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import stormpot.ManagedPool;
 import stormpot.Pool;
 import stormpot.PoolBuilder;
@@ -818,8 +819,12 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     objs.forEach(GenericPoolable::release);
   }
 
-  @Test
-  void mustPropagateExceptionWhenAsynchronousAllocationFails() throws Exception {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void mustPropagateExceptionWhenAsynchronousAllocationFails(boolean withMetricsRecorder) throws Exception {
+    if (withMetricsRecorder) {
+      builder.setMetricsRecorder(new LastSampleMetricsRecorder());
+    }
     builder.setMaxConcurrentAllocations(4);
     CountDownLatch latch = new CountDownLatch(1);
     builder.setAllocator(new DelegateAllocator<>(allocator) {
@@ -835,8 +840,12 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     assertThat(poolException).hasCauseExactlyInstanceOf(ExpectedException.class);
   }
 
-  @Test
-  void mustPropagateExceptionWhenAsynchronousReallocationFails() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void mustPropagateExceptionWhenAsynchronousReallocationFails(boolean withMetricsRecorder) {
+    if (withMetricsRecorder) {
+      builder.setMetricsRecorder(new LastSampleMetricsRecorder());
+    }
     builder.setMaxConcurrentAllocations(4);
     builder.setAllocator(new DelegateReallocator<>(reallocator()) {
       @Override
@@ -856,8 +865,12 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     assertThat(poolException).hasCauseExactlyInstanceOf(ExpectedException.class);
   }
 
-  @Test
-  void mustPropagateExceptionWhenAsynchronousAllocationReturnsNullStage() throws Exception {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void mustPropagateExceptionWhenAsynchronousAllocationReturnsNullStage(boolean withMetricsRecorder) throws Exception {
+    if (withMetricsRecorder) {
+      builder.setMetricsRecorder(new LastSampleMetricsRecorder());
+    }
     builder.setMaxConcurrentAllocations(4);
     CountDownLatch latch = new CountDownLatch(1);
     builder.setAllocator(new DelegateAllocator<>(allocator) {
@@ -877,8 +890,12 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     assertThat(poolException).hasCauseExactlyInstanceOf(NullPointerException.class);
   }
 
-  @Test
-  void mustPropagateExceptionWhenAsynchronousReallocationReturnsNullStage() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void mustPropagateExceptionWhenAsynchronousReallocationReturnsNullStage(boolean withMetricsRecorder) {
+    if (withMetricsRecorder) {
+      builder.setMetricsRecorder(new LastSampleMetricsRecorder());
+    }
     builder.setMaxConcurrentAllocations(4);
     builder.setAllocator(new DelegateReallocator<>(reallocator()) {
       @Override
@@ -898,8 +915,13 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     assertThat(poolException).hasCauseExactlyInstanceOf(NullPointerException.class);
   }
 
-  @Test
-  void mustPropagateExceptionWhenAsynchronousDeallocationReturnsNullStage() throws Exception {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void mustPropagateExceptionWhenAsynchronousDeallocationReturnsNullStage(
+          boolean withMetricsRecorder) throws Exception {
+    if (withMetricsRecorder) {
+      builder.setMetricsRecorder(new LastSampleMetricsRecorder());
+    }
     builder.setMaxConcurrentAllocations(4);
     createOneObjectPool();
     PoolException poolException = assertThrows(PoolException.class, () -> {
@@ -918,4 +940,6 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     assertThat(poolException).hasCauseExactlyInstanceOf(NullPointerException.class);
     pool.switchAllocator(this.allocator).await(longTimeout); // Switch to something that can actually deallocate.
   }
+
+  // todo recording metrics for async alloc, realloc, dealloc and failures
 }
