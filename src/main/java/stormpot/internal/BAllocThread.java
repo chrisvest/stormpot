@@ -351,7 +351,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
         slot.poison = new NullPointerException("Asynchronous allocation returned null completion stage.");
         publishSlot(slot, false, NanoClock.nanoTime());
       } else {
-        stage.whenComplete((obj, e) -> onCompleteAsyncAllocation(slot, obj, e));
+        stage.whenComplete((obj, e) -> onCompleteAsyncAllocation(slot, obj, e, "allocation"));
       }
     } else {
       boolean success = false;
@@ -472,7 +472,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
           stage.whenComplete((obj, e) -> {
             long now = NanoClock.nanoTime();
             recordObjectLifetimeSample(now - slot.createdNanos);
-            onCompleteAsyncAllocation(slot, obj, e);
+            onCompleteAsyncAllocation(slot, obj, e, "reallocation");
           });
         }
       } else {
@@ -498,16 +498,16 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     didAnythingLastIteration = true;
   }
 
-  private void onCompleteAsyncAllocation(BSlot<T> slot, T obj, Throwable e) {
+  private void onCompleteAsyncAllocation(BSlot<T> slot, T obj, Throwable e, String operation) {
     if (e != null) {
       poisonedSlots.getAndIncrement();
       if (hasNoSuppressedPoolException(e)) {
-        e.addSuppressed(new PoolException("Asynchronous allocation failed."));
+        e.addSuppressed(new PoolException("Asynchronous " + operation + " failed."));
       }
       slot.poison = e;
     } else if (obj == null) {
       poisonedSlots.getAndIncrement();
-      slot.poison = new PoolException("Asynchronous allocation returned null.");
+      slot.poison = new PoolException("Asynchronous " + operation + " returned null.");
     } else {
       slot.obj = obj;
     }
