@@ -70,9 +70,9 @@ public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T>
    * Mapping of {@link AllocationProcessMode} to the pool builder permissions, deciding what settings can be changed.
    */
   public static final Map<AllocationProcessMode, PoolBuilderPermissions> PERMISSIONS = Map.of(
-      THREADED, new PoolBuilderPermissions(true, true, true, true, true),
-      INLINE, new PoolBuilderPermissions(true, true, true, false, false),
-      DIRECT, new PoolBuilderPermissions(false, true, false, false, false)
+      THREADED, new PoolBuilderPermissions(true, true, true, true, true, true),
+      INLINE, new PoolBuilderPermissions(true, true, true, false, false, false),
+      DIRECT, new PoolBuilderPermissions(false, true, false, false, false, false)
   );
 
   private final AllocationProcess allocationProcess;
@@ -240,6 +240,7 @@ public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T>
 
   @Override
   public synchronized PoolBuilder<T> setMaxConcurrentAllocations(int allocationConcurrency) {
+    checkPermission(permissions.setMaxConcurrentAllocations(), "max concurrent allocations");
     if (allocationConcurrency < 1) {
       throw new IllegalArgumentException("Allocation concurrency must be positive, but was: " + allocationConcurrency);
     }

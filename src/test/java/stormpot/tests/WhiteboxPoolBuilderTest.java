@@ -142,4 +142,12 @@ class WhiteboxPoolBuilderTest {
     var pb = new PoolBuilderImpl<>(direct(), allocator).setMetricsRecorder(recorder);
     assertThat(pb.getMetricsRecorder()).isSameAs(recorder);
   }
+
+  @Test
+  void directProcessDisallowSettingMaxConcurrentAllocations() {
+    var pb = new PoolBuilderImpl<>(direct(), allocator);
+    assertThrows(IllegalStateException.class, () -> pb.setMaxConcurrentAllocations(0));
+    assertThrows(IllegalStateException.class, () -> pb.setMaxConcurrentAllocations(1));
+    assertThrows(IllegalStateException.class, () -> pb.setMaxConcurrentAllocations(2));
+  }
 }

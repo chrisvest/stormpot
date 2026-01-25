@@ -29,5 +29,6 @@ public record PoolBuilderPermissions(
         boolean setSize,
         boolean setExpiration,
         boolean setThreadFactory,
-        boolean setBackgroundExpiration) {
+        boolean setBackgroundExpiration,
+        boolean setMaxConcurrentAllocations) {
 }

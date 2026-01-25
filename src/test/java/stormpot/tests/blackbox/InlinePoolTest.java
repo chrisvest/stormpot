@@ -42,4 +42,11 @@ class InlinePoolTest extends AllocatorBasedPoolTest {
     assertThrows(IllegalStateException.class, () -> builder.setThreadFactory(r -> null));
     assertThrows(IllegalStateException.class, () -> builder.setThreadFactory(Thread::new));
   }
+
+  @Test
+  void constructorMustThrowWhenSettingMaxConcurrentAllocations() {
+    assertThrows(IllegalStateException.class, () -> builder.setMaxConcurrentAllocations(0));
+    assertThrows(IllegalStateException.class, () -> builder.setMaxConcurrentAllocations(1));
+    assertThrows(IllegalStateException.class, () -> builder.setMaxConcurrentAllocations(2));
+  }
 }
