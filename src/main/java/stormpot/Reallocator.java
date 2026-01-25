@@ -105,7 +105,7 @@ public interface Reallocator<T extends Poolable> extends Allocator<T> {
     PoolBuilderImpl.THREAD_BUILDER.start(() -> {
       try {
         task.complete(reallocate(slot, poolable));
-      } catch (Exception e) {
+      } catch (Throwable e) {
         task.completeExceptionally(e);
       }
     });

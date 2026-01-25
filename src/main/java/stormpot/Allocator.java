@@ -99,7 +99,7 @@ public interface Allocator<T extends Poolable> {
     PoolBuilderImpl.THREAD_BUILDER.start(() -> {
       try {
         task.complete(allocate(slot));
-      } catch (Exception e) {
+      } catch (Throwable e) {
         task.completeExceptionally(e);
       }
     });
@@ -163,7 +163,7 @@ public interface Allocator<T extends Poolable> {
       try {
         deallocate(poolable);
         task.complete(null);
-      } catch (Exception e) {
+      } catch (Throwable e) {
         task.completeExceptionally(e);
       }
     });
