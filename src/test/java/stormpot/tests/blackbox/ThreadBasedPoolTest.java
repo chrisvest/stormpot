@@ -789,7 +789,8 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     pool.setTargetSize(0);
     objs.forEach(GenericPoolable::release);
     objs.clear();
-    latch.await(); // Will time out if objects cannot deallocate concurrently.
+    // Will time out if objects cannot deallocate concurrently:
+    assertTrue(latch.await(longTimeout.getTimeout(), longTimeout.getUnit()));
   }
 
   @Test
