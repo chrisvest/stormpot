@@ -297,7 +297,7 @@ public sealed interface PoolBuilder<T extends Poolable>
    * Set the maximum number of concurrent allocations or deallocations.
    * <p>
    * If object allocation is particularly slow, it can make sense to allow Stormpot to
-   * perform allocations in parallel, so that the pool can fill up faster when its newly
+   * perform allocations in parallel, so that the pool can fill up faster when it's newly
    * created, or recover faster if a large number of objects need to be replaced.
    * <p>
    * This setting only affects {@linkplain Pool#fromThreaded(Allocator) threaded} pools.
@@ -309,7 +309,7 @@ public sealed interface PoolBuilder<T extends Poolable>
    * <td>
    * Setting this to a value greater than 1 means the allocator implementation will experience
    * concurrent allocation and deallocation calls from multiple threads.
-   * The configured {@link Allocator} implementation must therefor be thread-safe.
+   * The configured {@link Allocator} implementation must therefore be thread-safe.
    * </td>
    * </tr>
    * </table>

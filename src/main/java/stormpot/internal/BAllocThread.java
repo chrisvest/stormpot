@@ -75,7 +75,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
 
   private Reallocator<T> allocator;
   private long size;
-  private int inFlightConcurrentAllocations;
+  private int inFlightConcurrentOperations;
   private boolean didAnythingLastIteration;
   private long consecutiveAllocationFailures;
   private AllocatorSwitch<T> nextAllocator;
@@ -146,9 +146,9 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
       }
     } else if (task instanceof AsyncAllocationCompletion completion) {
       publishSlot((BSlot<T>) completion.slot, completion.slot.poison == null, NanoClock.nanoTime());
-      inFlightConcurrentAllocations--;
+      inFlightConcurrentOperations--;
     } else if (task instanceof AsyncDeallocationCompletion completion) {
-      inFlightConcurrentAllocations--;
+      inFlightConcurrentOperations--;
       completion.doComplete(this);
     } else if (size > targetSize) {
       reduceSizeByDeallocating(null);
@@ -300,17 +300,17 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   }
 
   private void shutPoolDown() {
-    while (size > 0 || inFlightConcurrentAllocations > 0) {
+    while (size > 0 || inFlightConcurrentOperations > 0) {
       BSlot<T> slot;
       Task task = tasks.poll();
       if (task instanceof BSlot<?> bSlot) {
         slot = (BSlot<T>) bSlot;
       } else if (task instanceof AsyncAllocationCompletion completion) {
         slot = (BSlot<T>) completion.slot;
-        inFlightConcurrentAllocations--;
+        inFlightConcurrentOperations--;
       } else if (task instanceof AsyncDeallocationCompletion completion) {
         slot = null; // Already deallocated.
-        inFlightConcurrentAllocations--;
+        inFlightConcurrentOperations--;
         completion.doComplete(this);
       } else if (task == null) {
         slot = live.poll();
@@ -343,14 +343,14 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   private void allocSingle(BSlot<T> slot) {
     didAnythingLastIteration = true;
     slot.allocator = allocator;
-    if (allocationConcurrency > 1 && inFlightConcurrentAllocations < allocationConcurrency) {
+    if (allocationConcurrency > 1 && inFlightConcurrentOperations < allocationConcurrency) {
       CompletionStage<T> stage = allocator.allocateAsync(slot);
       if (stage == null) {
         poisonedSlots.getAndIncrement();
         slot.poison = new NullPointerException("Asynchronous allocation returned null completion stage.");
         publishSlot(slot, false, NanoClock.nanoTime());
       } else {
-        inFlightConcurrentAllocations++;
+        inFlightConcurrentOperations++;
         stage.whenComplete((obj, e) -> onCompleteAsyncAllocation(slot, obj, e, "allocation"));
       }
     } else {
@@ -417,7 +417,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
       slot.poison = null;
       poisonedSlots.getAndDecrement();
     }
-    if (allocationConcurrency > 1 && inFlightConcurrentAllocations < allocationConcurrency && slot.poison == null) {
+    if (allocationConcurrency > 1 && inFlightConcurrentOperations < allocationConcurrency && slot.poison == null) {
       recordObjectLifetimeSample(NanoClock.elapsed(slot.createdNanos));
       CompletionStage<Void> stage = slot.allocator.deallocateAsync(slot.obj);
       slot.obj = null;
@@ -429,7 +429,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
         slot.poison = new NullPointerException("Asynchronous deallocation returned null completion stage.");
         publishSlot(slot, false, NanoClock.nanoTime());
       } else {
-        inFlightConcurrentAllocations++;
+        inFlightConcurrentOperations++;
         stage.whenComplete((obj, ignore) -> tasks.add(new AsyncDeallocationCompletion(slot, andThen)));
       }
     } else {
@@ -461,14 +461,14 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     if (slot.poison == null && nextAllocator == null) {
       boolean success = false;
       slot.allocator = allocator;
-      if (allocationConcurrency > 1 && inFlightConcurrentAllocations < allocationConcurrency) {
+      if (allocationConcurrency > 1 && inFlightConcurrentOperations < allocationConcurrency) {
         CompletionStage<T> stage = allocator.reallocateAsync(slot, slot.obj);
         if (stage == null) {
           poisonedSlots.getAndIncrement();
           slot.poison = new NullPointerException("Asynchronous reallocation returned null completion stage.");
           publishSlot(slot, false, NanoClock.nanoTime());
         } else {
-          inFlightConcurrentAllocations++;
+          inFlightConcurrentOperations++;
           stage.whenComplete((obj, e) -> {
             long now = NanoClock.nanoTime();
             recordObjectLifetimeSample(now - slot.createdNanos);

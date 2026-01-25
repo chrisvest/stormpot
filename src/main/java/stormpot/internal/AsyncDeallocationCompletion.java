@@ -31,7 +31,7 @@ public final class AsyncDeallocationCompletion implements Task {
    *
    * @param <T> The type of object that was deallocated.
    * @param slot The slot that was deallocated.
-   * @param andThen And optional runnable to run after this task has completed.
+   * @param andThen And optional {@link Consumer} of {@linkplain BSlot} to run after this task has completed.
    */
   @SuppressWarnings("unchecked")
   public <T extends Poolable> AsyncDeallocationCompletion(BSlot<T> slot, Consumer<BSlot<T>> andThen) {
