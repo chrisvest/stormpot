@@ -41,6 +41,7 @@ import testkits.LastSampleMetricsRecorder;
 import testkits.SomeRandomException;
 import testkits.SomeRandomThrowable;
 
+import java.lang.invoke.VarHandle;
 import java.lang.ref.WeakReference;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -1659,11 +1660,48 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     assertThat(managedPool.getLeakedObjectsCount()).isOne();
   }
 
+  @Test
+  void managedPoolMustCountLeakedObjectsFromReallocation() throws Exception {
+    builder.setPreciseLeakDetectionEnabled(true).setSize(1);
+    ManagedPool managedPool = createPool().getManagedPool();
+    GenericPoolable obj = pool.claim(longTimeout);
+    obj.expire(); // Cause reallocation.
+    obj.release();
+    obj = null; // Clear 'obj' reference because it references the BSlot which will be reallocated and leaked.
+    VarHandle.fullFence();
+    claimAndLeak(200); // leak!
+    pool.setTargetSize(2); // Increase size so we can claim something else.
+    // Clear any thread-local reference to the leaked object:
+    pool.claim(longTimeout).release();
+    // Clear any references held by our particular allocator:
+    allocator.clearLists();
+
+    // Wait for phantom refs to be processed:
+    try (AutoCloseable ignore = GarbageCreator.forkCreateGarbage()) {
+      GarbageCreator.awaitReferenceProcessing();
+    }
+
+    // null out the pool because we can no longer shut it down.
+    pool = null;
+
+    try (var ignore = GarbageCreator.forkCreateGarbage()) {
+      for (int i = 0; i < 10000; i++) {
+        if (managedPool.getLeakedObjectsCount() >= 1) {
+          break;
+        }
+        System.gc();
+        GarbageCreator.awaitReferenceProcessing();
+      }
+    }
+    assertThat(managedPool.getLeakedObjectsCount()).isOne();
+  }
+
   private void claimAndLeak(int callDepthRemaining) throws InterruptedException {
     if (ThreadLocalRandom.current().nextInt(50) < callDepthRemaining) {
       claimAndLeak(callDepthRemaining - 1);
     } else {
-      pool.claim(longTimeout);
+      GenericPoolable obj = pool.claim(longTimeout);
+      obj = null;
     }
   }
 

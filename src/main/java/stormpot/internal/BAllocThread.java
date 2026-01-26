@@ -454,6 +454,9 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
       slot.poison = null;
       poisonedSlots.getAndDecrement();
     }
+    if (slot.obj != null) {
+      unregisterWithLeakDetector(slot);
+    }
     if (slot.poison == null && nextAllocator == null) {
       boolean success = false;
       slot.allocator = allocator;
@@ -479,6 +482,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
             slot.poison = new NullPointerException("Reallocation returned null.");
           } else {
             success = true;
+            registerWithLeakDetector(slot);
           }
         } catch (Exception e) {
           poisonedSlots.getAndIncrement();
