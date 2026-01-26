@@ -973,7 +973,7 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
   }
 
   @Test
-  void asynchronousReallocationProducingNullResultMustResultInNullPointerException() throws Exception {
+  void asynchronousReallocationProducingNullResultMustResultInNullPointerException() {
     builder.setMaxConcurrentAllocations(2);
     builder.setBackgroundExpirationEnabled(false);
     builder.setAllocator(new DelegateReallocator<>(reallocator()) {
@@ -983,10 +983,13 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
       }
     });
     createOneObjectPool();
-    GenericPoolable obj = pool.claim(longTimeout);
-    obj.expire();
-    obj.release();
-    PoolException e = assertThrows(PoolException.class, () -> pool.claim(longTimeout));
+    PoolException e = assertThrows(PoolException.class, () -> {
+      for (;;) {
+        GenericPoolable obj = pool.claim(longTimeout);
+        obj.expire();
+        obj.release();
+      }
+    });
     assertThat(e).hasCauseExactlyInstanceOf(NullPointerException.class);
   }
 }
