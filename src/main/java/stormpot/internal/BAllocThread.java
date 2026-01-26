@@ -221,8 +221,8 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   private void increaseSizeByAllocating() {
     BSlot<T> slot = optimizeForMemory ?
             new BSlot<>(live, poisonedSlots) : new BSlotPadded<>(live, poisonedSlots);
-    alloc(slot);
-    registerWithLeakDetector(slot);
+    size++;
+    allocSingle(slot);
   }
 
   private void reduceSizeByDeallocating(BSlot<T> slot) {
@@ -335,11 +335,6 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     }
   }
 
-  private void alloc(BSlot<T> slot) {
-    size++;
-    allocSingle(slot);
-  }
-
   private void allocSingle(BSlot<T> slot) {
     didAnythingLastIteration = true;
     slot.allocator = allocator;
@@ -362,6 +357,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
           slot.poison = new NullPointerException("Allocation returned null.");
         } else {
           success = true;
+          registerWithLeakDetector(slot);
         }
       } catch (Exception e) {
         poisonedSlots.getAndIncrement();
@@ -510,6 +506,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
       slot.poison = new NullPointerException("Asynchronous " + operation + " returned null.");
     } else {
       slot.obj = obj;
+      registerWithLeakDetector(slot);
     }
     tasks.add(new AsyncAllocationCompletion(slot));
   }
