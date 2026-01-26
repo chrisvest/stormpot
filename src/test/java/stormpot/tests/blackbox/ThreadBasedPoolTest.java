@@ -957,4 +957,36 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     pool.switchAllocator(allocator()).await(longTimeout);
     assertThat(recorder.getDeallocationLatencyPercentile(0)).isNotNaN();
   }
+
+  @Test
+  void asynchronousAllocationProducingNullResultMustResultInNullPointerException() {
+    builder.setMaxConcurrentAllocations(2);
+    builder.setAllocator(new DelegateAllocator<>(allocator) {
+      @Override
+      public CompletionStage<GenericPoolable> allocateAsync(Slot slot) {
+        return CompletableFuture.completedFuture(null);
+      }
+    });
+    createOneObjectPool();
+    PoolException e = assertThrows(PoolException.class, () -> pool.claim(longTimeout));
+    assertThat(e).hasCauseExactlyInstanceOf(NullPointerException.class);
+  }
+
+  @Test
+  void asynchronousReallocationProducingNullResultMustResultInNullPointerException() throws Exception {
+    builder.setMaxConcurrentAllocations(2);
+    builder.setBackgroundExpirationEnabled(false);
+    builder.setAllocator(new DelegateReallocator<>(reallocator()) {
+      @Override
+      public CompletionStage<GenericPoolable> reallocateAsync(Slot slot, GenericPoolable obj) {
+        return CompletableFuture.completedFuture(null);
+      }
+    });
+    createOneObjectPool();
+    GenericPoolable obj = pool.claim(longTimeout);
+    obj.expire();
+    obj.release();
+    PoolException e = assertThrows(PoolException.class, () -> pool.claim(longTimeout));
+    assertThat(e).hasCauseExactlyInstanceOf(NullPointerException.class);
+  }
 }

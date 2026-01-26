@@ -507,7 +507,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
       slot.poison = e;
     } else if (obj == null) {
       poisonedSlots.getAndIncrement();
-      slot.poison = new PoolException("Asynchronous " + operation + " returned null.");
+      slot.poison = new NullPointerException("Asynchronous " + operation + " returned null.");
     } else {
       slot.obj = obj;
     }
