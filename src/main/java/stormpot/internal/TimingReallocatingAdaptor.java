@@ -21,8 +21,10 @@ import stormpot.Poolable;
 import stormpot.Reallocator;
 import stormpot.Slot;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 
 class TimingReallocatingAdaptor<T extends Poolable>
     extends ReallocatingAdaptor<T>
@@ -58,14 +60,13 @@ class TimingReallocatingAdaptor<T extends Poolable>
       metricsRecorder.recordAllocationFailureLatencySampleMillis(elapsedMillis(start));
       return null;
     }
-    stage.whenComplete((obj, e) -> {
+    return whenCompleteFirst(stage, (obj, e) -> {
       if (obj == null) {
         metricsRecorder.recordAllocationFailureLatencySampleMillis(elapsedMillis(start));
       } else {
         metricsRecorder.recordAllocationLatencySampleMillis(elapsedMillis(start));
       }
     });
-    return stage;
   }
 
   @Override
@@ -86,9 +87,8 @@ class TimingReallocatingAdaptor<T extends Poolable>
       metricsRecorder.recordDeallocationLatencySampleMillis(elapsedMillis(start));
       return null;
     }
-    stage.whenComplete(
+    return whenCompleteFirst(stage,
             (obj, e) -> metricsRecorder.recordDeallocationLatencySampleMillis(elapsedMillis(start)));
-    return stage;
   }
 
   static long start() {
@@ -98,5 +98,26 @@ class TimingReallocatingAdaptor<T extends Poolable>
   static long elapsedMillis(long start) {
     long elapsedNanos = System.nanoTime() - start;
     return TimeUnit.NANOSECONDS.toMillis(elapsedNanos);
+  }
+
+  /**
+   * Attach the given {@code whenComplete} callback to the given {@code stage}, such that it runs before any other
+   * callbacks that are later attached to the returned stage.
+   * @param stage The stage to attach the callback to.
+   * @param action The callback to run.
+   * @return The stage that will run subsequently attached callbacks after the given callback.
+   * @param <T> The result type of the stage.
+   */
+  static <T> CompletionStage<T> whenCompleteFirst(CompletionStage<T> stage, BiConsumer<? super T, Throwable> action) {
+    CompletableFuture<T> forward = new CompletableFuture<>();
+    stage.whenComplete((obj, e) -> {
+      action.accept(obj, e);
+      if (e == null) {
+        forward.complete(obj);
+      } else {
+        forward.completeExceptionally(e);
+      }
+    });
+    return forward;
   }
 }

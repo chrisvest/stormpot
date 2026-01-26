@@ -50,13 +50,12 @@ final class TimingReallocatorAdaptor<T extends Poolable> extends TimingReallocat
       metricsRecorder.recordReallocationFailureLatencySampleMillis(elapsedMillis(start));
       return null;
     }
-    stage.whenComplete((obj, e) -> {
+    return whenCompleteFirst(stage, (obj, e) -> {
       if (obj == null) {
         metricsRecorder.recordReallocationFailureLatencySampleMillis(elapsedMillis(start));
       } else {
         metricsRecorder.recordReallocationLatencySampleMillis(elapsedMillis(start));
       }
     });
-    return stage;
   }
 }
