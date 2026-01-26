@@ -1700,8 +1700,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     if (ThreadLocalRandom.current().nextInt(50) < callDepthRemaining) {
       claimAndLeak(callDepthRemaining - 1);
     } else {
-      GenericPoolable obj = pool.claim(longTimeout);
-      obj = null;
+      pool.claim(longTimeout);
     }
   }
 
