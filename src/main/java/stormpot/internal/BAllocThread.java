@@ -105,7 +105,8 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     this.defaultTaskPollTimeout = builder.getBackgroundExpirationCheckDelay();
     this.optimizeForMemory = builder.isOptimizeForReducedMemoryUsage();
     switchRequests = new LinkedTransferQueue<>();
-    allocationConcurrency = builder.getMaxConcurrentAllocations();
+    // Subtract one for the main allocator thread itself, which will also perform allocator operations.
+    allocationConcurrency = builder.getMaxConcurrentAllocations() - 1;
     this.size = 0;
     this.didAnythingLastIteration = true; // start out busy
   }
@@ -344,7 +345,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   private void allocSingle(BSlot<T> slot) {
     didAnythingLastIteration = true;
     slot.allocator = allocator;
-    if (allocationConcurrency > 1 && inFlightConcurrentOperations < allocationConcurrency) {
+    if (inFlightConcurrentOperations < allocationConcurrency) {
       CompletionStage<T> stage = allocator.allocateAsync(slot);
       if (stage == null) {
         poisonedSlots.getAndIncrement();
@@ -419,7 +420,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
       slot.poison = null;
       poisonedSlots.getAndDecrement();
     }
-    if (allocationConcurrency > 1 && inFlightConcurrentOperations < allocationConcurrency && slot.poison == null) {
+    if (inFlightConcurrentOperations < allocationConcurrency && slot.poison == null) {
       recordObjectLifetimeSample(NanoClock.elapsed(slot.createdNanos));
       CompletionStage<Void> stage = slot.allocator.deallocateAsync(slot.obj);
       if (stage == null) {
@@ -466,7 +467,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     if (slot.poison == null && nextAllocator == null) {
       boolean success = false;
       slot.allocator = allocator;
-      if (allocationConcurrency > 1 && inFlightConcurrentOperations < allocationConcurrency) {
+      if (inFlightConcurrentOperations < allocationConcurrency) {
         CompletionStage<T> stage = allocator.reallocateAsync(slot, oldObj);
         //noinspection UnusedAssignment
         oldObj = null;
