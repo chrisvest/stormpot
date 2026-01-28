@@ -111,11 +111,14 @@ class TimingReallocatingAdaptor<T extends Poolable>
   static <T> CompletionStage<T> whenCompleteFirst(CompletionStage<T> stage, BiConsumer<? super T, Throwable> action) {
     CompletableFuture<T> forward = new CompletableFuture<>();
     stage.whenComplete((obj, e) -> {
-      action.accept(obj, e);
-      if (e == null) {
-        forward.complete(obj);
-      } else {
-        forward.completeExceptionally(e);
+      try {
+        action.accept(obj, e);
+      } finally {
+        if (e == null) {
+          forward.complete(obj);
+        } else {
+          forward.completeExceptionally(e);
+        }
       }
     });
     return forward;
