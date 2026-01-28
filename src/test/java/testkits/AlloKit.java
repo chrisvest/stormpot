@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 
@@ -50,16 +51,16 @@ public class AlloKit {
 
   static class ActionSeq {
     private final Action[] actions;
-    private int counter;
+    private final AtomicInteger counter;
 
     ActionSeq(Action... actions) {
       this.actions = actions;
-      counter = 0;
+      counter = new AtomicInteger();
     }
 
     GenericPoolable applyNext(Slot slot, GenericPoolable obj, Allocator<GenericPoolable> allocator) throws Exception {
-      Action action = actions[counter];
-      counter = Math.min(actions.length - 1, counter + 1);
+      int count = counter.getAndIncrement();
+      Action action = actions[Math.min(actions.length - 1, count & 0x7FFF_FFFF)];
       return action.apply(slot, obj, allocator);
     }
   }

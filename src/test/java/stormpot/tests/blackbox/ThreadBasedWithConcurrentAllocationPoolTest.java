@@ -13,16 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stormpot.internal;
+package stormpot.tests.blackbox;
 
-/**
- * Sealed interface for the different kinds of tasks the {@link BAllocThread} will respond and react to.
- * The specific supported task types are hard-coded in the {@link BAllocThread} class, because each one needs special
- * treatment.
- */
-public sealed interface Task permits
-        AllocatorSwitchRequestPending,
-        AsyncAllocationCompletion,
-        AsyncDeallocationCompletion,
-        BSlot {
+import stormpot.Allocator;
+import stormpot.Pool;
+import stormpot.PoolBuilder;
+import stormpot.Poolable;
+
+public class ThreadBasedWithConcurrentAllocationPoolTest extends AllocatorBasedPoolTest {
+  @Override
+  protected <T extends Poolable> PoolBuilder<T> createInitialPoolBuilder(Allocator<T> allocator) {
+    return Pool.fromThreaded(allocator).setMaxConcurrentAllocations(2);
+  }
 }

@@ -15,6 +15,11 @@
  */
 package stormpot;
 
+import stormpot.internal.PoolBuilderImpl;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
 /**
  * An Allocator is responsible for the creation and destruction of
  * {@link Poolable} objects.
@@ -59,7 +64,7 @@ public interface Allocator<T extends Poolable> {
    * {@link Pool#claim(Timeout) claim} method of a pool, in the form of being
    * wrapped inside a {@link PoolException}. Pools must be able to handle these
    * exceptions in a sane manner, and are guaranteed to return to a working
-   * state if an Allocator stops throwing exceptions from its allocate method.
+   * state if an Allocator stops throwing exceptions from its allocation methods.
    *
    * @param slot The slot the pool wish to allocate an object for.
    * Implementers do not need to concern themselves with the details of a
@@ -69,6 +74,37 @@ public interface Allocator<T extends Poolable> {
    * @throws Exception If the allocation fails.
    */
   T allocate(Slot slot) throws Exception;
+
+  /**
+   * Start the task of creating a fresh new instance of T for the given slot.
+   * <p>
+   * The returned {@link CompletionStage} must eventually either complete
+   * and produce a {@link Poolable}, or an {@link Exception}, or be cancelled.
+   * <p>
+   * This method works as if a separate thread is started to call the
+   * {@link #allocate(Slot)} method, and return the result or error through
+   * the returned {@link CompletionStage}.
+   *
+   * @param slot The slot the pool wish to allocate an object for.
+   * Implementers do not need to concern themselves with the details of a
+   * pools slot objects. They just have to call release on them as the
+   * protocol demands.
+   * @return A {@link CompletionStage} for the asynchronous allocation.
+   * Never {@code null}.
+   * @see #allocate(Slot)
+   * @since 4.2
+   */
+  default CompletionStage<T> allocateAsync(Slot slot) {
+    CompletableFuture<T> task = new CompletableFuture<>();
+    PoolBuilderImpl.THREAD_BUILDER.start(() -> {
+      try {
+        task.complete(allocate(slot));
+      } catch (Throwable e) {
+        task.completeExceptionally(e);
+      }
+    });
+    return task;
+  }
 
   /**
    * Deallocate, if applicable, the given Poolable and free any resources
@@ -107,4 +143,30 @@ public interface Allocator<T extends Poolable> {
    * @throws Exception if the deallocation encounters an error.
    */
   void deallocate(T poolable) throws Exception;
+
+  /**
+   * Start the task to deallocate, if applicable, the given Poolable and
+   * free any resources associated with it.
+   * <p>
+   * This method works as if a new thread is started to call the
+   * {@link #deallocate(Poolable)}, and produce {@code null} or any thrown
+   * exception upon completion.
+   *
+   * @param poolable The non-null Poolable instance to be deallocated.
+   * @return a {@link CompletionStage} that completes when the deallocation is done.
+   * @see #deallocate(Poolable)
+   * @since 4.2
+   */
+  default CompletionStage<Void> deallocateAsync(T poolable) {
+    CompletableFuture<Void> task = new CompletableFuture<>();
+    PoolBuilderImpl.THREAD_BUILDER.start(() -> {
+      try {
+        deallocate(poolable);
+        task.complete(null);
+      } catch (Throwable e) {
+        task.completeExceptionally(e);
+      }
+    });
+    return task;
+  }
 }

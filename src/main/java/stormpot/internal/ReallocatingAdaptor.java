@@ -22,6 +22,7 @@ import stormpot.Reallocator;
 import stormpot.Slot;
 
 import java.util.Objects;
+import java.util.concurrent.CompletionStage;
 
 /**
  * An adaptor that implements {@link Reallocator} in terms of a given {@link Allocator}.
@@ -72,6 +73,16 @@ public class ReallocatingAdaptor<T extends Poolable> implements Reallocator<T> {
   @Override
   public void deallocate(T poolable) throws Exception {
     allocator.deallocate(poolable);
+  }
+
+  @Override
+  public CompletionStage<Void> deallocateAsync(T poolable) {
+    return allocator.deallocateAsync(poolable);
+  }
+
+  @Override
+  public CompletionStage<T> allocateAsync(Slot slot) {
+    return allocator.allocateAsync(slot);
   }
 
   /**

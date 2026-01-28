@@ -144,6 +144,12 @@ class PoolBuilderTest {
   }
 
   @Test
+  void maxConcurrentAllocationsMustBeSettable() {
+    builder.setMaxConcurrentAllocations(13);
+    assertThat(builder.getMaxConcurrentAllocations()).isEqualTo(13);
+  }
+
+  @Test
   void allSetterMethodsMustReturnTheSameBuilderInstance() throws Exception {
     Method[] methods = PoolBuilder.class.getDeclaredMethods();
     List<Method> setterMethods = new ArrayList<>();
@@ -200,6 +206,7 @@ class PoolBuilderTest {
     builder.setPreciseLeakDetectionEnabled(false);
     builder.setSize(42);
     builder.setThreadFactory(factory);
+    builder.setMaxConcurrentAllocations(4);
 
     PoolBuilder<GenericPoolable> clone = builder.clone();
 
@@ -211,5 +218,6 @@ class PoolBuilderTest {
     assertFalse(clone.isPreciseLeakDetectionEnabled());
     assertThat(clone.getSize()).isEqualTo(42);
     assertThat(clone.getThreadFactory()).isSameAs(factory);
+    assertThat(clone.getMaxConcurrentAllocations()).isEqualTo(4);
   }
 }

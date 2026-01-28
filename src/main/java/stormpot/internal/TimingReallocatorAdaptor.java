@@ -20,7 +20,7 @@ import stormpot.Poolable;
 import stormpot.Reallocator;
 import stormpot.Slot;
 
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletionStage;
 
 final class TimingReallocatorAdaptor<T extends Poolable> extends TimingReallocatingAdaptor<T>
     implements Reallocator<T> {
@@ -31,18 +31,31 @@ final class TimingReallocatorAdaptor<T extends Poolable> extends TimingReallocat
 
   @Override
   public T reallocate(Slot slot, T poolable) throws Exception {
-    long start = System.nanoTime();
+    long start = start();
     try {
       T obj = ((Reallocator<T>) allocator).reallocate(slot, poolable);
-      long elapsedNanos = System.nanoTime() - start;
-      long milliseconds = TimeUnit.NANOSECONDS.toMillis(elapsedNanos);
-      metricsRecorder.recordReallocationLatencySampleMillis(milliseconds);
+      metricsRecorder.recordReallocationLatencySampleMillis(elapsedMillis(start));
       return obj;
     } catch (Exception e) {
-      long elapsedNanos = System.nanoTime() - start;
-      long milliseconds = TimeUnit.NANOSECONDS.toMillis(elapsedNanos);
-      metricsRecorder.recordReallocationFailureLatencySampleMillis(milliseconds);
+      metricsRecorder.recordReallocationFailureLatencySampleMillis(elapsedMillis(start));
       throw e;
     }
+  }
+
+  @Override
+  public CompletionStage<T> reallocateAsync(Slot slot, T poolable) {
+    final long start = start();
+    CompletionStage<T> stage = ((Reallocator<T>) allocator).reallocateAsync(slot, poolable);
+    if (stage == null) {
+      metricsRecorder.recordReallocationFailureLatencySampleMillis(elapsedMillis(start));
+      return null;
+    }
+    return whenCompleteFirst(stage, (obj, e) -> {
+      if (obj == null) {
+        metricsRecorder.recordReallocationFailureLatencySampleMillis(elapsedMillis(start));
+      } else {
+        metricsRecorder.recordReallocationLatencySampleMillis(elapsedMillis(start));
+      }
+    });
   }
 }

@@ -98,7 +98,7 @@ public final class IdentityHashSet implements Iterable<Object> {
           e2 = Math.min(i, e2);
         }
       }
-      if (e1 < e2) {
+      if (e1 <= e2 && e1 != Integer.MAX_VALUE) {
         table[h1 + e1] = obj;
         return;
       }
