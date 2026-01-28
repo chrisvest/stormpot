@@ -16,13 +16,14 @@
 package stormpot.internal;
 
 /**
- * Sealed interface for the different kinds of tasks the {@link BAllocThread} will respond and react to.
- * The specific supported task types are hard-coded in the {@link BAllocThread} class, because each one needs special
- * treatment.
+ * Used to signal that an allocator switch has been requested.
  */
-public sealed interface Task permits
-        AllocatorSwitchRequestPending,
-        AsyncAllocationCompletion,
-        AsyncDeallocationCompletion,
-        BSlot {
+public final class AllocatorSwitchRequestPending implements Task {
+  /**
+   * The singleton instance of this class.
+   */
+  static final AllocatorSwitchRequestPending INSTANCE = new AllocatorSwitchRequestPending();
+
+  private AllocatorSwitchRequestPending() {
+  }
 }

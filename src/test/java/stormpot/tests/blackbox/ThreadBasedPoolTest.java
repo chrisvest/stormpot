@@ -18,19 +18,27 @@ package stormpot.tests.blackbox;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import testkits.ExpireKit;
-import testkits.GenericPoolable;
-import testkits.LastSampleMetricsRecorder;
+import org.junit.jupiter.params.provider.ValueSource;
 import stormpot.ManagedPool;
 import stormpot.Pool;
 import stormpot.PoolBuilder;
 import stormpot.PoolException;
 import stormpot.PoolTap;
 import stormpot.Slot;
+import testkits.DelegateAllocator;
+import testkits.DelegateReallocator;
+import testkits.ExpectedException;
+import testkits.ExpireKit;
+import testkits.GenericPoolable;
+import testkits.LastSampleMetricsRecorder;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -41,6 +49,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -56,6 +65,7 @@ import static testkits.AlloKit.Action;
 import static testkits.AlloKit.CountingReallocator;
 import static testkits.AlloKit.alloc;
 import static testkits.AlloKit.allocator;
+import static testkits.AlloKit.dealloc;
 import static testkits.AlloKit.realloc;
 import static testkits.AlloKit.reallocator;
 import static testkits.ExpireKit.$countDown;
@@ -76,6 +86,27 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
   @Test
   void constructorMustThrowIfBackgroundExpirationCheckDelayIsNegative() {
     assertThrows(IllegalArgumentException.class, () -> builder.setBackgroundExpirationCheckDelay(-1));
+  }
+
+  @Test
+  void mustThrowIfConcurrentAllocationsAreNotPositive() {
+    assertEquals(1, builder.getMaxConcurrentAllocations());
+    assertThrows(IllegalArgumentException.class, () -> builder.setMaxConcurrentAllocations(0));
+    assertEquals(1, builder.getMaxConcurrentAllocations());
+    assertThrows(IllegalArgumentException.class, () -> builder.setMaxConcurrentAllocations(-1));
+    assertEquals(1, builder.getMaxConcurrentAllocations());
+  }
+
+  @Test
+  void mustSupportSettingAllocationConcurrency() {
+    builder.setMaxConcurrentAllocations(2);
+    assertEquals(2, builder.getMaxConcurrentAllocations());
+    builder.setMaxConcurrentAllocations(1);
+    assertEquals(1, builder.getMaxConcurrentAllocations());
+    builder.setMaxConcurrentAllocations(Integer.MAX_VALUE);
+    assertEquals(Integer.MAX_VALUE, builder.getMaxConcurrentAllocations());
+    builder.setMaxConcurrentAllocations(1);
+    assertEquals(1, builder.getMaxConcurrentAllocations());
   }
 
   /**
@@ -718,5 +749,247 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
   void managedPoolMustGiveNumberOfAllocatedAndInUseObjects() throws Exception {
     noBackgroundExpirationChecking();
     super.managedPoolMustGiveNumberOfAllocatedAndInUseObjects();
+  }
+
+  @Test
+  void allocatorConcurrencyMustAllowAllocatingObjectsInParallel() throws Exception {
+    int count = 4;
+    CountDownLatch latch = new CountDownLatch(count);
+    builder.setMaxConcurrentAllocations(count);
+    allocator = allocator(alloc((s, o, a) -> {
+      latch.countDown();
+      latch.await();
+      return $new.apply(s, o, a);
+    }));
+    builder.setAllocator(allocator);
+    createPoolOfSize(count);
+    Deque<GenericPoolable> objs = new ArrayDeque<>(count);
+    for (int i = 0; i < count; i++) {
+      objs.add(pool.claim(longTimeout));
+    }
+    objs.forEach(GenericPoolable::release);
+  }
+
+  @Test
+  void allocatorConcurrencyMustAllowDeallocatingObjectsInParallel() throws Exception {
+    int count = 4;
+    CountDownLatch latch = new CountDownLatch(count);
+    builder.setMaxConcurrentAllocations(count);
+    allocator = allocator(alloc($new), dealloc((s, o, a) -> {
+      latch.countDown();
+      latch.await();
+      return null;
+    }));
+    builder.setAllocator(allocator);
+    createPoolOfSize(count);
+    Deque<GenericPoolable> objs = new ArrayDeque<>(count);
+    for (int i = 0; i < count; i++) {
+      objs.add(pool.claim(longTimeout));
+    }
+    pool.setTargetSize(0);
+    objs.forEach(GenericPoolable::release);
+    objs.clear();
+    // Will time out if objects cannot deallocate concurrently:
+    assertTrue(latch.await(longTimeout.getTimeout(), longTimeout.getUnit()));
+  }
+
+  @Test
+  void allocatorConcurrencyMustAllowReallocatingObjectsInParallel() throws Exception {
+    int count = 4;
+    CountDownLatch latch = new CountDownLatch(count);
+    builder.setMaxConcurrentAllocations(count);
+    allocator = reallocator(alloc($new), realloc((s, o, a) -> {
+      latch.countDown();
+      latch.await();
+      return $new.apply(s, o, a);
+    }));
+    builder.setAllocator(allocator);
+    createPoolOfSize(count);
+    Deque<GenericPoolable> objs = new ArrayDeque<>(count);
+    for (int i = 0; i < count; i++) {
+      objs.add(pool.claim(longTimeout));
+    }
+    objs.forEach(obj -> {
+      obj.expire();
+      obj.release();
+    });
+    objs.clear();
+    for (int i = 0; i < count; i++) {
+      objs.add(pool.claim(longTimeout)); // Will time out if objects cannot reallocate concurrently.
+    }
+    objs.forEach(GenericPoolable::release);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void mustPropagateExceptionWhenAsynchronousAllocationFails(boolean withMetricsRecorder) throws Exception {
+    if (withMetricsRecorder) {
+      builder.setMetricsRecorder(new LastSampleMetricsRecorder());
+    }
+    builder.setMaxConcurrentAllocations(4);
+    CountDownLatch latch = new CountDownLatch(1);
+    builder.setAllocator(new DelegateAllocator<>(allocator) {
+      @Override
+      public CompletionStage<GenericPoolable> allocateAsync(Slot slot) {
+        latch.countDown();
+        return CompletableFuture.failedFuture(new ExpectedException());
+      }
+    });
+    createOneObjectPool();
+    latch.await();
+    PoolException poolException = assertThrows(PoolException.class, () -> pool.claim(longTimeout));
+    assertThat(poolException).hasCauseExactlyInstanceOf(ExpectedException.class);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void mustPropagateExceptionWhenAsynchronousReallocationFails(boolean withMetricsRecorder) {
+    if (withMetricsRecorder) {
+      builder.setMetricsRecorder(new LastSampleMetricsRecorder());
+    }
+    builder.setMaxConcurrentAllocations(4);
+    builder.setAllocator(new DelegateReallocator<>(reallocator()) {
+      @Override
+      public CompletionStage<GenericPoolable> reallocateAsync(Slot slot, GenericPoolable obj) {
+        return CompletableFuture.failedFuture(new ExpectedException());
+      }
+    });
+    createOneObjectPool();
+    PoolException poolException = assertThrows(PoolException.class, () -> {
+      for (;;) {
+        // We're racing with proactive poison healing, so keep trying until we hit the realloc failure.
+        GenericPoolable obj = pool.claim(longTimeout);
+        obj.expire();
+        obj.release();
+      }
+    });
+    assertThat(poolException).hasCauseExactlyInstanceOf(ExpectedException.class);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void mustPropagateExceptionWhenAsynchronousAllocationReturnsNullStage(boolean withMetricsRecorder) throws Exception {
+    if (withMetricsRecorder) {
+      builder.setMetricsRecorder(new LastSampleMetricsRecorder());
+    }
+    builder.setMaxConcurrentAllocations(4);
+    CountDownLatch latch = new CountDownLatch(1);
+    builder.setAllocator(new DelegateAllocator<>(allocator) {
+      @Override
+      public CompletionStage<GenericPoolable> allocateAsync(Slot slot) {
+        latch.countDown();
+        return null;
+      }
+    });
+    createOneObjectPool();
+    latch.await();
+    PoolException poolException = assertThrows(PoolException.class, () -> {
+      GenericPoolable obj = pool.claim(longTimeout);
+      obj.expire();
+      obj.release();
+    });
+    assertThat(poolException).hasCauseExactlyInstanceOf(NullPointerException.class);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void mustPropagateExceptionWhenAsynchronousReallocationReturnsNullStage(boolean withMetricsRecorder) {
+    if (withMetricsRecorder) {
+      builder.setMetricsRecorder(new LastSampleMetricsRecorder());
+    }
+    builder.setMaxConcurrentAllocations(4);
+    builder.setAllocator(new DelegateReallocator<>(reallocator()) {
+      @Override
+      public CompletionStage<GenericPoolable> reallocateAsync(Slot slot, GenericPoolable obj) {
+        return null;
+      }
+    });
+    createOneObjectPool();
+    PoolException poolException = assertThrows(PoolException.class, () -> {
+      for (;;) {
+        // We're racing with proactive poison healing, so keep trying until we hit the realloc failure.
+        GenericPoolable obj = pool.claim(longTimeout);
+        obj.expire();
+        obj.release();
+      }
+    });
+    assertThat(poolException).hasCauseExactlyInstanceOf(NullPointerException.class);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void mustPropagateExceptionWhenAsynchronousDeallocationReturnsNullStage(
+          boolean withMetricsRecorder) throws Exception {
+    if (withMetricsRecorder) {
+      builder.setMetricsRecorder(new LastSampleMetricsRecorder());
+    }
+    builder.setMaxConcurrentAllocations(4);
+    createOneObjectPool();
+    PoolException poolException = assertThrows(PoolException.class, () -> {
+      for (;;) {
+        // We're racing with proactive poison healing, so keep trying until we hit the async dealloc failure.
+        pool.claim(longTimeout).release();
+        // Switching allocator causes deallocations to occur. Create a new instance every time.
+        pool.switchAllocator(new DelegateAllocator<>(this.allocator) {
+          @Override
+          public CompletionStage<Void> deallocateAsync(GenericPoolable obj) {
+            return null;
+          }
+        });
+      }
+    });
+    assertThat(poolException).hasCauseExactlyInstanceOf(NullPointerException.class);
+    pool.switchAllocator(this.allocator).await(longTimeout); // Switch to something that can actually deallocate.
+  }
+
+  @Test
+  void mustRecordObjectLifetimesInMetricsRecorderFromAsynchronousOperations() throws Exception {
+    LastSampleMetricsRecorder recorder = new LastSampleMetricsRecorder();
+    builder.setMetricsRecorder(recorder).setMaxConcurrentAllocations(4);
+    builder.setAllocator(reallocator());
+    createOneObjectPool();
+    GenericPoolable obj = pool.claim(longTimeout);
+    assertThat(recorder.getAllocationLatencyPercentile(0)).isNotNaN();
+    obj.expire();
+    obj.release();
+    pool.claim(longTimeout).release();
+    assertThat(recorder.getReallocationLatencyPercentile(0)).isNotNaN();
+    pool.switchAllocator(allocator()).await(longTimeout);
+    assertThat(recorder.getDeallocationLatencyPercentile(0)).isNotNaN();
+  }
+
+  @Test
+  void asynchronousAllocationProducingNullResultMustResultInNullPointerException() {
+    builder.setMaxConcurrentAllocations(2);
+    builder.setAllocator(new DelegateAllocator<>(allocator) {
+      @Override
+      public CompletionStage<GenericPoolable> allocateAsync(Slot slot) {
+        return CompletableFuture.completedFuture(null);
+      }
+    });
+    createOneObjectPool();
+    PoolException e = assertThrows(PoolException.class, () -> pool.claim(longTimeout));
+    assertThat(e).hasCauseExactlyInstanceOf(NullPointerException.class);
+  }
+
+  @Test
+  void asynchronousReallocationProducingNullResultMustResultInNullPointerException() {
+    builder.setMaxConcurrentAllocations(2);
+    builder.setBackgroundExpirationEnabled(false);
+    builder.setAllocator(new DelegateReallocator<>(reallocator()) {
+      @Override
+      public CompletionStage<GenericPoolable> reallocateAsync(Slot slot, GenericPoolable obj) {
+        return CompletableFuture.completedFuture(null);
+      }
+    });
+    createOneObjectPool();
+    PoolException e = assertThrows(PoolException.class, () -> {
+      for (;;) {
+        GenericPoolable obj = pool.claim(longTimeout);
+        obj.expire();
+        obj.release();
+      }
+    });
+    assertThat(e).hasCauseExactlyInstanceOf(NullPointerException.class);
   }
 }

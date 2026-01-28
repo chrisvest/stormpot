@@ -39,27 +39,40 @@ import static stormpot.internal.AllocationProcessMode.THREADED;
  * @param <T> The concrete poolable type.
  */
 public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T> {
-  static final ThreadFactory THREAD_FACTORY = Thread.ofVirtual()
-          .name("Stormpot-", 1)
-          .inheritInheritableThreadLocals(false)
-          .factory();
+  /**
+   * The default thread builder.
+   * <p>
+   * This thread builder creates numbered threads named with a "Stormpot-" prefix.
+   * <p>
+   * The threads created are virtual unless the {@code stormpot.usePlatformThreads} system property
+   * is set to {@code "true"}.
+   */
+  public static final Thread.Builder THREAD_BUILDER =
+          (Boolean.getBoolean("stormpot.usePlatformThreads") ? Thread.ofPlatform() : Thread.ofVirtual())
+                  .name("Stormpot-", 1)
+                  .inheritInheritableThreadLocals(false);
+
+  /**
+   * The default thread factory, derived from the {@linkplain #THREAD_BUILDER default thread builder}.
+   */
+  public static final ThreadFactory THREAD_FACTORY = THREAD_BUILDER.factory();
 
   /**
    * Mapping of {@link AllocationProcessMode} to the pool builder default settings.
    */
   public static final Map<AllocationProcessMode, PoolBuilderDefaults> DEFAULTS = Map.of(
-      THREADED, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, false, true, 1000, true),
-      INLINE, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, false, false, 0, true),
-      DIRECT, new PoolBuilderDefaults(never(), THREAD_FACTORY, false, false, 0, true)
+      THREADED, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, false, true, 1000, true, 1),
+      INLINE, new PoolBuilderDefaults(after(8, 10, MINUTES), THREAD_FACTORY, false, false, 0, true, 1),
+      DIRECT, new PoolBuilderDefaults(never(), THREAD_FACTORY, false, false, 0, true, 1)
   );
 
   /**
    * Mapping of {@link AllocationProcessMode} to the pool builder permissions, deciding what settings can be changed.
    */
   public static final Map<AllocationProcessMode, PoolBuilderPermissions> PERMISSIONS = Map.of(
-      THREADED, new PoolBuilderPermissions(true, true, true, true, true),
-      INLINE, new PoolBuilderPermissions(true, true, true, false, false),
-      DIRECT, new PoolBuilderPermissions(false, true, false, false, false)
+      THREADED, new PoolBuilderPermissions(true, true, true, true, true, true),
+      INLINE, new PoolBuilderPermissions(true, true, true, false, false, false),
+      DIRECT, new PoolBuilderPermissions(false, true, false, false, false, false)
   );
 
   private final AllocationProcess allocationProcess;
@@ -73,6 +86,7 @@ public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T>
   private boolean backgroundExpirationEnabled;
   private int backgroundExpirationCheckDelay;
   private boolean optimizeForMemory;
+  private int allocationConcurrency;
 
   /**
    * Build a new empty {@code PoolBuilder} object.
@@ -92,6 +106,7 @@ public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T>
     this.backgroundExpirationEnabled = defaults.backgroundExpirationEnabled;
     this.backgroundExpirationCheckDelay = defaults.backgroundExpirationCheckDelay;
     this.optimizeForMemory = defaults.optimizeForMemory;
+    this.allocationConcurrency = defaults.allocationConcurrency;
   }
 
   @Override
@@ -215,6 +230,21 @@ public final class PoolBuilderImpl<T extends Poolable> implements PoolBuilder<T>
   @Override
   public synchronized PoolBuilder<T> setOptimizeForReducedMemoryUsage(boolean reduceMemoryUsage) {
     this.optimizeForMemory = reduceMemoryUsage;
+    return this;
+  }
+
+  @Override
+  public synchronized int getMaxConcurrentAllocations() {
+    return allocationConcurrency;
+  }
+
+  @Override
+  public synchronized PoolBuilder<T> setMaxConcurrentAllocations(int allocationConcurrency) {
+    checkPermission(permissions.setMaxConcurrentAllocations(), "max concurrent allocations");
+    if (allocationConcurrency < 1) {
+      throw new IllegalArgumentException("Allocation concurrency must be positive, but was: " + allocationConcurrency);
+    }
+    this.allocationConcurrency = allocationConcurrency;
     return this;
   }
 

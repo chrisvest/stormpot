@@ -25,6 +25,8 @@ package stormpot;
  * <p>
  * <strong>Note:</strong> implementations of this interface must be thread-safe!
  * <p>
+ * <strong>Warning:</strong> the {@code record*} methods should never throw exceptions!
+ * <p>
  * Here's an example implementation based on the
  * <a href="https://metrics.dropwizard.io/">Dropwizard Metrics library</a>:
  * {@snippet class=DropwizardMetricsRecorder region=example}

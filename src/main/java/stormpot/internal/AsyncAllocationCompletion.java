@@ -15,14 +15,20 @@
  */
 package stormpot.internal;
 
+import stormpot.Poolable;
+
 /**
- * Sealed interface for the different kinds of tasks the {@link BAllocThread} will respond and react to.
- * The specific supported task types are hard-coded in the {@link BAllocThread} class, because each one needs special
- * treatment.
+ * Signals the completion of an asynchronous allocation, and delivers the result back to the main allocator thread.
  */
-public sealed interface Task permits
-        AllocatorSwitchRequestPending,
-        AsyncAllocationCompletion,
-        AsyncDeallocationCompletion,
-        BSlot {
+public final class AsyncAllocationCompletion implements Task {
+  final BSlot<? extends Poolable> slot;
+
+  /**
+   * Create a new asynchronous allocation completion.
+   * @param slot The slot that was allocated into.
+   * @param <T> The type of object that was allocated.
+   */
+  public <T extends Poolable> AsyncAllocationCompletion(BSlot<T> slot) {
+    this.slot = slot;
+  }
 }

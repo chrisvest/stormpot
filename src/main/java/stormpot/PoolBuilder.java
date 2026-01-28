@@ -141,7 +141,7 @@ public sealed interface PoolBuilder<T extends Poolable>
   MetricsRecorder getMetricsRecorder();
 
   /**
-   * Get the ThreadFactory that has been configured, and will be used to create
+   * Get the {@link ThreadFactory} that has been configured, and will be used to create
    * the background allocation threads for the pools. The default is similar to
    * the {@link java.util.concurrent.Executors#defaultThreadFactory()}, except
    * the string "Stormpot-" is prepended to the thread name.
@@ -150,9 +150,12 @@ public sealed interface PoolBuilder<T extends Poolable>
   ThreadFactory getThreadFactory();
 
   /**
-   * Set the ThreadFactory that the pools will use to create its background
-   * threads with. The ThreadFactory is not allowed to be null, and creating
-   * a pool with a null ThreadFactory will throw an IllegalArgumentException.
+   * Set the {@link ThreadFactory} that the pools will use to create its background
+   * threads with. The ThreadFactory is not allowed to be {@code null}, and creating
+   * a pool with a {@code null} ThreadFactory will throw an {@link IllegalArgumentException}.
+   * <p>
+   * This setting only affects {@linkplain Pool#fromThreaded(Allocator) threaded} pools.
+   *
    * @param factory The ThreadFactory the pool should use to create their
    *                background threads.
    * @return This {@code PoolBuilder} instance.
@@ -160,8 +163,9 @@ public sealed interface PoolBuilder<T extends Poolable>
   PoolBuilder<T> setThreadFactory(ThreadFactory factory);
 
   /**
-   * Return whether precise object leak detection is enabled, which is
-   * the case by default.
+   * Return whether precise object leak detection is enabled.
+   * By default, precise leak detection is not enabled.
+   *
    * @return {@code true} if precise object leak detection is enabled.
    * @see #setPreciseLeakDetectionEnabled(boolean)
    */
@@ -190,6 +194,9 @@ public sealed interface PoolBuilder<T extends Poolable>
    * Precise object leak detection incurs virtually no overhead, and is safe to
    * leave enabled at all times – even in the most demanding production
    * environments.
+   * <p>
+   * This setting only affects {@linkplain Pool#fromThreaded(Allocator) threaded} and
+   * {@linkplain Pool#fromInline(Allocator) inline} pools.
    *
    * @param enabled {@code true} to turn on precise object leak detection (the
    *                default) {@code false} to turn it off.
@@ -213,6 +220,8 @@ public sealed interface PoolBuilder<T extends Poolable>
    * away from the background thread and hinder its ability to keep up with the
    * demand for allocations and deallocations, even though these tasks always
    * take priority over any expiration checking.
+   * <p>
+   * This setting only affects {@linkplain Pool#fromThreaded(Allocator) threaded} pools.
    *
    * @param enabled {@code true} (the default) to turn background expiration checking on,
    *               {@code false} to turn it off.
@@ -241,6 +250,8 @@ public sealed interface PoolBuilder<T extends Poolable>
    * It is not recommended to set this value lower than 100 milliseconds. Values lower
    * than this tend to have increased CPU and power usage, for very little gain in
    * responsiveness for the background tasks.
+   * <p>
+   * This setting only affects {@linkplain Pool#fromThreaded(Allocator) threaded} pools.
    *
    * @param delay the desired delay, in milliseconds, between background maintenance tasks.
    * @return This {@code PoolBuilder} instance.
@@ -271,6 +282,46 @@ public sealed interface PoolBuilder<T extends Poolable>
    * @return This {@code PoolBuilder} instance.
    */
   PoolBuilder<T> setOptimizeForReducedMemoryUsage(boolean reduceMemoryUsage);
+
+  /**
+   * Return the maximum number of object allocations and deallocations that Stormpot
+   * will perform concurrently.
+   * <p>
+   * The default is 1, so only one object at a time can be allocated or deallocated.
+   *
+   * @return The maximum number of concurrent allocations and deallocations.
+   */
+  int getMaxConcurrentAllocations();
+
+  /**
+   * Set the maximum number of concurrent allocations or deallocations.
+   * <p>
+   * If object allocation is particularly slow, it can make sense to allow Stormpot to
+   * perform allocations in parallel, so that the pool can fill up faster when it's newly
+   * created, or recover faster if a large number of objects need to be replaced.
+   * <p>
+   * This setting only affects {@linkplain Pool#fromThreaded(Allocator) threaded} pools.
+   * Enabling this setting will then cause the background allocation thread to make use of the
+   * asynchronous methods, {@link Allocator#allocateAsync(Slot)}, {@link Allocator#deallocateAsync(Poolable)},
+   * and {@link Reallocator#reallocateAsync(Slot, Poolable)}.
+   *
+   * <table>
+   * <caption>Note</caption>
+   * <tr>
+   * <th scope="row">NOTE</th>
+   * <td>
+   * Setting this to a value greater than 1 means the allocator implementation will experience
+   * concurrent allocation and deallocation calls from multiple threads.
+   * The configured {@link Allocator} implementation must therefore be thread-safe.
+   * </td>
+   * </tr>
+   * </table>
+   *
+   * @param allocationConcurrency The maximum number of objects that can be allocated in parallel
+   * at any one time. Must be positive.
+   * @return This {@code PoolBuilder} instance.
+   */
+  PoolBuilder<T> setMaxConcurrentAllocations(int allocationConcurrency);
 
   /**
    * Returns a shallow copy of this {@code PoolBuilder} object.

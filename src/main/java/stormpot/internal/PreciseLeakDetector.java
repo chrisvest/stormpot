@@ -15,6 +15,8 @@
  */
 package stormpot.internal;
 
+import stormpot.Poolable;
+
 import java.lang.ref.PhantomReference;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
@@ -52,7 +54,9 @@ public final class PreciseLeakDetector {
    * @param slot The slot to register.
    */
   public void register(BSlot<?> slot) {
-    CountedPhantomRef<Object> ref = new CountedPhantomRef<>(slot.obj, referenceQueue);
+    Poolable obj = slot.obj;
+    assert obj != null;
+    CountedPhantomRef<Object> ref = new CountedPhantomRef<>(obj, referenceQueue);
     slot.leakCheck = ref;
     synchronized (refs) {
       refs.add(ref);
