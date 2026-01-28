@@ -23,6 +23,7 @@ import stormpot.PoolException;
 import stormpot.Poolable;
 import stormpot.Reallocator;
 
+import java.lang.ref.Reference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
@@ -247,8 +248,13 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
   }
 
   private void unregisterWithLeakDetector(BSlot<T> slot) {
-    if (leakDetector != null) {
-      leakDetector.unregister(slot);
+    try {
+      if (leakDetector != null) {
+        leakDetector.unregister(slot);
+      }
+    } finally {
+      Reference.reachabilityFence(slot.obj);
+      slot.obj = null;
     }
   }
 
@@ -416,13 +422,13 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     if (allocationConcurrency > 1 && inFlightConcurrentOperations < allocationConcurrency && slot.poison == null) {
       recordObjectLifetimeSample(NanoClock.elapsed(slot.createdNanos));
       CompletionStage<Void> stage = slot.allocator.deallocateAsync(slot.obj);
-      slot.obj = null;
       if (stage == null) {
         if (updateSize) {
           size++;
         }
         poisonedSlots.getAndIncrement();
         slot.poison = new NullPointerException("Asynchronous deallocation returned null completion stage.");
+        slot.obj = null;
         publishSlot(slot, false, NanoClock.nanoTime());
       } else {
         inFlightConcurrentOperations++;
@@ -440,7 +446,6 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
         // Ignored as per specification
       }
       slot.poison = null;
-      slot.obj = null;
       if (slot.allocator != allocator) {
         replacedPriorGenerationSlot();
       }
@@ -454,14 +459,17 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
       slot.poison = null;
       poisonedSlots.getAndDecrement();
     }
-    if (slot.obj != null) {
+    T oldObj = slot.obj;
+    if (oldObj != null) {
       unregisterWithLeakDetector(slot);
     }
     if (slot.poison == null && nextAllocator == null) {
       boolean success = false;
       slot.allocator = allocator;
       if (allocationConcurrency > 1 && inFlightConcurrentOperations < allocationConcurrency) {
-        CompletionStage<T> stage = allocator.reallocateAsync(slot, slot.obj);
+        CompletionStage<T> stage = allocator.reallocateAsync(slot, oldObj);
+        //noinspection UnusedAssignment
+        oldObj = null;
         if (stage == null) {
           poisonedSlots.getAndIncrement();
           slot.poison = new NullPointerException("Asynchronous reallocation returned null completion stage.");
@@ -476,7 +484,9 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
         }
       } else {
         try {
-          slot.obj = allocator.reallocate(slot, slot.obj);
+          slot.obj = allocator.reallocate(slot, oldObj);
+          //noinspection UnusedAssignment
+          oldObj = null;
           if (slot.obj == null) {
             poisonedSlots.getAndIncrement();
             slot.poison = new NullPointerException("Reallocation returned null.");
