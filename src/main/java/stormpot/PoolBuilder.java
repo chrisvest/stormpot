@@ -163,8 +163,8 @@ public sealed interface PoolBuilder<T extends Poolable>
   PoolBuilder<T> setThreadFactory(ThreadFactory factory);
 
   /**
-   * Return whether precise object leak detection is enabled, which is
-   * the case by default.
+   * Return whether precise object leak detection is enabled.
+   * By default, precise leak detection is not enabled.
    *
    * @return {@code true} if precise object leak detection is enabled.
    * @see #setPreciseLeakDetectionEnabled(boolean)
@@ -301,6 +301,9 @@ public sealed interface PoolBuilder<T extends Poolable>
    * created, or recover faster if a large number of objects need to be replaced.
    * <p>
    * This setting only affects {@linkplain Pool#fromThreaded(Allocator) threaded} pools.
+   * Enabling this setting will then cause the background allocation thread to make use of the
+   * asynchronous methods, {@link Allocator#allocateAsync(Slot)}, {@link Allocator#deallocateAsync(Poolable)},
+   * and {@link Reallocator#reallocateAsync(Slot, Poolable)}.
    *
    * <table>
    * <caption>Note</caption>

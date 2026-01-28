@@ -15,7 +15,6 @@
  */
 package stormpot.tests.blackbox;
 
-import org.junit.jupiter.api.Disabled;
 import stormpot.Allocator;
 import stormpot.Pool;
 import stormpot.PoolBuilder;
