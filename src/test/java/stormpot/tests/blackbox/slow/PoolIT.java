@@ -300,23 +300,26 @@ abstract class PoolIT {
     obj.expire();
     obj.release();
     assertThrows(PoolException.class, () -> pool.claim(longTimeout).release());
-    long prev = 0, curr;
-    for (int i = 0; i < 50; i++) {
-      long start = System.nanoTime();
-      Thread.sleep(100);
-      long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-      if (elapsedMillis >= 150) {
-        // Ignore outliers with very high sleep time.
-        prev = counter.get();
-        i--;
-        continue;
+    long startCount = counter.get();
+    long startTime = System.nanoTime();
+    ArrayList<Long> elapsedTimes = new ArrayList<>();
+    do {
+      long nextCount;
+      while ((nextCount = counter.get()) == startCount) {
+        Thread.yield();
       }
-      curr = counter.get();
-      long delta = curr - prev;
-      prev = curr;
-      if (i > 40) {
-        assertThat(delta).isLessThanOrEqualTo(5);
-      }
-    }
+      long nextTime = System.nanoTime();
+      long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(nextTime - startTime);
+      elapsedTimes.add(elapsedMillis);
+      startTime = nextTime;
+      startCount = nextCount;
+    } while (elapsedTimes.size() < 6);
+
+    assertThat(elapsedTimes.get(0)).isGreaterThanOrEqualTo(0);
+    assertThat(elapsedTimes.get(1)).isGreaterThanOrEqualTo(0); // "consecutive" starts here.
+    assertThat(elapsedTimes.get(2)).isGreaterThanOrEqualTo(50);
+    assertThat(elapsedTimes.get(3)).isGreaterThanOrEqualTo(100);
+    assertThat(elapsedTimes.get(4)).isGreaterThanOrEqualTo(150);
+    assertThat(elapsedTimes.get(5)).isGreaterThanOrEqualTo(200);
   }
 }

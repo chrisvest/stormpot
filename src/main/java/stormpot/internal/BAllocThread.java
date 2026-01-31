@@ -213,7 +213,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
       taskPollTimeout = (didAnythingLastIteration ? 0 : 10);
       // Unless we have a lot of allocation failures.
       // In that case, make the timeout longer to avoid wasting CPU.
-      taskPollTimeout += Math.min(consecutiveAllocationFailures,
+      taskPollTimeout += Math.min(consecutiveAllocationFailures * 50,
           defaultTaskPollTimeout - taskPollTimeout);
     }
     didAnythingLastIteration = false;
