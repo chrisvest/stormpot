@@ -133,6 +133,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     live.offer(poisonPill);
   }
 
+  @SuppressWarnings("unchecked")
   private void replenishPool() throws InterruptedException {
     long deadPollTimeout = computeTaskPollTimeout();
     Task task = deadPollTimeout == 0 ? tasks.poll() : tasks.poll(deadPollTimeout, MILLISECONDS);
@@ -306,6 +307,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     }
   }
 
+  @SuppressWarnings("unchecked")
   private void shutPoolDown() {
     while (size > 0 || inFlightConcurrentOperations > 0) {
       BSlot<T> slot;
