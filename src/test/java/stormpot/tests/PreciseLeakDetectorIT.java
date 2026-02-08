@@ -16,8 +16,10 @@
 package stormpot.tests;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import stormpot.internal.BSlot;
 import stormpot.internal.PreciseLeakDetector;
+import stormpot.tests.extensions.ExecutorExtension;
 import testkits.GarbageCreator;
 import testkits.GenericPoolable;
 
@@ -32,6 +34,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PreciseLeakDetectorIT {
+  @RegisterExtension
+  final ExecutorExtension executor = new ExecutorExtension();
+
   private final PreciseLeakDetector detector = new PreciseLeakDetector();
 
   @Test
@@ -65,7 +70,7 @@ class PreciseLeakDetectorIT {
         }
       } else if (choice < 90) {
         // Count
-        try (AutoCloseable ignore = GarbageCreator.forkCreateGarbage()) {
+        try (AutoCloseable ignore = GarbageCreator.forkCreateGarbage(executor)) {
           GarbageCreator.awaitReferenceProcessing();
           assertThat(detector.countLeakedObjects())
                   .isGreaterThan(leaksCreated - 10)
@@ -100,7 +105,7 @@ class PreciseLeakDetectorIT {
     do {
       System.gc();
     } while (gcs == GarbageCreator.countGarbageCollections());
-    try (AutoCloseable ignore = GarbageCreator.forkCreateGarbage()) {
+    try (AutoCloseable ignore = GarbageCreator.forkCreateGarbage(executor)) {
       GarbageCreator.awaitReferenceProcessing();
     }
     assertThat(detector.countLeakedObjects()).isEqualTo(leaksCreated);

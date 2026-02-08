@@ -17,8 +17,10 @@ package stormpot.tests;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import stormpot.internal.BSlot;
 import stormpot.internal.PreciseLeakDetector;
+import stormpot.tests.extensions.ExecutorExtension;
 import testkits.GarbageCreator;
 import testkits.GenericPoolable;
 
@@ -34,6 +36,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SuppressWarnings("unchecked")
 class PreciseLeakDetectorTest {
+  @RegisterExtension
+  final ExecutorExtension executor = new ExecutorExtension();
+
   private PreciseLeakDetector detector;
 
   @BeforeEach
@@ -127,7 +132,7 @@ class PreciseLeakDetectorTest {
     third[5000] = null;
     third[9000] = null;
 
-    try (AutoCloseable ignore = GarbageCreator.forkCreateGarbage()) {
+    try (AutoCloseable ignore = GarbageCreator.forkCreateGarbage(executor)) {
       int i = 0;
       do {
         GarbageCreator.awaitReferenceProcessing();

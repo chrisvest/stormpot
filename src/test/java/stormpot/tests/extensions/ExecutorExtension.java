@@ -20,6 +20,7 @@ import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.Extension;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
+import java.io.Serial;
 import java.lang.management.LockInfo;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MonitorInfo;
@@ -32,12 +33,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -48,6 +51,31 @@ public class ExecutorExtension implements Extension, BeforeEachCallback, AfterEa
 
   public ExecutorService getExecutorService() {
     return executor;
+  }
+
+  public <T> Future<T> forkFuture(Callable<T> procedure) {
+    return executor.submit(procedure);
+  }
+
+  public Thread fork(Callable<?> procedure) {
+    return fork(asRunnable(procedure));
+  }
+
+  public Thread fork(Runnable procedure) {
+    Thread thread = threadFactory.newThread(procedure);
+    thread.setUncaughtExceptionHandler(new CatchingExceptionHandler());
+    thread.start();
+    return thread;
+  }
+
+  private static Runnable asRunnable(final Callable<?> procedure) {
+    return () -> {
+      try {
+        procedure.call();
+      } catch (Exception e) {
+        throw new WrappedException(e);
+      }
+    };
   }
 
   @Override
@@ -228,6 +256,32 @@ public class ExecutorExtension implements Extension, BeforeEachCallback, AfterEa
         }
       }
       System.err.println();
+    }
+  }
+
+  private static class WrappedException extends RuntimeException {
+    @Serial
+    private static final long serialVersionUID = 8268471823070464895L;
+
+    WrappedException(Throwable cause) {
+      super(cause);
+    }
+  }
+
+  public static final class CatchingExceptionHandler
+          extends AtomicReference<Throwable>
+          implements Thread.UncaughtExceptionHandler {
+
+    @Serial
+    private static final long serialVersionUID = 2170391393239672337L;
+
+    @Override
+    public void uncaughtException(Thread t, Throwable e) {
+      if (e instanceof WrappedException) {
+        set(e.getCause());
+      } else {
+        set(e);
+      }
     }
   }
 }

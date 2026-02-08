@@ -15,6 +15,8 @@
  */
 package testkits;
 
+import stormpot.tests.extensions.ExecutorExtension;
+
 import java.lang.invoke.VarHandle;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
@@ -38,7 +40,7 @@ public class GarbageCreator {
     exposer = collector + exposer;
   }
 
-  public static AutoCloseable forkCreateGarbage() {
+  public static AutoCloseable forkCreateGarbage(ExecutorExtension executor) {
     AtomicBoolean shutDown = new AtomicBoolean();
     Runnable task = () -> {
       try {
@@ -51,9 +53,7 @@ public class GarbageCreator {
       } catch (InterruptedException ignore) {
       }
     };
-    Thread thread = new Thread(task);
-    thread.setDaemon(true);
-    thread.start();
+    Thread thread = executor.fork(task);
     return () -> {
       thread.interrupt();
       thread.join();
