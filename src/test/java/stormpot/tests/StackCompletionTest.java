@@ -18,9 +18,11 @@ package stormpot.tests;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import stormpot.Completion;
 import stormpot.Timeout;
 import stormpot.internal.StackCompletion;
+import stormpot.tests.extensions.ExecutorExtension;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,12 +41,13 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static testkits.UnitKit.capture;
-import static testkits.UnitKit.fork;
-import static testkits.UnitKit.forkFuture;
 import static testkits.UnitKit.waitForThreadState;
 
 class StackCompletionTest {
   static final Timeout longTimeout = new Timeout(5, TimeUnit.MINUTES);
+
+  @RegisterExtension
+  final ExecutorExtension executor = new ExecutorExtension();
 
   protected Completion completion;
 
@@ -59,7 +62,7 @@ class StackCompletionTest {
 
   @Test
   void mustBlockThreadUntilCompletion() throws Exception {
-    Thread th = fork(() -> {
+    Thread th = executor.fork(() -> {
       assertTrue(completion.await(longTimeout));
       return null;
     });
@@ -86,7 +89,7 @@ class StackCompletionTest {
     CyclicBarrier barrier = new CyclicBarrier(10);
     List<Future<Object>> futures = new ArrayList<>();
     for (int i = 0; i < barrier.getParties(); i++) {
-      futures.add(forkFuture(() -> {
+      futures.add(executor.forkFuture(() -> {
         barrier.await();
         complete();
         return null;
@@ -110,7 +113,7 @@ class StackCompletionTest {
     CyclicBarrier barrier = new CyclicBarrier(10);
     List<Future<Object>> futures = new ArrayList<>();
     for (int i = 0; i < barrier.getParties(); i++) {
-      futures.add(forkFuture(() -> {
+      futures.add(executor.forkFuture(() -> {
         barrier.await();
         complete();
         return null;
@@ -211,7 +214,7 @@ class StackCompletionTest {
 
   @Test
   void managedBlockMustUnblockByCompletion() {
-    Thread thread = fork(() -> {
+    Thread thread = executor.fork(() -> {
       while (!completion.block()) {
         Thread.onSpinWait();
       }
@@ -224,7 +227,7 @@ class StackCompletionTest {
 
   @Test
   void managedBlockMustAllowSpuriousUnblock() throws Exception {
-    Thread thread = fork(() -> {
+    Thread thread = executor.fork(() -> {
       assertFalse(completion.block());
       return null;
     });
@@ -246,7 +249,7 @@ class StackCompletionTest {
     AtomicInteger countAwaits = new AtomicInteger();
 
     for (int i = 0; i < 2; i++) {
-      Thread thread = fork(() -> {
+      Thread thread = executor.fork(() -> {
         barrier.await();
         complete();
         return null;
@@ -256,7 +259,7 @@ class StackCompletionTest {
     }
 
     for (int i = 0; i < 2; i++) {
-      Thread thread = fork(() -> {
+      Thread thread = executor.fork(() -> {
         barrier.await();
         completion.subscribe(new MySubscriber(countCompletions::incrementAndGet));
         return null;
@@ -266,7 +269,7 @@ class StackCompletionTest {
     }
 
     for (int i = 0; i < 2; i++) {
-      Thread thread = fork(() -> {
+      Thread thread = executor.fork(() -> {
         barrier.await();
         completion.subscribe(new MySubscriber(countNoCompletions::incrementAndGet) {
           @Override
@@ -281,7 +284,7 @@ class StackCompletionTest {
     }
 
     for (int i = 0; i < 2; i++) {
-      Thread thread = fork(() -> {
+      Thread thread = executor.fork(() -> {
         barrier.await();
         completion.await(new Timeout(1, TimeUnit.MINUTES));
         countAwaits.incrementAndGet();

@@ -162,6 +162,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
     long timeoutLeft = timeoutNanos;
     long maxWaitQuantum = baseUnit == null ? 0 : baseUnit.convert(100, TimeUnit.MILLISECONDS);
     disregardPile.refill();
+    newAllocations.refill();
     while (size > 0) {
       if (timeoutLeft <= 0 && baseUnit != null) {
         // We timed out.
@@ -176,6 +177,7 @@ public final class InlineAllocationController<T extends Poolable> extends Alloca
       timeoutLeft = NanoClock.timeoutLeft(startNanos, timeoutNanos);
       if (slot == null) {
         disregardPile.refill();
+        newAllocations.refill();
         continue;
       }
       if (slot.isDead() || slot.live2dead()) {
