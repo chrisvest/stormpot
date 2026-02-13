@@ -78,7 +78,6 @@ import static testkits.ExpireKit.expire;
 import static testkits.UnitKit.$claim;
 import static testkits.UnitKit.$claimRelease;
 import static testkits.UnitKit.capture;
-import static testkits.UnitKit.forkFuture;
 import static testkits.UnitKit.spinwait;
 
 abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
@@ -367,7 +366,7 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     PoolTap<GenericPoolable> tap = taps.get(this);
 
     // Make the first object TLR claimed in another thread.
-    Future<?> firstThread = forkFuture(() -> {
+    Future<?> firstThread = executor.forkFuture(() -> {
       tap.claim(longTimeout).release();
       GenericPoolable obj = tap.claim(longTimeout);
       firstThreadReady.countDown();
@@ -379,7 +378,7 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     firstThreadReady.await();
 
     // Move the now TLR claimed object to the front of the queue.
-    forkFuture($claimRelease(tap, longTimeout)).get();
+    executor.forkFuture($claimRelease(tap, longTimeout)).get();
 
     // Now this claim should move the first object into the disregard pile.
     GenericPoolable obj = tap.claim(longTimeout);
@@ -675,7 +674,7 @@ abstract class ThreadBasedPoolTest extends AllocatorBasedPoolTest {
     hasExpired.set(true);
     AtomicReference<GenericPoolable> ref = new AtomicReference<>();
     try {
-      forkFuture(capture($claim(tap, shortTimeout), ref)).get();
+      executor.forkFuture(capture($claim(tap, shortTimeout), ref)).get();
     } catch (ExecutionException ignore) {
       // This is okay. We just got a failed reallocation
     }

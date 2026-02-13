@@ -21,16 +21,14 @@ import stormpot.PoolException;
 import stormpot.PoolTap;
 import stormpot.Poolable;
 import stormpot.Timeout;
+import stormpot.tests.extensions.ExecutorExtension;
 
-import java.io.Serial;
 import java.lang.Thread.State;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -39,63 +37,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class UnitKit {
-  private static final ExecutorService executor =
-      Executors.newCachedThreadPool();
-  
-  public static Thread fork(Callable<?> procedure) {
-    Thread thread = new Thread(asRunnable(procedure));
-    thread.setUncaughtExceptionHandler(new CatchingExceptionHandler());
-    thread.start();
-    return thread;
-  }
-
-  private static Runnable asRunnable(final Callable<?> procedure) {
-    return () -> {
-      try {
-        procedure.call();
-      } catch (Exception e) {
-        throw new WrappedException(e);
-      }
-    };
-  }
-
-  private static class WrappedException extends RuntimeException {
-    @Serial
-    private static final long serialVersionUID = 8268471823070464895L;
-
-    WrappedException(Throwable cause) {
-      super(cause);
-    }
-  }
-
-  private static class CatchingExceptionHandler
-      extends AtomicReference<Throwable>
-      implements Thread.UncaughtExceptionHandler {
-
-    @Serial
-    private static final long serialVersionUID = 2170391393239672337L;
-
-    @Override
-    public void uncaughtException(Thread t, Throwable e) {
-      if (e instanceof WrappedException) {
-        set(e.getCause());
-      } else {
-        set(e);
-      }
-    }
-  }
-
-  public static AtomicReference<Throwable> capture(Thread thread) {
-    Thread.UncaughtExceptionHandler handler = thread.getUncaughtExceptionHandler();
-    if (handler instanceof CatchingExceptionHandler catcher) {
-      return catcher;
-    }
-    return null;
-  }
-  
-  public static <T> Future<T> forkFuture(Callable<T> procedure) {
-    return executor.submit(procedure);
-  }
 
   public static <T extends Poolable> Callable<T> $claim(
           final PoolTap<T> pool, final Timeout timeout) {
@@ -118,6 +59,14 @@ public class UnitKit {
         throw new PoolException("Claim interrupted", e);
       }
     };
+  }
+
+  public static AtomicReference<Throwable> capture(Thread thread) {
+    Thread.UncaughtExceptionHandler handler = thread.getUncaughtExceptionHandler();
+    if (handler instanceof ExecutorExtension.CatchingExceptionHandler catcher) {
+      return catcher;
+    }
+    return null;
   }
   
   public static <T> Callable<T> capture(
@@ -221,7 +170,7 @@ public class UnitKit {
       thread.join();
       Thread.UncaughtExceptionHandler handler =
           thread.getUncaughtExceptionHandler();
-      if (handler instanceof CatchingExceptionHandler catchingHandler) {
+      if (handler instanceof ExecutorExtension.CatchingExceptionHandler catchingHandler) {
         Throwable th = catchingHandler.get();
         if (th != null) {
           throw new ExecutionException(th);
