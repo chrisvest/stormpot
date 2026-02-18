@@ -39,17 +39,18 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.util.Arrays.asList;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static testkits.AlloKit.$countDown;
@@ -289,10 +290,19 @@ abstract class PoolIT {
 
   @Test
   void mustGraduallyReduceAggressivenessInRepairingFailingAllocator() throws Exception {
-    AtomicLong counter = new AtomicLong();
-    allocator = allocator(alloc($new, (slot, obj, allocator) -> {
-      counter.getAndIncrement();
-      throw new RuntimeException("boom");
+    ConcurrentLinkedQueue<Long> delayTimes = new ConcurrentLinkedQueue<>();
+    allocator = allocator(alloc($new, new Action() {
+      long prevCallTimestamp = 0;
+      @Override
+      public GenericPoolable apply(Slot slot, GenericPoolable obj, Allocator<GenericPoolable> allocator) {
+        long now = System.nanoTime();
+        long elapsed = now - prevCallTimestamp;
+        if (prevCallTimestamp != 0) {
+          delayTimes.offer(elapsed);
+        }
+        prevCallTimestamp = now;
+        throw new RuntimeException("boom");
+      }
     }));
     builder.setAllocator(allocator);
     createPool();
@@ -300,26 +310,30 @@ abstract class PoolIT {
     obj.expire();
     obj.release();
     assertThrows(PoolException.class, () -> pool.claim(longTimeout).release());
-    long startCount = counter.get();
-    long startTime = System.nanoTime();
     ArrayList<Long> elapsedTimes = new ArrayList<>();
     do {
-      long nextCount;
-      while ((nextCount = counter.get()) == startCount) {
-        Thread.yield();
-      }
-      long nextTime = System.nanoTime();
-      long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(nextTime - startTime);
-      elapsedTimes.add(elapsedMillis);
-      startTime = nextTime;
-      startCount = nextCount;
-    } while (elapsedTimes.size() < 6);
+      Thread.yield();
+    } while (delayTimes.size() < 10);
+    for (int i = 0; i < 10; i++) {
+      Long measuredDelayNanos = delayTimes.poll();
+      assertNotNull(measuredDelayNanos);
+      elapsedTimes.add(TimeUnit.NANOSECONDS.toMillis(measuredDelayNanos));
+    }
 
-    assertThat(elapsedTimes.get(0)).isGreaterThanOrEqualTo(0);
-    assertThat(elapsedTimes.get(1)).isGreaterThanOrEqualTo(0); // "consecutive" starts here.
-    assertThat(elapsedTimes.get(2)).isGreaterThanOrEqualTo(50);
-    assertThat(elapsedTimes.get(3)).isGreaterThanOrEqualTo(100);
-    assertThat(elapsedTimes.get(4)).isGreaterThanOrEqualTo(150);
-    assertThat(elapsedTimes.get(5)).isGreaterThanOrEqualTo(200);
+    int matchingExpectedDelays = 0;
+    matchingExpectedDelays += (elapsedTimes.get(0) >= 0) ? 1 : 0; // Normal replenishment.
+    matchingExpectedDelays += (elapsedTimes.get(1) >= 0) ? 1 : 0; // Attempt to reallocate the failed slot.
+    matchingExpectedDelays += (elapsedTimes.get(2) >= 20) ? 1 : 0; // Gradual back-off starts here.
+    matchingExpectedDelays += (elapsedTimes.get(3) >= 40) ? 1 : 0;
+    matchingExpectedDelays += (elapsedTimes.get(4) >= 60) ? 1 : 0;
+    matchingExpectedDelays += (elapsedTimes.get(5) >= 80) ? 1 : 0;
+    matchingExpectedDelays += (elapsedTimes.get(6) >= 100) ? 1 : 0;
+    matchingExpectedDelays += (elapsedTimes.get(7) >= 120) ? 1 : 0;
+    matchingExpectedDelays += (elapsedTimes.get(8) >= 140) ? 1 : 0;
+    matchingExpectedDelays += (elapsedTimes.get(9) >= 160) ? 1 : 0;
+    // Tolerate 3 missed delay times.
+    assertThat(matchingExpectedDelays)
+            .describedAs(elapsedTimes::toString)
+            .isGreaterThanOrEqualTo(elapsedTimes.size() - 3);
   }
 }
