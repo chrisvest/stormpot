@@ -164,7 +164,7 @@
         -->
         <groupId>org.pitest</groupId>
         <artifactId>pitest-maven</artifactId>
-        <version>1.22.0</version>
+        <version>1.22.1</version>
         <configuration>
           <targetTests>
             <param>stormpot.*</param>
@@ -359,13 +359,13 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
-      <version>6.0.2</version>
+      <version>6.0.3</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-params</artifactId>
-      <version>6.0.2</version>
+      <version>6.0.3</version>
       <scope>test</scope>
     </dependency>
     <dependency>
