@@ -95,8 +95,6 @@ import static testkits.ExpireKit.CountingExpiration;
 import static testkits.ExpireKit.expire;
 import static testkits.UnitKit.$delayedReleases;
 import static testkits.UnitKit.claimRelease;
-import static testkits.UnitKit.fork;
-import static testkits.UnitKit.forkFuture;
 import static testkits.UnitKit.join;
 import static testkits.UnitKit.spinwait;
 import static testkits.UnitKit.waitForThreadState;
@@ -996,7 +994,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     }
     lock.lock(); // prevent new allocations
     try {
-      Thread thread = fork($delayedReleases(10, TimeUnit.MILLISECONDS, objs));
+      Thread thread = executor.fork($delayedReleases(10, TimeUnit.MILLISECONDS, objs));
       try {
         // must return before test times out:
         GenericPoolable obj = tap.claim(new Timeout(50, TimeUnit.MILLISECONDS));
@@ -1108,7 +1106,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     GenericPoolable initial = tap.claim(longTimeout);
     initial.release(); // Places slot at end of queue
 
-    forkFuture(() -> {
+    executor.forkFuture(() -> {
       GenericPoolable obj = tap.claim(longTimeout);
       obj.expire();
       obj.release();
@@ -1642,14 +1640,14 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     allocator.clearLists();
 
     // Wait for phantom refs to be processed:
-    try (AutoCloseable ignore = GarbageCreator.forkCreateGarbage()) {
+    try (AutoCloseable ignore = GarbageCreator.forkCreateGarbage(executor)) {
       GarbageCreator.awaitReferenceProcessing();
     }
 
     // null out the pool because we can no longer shut it down.
     pool = null;
 
-    try (var ignore = GarbageCreator.forkCreateGarbage()) {
+    try (var ignore = GarbageCreator.forkCreateGarbage(executor)) {
       for (int i = 0; i < 1000; i++) {
         if (managedPool.getLeakedObjectsCount() >= 1) {
           break;
@@ -1677,14 +1675,14 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     allocator.clearLists();
 
     // Wait for phantom refs to be processed:
-    try (AutoCloseable ignore = GarbageCreator.forkCreateGarbage()) {
+    try (AutoCloseable ignore = GarbageCreator.forkCreateGarbage(executor)) {
       GarbageCreator.awaitReferenceProcessing();
     }
 
     // null out the pool because we can no longer shut it down.
     pool = null;
 
-    try (var ignore = GarbageCreator.forkCreateGarbage()) {
+    try (var ignore = GarbageCreator.forkCreateGarbage(executor)) {
       for (int i = 0; i < 10000; i++) {
         if (managedPool.getLeakedObjectsCount() >= 1) {
           break;
@@ -1925,7 +1923,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     createOneObjectPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
     GenericPoolable obj = pool.claim(longTimeout);
-    Thread thread = fork(() -> {
+    Thread thread = executor.fork(() -> {
       tap.claim(longTimeout).release();
       return null;
     });
@@ -1941,7 +1939,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     createOneObjectPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
     GenericPoolable obj = pool.claim(longTimeout);
-    Thread thread = fork(() -> tap.apply(longTimeout, identity()));
+    Thread thread = executor.fork(() -> tap.apply(longTimeout, identity()));
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     obj.expire();
     obj.release();
@@ -1954,7 +1952,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     createOneObjectPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
     GenericPoolable obj = pool.claim(longTimeout);
-    Thread thread = fork(() -> tap.supply(longTimeout, nullConsumer));
+    Thread thread = executor.fork(() -> tap.supply(longTimeout, nullConsumer));
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     obj.expire();
     obj.release();
@@ -1968,7 +1966,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     createOneObjectPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
     GenericPoolable obj = pool.claim(longTimeout);
-    Thread thread = fork(() -> {
+    Thread thread = executor.fork(() -> {
       tap.claim(longTimeout).release();
       return null;
     });
@@ -1985,7 +1983,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     createOneObjectPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
     GenericPoolable obj = pool.claim(longTimeout);
-    Thread thread = fork(() -> tap.apply(longTimeout, identity()));
+    Thread thread = executor.fork(() -> tap.apply(longTimeout, identity()));
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     obj.expire();
     obj.release();
@@ -1999,7 +1997,7 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     createOneObjectPool();
     PoolTap<GenericPoolable> tap = taps.get(this);
     GenericPoolable obj = pool.claim(longTimeout);
-    Thread thread = fork(() -> tap.supply(longTimeout, nullConsumer));
+    Thread thread = executor.fork(() -> tap.supply(longTimeout, nullConsumer));
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     obj.expire();
     obj.release();
@@ -2032,8 +2030,8 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     Completion shutdown = pool.shutdown();
     a.release();
     shutdown.await(longTimeout);
-    assertEquals(allocator.countAllocations(), 1);
-    assertEquals(allocator.countDeallocations(), 1);
+    assertEquals(1, allocator.countAllocations());
+    assertEquals(1, allocator.countDeallocations());
     List<GenericPoolable> deallocations = allocator.getDeallocations();
     synchronized (deallocations) {
       assertThat(deallocations).contains(a);

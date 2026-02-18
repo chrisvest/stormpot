@@ -133,6 +133,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     live.offer(poisonPill);
   }
 
+  @SuppressWarnings("unchecked")
   private void replenishPool() throws InterruptedException {
     long deadPollTimeout = computeTaskPollTimeout();
     Task task = deadPollTimeout == 0 ? tasks.poll() : tasks.poll(deadPollTimeout, MILLISECONDS);
@@ -213,7 +214,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
       taskPollTimeout = (didAnythingLastIteration ? 0 : 10);
       // Unless we have a lot of allocation failures.
       // In that case, make the timeout longer to avoid wasting CPU.
-      taskPollTimeout += Math.min(consecutiveAllocationFailures,
+      taskPollTimeout += Math.min(Math.max(consecutiveAllocationFailures - 2, 0) * 20,
           defaultTaskPollTimeout - taskPollTimeout);
     }
     didAnythingLastIteration = false;
@@ -306,6 +307,7 @@ public final class BAllocThread<T extends Poolable> implements Runnable {
     }
   }
 
+  @SuppressWarnings("unchecked")
   private void shutPoolDown() {
     while (size > 0 || inFlightConcurrentOperations > 0) {
       BSlot<T> slot;

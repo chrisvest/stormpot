@@ -15,7 +15,9 @@
  */
 package stormpot.tests.blackbox;
 
+import org.junit.jupiter.api.extension.RegisterExtension;
 import stormpot.tests.MySubscriber;
+import stormpot.tests.extensions.ExecutorExtension;
 import stormpot.tests.extensions.FailurePrinterExtension;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -64,8 +66,6 @@ import static testkits.UnitKit.$claim;
 import static testkits.UnitKit.$claimRelease;
 import static testkits.UnitKit.$interruptUponState;
 import static testkits.UnitKit.capture;
-import static testkits.UnitKit.fork;
-import static testkits.UnitKit.forkFuture;
 import static testkits.UnitKit.join;
 import static testkits.UnitKit.spinwait;
 import static testkits.UnitKit.waitForThreadState;
@@ -79,6 +79,9 @@ abstract class AbstractPoolTest<T extends Poolable> {
   static final Timeout mediumTimeout = new Timeout(10, MILLISECONDS);
   static final Timeout shortTimeout = new Timeout(1, MILLISECONDS);
   static final Timeout zeroTimeout = new Timeout(0, MILLISECONDS);
+
+  @RegisterExtension
+  final ExecutorExtension executor = new ExecutorExtension();
 
   final Expiration<T> oneMsTTL = Expiration.after(1, MILLISECONDS);
   final Expiration<T> fiveMsTTL = Expiration.after(5, MILLISECONDS);
@@ -199,7 +202,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     T obj = tap.claim(longTimeout);
     assertNotNull(obj, "Did not deplete pool in time");
     AtomicReference<T> ref = new AtomicReference<>();
-    Thread thread = fork(capture($claim(tap, longTimeout), ref));
+    Thread thread = executor.fork(capture($claim(tap, longTimeout), ref));
     try {
       waitForThreadState(thread, Thread.State.TIMED_WAITING);
     } finally {
@@ -225,7 +228,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     Poolable obj = tap.claim(longTimeout);
     assertNotNull(obj, "Did not deplete pool in time");
     AtomicReference<T> ref = new AtomicReference<>();
-    Thread thread = fork(capture($claim(tap, longTimeout), ref));
+    Thread thread = executor.fork(capture($claim(tap, longTimeout), ref));
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     obj.release();
     join(thread);
@@ -322,7 +325,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     PoolTap<T> tap = taps.get(this);
     Poolable obj = tap.claim(longTimeout);
     Completion completion = pool.shutdown();
-    Thread thread = fork($await(completion, longTimeout));
+    Thread thread = executor.fork($await(completion, longTimeout));
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     obj.release();
     join(thread);
@@ -361,7 +364,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     AtomicBoolean result = new AtomicBoolean(false);
     Completion completion = pool.shutdown();
     Thread thread =
-        fork($await(completion, longTimeout, result));
+        executor.fork($await(completion, longTimeout, result));
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     obj.release();
     join(thread);
@@ -406,7 +409,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     PoolTap<T> tap = taps.get(this);
     AtomicReference<Object> caught = new AtomicReference<>();
     Poolable obj = tap.claim(longTimeout);
-    Thread thread = fork($catchFrom(() -> {
+    Thread thread = executor.fork($catchFrom(() -> {
       caught.set(tap.claim(longTimeout));
       return null;
     }, caught));
@@ -473,7 +476,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     T obj = pool.claim(longTimeout);
     assertNotNull(obj, "Did not deplete pool in time");
     Completion completion = pool.shutdown();
-    forkFuture($interruptUponState(
+    executor.forkFuture($interruptUponState(
         Thread.currentThread(), Thread.State.TIMED_WAITING));
     try {
       assertThrows(InterruptedException.class, () -> completion.await(longTimeout));
@@ -490,7 +493,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     assertNotNull(obj, "Did not deplete pool in time");
     Completion completion = pool.shutdown();
     Thread.interrupted(); // Clear interrupted flag
-    forkFuture($interruptUponState(
+    executor.forkFuture($interruptUponState(
         Thread.currentThread(), Thread.State.WAITING));
     try {
       try {
@@ -574,7 +577,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     createOneObjectPool();
     PoolTap<T> tap = taps.get(this);
     // Ensure that the object is fully present in the pool.
-    join(fork($claimRelease(tap, longTimeout)));
+    join(executor.fork($claimRelease(tap, longTimeout)));
     // Then claim while being interrupted.
     Thread.currentThread().interrupt();
     tap.claim(longTimeout).release();
@@ -604,7 +607,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     createOneObjectPool();
     PoolTap<T> tap = taps.get(this);
     CountDownLatch claimLatch = new CountDownLatch(1);
-    Thread thread = fork(() -> {
+    Thread thread = executor.fork(() -> {
       T obj = tap.claim(longTimeout);
       claimLatch.countDown();
       try {
@@ -644,7 +647,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     Thread.interrupted(); // Clear interrupted flag.
     T a = tap.claim(longTimeout);
     assertNotNull(a, "Did not deplete pool in time");
-    forkFuture($interruptUponState(
+    executor.forkFuture($interruptUponState(
         Thread.currentThread(), Thread.State.TIMED_WAITING));
     try {
       assertThrows(InterruptedException.class, () -> tap.claim(longTimeout));
@@ -665,7 +668,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     PoolTap<T> tap = taps.get(this);
     T a = tap.claim(longTimeout);
     assertNotNull(a, "Did not deplete pool in time");
-    forkFuture($interruptUponState(
+    executor.forkFuture($interruptUponState(
         Thread.currentThread(), Thread.State.TIMED_WAITING));
     try {
       assertThrows(InterruptedException.class, () -> tap.claim(longTimeout));
@@ -804,7 +807,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     obj.release(); // item now biased to our thread
     // claiming in a different thread should give us the same object.
     AtomicReference<T> ref = new AtomicReference<>();
-    join(forkFuture(capture($claim(tap, longTimeout), ref)));
+    join(executor.forkFuture(capture($claim(tap, longTimeout), ref)));
     try {
       assertThat(ref.get()).isSameAs(obj);
     } finally {
@@ -831,7 +834,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     T obj = tap.claim(longTimeout); // this is now our biased claim
     AtomicReference<T> ref = new AtomicReference<>();
     // the biased claim will be upgraded to an ordinary claim:
-    join(forkFuture(capture($claim(tap, zeroTimeout), ref)));
+    join(executor.forkFuture(capture($claim(tap, zeroTimeout), ref)));
     try {
       assertThat(ref.get()).isNull();
     } finally {
@@ -915,7 +918,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
   void mustNotThrowWhenReleasingObjectClaimedByAnotherThread(Taps taps) throws Exception {
     createOneObjectPool();
     PoolTap<T> tap = taps.get(this);
-    T obj = forkFuture($claim(tap, longTimeout)).get();
+    T obj = executor.forkFuture($claim(tap, longTimeout)).get();
     obj.release();
   }
 
@@ -1137,8 +1140,8 @@ abstract class AbstractPoolTest<T extends Poolable> {
     PoolTap<T> tap = taps.get(this);
     tap.apply(longTimeout, identity());
     tap.apply(longTimeout, identity());
-    fork(() -> tap.apply(longTimeout, identity())).join();
-    fork(() -> tap.apply(longTimeout, identity())).join();
+    executor.fork(() -> tap.apply(longTimeout, identity())).join();
+    executor.fork(() -> tap.apply(longTimeout, identity())).join();
     tap.apply(longTimeout, identity());
     tap.apply(longTimeout, identity());
   }
@@ -1150,8 +1153,8 @@ abstract class AbstractPoolTest<T extends Poolable> {
     PoolTap<T> tap = taps.get(this);
     tap.supply(longTimeout, nullConsumer);
     tap.supply(longTimeout, nullConsumer);
-    fork(() -> tap.supply(longTimeout, nullConsumer)).join();
-    fork(() -> tap.supply(longTimeout, nullConsumer)).join();
+    executor.fork(() -> tap.supply(longTimeout, nullConsumer)).join();
+    executor.fork(() -> tap.supply(longTimeout, nullConsumer)).join();
     tap.supply(longTimeout, nullConsumer);
     tap.supply(longTimeout, nullConsumer);
   }
@@ -1167,8 +1170,8 @@ abstract class AbstractPoolTest<T extends Poolable> {
 
     assertThrows(ExpectedException.class, () -> tap.apply(longTimeout, thrower));
     assertThrows(ExpectedException.class, () -> tap.apply(longTimeout, thrower));
-    fork(() -> assertThrows(ExpectedException.class, () -> tap.apply(longTimeout, thrower))).join();
-    fork(() -> assertThrows(ExpectedException.class, () -> tap.apply(longTimeout, thrower))).join();
+    executor.fork(() -> assertThrows(ExpectedException.class, () -> tap.apply(longTimeout, thrower))).join();
+    executor.fork(() -> assertThrows(ExpectedException.class, () -> tap.apply(longTimeout, thrower))).join();
     assertThrows(ExpectedException.class, () -> tap.apply(longTimeout, thrower));
     assertThrows(ExpectedException.class, () -> tap.apply(longTimeout, thrower));
   }
@@ -1184,8 +1187,8 @@ abstract class AbstractPoolTest<T extends Poolable> {
 
     assertThrows(ExpectedException.class, () -> tap.supply(longTimeout, thrower));
     assertThrows(ExpectedException.class, () -> tap.supply(longTimeout, thrower));
-    fork(() -> assertThrows(ExpectedException.class, () -> tap.supply(longTimeout, thrower))).join();
-    fork(() -> assertThrows(ExpectedException.class, () -> tap.supply(longTimeout, thrower))).join();
+    executor.fork(() -> assertThrows(ExpectedException.class, () -> tap.supply(longTimeout, thrower))).join();
+    executor.fork(() -> assertThrows(ExpectedException.class, () -> tap.supply(longTimeout, thrower))).join();
     assertThrows(ExpectedException.class, () -> tap.supply(longTimeout, thrower));
     assertThrows(ExpectedException.class, () -> tap.supply(longTimeout, thrower));
   }
@@ -1214,7 +1217,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     createOneObjectPool();
     PoolTap<T> tap = taps.get(this);
     T obj = tap.claim(longTimeout);
-    Thread thread = fork(() -> tap.apply(longTimeout, identity()));
+    Thread thread = executor.fork(() -> tap.apply(longTimeout, identity()));
     AtomicReference<Throwable> exception = capture(thread);
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     Completion shutdown = pool.shutdown();
@@ -1231,7 +1234,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     createOneObjectPool();
     PoolTap<T> tap = taps.get(this);
     T obj = tap.claim(longTimeout);
-    Thread thread = fork(() -> tap.supply(longTimeout, nullConsumer));
+    Thread thread = executor.fork(() -> tap.supply(longTimeout, nullConsumer));
     AtomicReference<Throwable> exception = capture(thread);
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     Completion shutdown = pool.shutdown();
@@ -1278,7 +1281,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     createOneObjectPool();
     PoolTap<T> tap = taps.get(this);
     T obj = tap.claim(longTimeout);
-    Thread thread = fork(() -> tap.apply(longTimeout, identity()));
+    Thread thread = executor.fork(() -> tap.apply(longTimeout, identity()));
     AtomicReference<Throwable> exception = capture(thread);
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     thread.interrupt();
@@ -1294,7 +1297,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     createOneObjectPool();
     PoolTap<T> tap = taps.get(this);
     T obj = tap.claim(longTimeout);
-    Thread thread = fork(() -> tap.supply(longTimeout, nullConsumer));
+    Thread thread = executor.fork(() -> tap.supply(longTimeout, nullConsumer));
     AtomicReference<Throwable> exception = capture(thread);
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     thread.interrupt();
@@ -1310,7 +1313,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     createOneObjectPool();
     PoolTap<T> tap = taps.get(this);
     T obj = pool.claim(longTimeout);
-    Thread thread = fork(() -> {
+    Thread thread = executor.fork(() -> {
       tap.claim(longTimeout).release();
       return null;
     });
@@ -1325,7 +1328,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     createOneObjectPool();
     PoolTap<T> tap = taps.get(this);
     T obj = pool.claim(longTimeout);
-    Thread thread = fork(() -> tap.apply(longTimeout, identity()));
+    Thread thread = executor.fork(() -> tap.apply(longTimeout, identity()));
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     obj.release();
     join(thread);
@@ -1337,7 +1340,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
     createOneObjectPool();
     PoolTap<T> tap = taps.get(this);
     T obj = pool.claim(longTimeout);
-    Thread thread = fork(() -> tap.supply(longTimeout, nullConsumer));
+    Thread thread = executor.fork(() -> tap.supply(longTimeout, nullConsumer));
     waitForThreadState(thread, Thread.State.TIMED_WAITING);
     obj.release();
     join(thread);

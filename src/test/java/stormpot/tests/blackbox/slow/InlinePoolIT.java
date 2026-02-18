@@ -15,6 +15,7 @@
  */
 package stormpot.tests.blackbox.slow;
 
+import org.junit.jupiter.api.Disabled;
 import testkits.AlloKit;
 import testkits.GenericPoolable;
 import stormpot.Pool;
@@ -24,5 +25,10 @@ class InlinePoolIT extends PoolIT {
   @Override
   protected PoolBuilder<GenericPoolable> createPoolBuilder(AlloKit.CountingAllocator allocator) {
     return Pool.fromInline(allocator);
+  }
+
+  @Disabled("This test relies on the presence of a background thread.")
+  @Override
+  void mustGraduallyReduceAggressivenessInRepairingFailingAllocator() {
   }
 }
