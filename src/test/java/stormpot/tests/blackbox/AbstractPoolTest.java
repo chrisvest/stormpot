@@ -1366,6 +1366,7 @@ abstract class AbstractPoolTest<T extends Poolable> {
 
   @Test
   void threadLocalAndThreadSafeTapsCacheIndependentObjects() throws Exception {
+    noBackgroundExpirationChecking();
     createPoolOfSize(2);
     PoolTap<T> tap1 = pool.getSingleThreadedTap();
     PoolTap<T> tap2 = pool.getThreadSafeTap();
