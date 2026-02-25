@@ -22,7 +22,9 @@ package stormpot.internal;
  * @param setExpiration {@code true} if the expiration can be changed, otherwise {@code false}.
  * @param setThreadFactory {@code true} if the thread factory can be changed, otherwise {@code false}.
  * @param setBackgroundExpiration {@code true} if background expiration checking can be enabled or disabled,
- *                                            otherwise {@code false}.
+ * otherwise {@code false}.
+ * @param setMaxConcurrentAllocations {@code true} if concurrent background allocation is supported,
+ * otherwise {@code false}.
  */
 public record PoolBuilderPermissions(
         boolean setAllocator,
