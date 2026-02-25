@@ -1664,9 +1664,8 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
 
   @Test
   void managedPoolMustCountLeakedObjectsFromReallocation() throws Exception {
-    builder.setPreciseLeakDetectionEnabled(true)
-            .setBackgroundExpirationEnabled(false)
-            .setSize(1);
+    noBackgroundExpirationChecking();
+    builder.setPreciseLeakDetectionEnabled(true).setSize(1);
     ManagedPool managedPool = createPool().getManagedPool();
     ReferenceQueue<GenericPoolable> refQueue = new ReferenceQueue<>();
 
