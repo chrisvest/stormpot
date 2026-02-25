@@ -42,6 +42,8 @@ import testkits.SomeRandomException;
 import testkits.SomeRandomThrowable;
 
 import java.lang.invoke.VarHandle;
+import java.lang.ref.PhantomReference;
+import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -65,6 +67,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -1662,12 +1665,9 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
   void managedPoolMustCountLeakedObjectsFromReallocation() throws Exception {
     builder.setPreciseLeakDetectionEnabled(true).setSize(1);
     ManagedPool managedPool = createPool().getManagedPool();
-    GenericPoolable obj = pool.claim(longTimeout);
-    obj.expire(); // Cause reallocation.
-    obj.release();
-    obj = null; // Clear 'obj' reference because it references the BSlot which will be reallocated and leaked.
-    VarHandle.fullFence();
-    claimAndLeak(200); // leak!
+    ReferenceQueue<GenericPoolable> refQueue = new ReferenceQueue<>();
+    PhantomReference<GenericPoolable> ref = claimAndExpire(refQueue);
+    claimAndLeak(200); // Leak!
     pool.setTargetSize(2); // Increase size so we can claim something else.
     // Clear any thread-local reference to the leaked object:
     pool.claim(longTimeout).release();
@@ -1682,8 +1682,11 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     // null out the pool because we can no longer shut it down.
     pool = null;
 
+    // Ensure the first claimed object is gone. Important because it holds a reference to the same BSlot.
+    assertSame(ref, refQueue.remove());
+
     try (var ignore = GarbageCreator.forkCreateGarbage(executor)) {
-      for (int i = 0; i < 10000; i++) {
+      for (int i = 0; i < 1000; i++) {
         if (managedPool.getLeakedObjectsCount() >= 1) {
           break;
         }
@@ -1694,11 +1697,23 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
     assertThat(managedPool.getLeakedObjectsCount()).isOne();
   }
 
+  private PhantomReference<GenericPoolable> claimAndExpire(ReferenceQueue<GenericPoolable> refQueue)
+          throws InterruptedException {
+    GenericPoolable obj = pool.claim(longTimeout);
+    PhantomReference<GenericPoolable> ref = new PhantomReference<>(obj, refQueue);
+    obj.expire(); // Cause reallocation.
+    obj.release();
+    return ref;
+  }
+
   private void claimAndLeak(int callDepthRemaining) throws InterruptedException {
     if (ThreadLocalRandom.current().nextInt(50) < callDepthRemaining) {
       claimAndLeak(callDepthRemaining - 1);
     } else {
-      pool.claim(longTimeout);
+      GenericPoolable obj = pool.claim(longTimeout);
+      assertNotNull(obj);
+      obj = null; // Clear reference.
+      VarHandle.fullFence();
     }
   }
 
