@@ -175,7 +175,7 @@ public abstract class LoggingAllocator<T extends Poolable> implements Reallocato
    * <p>
    * Subclasses must implement this method and delegate to their preferred logging framework.
    *
-   * @param message   The log message to record, never {@code null.
+   * @param message   The log message to record, never {@code null}.
    * @param throwable The throwable associated with the log message, possibly {@code null}.
    */
   protected abstract void logMessage(String message, Throwable throwable);
