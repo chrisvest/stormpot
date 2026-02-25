@@ -1,0 +1,50 @@
+name: Snapshot Release
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.http.retryhandler.count=5 -Dmaven.wagon.httpconnectionManager.ttlSeconds=240 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+
+jobs:
+  snapshot-release:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: snapshot-release-main
+      cancel-in-progress: true
+
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v4.2.0
+
+      - name: Configure Java
+        uses: actions/setup-java@v4.4.0
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+          cache: 'maven'
+          server-id: 'central'
+          server-username: CENTRAL_USERNAME
+          server-password: CENTRAL_TOKEN
+
+      - name: Check project version is a snapshot
+        id: project_version
+        run: |
+          VERSION=$(./mvnw -q -DforceStdout help:evaluate -Dexpression=project.version)
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+          if [[ "${VERSION}" == *-SNAPSHOT ]]; then
+            echo "is_snapshot=true" >> "$GITHUB_OUTPUT"
+            echo "Snapshot version detected: ${VERSION}"
+          else
+            echo "is_snapshot=false" >> "$GITHUB_OUTPUT"
+            echo "Version ${VERSION} is not a snapshot. Skipping snapshot publish."
+          fi
+
+      - name: Publish snapshot to Central Portal
+        if: steps.project_version.outputs.is_snapshot == 'true'
+        run: ./mvnw -B -DskipTests deploy
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_TOKEN: ${{ secrets.CENTRAL_TOKEN }}
