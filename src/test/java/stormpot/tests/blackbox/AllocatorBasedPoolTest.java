@@ -51,6 +51,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -1663,11 +1664,23 @@ abstract class AllocatorBasedPoolTest extends AbstractPoolTest<GenericPoolable> 
 
   @Test
   void managedPoolMustCountLeakedObjectsFromReallocation() throws Exception {
-    builder.setPreciseLeakDetectionEnabled(true).setSize(1);
+    builder.setPreciseLeakDetectionEnabled(true)
+            .setBackgroundExpirationEnabled(false)
+            .setSize(1);
     ManagedPool managedPool = createPool().getManagedPool();
     ReferenceQueue<GenericPoolable> refQueue = new ReferenceQueue<>();
-    PhantomReference<GenericPoolable> ref = claimAndExpire(refQueue);
-    claimAndLeak(200); // Leak!
+
+    // Do claimAndExpire and claimAndLeak in separate threads, to avoid TLR slot reuse.
+    var claimAndExpireTask = new FutureTask<>(() -> claimAndExpire(refQueue));
+    executor.fork(claimAndExpireTask).join();
+    PhantomReference<GenericPoolable> ref = claimAndExpireTask.get();
+    var claimAndLeakTask = new FutureTask<>(() -> {
+      claimAndLeak(200); // Leak!
+      return null;
+    });
+    executor.fork(claimAndLeakTask).join();
+    claimAndLeakTask.get(); // Check for exceptions.
+
     pool.setTargetSize(2); // Increase size so we can claim something else.
     // Clear any thread-local reference to the leaked object:
     pool.claim(longTimeout).release();
