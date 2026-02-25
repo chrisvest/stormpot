@@ -2,16 +2,11 @@
 
 This is not really documentation, but rather an "internal" document detailing the release process, so that I don't forget any steps.
 
-* [ ] Create a card tracking the release, based on this checklist.
-* [ ] Fix all the issues
-* [ ] Update & review the javadoc & documentation
-* [ ] Update Readme
-* [ ] Make sure `gpg` command is GPG version 2
-* [ ] Make sure `settings.xml` has an `ossrh` server with correct username and password
-* [ ] Run `mvn clean deploy -P release` on _SNAPSHOT_ version to test process
-* [ ] Change `pom.xml` to the desired version
-* [ ] Run `mvn clean deploy -P release`
-* [ ] When successful, commit changes, tag commit, push --tags
-* [ ] Run `./docupdate.sh` and push updated web site
-* [ ] Announce on mailing list & write blog post
-* [ ] Mark old branch as protected
+* [ ] Verify that the snapshots publish correctly.
+* [ ] Run the release workflow.
+* [ ] Check out the released tag.
+* [ ] Run `./docupdate.sh` and push updated web site.
+* [ ] Publish the release on GitHub.
+* [ ] Update `pom.xml` to the snapshot of the next version.
+* [ ] Announce on mailing list & write blog post.
+* [ ] Mark old branch as protected.
