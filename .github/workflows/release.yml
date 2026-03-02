@@ -28,7 +28,7 @@ jobs:
           git config user.name "Release action on behalf of ${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
 
-      - name: Verifying build
+      - name: Running release
         run: ./mvnw clean deploy -P release -B -DskipTests
         env:
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
