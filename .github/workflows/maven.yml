@@ -9,6 +9,9 @@ on:
 env:
   MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.http.retryhandler.count=5 -Dmaven.wagon.httpconnectionManager.ttlSeconds=240 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
+permissions:
+  contents: read
+
 jobs:
   build:
     strategy:
@@ -19,6 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4.2.0
+      with:
+        persist-credentials: 'false'
     - name: Set up Java
       uses: actions/setup-java@v4.4.0
       with:
