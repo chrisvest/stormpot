@@ -13,6 +13,9 @@ concurrency:
   group:
     'release-snapshot'
 
+permissions:
+  contents: read
+
 jobs:
   snapshot-release:
     runs-on: ubuntu-latest

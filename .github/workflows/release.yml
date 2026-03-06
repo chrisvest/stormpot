@@ -11,6 +11,9 @@ concurrency:
   group:
     'release'
 
+permissions:
+  contents: write
+
 jobs:
   Release:
     if:
