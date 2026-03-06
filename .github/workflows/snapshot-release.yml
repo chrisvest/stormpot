@@ -19,9 +19,6 @@ permissions:
 jobs:
   snapshot-release:
     runs-on: ubuntu-latest
-    concurrency:
-      group: snapshot-release-main
-      cancel-in-progress: true
 
     steps:
       - name: Check out project
