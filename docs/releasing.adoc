@@ -4,6 +4,7 @@ This is not really documentation, but rather an "internal" document detailing th
 
 * [ ] Verify that the snapshots publish correctly.
 * [ ] Change the version to the intended to-be-released non-snapshot version.
+       - Update `pom.xml`, `modular-pom.xml`, and `benchmarks/pom.xml`.
 * [ ] Run the release workflow.
 * [ ] Check out the released tag.
 * [ ] Run `./docupdate.sh` and push updated web site.
