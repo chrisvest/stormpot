@@ -63,6 +63,8 @@ operation. Some of the things that sets Stormpot apart include:
    (since 4.0)
  * Support for changing the `Allocator` after the pool has been created.
    (since 4.0)
+* Support for allocating/deallocating multiple objects in parallel.
+   (since 4.2)
  * And other features that makes for a smooth runtime behaviour.
 
 [NOTE]
@@ -83,7 +85,7 @@ Add it as a Maven dependency to your projects:
 <dependency>
   <groupId>com.github.chrisvest</groupId>
   <artifactId>stormpot</artifactId>
-  <version>4.0</version>
+  <version>4.2</version>
 </dependency>
 ----
 
