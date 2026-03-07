@@ -3,10 +3,11 @@
 This is not really documentation, but rather an "internal" document detailing the release process, so that I don't forget any steps.
 
 * [ ] Verify that the snapshots publish correctly.
+* [ ] Change the version to the intended to-be-released non-snapshot version.
 * [ ] Run the release workflow.
 * [ ] Check out the released tag.
 * [ ] Run `./docupdate.sh` and push updated web site.
 * [ ] Publish the release on GitHub.
 * [ ] Update `pom.xml` to the snapshot of the next version.
 * [ ] Announce on mailing list & write blog post.
-* [ ] Mark old branch as protected.
+* [ ] Update the maven version to the next snapshot.
