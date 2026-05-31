@@ -1,10 +1,15 @@
 when:
-  - event: [push, pull_request]
-    branch: main
+  event: [push, pull_request]
+  branch: main
+
+matrix:
+  JAVA_VERSION:
+    - 21
+    - 25
 
 steps:
   - name: Build
-    image: eclipse-temurin:21-ubi10-minimal
+    image: eclipse-temurin:${JAVA_VERSION}-ubi10-minimal
     environment:
       MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.http.retryhandler.count=5 -Dmaven.wagon.httpconnectionManager.ttlSeconds=240 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
     commands:
