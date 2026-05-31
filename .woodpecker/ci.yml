@@ -8,4 +8,5 @@ steps:
     environment:
       MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.http.retryhandler.count=5 -Dmaven.wagon.httpconnectionManager.ttlSeconds=240 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
     commands:
+      - apt update && apt install unzip
       - ./mvnw -Dmaven.javadoc.skip=true verify -B
