@@ -11,14 +11,15 @@ The general procedure is to just fork the repository, make your changes and
 then submit a pull request.
 
 If you have any questions, then open an issue with the "question" label.
-You can alternatively send me an email, if you have reasons to prefer that.
 
 If you want to work on the web site or the documentation, then go right ahead.
 
 If you want to work on the code, then there are a couple of things to note:
 
- * Make sure your pull request applies cleanly. I don't care if you do this by
-   rebasing, or by proactively pulling and merging changes from upstream master.
+ * Make sure your pull request applies cleanly.
+ * Use merge commits and avoid rebasing.
+ * Address review comments and build failures using new commits, instead of amending or rebasing existing commits,
+   to preserve history and to make it easier for a reviewer to see what's new.
  * To the furthest extent possible, make sure that you follow the strict TDD
    practice that Stormpot has been built with: Test for observable behaviour of
    the public API. Aim for 100% coverage. Test all failure modes. Document all
