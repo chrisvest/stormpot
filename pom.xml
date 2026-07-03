@@ -158,27 +158,6 @@
         <version>3.22.0</version>
       </plugin>
       <plugin>
-        <!--
-          Run mutation tests like this:
-          mvn clean install org.pitest:pitest-maven:mutationCoverage
-        -->
-        <groupId>org.pitest</groupId>
-        <artifactId>pitest-maven</artifactId>
-        <version>1.25.3</version>
-        <configuration>
-          <targetTests>
-            <param>stormpot.*</param>
-          </targetTests>
-          <targetClasses>
-            <param>stormpot.*</param>
-          </targetClasses>
-          <threads>4</threads>
-          <jvmArgs>
-            <value>-ea</value>
-          </jvmArgs>
-        </configuration>
-      </plugin>
-      <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
         <version>5.0.0</version>
