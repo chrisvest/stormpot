@@ -191,6 +191,10 @@ public final class BlazePool<T extends Poolable> implements Pool<T>, ManagedPool
       } else {
         disregardPile.push(slot);
       }
+      // Always poll the live-queue for the next slot. Otherwise, a slot that is
+      // currently claimed through a thread-local cache would be retried, and
+      // pushed onto the disregard pile, in a busy loop until it is released.
+      slot = null;
     }
   }
 

@@ -44,6 +44,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -147,6 +148,40 @@ abstract class AbstractPoolTest<T extends Poolable> {
     Poolable b = tap.tryClaim();
     a.release(); // Has no effect for the result of b
     assertThat(b).isNull();
+  }
+
+  /**
+   * A call to tryClaim must return null instantly when the only object in the
+   * pool is held by another thread through its thread-local cache.
+   * An object claimed that way stays in the live queue, where tryClaim finds it
+   * but cannot claim it. tryClaim must then give up instead of retrying the
+   * same object until the other thread releases it.
+   */
+  @ParameterizedTest
+  @EnumSource(Taps.class)
+  void tryClaimMustReturnNullIfOnlyObjectIsHeldViaAnotherThreadsCache(Taps taps) throws Exception {
+    createOneObjectPool();
+    PoolTap<T> tap = taps.get(this);
+    CountDownLatch holding = new CountDownLatch(1);
+    CountDownLatch done = new CountDownLatch(1);
+    Thread holder = executor.fork(() -> {
+      // The first claim puts the object in the thread-local cache of this thread,
+      // and the second claim takes it from that cache.
+      pool.claim(longTimeout).release();
+      T obj = pool.claim(longTimeout);
+      holding.countDown();
+      done.await();
+      obj.release();
+      return null;
+    });
+    try {
+      holding.await();
+      Future<T> result = executor.forkFuture(tap::tryClaim);
+      assertThat(result.get(10, TimeUnit.SECONDS)).isNull();
+    } finally {
+      done.countDown();
+      join(holder);
+    }
   }
 
   /**
